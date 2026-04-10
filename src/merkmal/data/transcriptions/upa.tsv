@@ -1,0 +1,119 @@
+GRAPHEME	CANONICAL	EXTRA_FEATURES
+# --- Consonants (base) ---
+b	b
+d	d
+f	f
+g	g
+j	j
+k	k
+l	l
+m	m
+n	n
+p	p
+r	r
+s	s
+t	t
+v	v
+w	w
+z	z
+h	h
+# --- Consonants with acute (= palatal/palatalized) ---
+ć	tɕ
+ǵ	ɟ
+ḱ	c
+ĺ	ʎ
+ń	ɲ
+ŕ	rʲ
+ś	ɕ
+ť	tʲ
+ź	ʑ
+# --- Consonants with caron (= postalveolar) ---
+č	tʃ
+ǯ	dʒ
+š	ʃ
+ž	ʒ
+ď	dʲ
+# --- Greek letters (= fricatives/trills) ---
+β	β
+γ	ɣ
+δ	ð
+ϑ	θ
+χ	x
+φ	ɸ
+ρ	ʀ
+ψ	ʙ̥
+# --- Consonants with caron (= postalveolar, additional) ---
+ň	ɳ
+# --- Consonants with acute (additional, UraLex-attested) ---
+ḿ	mʲ
+# --- Velar nasal ---
+ŋ	ŋ
+# --- Other consonants (UraLex-attested) ---
+q	q
+ʒ	ʒ
+c	c
+# --- Small capitals (= devoiced) ---
+ʙ	b̥
+ᴅ	d̥
+ɢ	ɡ̥
+ʟ	l̥
+ᴍ	m̥
+ɴ	n̥
+ᴘ	p
+ʀ	ʀ
+ᴢ	z̥
+ᴊ	j̥
+# --- Glottal/laryngeal ---
+ˀ	ʔ
+ᴴ	h
+# --- Vowels (base) ---
+a	a
+e	e
+i	i
+o	o
+u	u
+ə	ə
+ɔ	ɔ
+# --- Vowels with umlaut (= front rounded or open) ---
+ä	æ
+ö	ø
+ü	y
+å	ɔ
+# --- Vowels with grave (UraLex edge cases) ---
+ì	ì
+à	à
+# --- Vowels with dot above (UraLex edge cases) ---
+ė	e
+# --- Vowels with macron (= long) ---
+ā	aː
+ē	eː
+ī	iː
+ō	oː
+ū	uː
+ǟ	æː
+ȫ	øː
+ǖ	yː
+ə̄	əː
+# --- Vowels with breve (= short/reduced) ---
+ă	a̯
+ĕ	e̯
+ĭ	i̯
+ŏ	o̯
+ŭ	u̯
+ö̆	ø̆
+ü̆	y̆
+# --- Vowels with breve below (= back unrounded) ---
+i̮	ɯ
+e̮	ɤ
+a̮	ɑ
+u̮	ɯ
+ī̮	ɯː
+ē̮	ɤː
+ā̮	ɑː
+# --- Vowels with inverted breve above (= backed) ---
+ə̑	ɤ
+# --- Small-cap vowels (= devoiced/voiceless vowels) ---
+ᴀ	ḁ
+ᴇ	e̥
+ɪ	ɪ
+ᴜ	u̥
