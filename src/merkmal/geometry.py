@@ -197,8 +197,15 @@ class GeometryNode:
             if leaf.negative:
                 leaf_feats.add(leaf.negative)
 
+        # Sort the union so node_groups' insertion order (and hence the
+        # ``for node_name, ... in node_groups.items()`` loop below) is
+        # deterministic. Without sorted(), Python's hash randomization
+        # makes this loop's order differ across processes, and
+        # floating-point non-associativity in the ``total_diff +=``
+        # accumulation then makes sound_distance return bitwise-different
+        # results across runs.
         node_groups: dict[str, tuple[set[str], set[str]]] = {}
-        for feat in feats_a | feats_b:
+        for feat in sorted(feats_a | feats_b):
             if feat in leaf_feats:
                 continue
             node = FEATURE_TO_GEOMETRY_NODE.get(feat)
@@ -496,7 +503,12 @@ def valued_geometry_distance(
     total_weight = 0.0
     total_diff = 0.0
 
-    all_keys = a_values.keys() | b_values.keys()
+    # Sort the key union so ``total_diff`` and ``total_weight``
+    # accumulate in a deterministic order. See the comment in
+    # ``sound_distance`` above — the same floating-point
+    # non-associativity concern applies to this valued-distance path
+    # (used by PBaseFeatureSystem / PhoibleFeatureSystem).
+    all_keys = sorted(a_values.keys() | b_values.keys())
     for key in all_keys:
         val_a = a_values.get(key)
         val_b = b_values.get(key)
