@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+- Fix cross-process non-determinism in `sound_distance` and
+  `valued_geometry_distance`. Set unions are now sorted before
+  iteration so floating-point accumulation order is stable
+  regardless of Python's hash randomization seed.
+
 ## 0.1.0
 
 Initial public release.

@@ -1,6 +1,6 @@
 """Public API for the merkmal package."""
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from merkmal.analysis import (
     FeatureMatrix,
