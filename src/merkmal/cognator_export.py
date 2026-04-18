@@ -19,6 +19,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from merkmal.analysis import distance as _analysis_distance
+from merkmal.partitions import LEVELS as PARTITION_LEVELS
+from merkmal.partitions import (
+    compute_partitions,
+    level_features_by_system,
+    unclassified_graphemes,
+)
 from merkmal.registry import get_registry, get_system
 
 if TYPE_CHECKING:
@@ -268,9 +274,11 @@ def export_cognator(
         classes_path.unlink()
 
     prosody_rows: list[tuple[str, str]] = []
+    role_of: dict[str, str] = {}
     unknown: list[str] = []
     for g in nfc_graphemes:
         role = _derive_role(g, system_obj)
+        role_of[g] = role
         if role == "X":
             unknown.append(g)
         prosody_rows.append((g, role))
@@ -291,13 +299,51 @@ def export_cognator(
             stacklevel=2,
         )
 
+    feats_of: dict[str, frozenset[str] | None] = {
+        g: system_obj.grapheme_to_features(g) for g in nfc_graphemes
+    }
+    partition_rows, class_counts = compute_partitions(
+        system, nfc_graphemes, role_of, feats_of,
+    )
+    _write_bytes(
+        out_path / "partitions.tsv",
+        _tsv_bytes(
+            ["grapheme", "level", "class_code", "class_full"],
+            [[r.grapheme, r.level, r.class_code, r.class_full] for r in partition_rows],
+        ),
+    )
+    partition_unclassified = unclassified_graphemes(partition_rows)
+    if partition_unclassified:
+        preview = ", ".join(repr(g) for g in partition_unclassified[:10])
+        suffix = "..." if len(partition_unclassified) > 10 else ""
+        warnings.warn(
+            f"{len(partition_unclassified)} grapheme(s) in system {system!r} "
+            f"mapped to partition class 'X' (unclassified): [{preview}{suffix}]",
+            stacklevel=2,
+        )
+
     _write_bytes(
         out_path / "fallback.tsv",
         _tsv_bytes(["input", "target", "note"], []),
     )
 
-    file_names = ["distances.tsv", "classes.tsv", "prosody.tsv", "fallback.tsv"]
+    file_names = [
+        "distances.tsv", "classes.tsv", "prosody.tsv",
+        "partitions.tsv", "fallback.tsv",
+    ]
     files_meta = {name: _file_meta(out_path / name) for name in file_names}
+
+    level_features = level_features_by_system(system)
+    partitions_manifest = {
+        "levels": list(PARTITION_LEVELS),
+        "definitions": {
+            level: {
+                "features": list(level_features[level]),
+                "class_count": class_counts[level],
+            }
+            for level in PARTITION_LEVELS
+        },
+    }
 
     from merkmal import __version__
 
@@ -312,6 +358,7 @@ def export_cognator(
             "description": "d' = clip(d_raw / d_max_raw, 0, 1)",
         },
         "grapheme_count": n,
+        "partitions": partitions_manifest,
         "files": files_meta,
     }
     manifest_path = out_path / "manifest.json"

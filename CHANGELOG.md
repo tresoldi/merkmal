@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- Added: `partitions.tsv` in cognator export — feature-subset-derived
+  grapheme partition at four granularity levels (prosody, coarse,
+  medium, fine). Derived from each system's own features; transparent
+  per-level feature subset recorded in manifest.
+
 ## 0.2.0
 
 - Added: `export-cognator` subcommand for static export of feature

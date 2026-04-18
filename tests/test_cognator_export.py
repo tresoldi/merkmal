@@ -134,7 +134,10 @@ def test_byte_stable_under_source_date_epoch(
     b = tmp_path / "b"
     _run_export(a, TEST_SYSTEM)
     _run_export(b, TEST_SYSTEM)
-    for name in ("distances.tsv", "classes.tsv", "prosody.tsv", "fallback.tsv", "manifest.json"):
+    for name in (
+        "distances.tsv", "classes.tsv", "prosody.tsv",
+        "partitions.tsv", "fallback.tsv", "manifest.json",
+    ):
         fa = a / name
         fb = b / name
         assert fa.exists() == fb.exists()
@@ -160,12 +163,17 @@ def test_all_systems_exportable(tmp_path: Path) -> None:
         assert (sub / "manifest.json").exists(), system
         assert (sub / "distances.tsv").exists(), system
         assert (sub / "prosody.tsv").exists(), system
+        assert (sub / "partitions.tsv").exists(), system
         assert (sub / "fallback.tsv").exists(), system
         manifest = json.loads((sub / "manifest.json").read_text(encoding="utf-8"))
         assert manifest["system"] == system
         assert manifest["schema_version"] == 1
         expected_classes = system in SYSTEMS_WITH_CLASSES
         assert manifest["files"]["classes.tsv"]["present"] == expected_classes
+        assert manifest["files"]["partitions.tsv"]["present"]
+        assert set(manifest["partitions"]["levels"]) == {
+            "prosody", "coarse", "medium", "fine",
+        }
 
 
 def test_round_trip_distance_parity(tmp_path: Path) -> None:
@@ -216,3 +224,91 @@ def test_export_date_pinned_by_source_date_epoch(
     _run_export(tmp_path, TEST_SYSTEM)
     manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["export_date"] == "2023-11-14T22:13:20Z"
+
+
+_PARTITION_LEVELS: tuple[str, ...] = ("prosody", "coarse", "medium", "fine")
+
+
+def _read_partitions(path: Path) -> list[tuple[str, str, str, str]]:
+    header, rows = _read_tsv(path)
+    assert header == ["grapheme", "level", "class_code", "class_full"]
+    return [(r[0], r[1], r[2], r[3]) for r in rows]
+
+
+def test_partitions_covers_inventory(tmp_path: Path) -> None:
+    _run_export(tmp_path, TEST_SYSTEM)
+    rows = _read_partitions(tmp_path / "partitions.tsv")
+    _, prosody_rows = _read_tsv(tmp_path / "prosody.tsv")
+    inventory = {r[0] for r in prosody_rows}
+
+    for level in _PARTITION_LEVELS:
+        graphemes_at_level = {g for g, lv, _, _ in rows if lv == level}
+        assert graphemes_at_level == inventory, (
+            f"level {level!r} missing graphemes: "
+            f"{sorted(inventory - graphemes_at_level)}"
+        )
+
+
+def test_partitions_is_partition_per_level(tmp_path: Path) -> None:
+    _run_export(tmp_path, TEST_SYSTEM)
+    rows = _read_partitions(tmp_path / "partitions.tsv")
+    for level in _PARTITION_LEVELS:
+        per_grapheme: dict[str, set[str]] = {}
+        for g, lv, code, _full in rows:
+            if lv != level:
+                continue
+            per_grapheme.setdefault(g, set()).add(code)
+        for g, codes in per_grapheme.items():
+            assert len(codes) == 1, (
+                f"grapheme {g!r} at level {level!r} has multiple codes: {codes}"
+            )
+
+
+def test_partitions_class_counts_monotone(tmp_path: Path) -> None:
+    _run_export(tmp_path, TEST_SYSTEM)
+    rows = _read_partitions(tmp_path / "partitions.tsv")
+    counts = {
+        level: len({code for _g, lv, code, _f in rows if lv == level})
+        for level in _PARTITION_LEVELS
+    }
+    assert counts["prosody"] <= counts["coarse"] <= counts["medium"] <= counts["fine"], (
+        f"non-monotone class counts: {counts}"
+    )
+
+
+def test_partitions_byte_stable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1700000000")
+    a = tmp_path / "a"
+    b = tmp_path / "b"
+    _run_export(a, TEST_SYSTEM)
+    _run_export(b, TEST_SYSTEM)
+    assert (a / "partitions.tsv").read_bytes() == (b / "partitions.tsv").read_bytes()
+
+
+def test_partitions_manifest_matches_output(tmp_path: Path) -> None:
+    _run_export(tmp_path, TEST_SYSTEM)
+    rows = _read_partitions(tmp_path / "partitions.tsv")
+    manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    definitions = manifest["partitions"]["definitions"]
+    for level in _PARTITION_LEVELS:
+        distinct_codes = {code for _g, lv, code, _f in rows if lv == level}
+        assert definitions[level]["class_count"] == len(distinct_codes), (
+            f"class_count mismatch for level {level!r}: "
+            f"manifest={definitions[level]['class_count']}, "
+            f"tsv={len(distinct_codes)}"
+        )
+
+
+def test_partitions_round_trip(tmp_path: Path) -> None:
+    _run_export(tmp_path, TEST_SYSTEM)
+    rows = _read_partitions(tmp_path / "partitions.tsv")
+    by_code: dict[tuple[str, str], set[str]] = {}
+    for _g, lv, code, full in rows:
+        by_code.setdefault((lv, code), set()).add(full)
+    for (lv, code), fulls in by_code.items():
+        assert len(fulls) == 1, (
+            f"level {lv!r} code {code!r} maps to multiple class_full: {fulls}"
+        )
