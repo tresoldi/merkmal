@@ -1,6 +1,6 @@
 """Public API for the merkmal package."""
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 from merkmal.analysis import (
     FeatureMatrix,
@@ -13,6 +13,7 @@ from merkmal.analysis import (
     valued_matches,
 )
 from merkmal.audit import DatasetAuditReport, audit_dataset
+from merkmal.cognator_export import export_all_systems, export_cognator
 from merkmal.dataset import FeatureDataset, dataset_from_rows, load_builtin_dataset, load_dataset
 from merkmal.exporters import export_class_features, export_distances, export_matrix
 from merkmal.geometry import DEFAULT_GEOMETRY, FeatureNode, GeometryNode
@@ -86,7 +87,9 @@ __all__ = [
     "derive_class_features",
     "distance",
     "feature_distance",
+    "export_all_systems",
     "export_class_features",
+    "export_cognator",
     "export_distances",
     "export_matrix",
     "features_to_grapheme",

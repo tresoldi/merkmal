@@ -190,6 +190,46 @@ print(system.grapheme_to_features("k"))
 
 Expected files in `my_feature_data/`: `sounds.tsv`, `classes.tsv`, `features.tsv`.
 
+## Cognator export
+
+`merkmal export-cognator` writes a small, byte-stable bundle of TSV + JSON
+files that downstream consumers (in particular the `cognator` Go package)
+can read without any Python dependency on merkmal.
+
+```sh
+# single system → ./cognator_export/descriptive/
+merkmal export-cognator --system=descriptive
+
+# every built-in system → ./cognator_export/<system>/
+merkmal export-cognator --all-systems --out=./cognator_export --force
+```
+
+The bundle contains:
+
+- `distances.tsv` — full Cartesian pairwise distances, normalized to
+  `[0.0, 1.0]` via `d' = clip(d_raw / d_max_raw, 0, 1)`.
+- `classes.tsv` — sound-class reduction (only for systems that expose
+  one, e.g. `classfeat`).
+- `prosody.tsv` — per-grapheme role tag (`C`, `R`, `V`, `G`, `T`, `S`,
+  `X`).
+- `fallback.tsv` — optional grapheme-normalization table for
+  out-of-inventory inputs (initially empty, populated over time).
+- `manifest.json` — merkmal version, export date, grapheme count, and
+  SHA-256 hashes of every file in the bundle.
+
+All text files are UTF-8 with NFC-normalized graphemes, LF line endings,
+and deterministic row ordering. Floats use fixed `%.6f` formatting. Pin
+`SOURCE_DATE_EPOCH` to produce byte-identical bundles across runs.
+
+The same capability is available as a library function:
+
+```python
+import merkmal
+
+merkmal.export_cognator("descriptive", "./cognator_export/descriptive")
+merkmal.export_all_systems("./cognator_export")
+```
+
 ## Documentation
 
 See the [tutorials](docs/tutorials/) for worked examples covering phonological

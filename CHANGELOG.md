@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0
+
+- Added: `export-cognator` subcommand for static export of feature
+  distances, classes, prosody, and fallback data to a byte-stable
+  bundle consumed by cognator. Exposed as `merkmal.export_cognator`
+  (single system) and `merkmal.export_all_systems` (every registered
+  system). Bundles are reproducible under `SOURCE_DATE_EPOCH` and
+  include SHA-256 hashes in `manifest.json`.
+- Added: `merkmal` console script entry point (also runnable via
+  `python -m merkmal`).
+
 ## 0.1.1
 
 - Fix cross-process non-determinism in `sound_distance` and
