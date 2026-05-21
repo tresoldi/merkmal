@@ -116,6 +116,12 @@ func (e *CategoricalEngine) GraphemeToFeatures(grapheme string) (map[string]bool
 		return EnrichClickFeatures(result), true
 	}
 
+	for _, candidate := range NormalizeSequences(normalized) {
+		if result, ok := e.graphemeTable[candidate]; ok {
+			return EnrichClickFeatures(result), true
+		}
+	}
+
 	if result := e.resolveTieBar(normalized); result != nil {
 		return EnrichClickFeatures(result), true
 	}

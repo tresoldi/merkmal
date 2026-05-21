@@ -44,9 +44,9 @@ y	close|front|rounded|vowel
 ɗ	consonant|dental|implosive|non-pulmonic|voiced
 ǃ	alveolar|click|consonant|non-pulmonic|velar|voiceless
 ǀ	click|consonant|dental|non-pulmonic|velar|voiceless
-t͡s	alveolar|consonant|fricative|sibilant|stop|voiceless
-d͡ʒ	alveolar|consonant|fricative|post-alveolar|sibilant|stop|voiced
-t͡ʃ	alveolar|consonant|fricative|post-alveolar|sibilant|stop|voiceless
+t͡s	affricate|alveolar|consonant|sibilant|voiceless
+d͡ʒ	affricate|consonant|post-alveolar|sibilant|voiced
+t͡ʃ	affricate|consonant|post-alveolar|sibilant|voiceless
 pʰ	aspirated|bilabial|consonant|stop|voiceless
 tː	alveolar|consonant|long|stop|voiceless
 ã	front|nasalized|open|unrounded|vowel

@@ -12,7 +12,11 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import TYPE_CHECKING
 
-from merkmal.grapheme import normalize_input_grapheme, normalize_output_grapheme
+from merkmal.grapheme import (
+    normalize_input_grapheme,
+    normalize_output_grapheme,
+    normalize_sequences,
+)
 from merkmal.representations import CategoricalFeatures
 from merkmal.segmentation import parse_chao_digits
 
@@ -335,6 +339,10 @@ class CategoricalEngine:
         result = self._grapheme_table.get(normalized)
         if result is not None:
             return _enrich_click_features(result)
+        for candidate in normalize_sequences(normalized):
+            result = self._grapheme_table.get(candidate)
+            if result is not None:
+                return _enrich_click_features(result)
         result = self._resolve_tie_bar(normalized)
         if result is not None:
             return _enrich_click_features(result)

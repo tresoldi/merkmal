@@ -24,6 +24,9 @@ func init() {
 	}
 }
 
+const tieBar = '͡'
+const tieBarStr = "͡"
+
 // NormalizeInputGrapheme applies NFD normalization and IPA equivalence substitutions.
 func NormalizeInputGrapheme(grapheme string) string {
 	nfd := norm.NFD.String(grapheme)
@@ -37,6 +40,56 @@ func NormalizeInputGrapheme(grapheme string) string {
 		}
 	}
 	return b.String()
+}
+
+var postalveolarFricatives = map[rune]bool{'ʃ': true, 'ʒ': true}
+var affricateStops = map[rune]bool{'t': true, 'd': true}
+
+// NormalizeSequences returns candidate BIPA-style normalizations in
+// priority order. Handles tie-bar stripping and postalveolar affricate
+// retraction (tʃ → t̠ʃ, dʒ → d̠ʒ). Returns nil if no normalizations apply.
+func NormalizeSequences(grapheme string) []string {
+	var candidates []string
+	withoutTie := strings.ReplaceAll(grapheme, tieBarStr, "")
+	if withoutTie != grapheme {
+		candidates = append(candidates, withoutTie)
+	}
+	base := withoutTie
+	if withoutTie == grapheme {
+		base = grapheme
+	}
+	retracted := insertAffricateRetraction(base)
+	if retracted != base {
+		candidates = append(candidates, retracted)
+	}
+	return candidates
+}
+
+func insertAffricateRetraction(text string) string {
+	runes := []rune(text)
+	var insertions []int
+	i := 0
+	for i < len(runes)-1 {
+		if affricateStops[runes[i]] && postalveolarFricatives[runes[i+1]] {
+			insertions = append(insertions, i+1)
+			i += 2
+		} else {
+			i++
+		}
+	}
+	if len(insertions) == 0 {
+		return text
+	}
+	result := make([]rune, 0, len(runes)+len(insertions))
+	ins := 0
+	for j, r := range runes {
+		if ins < len(insertions) && j == insertions[ins] {
+			result = append(result, 0x0320)
+			ins++
+		}
+		result = append(result, r)
+	}
+	return string(result)
 }
 
 // NormalizeOutputGrapheme maps canonical forms back to preferred IPA glyphs.

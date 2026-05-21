@@ -16,6 +16,7 @@ from merkmal.engines.categorical import CategoricalEngine
 from merkmal.engines.trained import TrainedEngine
 from merkmal.engines.valued import ValuedEngine
 from merkmal.geometry import FeatureNode, Geometry, GeometryNode, load_geometry
+from merkmal.grapheme import normalize_sequences
 from merkmal.model import ModelConfig, load_model, load_model_config
 from merkmal.protocol import FeatureSystem
 from merkmal.registry import (
@@ -86,6 +87,7 @@ __all__ = [
     "matches",
     "merge_tone_digits",
     "minimal_matrix",
+    "normalize_sequences",
     "parse_chao_digits",
     "partial_match",
     "register",

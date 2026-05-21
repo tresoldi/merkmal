@@ -44,3 +44,6 @@ y	EXTRA=-|LONG=-|checked=-|compact=-|consonantal=-|diffuse=+|flat=+|grave=-|inte
 ɗ	EXTRA=-|LONG=-|checked=-|compact=-|consonantal=+|diffuse=+|flat=-|grave=-|interrupted=+|nasal=-|sharp=-|strident=-|tense=.|vocalic=-|voiced=+
 ǃ	EXTRA=-|LONG=-|checked=-|compact=-|consonantal=+|diffuse=+|flat=-|grave=-|interrupted=+|nasal=-|sharp=-|strident=-|tense=.|vocalic=-|voiced=-
 ǀ	EXTRA=-|LONG=-|checked=-|compact=-|consonantal=+|diffuse=+|flat=-|grave=-|interrupted=+|nasal=-|sharp=-|strident=-|tense=.|vocalic=-|voiced=-
+t͡s	EXTRA=-|LONG=-|checked=-|compact=-|consonantal=+|diffuse=+|flat=-|grave=-|interrupted=+|nasal=-|sharp=-|strident=+|tense=.|vocalic=-|voiced=-
+d͡ʒ	EXTRA=-|LONG=-|checked=-|compact=+|consonantal=+|diffuse=-|flat=-|grave=-|interrupted=+|nasal=-|sharp=-|strident=+|tense=.|vocalic=-|voiced=+
+t͡ʃ	EXTRA=-|LONG=-|checked=-|compact=+|consonantal=+|diffuse=-|flat=-|grave=-|interrupted=+|nasal=-|sharp=-|strident=+|tense=.|vocalic=-|voiced=-

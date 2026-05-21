@@ -133,6 +133,14 @@ func (e *ValuedEngine) GraphemeToFeatures(grapheme string) (map[string]bool, boo
 	normalized := NormalizeInputGrapheme(grapheme)
 	values, ok := e.table[normalized]
 	if !ok {
+		for _, candidate := range NormalizeSequences(normalized) {
+			values, ok = e.table[candidate]
+			if ok {
+				break
+			}
+		}
+	}
+	if !ok {
 		return nil, false
 	}
 	result := make(map[string]bool, len(values))
@@ -153,7 +161,23 @@ func (e *ValuedEngine) SegmentDistance(a, b string, opts ...DistanceOption) floa
 	normalizedA := NormalizeInputGrapheme(a)
 	normalizedB := NormalizeInputGrapheme(b)
 	valsA, okA := e.table[normalizedA]
+	if !okA {
+		for _, c := range NormalizeSequences(normalizedA) {
+			valsA, okA = e.table[c]
+			if okA {
+				break
+			}
+		}
+	}
 	valsB, okB := e.table[normalizedB]
+	if !okB {
+		for _, c := range NormalizeSequences(normalizedB) {
+			valsB, okB = e.table[c]
+			if okB {
+				break
+			}
+		}
+	}
 	if !okA || !okB {
 		return 1.0
 	}
