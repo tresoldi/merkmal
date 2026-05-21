@@ -1,0 +1,355 @@
+package merkmal
+
+import (
+	"math"
+	"sort"
+	"strings"
+	"unicode"
+
+	"golang.org/x/text/unicode/norm"
+)
+
+var ipaEquivalences = map[rune]rune{
+	'ɡ':      'g',  // U+0261 → U+0067
+	'\'':     'ʼ',  // U+0027 APOSTROPHE → U+02BC MODIFIER LETTER APOSTROPHE
+	'’': 'ʼ',  // U+2019 RIGHT SINGLE QUOTATION MARK → U+02BC MODIFIER LETTER APOSTROPHE
+}
+
+var ipaReverse map[rune]rune
+
+func init() {
+	ipaReverse = make(map[rune]rune, len(ipaEquivalences))
+	for k, v := range ipaEquivalences {
+		ipaReverse[v] = k
+	}
+}
+
+// NormalizeInputGrapheme applies NFD normalization and IPA equivalence substitutions.
+func NormalizeInputGrapheme(grapheme string) string {
+	nfd := norm.NFD.String(grapheme)
+	var b strings.Builder
+	b.Grow(len(nfd))
+	for _, r := range nfd {
+		if mapped, ok := ipaEquivalences[r]; ok {
+			b.WriteRune(mapped)
+		} else {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// NormalizeOutputGrapheme maps canonical forms back to preferred IPA glyphs.
+func NormalizeOutputGrapheme(grapheme string) string {
+	var b strings.Builder
+	b.Grow(len(grapheme))
+	for _, r := range grapheme {
+		if mapped, ok := ipaReverse[r]; ok {
+			b.WriteRune(mapped)
+		} else {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// ── Tone / combining / modifier tables ──────────────────────────────
+
+var chaoSuperscriptDigits = map[rune]int{
+	'⁰': 0, '¹': 1, '²': 2, '³': 3, '⁴': 4, '⁵': 5,
+}
+
+var isChaoDigit = func() map[rune]bool {
+	m := make(map[rune]bool, len(chaoSuperscriptDigits))
+	for r := range chaoSuperscriptDigits {
+		m[r] = true
+	}
+	return m
+}()
+
+type toneLevels struct{ onset, mid, offset int }
+
+var toneMarkToLevels = map[rune]toneLevels{
+	0x030B: {5, 5, 5},
+	0x0301: {4, 4, 4},
+	0x0304: {3, 3, 3},
+	0x0300: {2, 2, 2},
+	0x030F: {1, 1, 1},
+	0x0302: {4, 3, 2},
+	0x030C: {2, 3, 4},
+}
+
+var levelToOnsetFeatures = map[int][]string{
+	5: {"tone-onset-upper", "tone-onset-raised"},
+	4: {"tone-onset-upper", "tone-onset-lowered"},
+	3: nil,
+	2: {"tone-onset-lower", "tone-onset-raised"},
+	1: {"tone-onset-lower", "tone-onset-lowered"},
+}
+
+var levelToMidFeatures = map[int][]string{
+	5: {"tone-mid-upper", "tone-mid-raised"},
+	4: {"tone-mid-upper", "tone-mid-lowered"},
+	3: nil,
+	2: {"tone-mid-lower", "tone-mid-raised"},
+	1: {"tone-mid-lower", "tone-mid-lowered"},
+}
+
+var levelToOffsetFeatures = map[int][]string{
+	5: {"tone-offset-upper", "tone-offset-raised"},
+	4: {"tone-offset-upper", "tone-offset-lowered"},
+	3: nil,
+	2: {"tone-offset-lower", "tone-offset-raised"},
+	1: {"tone-offset-lower", "tone-offset-lowered"},
+}
+
+// ToneFeaturesForLevels returns tone features for given Chao onset/mid/offset levels.
+func ToneFeaturesForLevels(onset, mid, offset int) map[string]bool {
+	result := map[string]bool{}
+	for _, f := range levelToOnsetFeatures[onset] {
+		result[f] = true
+	}
+	for _, f := range levelToMidFeatures[mid] {
+		result[f] = true
+	}
+	for _, f := range levelToOffsetFeatures[offset] {
+		result[f] = true
+	}
+	return result
+}
+
+var combiningToFeature = map[rune]string{
+	0x0325: "devoiced",
+	0x030A: "devoiced",
+	0x032C: "revoiced",
+	0x0330: "creaky",
+	0x0324: "breathy",
+	0x0303: "nasalized",
+	0x0329: "syllabic",
+	0x030D: "syllabic",
+	0x032F: "non-syllabic",
+	0x032A: "dental",
+	0x031F: "advanced",
+	0x0320: "retracted",
+	0x0318: "advanced-tongue-root",
+	0x0319: "retracted-tongue-root",
+	0x033A: "apical",
+	0x033B: "laminal",
+	0x033C: "linguolabial",
+	0x031D: "raised",
+	0x031E: "lowered",
+	0x0308: "centralized",
+	0x033D: "mid-centralized",
+	0x031C: "less-rounded",
+	0x0339: "more-rounded",
+	0x0306: "ultra-short",
+	0x031A: "unreleased",
+	0x0348: "strong",
+}
+
+var suffixModifierToFeature = map[rune]string{
+	0x02D0: "long",
+	0x02D1: "mid-long",
+	0x02B0: "aspirated",
+	0x02B1: "breathy",
+	0x02B2: "palatalized",
+	0x02B7: "labialized",
+	0x02E0: "velarized",
+	0x02E4: "pharyngealized",
+	0x02C0: "glottalized",
+	0x02BC: "ejective",
+	0x1DA3: "labio-palatalized",
+	0x207F: "with-nasal-release",
+	0x02DE: "rhotacized",
+	0x02E1: "with-lateral-release",
+}
+
+var prefixModifierToFeature = map[rune]string{
+	0x02B0: "pre-aspirated",
+	0x02C0: "pre-glottalized",
+	0x207F: "pre-nasalized",
+	0x02B7: "pre-labialized",
+	0x02B2: "pre-palatalized",
+}
+
+func isMark(r rune) bool {
+	return unicode.Is(unicode.Mn, r) || unicode.Is(unicode.Mc, r) || unicode.Is(unicode.Me, r)
+}
+
+func isLmOrSk(r rune) bool {
+	return unicode.Is(unicode.Lm, r) || unicode.Is(unicode.Sk, r)
+}
+
+// ParseChaoDigits parses Chao superscript digit sequences into onset/mid/offset.
+func ParseChaoDigits(text string) (onset, mid, offset int, ok bool) {
+	var digits []int
+	for _, r := range text {
+		if d, found := chaoSuperscriptDigits[r]; found {
+			digits = append(digits, d)
+		}
+	}
+	if len(digits) == 0 {
+		return 0, 0, 0, false
+	}
+	if len(digits) == 1 {
+		return digits[0], digits[0], digits[0], true
+	}
+	if len(digits) == 2 {
+		m := int(math.Round(float64(digits[0]+digits[1]) / 2.0))
+		return digits[0], m, digits[1], true
+	}
+	return digits[0], digits[1], digits[len(digits)-1], true
+}
+
+// DecomposeGrapheme extracts base characters and modifier features from a grapheme.
+func DecomposeGrapheme(grapheme string) (base string, features map[string]bool) {
+	runes := []rune(grapheme)
+	features = map[string]bool{}
+
+	prefixEnd := 0
+	for i, r := range runes {
+		if isLmOrSk(r) {
+			if feat, ok := prefixModifierToFeature[r]; ok {
+				features[feat] = true
+				prefixEnd = i + 1
+				continue
+			}
+		}
+		break
+	}
+
+	remainder := runes[prefixEnd:]
+
+	tailStart := len(remainder)
+	for k := len(remainder) - 1; k >= 0; k-- {
+		if isChaoDigit[remainder[k]] {
+			tailStart = k
+		} else {
+			break
+		}
+	}
+
+	var baseChars []rune
+	var chaoChars []rune
+
+	for idx, r := range remainder {
+		if idx >= tailStart {
+			chaoChars = append(chaoChars, r)
+			continue
+		}
+		if levels, ok := toneMarkToLevels[r]; ok {
+			for f := range ToneFeaturesForLevels(levels.onset, levels.mid, levels.offset) {
+				features[f] = true
+			}
+		} else if isMark(r) {
+			if feat, ok := combiningToFeature[r]; ok {
+				features[feat] = true
+			} else {
+				baseChars = append(baseChars, r)
+			}
+		} else if isLmOrSk(r) {
+			if feat, ok := suffixModifierToFeature[r]; ok {
+				features[feat] = true
+			} else {
+				baseChars = append(baseChars, r)
+			}
+		} else {
+			baseChars = append(baseChars, r)
+		}
+	}
+
+	if len(chaoChars) > 0 {
+		o, m, off, ok := ParseChaoDigits(string(chaoChars))
+		if ok {
+			for f := range ToneFeaturesForLevels(o, m, off) {
+				features[f] = true
+			}
+		}
+	}
+
+	return string(baseChars), features
+}
+
+// ComposeGrapheme reconstructs a grapheme from base + modifiers.
+func ComposeGrapheme(base string, modifiers map[string]bool) string {
+	ftm := buildFeatureToModifier()
+	sorted := make([]string, 0, len(modifiers))
+	for f := range modifiers {
+		sorted = append(sorted, f)
+	}
+	sort.Strings(sorted)
+
+	var b strings.Builder
+	b.WriteString(base)
+	for _, feat := range sorted {
+		if ch, ok := ftm[feat]; ok {
+			b.WriteRune(ch)
+		}
+	}
+	return b.String()
+}
+
+func buildFeatureToModifier() map[string]rune {
+	result := make(map[string]rune)
+	for cp, feat := range combiningToFeature {
+		if _, exists := result[feat]; !exists {
+			result[feat] = cp
+		}
+	}
+	for cp, feat := range suffixModifierToFeature {
+		result[feat] = cp
+	}
+	return result
+}
+
+var nonPulmonicFeatures = map[string]bool{
+	"click": true, "nasal-click": true, "implosive": true,
+}
+
+// EnrichClickFeatures adds non-pulmonic and velar features for clicks/implosives.
+func EnrichClickFeatures(features map[string]bool) map[string]bool {
+	hasNonPulmonic := false
+	for f := range nonPulmonicFeatures {
+		if features[f] {
+			hasNonPulmonic = true
+			break
+		}
+	}
+	if !hasNonPulmonic {
+		return features
+	}
+	result := make(map[string]bool, len(features)+2)
+	for k := range features {
+		result[k] = true
+	}
+	result["non-pulmonic"] = true
+	if features["click"] || features["nasal-click"] {
+		result["velar"] = true
+	}
+	return result
+}
+
+// ── Set helpers ─────────────────────────────────────────────────────
+
+func mergeSets(sets ...map[string]bool) map[string]bool {
+	size := 0
+	for _, s := range sets {
+		size += len(s)
+	}
+	result := make(map[string]bool, size)
+	for _, s := range sets {
+		for k := range s {
+			result[k] = true
+		}
+	}
+	return result
+}
+
+func featureSetKey(features map[string]bool) string {
+	sorted := make([]string, 0, len(features))
+	for f := range features {
+		sorted = append(sorted, f)
+	}
+	sort.Strings(sorted)
+	return strings.Join(sorted, "|")
+}
