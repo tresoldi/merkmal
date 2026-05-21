@@ -41,13 +41,13 @@ from merkmal.registry import (
     set_registry,
     sound_distance,
 )
-from merkmal.segmentation import merge_tone_digits, parse_chao_digits
 from merkmal.representations import (
     CategoricalFeatures,
     FeatureRepresentation,
     FeatureState,
     ValuedFeatures,
 )
+from merkmal.segmentation import merge_tone_digits, parse_chao_digits
 
 __all__ = [
     "__version__",

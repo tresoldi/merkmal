@@ -8,14 +8,13 @@ geometry tree. Supports optional scalar dimension overlay
 from __future__ import annotations
 
 import unicodedata
-
-from merkmal.segmentation import parse_chao_digits
 from dataclasses import dataclass
 from functools import cached_property
 from typing import TYPE_CHECKING
 
 from merkmal.grapheme import normalize_input_grapheme, normalize_output_grapheme
 from merkmal.representations import CategoricalFeatures
+from merkmal.segmentation import parse_chao_digits
 
 if TYPE_CHECKING:
     from merkmal.geometry import Geometry
