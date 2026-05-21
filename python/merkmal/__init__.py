@@ -16,7 +16,12 @@ from merkmal.engines.categorical import CategoricalEngine
 from merkmal.engines.trained import TrainedEngine
 from merkmal.engines.valued import ValuedEngine
 from merkmal.geometry import FeatureNode, Geometry, GeometryNode, load_geometry
-from merkmal.grapheme import normalize_sequences
+from merkmal.grapheme import (
+    compose_grapheme,
+    decompose_grapheme,
+    normalize_sequences,
+    segment_ipa,
+)
 from merkmal.model import ModelConfig, load_model, load_model_config
 from merkmal.protocol import FeatureSystem
 from merkmal.registry import (
@@ -54,6 +59,7 @@ __all__ = [
     "__version__",
     "CategoricalEngine",
     "CategoricalFeatures",
+    "compose_grapheme",
     "FeatureMatrix",
     "FeatureNode",
     "FeatureRepresentation",
@@ -68,6 +74,7 @@ __all__ = [
     "ValuedFeatures",
     "add_features",
     "create_registry",
+    "decompose_grapheme",
     "derive_class_features",
     "distance",
     "feature_distance",
@@ -93,6 +100,7 @@ __all__ = [
     "register",
     "reset_registry",
     "segment_distance",
+    "segment_ipa",
     "set_default",
     "set_registry",
     "sound_distance",

@@ -307,3 +307,93 @@ def apply_modifier_effects(
                 result[feat_name] = target_state
                 break
     return result
+
+
+# ── IPA segmentation ──────────────────────────────────────────────────
+
+_TIE_BARS: frozenset[str] = frozenset({"͡", "͜"})
+_BOUNDARY_CHARS: frozenset[str] = frozenset({"+", ".", "|", "‖"})
+
+
+def segment_ipa(ipa: str) -> list[str]:
+    """Segment an IPA string into individual phones.
+
+    Chao tone digits are emitted as separate tokens; use
+    ``merge_tone_digits()`` to attach them to syllabic nuclei.
+
+    >>> segment_ipa("tʰoŋ")
+    ['tʰ', 'o', 'ŋ']
+    >>> segment_ipa("t͡sʰa")
+    ['t͡sʰ', 'a']
+    """
+    nfd = unicodedata.normalize("NFD", ipa)
+    result: list[str] = []
+    current: list[str] = []
+    has_base = False
+    after_tie = False
+
+    def flush() -> None:
+        nonlocal has_base, after_tie
+        if current:
+            result.append("".join(current))
+            current.clear()
+        has_base = False
+        after_tie = False
+
+    i = 0
+    while i < len(nfd):
+        ch = nfd[i]
+        cp = ord(ch)
+        cat = unicodedata.category(ch)
+
+        if ch in _CHAO_SUPERSCRIPT_DIGITS:
+            flush()
+            start = i
+            while i < len(nfd) and nfd[i] in _CHAO_SUPERSCRIPT_DIGITS:
+                i += 1
+            result.append(nfd[start:i])
+            continue
+
+        if ch == " ":
+            flush()
+            i += 1
+            continue
+
+        if ch in _BOUNDARY_CHARS:
+            flush()
+            result.append(ch)
+            i += 1
+            continue
+
+        if ch in _TIE_BARS:
+            current.append(ch)
+            after_tie = True
+            i += 1
+            continue
+
+        if cat.startswith("M"):
+            current.append(ch)
+            i += 1
+            continue
+
+        if cat in ("Lm", "Sk"):
+            if has_base or cp in _PREFIX_MODIFIER_TO_FEATURE or cp in _SUFFIX_MODIFIER_TO_FEATURE:
+                current.append(ch)
+            else:
+                if has_base and not after_tie:
+                    flush()
+                current.append(ch)
+                has_base = True
+                after_tie = False
+            i += 1
+            continue
+
+        if has_base and not after_tie:
+            flush()
+        current.append(ch)
+        has_base = True
+        after_tie = False
+        i += 1
+
+    flush()
+    return result

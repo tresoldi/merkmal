@@ -433,6 +433,102 @@ func ApplyModifierEffects(baseValues map[string]FeatureState, modifiers map[stri
 	return result
 }
 
+// ── IPA segmentation ────────────────────────────────────────────────
+
+var tieBarSet = map[rune]bool{'͡': true, '͜': true}
+var boundaryChars = map[rune]bool{'+': true, '.': true, '|': true, '‖': true}
+
+// SegmentIPA segments an IPA string into individual phones.
+// Chao tone digits are emitted as separate tokens; use MergeToneDigits
+// to attach them to syllabic nuclei.
+func SegmentIPA(ipa string) []string {
+	nfd := norm.NFD.String(ipa)
+	runes := []rune(nfd)
+	var result []string
+	var current []rune
+	hasBase := false
+	afterTie := false
+
+	flush := func() {
+		if len(current) > 0 {
+			result = append(result, string(current))
+			current = current[:0]
+		}
+		hasBase = false
+		afterTie = false
+	}
+
+	i := 0
+	for i < len(runes) {
+		r := runes[i]
+
+		if isChaoDigit[r] {
+			flush()
+			start := i
+			for i < len(runes) && isChaoDigit[runes[i]] {
+				i++
+			}
+			result = append(result, string(runes[start:i]))
+			continue
+		}
+
+		if r == ' ' {
+			flush()
+			i++
+			continue
+		}
+
+		if boundaryChars[r] {
+			flush()
+			result = append(result, string(r))
+			i++
+			continue
+		}
+
+		if tieBarSet[r] {
+			current = append(current, r)
+			afterTie = true
+			i++
+			continue
+		}
+
+		if isMark(r) {
+			current = append(current, r)
+			i++
+			continue
+		}
+
+		if isLmOrSk(r) {
+			_, isPre := prefixModifierToFeature[r]
+			_, isSuf := suffixModifierToFeature[r]
+			if hasBase || isPre || isSuf {
+				current = append(current, r)
+			} else {
+				if hasBase && !afterTie {
+					flush()
+				}
+				current = append(current, r)
+				hasBase = true
+				afterTie = false
+			}
+			i++
+			continue
+		}
+
+		// Base letter
+		if hasBase && !afterTie {
+			flush()
+		}
+		current = append(current, r)
+		hasBase = true
+		afterTie = false
+		i++
+	}
+
+	flush()
+	return result
+}
+
 // ── Set helpers ─────────────────────────────────────────────────────
 
 func mergeSets(sets ...map[string]bool) map[string]bool {
