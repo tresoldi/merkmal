@@ -1,5 +1,16 @@
 # merkmal: gaps, needs, and bugs — report from Arca Verborum
 
+> **Partially addressed.** This report targets merkmal 0.1.0. The
+> 0.5.0 refactor added compositional decomposition fallback to
+> **categorical engines** (descriptive, broad, distinctive), which
+> resolves §3 and most of §4 for those systems. However, the
+> **valued engine** (phoible — arca's primary system) remains
+> literal-lookup only: no compositional fallback, no tone-mark
+> handling, no sequence normalization. The IPA segmenter (§2) and
+> public `normalize()`/`is_segment()` APIs (§5) are not yet
+> implemented. These items are on the merkmal roadmap, prioritised
+> after plan-phase completion.
+
 **Author:** generated during Arca Verborum IECOR transcription work, 2026-05-21
 **merkmal version evaluated:** `0.1.0` (system: `phoible`, 3,142 graphemes)
 **Consumer:** `~/repos/arcaverborum` — uses `merkmal.get_features` /
