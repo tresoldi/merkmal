@@ -371,6 +371,85 @@ func TestKnown(t *testing.T) {
 	}
 }
 
+// ── Full parity tests ─────────────────────────────────────────────
+
+var allModels = []string{
+	"broad", "classfeat", "descriptive", "distinctive",
+	"pbase-hc", "pbase-jfh", "pbase-spe", "pbase-uftc", "phoible",
+}
+
+func readGoldenTSVOptional(t *testing.T, filename string) []map[string]string {
+	t.Helper()
+	path := goldenDir + "/" + filename
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return nil
+	}
+	return readGoldenTSV(t, filename)
+}
+
+func TestFullFeatureParity(t *testing.T) {
+	geom := loadTestGeometry(t)
+	for _, modelName := range allModels {
+		t.Run(modelName, func(t *testing.T) {
+			rows := readGoldenTSVOptional(t, modelName+"_features_full.tsv")
+			if rows == nil {
+				t.Skipf("no full features for %s", modelName)
+			}
+			sys := loadTestModel(t, modelName, geom)
+			mismatches := 0
+			for _, row := range rows {
+				grapheme := row["GRAPHEME"]
+				expectedFeats := strings.Split(row["FEATURES"], "|")
+				expected := make(map[string]bool, len(expectedFeats))
+				for _, f := range expectedFeats {
+					expected[f] = true
+				}
+				actual, ok := sys.GraphemeToFeatures(grapheme)
+				if !ok {
+					t.Errorf("%s: %q not found (expected %d features)",
+						modelName, grapheme, len(expected))
+					mismatches++
+					if mismatches > 20 {
+						t.Fatalf("too many mismatches, stopping")
+					}
+					continue
+				}
+				if !mapsEqual(actual, expected) {
+					t.Errorf("%s %q:\n  expected %v\n  got      %v",
+						modelName, grapheme,
+						sortedKeys(expected), sortedKeys(actual))
+					mismatches++
+					if mismatches > 20 {
+						t.Fatalf("too many mismatches, stopping")
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestFullDistanceParity(t *testing.T) {
+	geom := loadTestGeometry(t)
+	for _, modelName := range allModels {
+		t.Run(modelName, func(t *testing.T) {
+			rows := readGoldenTSVOptional(t, modelName+"_distances_full.tsv")
+			if rows == nil {
+				t.Skipf("no full distances for %s", modelName)
+			}
+			sys := loadTestModel(t, modelName, geom)
+			for _, row := range rows {
+				a, b := row["GRAPHEME_A"], row["GRAPHEME_B"]
+				expected, _ := strconv.ParseFloat(row["DISTANCE"], 64)
+				actual := sys.SegmentDistance(a, b)
+				if math.Abs(actual-expected) > tolerance {
+					t.Errorf("%s %q↔%q: expected %v, got %v",
+						modelName, a, b, expected, actual)
+				}
+			}
+		})
+	}
+}
+
 func sortedKeys(m map[string]bool) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {

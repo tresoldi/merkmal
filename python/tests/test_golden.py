@@ -128,3 +128,52 @@ class TestModelDistancesGolden:
                 f"{model_name} {a!r}↔{b!r}: "
                 f"expected {expected}, got {actual}"
             )
+
+
+# ── Full parity tests ─────────────────────────────────────────────────
+
+
+class TestFullFeatureParity:
+    @pytest.mark.parametrize("model_name", _model_names())
+    def test_features_full(self, model_name: str) -> None:
+        path = GOLDEN_DIR / f"{model_name}_features_full.tsv"
+        if not path.exists():
+            pytest.skip(f"No full golden features for {model_name}")
+        system = load_model(model_name)
+        rows = _read_tsv(path)
+        for row in rows:
+            grapheme = row["GRAPHEME"]
+            expected = frozenset(row["FEATURES"].split("|"))
+            actual = system.grapheme_to_features(grapheme)
+            assert actual is not None, f"{model_name}: {grapheme!r} not found"
+            assert actual == expected, (
+                f"{model_name} {grapheme!r}: "
+                f"expected {sorted(expected)}, got {sorted(actual)}"
+            )
+
+
+class TestFullDistanceParity:
+    @pytest.mark.parametrize("model_name", _model_names())
+    def test_distances_full(self, model_name: str) -> None:
+        path = GOLDEN_DIR / f"{model_name}_distances_full.tsv"
+        if not path.exists():
+            pytest.skip(f"No full golden distances for {model_name}")
+        system = load_model(model_name)
+        rows = _read_tsv(path)
+        for row in rows:
+            a, b = row["GRAPHEME_A"], row["GRAPHEME_B"]
+            expected = float(row["DISTANCE"])
+
+            if model_name == "classfeat":
+                actual = system.grapheme_cost(a, b)
+            else:
+                rep_a = system.grapheme_to_representation(a)
+                rep_b = system.grapheme_to_representation(b)
+                assert rep_a is not None, f"{model_name}: {a!r} not found"
+                assert rep_b is not None, f"{model_name}: {b!r} not found"
+                actual = system.segment_distance(rep_a, rep_b)
+
+            assert actual == pytest.approx(expected, abs=TOLERANCE), (
+                f"{model_name} {a!r}↔{b!r}: "
+                f"expected {expected}, got {actual}"
+            )
