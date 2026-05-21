@@ -67,3 +67,48 @@ func TestSegmentIPAChaoSeparate(t *testing.T) {
 		t.Errorf("SegmentIPA did not emit Chao groups as separate tokens: %v", segments)
 	}
 }
+
+func TestMergeToneDigits(t *testing.T) {
+	tests := []struct {
+		input []string
+		want  []string
+	}{
+		{
+			[]string{"tʰ", "o", "³¹", "+", "p", "e", "j", "¹³"},
+			[]string{"tʰ", "o³¹", "+", "p", "e¹³", "j"},
+		},
+		{
+			[]string{"k", "a", "n", "⁵⁵"},
+			[]string{"k", "a⁵⁵", "n"},
+		},
+		{
+			[]string{"a", "⁰"},
+			[]string{"a"},
+		},
+		{
+			[]string{"p", "a"},
+			[]string{"p", "a"},
+		},
+	}
+
+	for _, tc := range tests {
+		got := MergeToneDigits(tc.input)
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("MergeToneDigits(%v) = %v, want %v", tc.input, got, tc.want)
+		}
+	}
+}
+
+func TestSegmentMergePipeline(t *testing.T) {
+	segments := SegmentIPA("tʰo³¹pan¹³")
+	merged := MergeToneDigits(segments)
+	found := false
+	for _, s := range merged {
+		if s == "o³¹" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("pipeline did not produce o³¹: %v", merged)
+	}
+}

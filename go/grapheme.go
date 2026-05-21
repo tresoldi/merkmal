@@ -244,14 +244,36 @@ func ParseChaoDigits(text string) (onset, mid, offset int, ok bool) {
 	if len(digits) == 0 {
 		return 0, 0, 0, false
 	}
+	allZero := true
+	for _, d := range digits {
+		if d != 0 {
+			allZero = false
+			break
+		}
+	}
+	if allZero {
+		return 0, 0, 0, false
+	}
+	o := digits[0]
+	off := digits[len(digits)-1]
+	if o == 0 {
+		o = off
+	}
+	if off == 0 {
+		off = o
+	}
 	if len(digits) == 1 {
-		return digits[0], digits[0], digits[0], true
+		return o, o, o, true
 	}
 	if len(digits) == 2 {
-		m := int(math.Round(float64(digits[0]+digits[1]) / 2.0))
-		return digits[0], m, digits[1], true
+		m := int(math.Round(float64(o+off) / 2.0))
+		return o, m, off, true
 	}
-	return digits[0], digits[1], digits[len(digits)-1], true
+	m := digits[1]
+	if m == 0 {
+		m = int(math.Round(float64(o+off) / 2.0))
+	}
+	return o, m, off, true
 }
 
 // DecomposeGrapheme extracts base characters and modifier features from a grapheme.
@@ -378,6 +400,78 @@ func EnrichClickFeatures(features map[string]bool) map[string]bool {
 	result["non-pulmonic"] = true
 	if features["click"] || features["nasal-click"] {
 		result["velar"] = true
+	}
+	return result
+}
+
+// ── Tone digit merging ──────────────────────────────────────────────
+
+var vowelRunes = func() map[rune]bool {
+	m := make(map[rune]bool)
+	for _, r := range "aeiouyɛɔəɨʉɯɵœæɐɑʌɪʊɤøɘɜɞɒɶɿʅ" {
+		m[r] = true
+	}
+	return m
+}()
+
+const syllabicCombining = '̩'
+
+func isToneDigitString(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if !isChaoDigit[r] {
+			return false
+		}
+	}
+	return true
+}
+
+func isSyllabic(segment string) bool {
+	for _, r := range segment {
+		if r == syllabicCombining {
+			return true
+		}
+	}
+	for _, r := range segment {
+		if !unicode.Is(unicode.Mn, r) && !unicode.Is(unicode.Mc, r) && !unicode.Is(unicode.Me, r) {
+			if vowelRunes[unicode.ToLower(r)] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// MergeToneDigits merges Chao tone digit segments onto their syllabic nucleus.
+// Tone groups that parse to all-zero are dropped; valid ones attach to the
+// nearest preceding syllabic segment (not crossing "+" boundaries).
+func MergeToneDigits(segments []string) []string {
+	result := make([]string, len(segments))
+	copy(result, segments)
+
+	for i := len(result) - 1; i >= 0; i-- {
+		if !isToneDigitString(result[i]) {
+			continue
+		}
+		tone := result[i]
+		_, _, _, ok := ParseChaoDigits(tone)
+		// Remove the tone segment
+		result = append(result[:i], result[i+1:]...)
+		if !ok {
+			continue
+		}
+		// Attach to nearest preceding syllabic
+		for j := i - 1; j >= 0; j-- {
+			if result[j] == "+" {
+				break
+			}
+			if isSyllabic(result[j]) {
+				result[j] = result[j] + tone
+				break
+			}
+		}
 	}
 	return result
 }

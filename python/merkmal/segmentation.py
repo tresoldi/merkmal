@@ -69,7 +69,7 @@ def merge_tone_digits(segments: list[str]) -> list[str]:
     """Merge Chao tone digit segments onto their syllabic nucleus.
 
     >>> merge_tone_digits(["tʰ", "o", "³¹", "+", "p", "e", "j", "¹³"])
-    ['tʰ', 'o³¹', '+', 'p', 'e', 'j¹³']
+    ['tʰ', 'o³¹', '+', 'p', 'e¹³', 'j']
     >>> merge_tone_digits(["k", "a", "n", "⁵⁵"])
     ['k', 'a⁵⁵', 'n']
     >>> merge_tone_digits(["a", "⁰"])
