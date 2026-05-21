@@ -6,11 +6,11 @@
 #'
 #' merkmal is a zero-dependency Python library for phonological
 #' features.  It ships nine feature systems, geometry-weighted
-#' distance, tone support, and a UPA transcription adapter.
+#' distance, and tone support.
 #'
 #' This notebook walks through the core API: feature lookup,
 #' natural classes, distances across systems, sound change
-#' modelling, tone, UPA, and a small cognate detection experiment.
+#' modelling, tone, and a small cognate detection experiment.
 #'
 
 #| hide
@@ -315,47 +315,6 @@ for i, t1 in enumerate(tones):
 #' presets.  Try `node_weights="tone-only"` -- what happens to
 #' the segmental component?
 #'
-#' ## UPA transcription adapter
-#'
-#' The Uralic Phonetic Alphabet is the standard transcription
-#' system in Uralistics.  merkmal maps UPA to IPA internally, so
-#' you can pass UPA input and get features and distances as usual.
-#'
-
-from merkmal.upa import adapt, adapt_segment
-
-upa_words = [
-    ("käsi",   "hand (Finnish)"),
-    ("ńēləm",  "tongue (Mansi)"),
-    ("ni̮r",   "nose (Komi)"),
-    ("βüt",    "water (Meadow Mari)"),
-]
-for word, gloss in upa_words:
-    ipa = adapt(word)
-    print(f"  {word:12s} → {' '.join(ipa):20s}  ({gloss})")
-
-#'
-#' The adapter handles diacritics with different UPA-to-IPA semantics:
-#' breve below remaps the vowel (i̮ → ɯ), acute marks a palatal
-#' consonant (ń → ɲ), prime marks palatalization (lʹ → lʲ).
-#'
-
-upa_pairs = [
-    ("s", "š",  "alveolar vs postalveolar"),
-    ("n", "ń",  "alveolar vs palatal nasal"),
-    ("i", "i̮", "front vs back unrounded"),
-    ("k", "χ",  "velar stop vs velar fricative"),
-]
-print("\nUPA segment distances (Distinctive):\n")
-for a, b, label in upa_pairs:
-    d = merkmal.segment_distance(a, b, system="distinctive", transcription="upa")
-    print(f"  {a}~{b}  d = {d:.3f}  ({label})")
-
-#'
-#' **Try it yourself.**
-#' Adapt `"tǖ"` (Selkup "fire") and look up its features.
-#' Compute the distance between UPA `"ö"` and `"o"`.
-#'
 #' ## Cognate detection with phonological distance
 #'
 #' Segment distance feeds into Needleman-Wunsch alignment, which
@@ -619,7 +578,6 @@ print(f"  non-cognate mean: {mean(tone_non_dists):.3f}")
 #' - Tutorial 2 (typology): system comparison, feature economy, coverage
 #' - Tutorial 3 (historical linguistics): sound change chains, natural vs unnatural, GVS
 #' - Tutorial 4 (cognate detection): full evaluation pipeline, error analysis
-#' - Tutorial 5 (UPA): complete adapter reference, Uralic data
 #'
 #' ## References
 #'

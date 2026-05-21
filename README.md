@@ -1,42 +1,46 @@
 # merkmal
 
-`merkmal` is a standalone Python package for manipulating phonological
-features. Zero runtime dependencies, Python 3.12+.
+`merkmal` is a phonological feature library for computational
+historical linguistics. It maps IPA graphemes to feature
+representations and computes geometry-weighted distances between
+them, supporting nine feature systems across approximately 780
+graphemes.
 
-It provides:
-
-- bundled phonological feature datasets
-- pluggable feature systems (9 built-in)
-- feature geometry and distance functions (Clements & Hume 1995)
-- tonal geometry (Yip/Bao)
-- query and analysis helpers for graphemes and feature sets
-- UPA transcription support
+The library has dual implementations — a Python package (zero
+runtime dependencies, Python 3.12+) and a Go module
+(`golang.org/x/text` only) — that load the same pluggable model
+directories and geometry files. Cross-language golden tests ensure
+both implementations produce identical results.
 
 ## Installation
 
-Install from PyPI:
+Python (from the `python/` directory):
 
 ```bash
-pip install merkmal
+cd python
+pip install -e ".[dev]"
 ```
 
-Development install:
+Go:
 
-```bash
-git clone https://github.com/tresoldi/merkmal.git
-cd merkmal
-pip install -e ".[dev]"
+```go
+import merkmal "github.com/tresoldi/merkmal/go"
 ```
 
 Run checks:
 
 ```bash
+# Python (from python/)
 ruff check .
-mypy src
-pytest -q
+mypy merkmal/
+pytest tests/ -q
+
+# Go (from go/)
+go test ./...
+go vet ./...
 ```
 
-## Quick start
+## Quick start (Python)
 
 ```python
 import merkmal
@@ -59,24 +63,40 @@ print(merkmal.distance("a", "e"))
 print(merkmal.distance("p", "b", system="classfeat"))
 ```
 
+## Quick start (Go)
+
+```go
+modelsFS := os.DirFS("models")
+geomFS := os.DirFS("geometries")
+reg, _ := merkmal.NewRegistry(modelsFS, geomFS)
+sys, _ := reg.Get("descriptive")
+dist := sys.SegmentDistance("p", "b")
+```
+
+All Go loading is `fs.FS`-based. Use `os.DirFS` for disk-based
+models, `embed.FS` for compiled-in data, or `fstest.MapFS` for
+tests.
+
 ## Systems
 
 | System | Type | Features | Distance |
 |--------|------|----------|----------|
 | `descriptive` | categorical | articulatory | geometry-weighted |
 | `broad` | categorical | simplified | geometry-weighted |
-| `distinctive` | privative | Clements & Hume | geometry-weighted |
+| `distinctive` | categorical + scalar | Clements & Hume | geometry-weighted |
 | `pbase-hc`, `-jfh`, `-spe`, `-uftc` | multi-state | 4 theoretical families | geometry-weighted |
-| `phoible` | binary | 37 features | Hamming |
+| `phoible` | binary | 37 features | geometry-weighted |
 | `classfeat` | hybrid | sound classes + continuous | trained weights |
 
-All systems implement the same `FeatureSystem` protocol. Distances, queries,
-matrices, and natural class derivation work across all of them.
+All systems implement the same interface (`FeatureSystem` protocol
+in Python, `System` interface in Go). Distances, queries, and
+partition derivation work uniformly across all of them.
 
 ## Working with systems
 
-You can use the lazy default registry through top-level helpers, or work
-with a specific system object.
+The Python package exposes a lazy default registry through
+top-level helpers, or individual system objects can be obtained
+directly.
 
 ```python
 import merkmal
@@ -90,8 +110,8 @@ print(distinctive.grapheme_to_features("a"))
 print(pbase.grapheme_to_representation("a"))
 ```
 
-Exact reverse lookup is available when a native representation maps directly to
-a known grapheme.
+Exact reverse lookup is available when a native representation maps
+directly to a known grapheme.
 
 ```python
 descriptive = merkmal.get_system("descriptive")
@@ -105,8 +125,8 @@ print(grapheme)
 
 ## Feature queries
 
-Use `features_to_graphemes(...)` to find all graphemes matching a feature set.
-Matching is partial by default.
+Use `features_to_graphemes(...)` to find all graphemes matching a
+feature set. Matching is partial by default.
 
 ```python
 import merkmal
@@ -152,7 +172,7 @@ print(merkmal.distance("p", "b"))
 print(merkmal.distance("t", "d", system="pbase-hc"))
 ```
 
-You can also supply a precomputed nested dictionary:
+A precomputed nested dictionary can also be supplied:
 
 ```python
 precomputed = {"a": {"e": 1.5, "u": 2.0}, "p": {"b": 0.5}}
@@ -161,8 +181,8 @@ print(merkmal.distance("a", "e", precomputed=precomputed))
 
 ## Multi-state systems (P-base)
 
-P-base-derived systems expose multi-state values (`+`, `-`, `n`, `.`, `o`, `x`)
-through `FeatureState`.
+P-base-derived systems expose multi-state values (`+`, `-`, `n`,
+`.`, `o`, `x`) through `FeatureState`.
 
 ```python
 import merkmal
@@ -172,69 +192,44 @@ print(rep.values["syllabic"])
 # FeatureState.POSITIVE
 ```
 
-The bundled P-base table is derived, not verbatim. Duplicate rows with
-conflicting values have the conflicting cells downgraded to `.`
-(`FeatureState.DOT`). The P-base data retains its own attribution and license
-notice in `src/merkmal/data/pbase/`.
+The bundled P-base table is derived, not verbatim. Duplicate rows
+with conflicting values have the conflicting cells downgraded to
+`.` (`FeatureState.DOT`). The P-base data retains its own
+attribution and license notice.
 
-## Custom datasets
+## Repository structure
 
-```python
-from merkmal import create_registry, load_dataset
-
-dataset = load_dataset(directory="my_feature_data")
-registry = create_registry(dataset=dataset)
-system = registry.get_system("descriptive")
-print(system.grapheme_to_features("k"))
 ```
-
-Expected files in `my_feature_data/`: `sounds.tsv`, `classes.tsv`, `features.tsv`.
-
-## Cognator export
-
-`merkmal export-cognator` writes a small, byte-stable bundle of TSV + JSON
-files that downstream consumers (in particular the `cognator` Go package)
-can read without any Python dependency on merkmal.
-
-```sh
-# single system → ./cognator_export/descriptive/
-merkmal export-cognator --system=descriptive
-
-# every built-in system → ./cognator_export/<system>/
-merkmal export-cognator --all-systems --out=./cognator_export --force
-```
-
-The bundle contains:
-
-- `distances.tsv` — full Cartesian pairwise distances, normalized to
-  `[0.0, 1.0]` via `d' = clip(d_raw / d_max_raw, 0, 1)`.
-- `classes.tsv` — sound-class reduction (only for systems that expose
-  one, e.g. `classfeat`).
-- `prosody.tsv` — per-grapheme role tag (`C`, `R`, `V`, `G`, `T`, `S`,
-  `X`).
-- `fallback.tsv` — optional grapheme-normalization table for
-  out-of-inventory inputs (initially empty, populated over time).
-- `manifest.json` — merkmal version, export date, grapheme count, and
-  SHA-256 hashes of every file in the bundle.
-
-All text files are UTF-8 with NFC-normalized graphemes, LF line endings,
-and deterministic row ordering. Floats use fixed `%.6f` formatting. Pin
-`SOURCE_DATE_EPOCH` to produce byte-identical bundles across runs.
-
-The same capability is available as a library function:
-
-```python
-import merkmal
-
-merkmal.export_cognator("descriptive", "./cognator_export/descriptive")
-merkmal.export_all_systems("./cognator_export")
+merkmal/
+├── models/                 pluggable model directories (data)
+│   ├── descriptive/        model.json + inventory.tsv + features.tsv + classes.tsv
+│   ├── broad/
+│   ├── distinctive/
+│   ├── phoible/            model.json + inventory.tsv (37 feature columns)
+│   ├── pbase-{hc,jfh,spe,uftc}/
+│   └── classfeat/          model.json + inventory.tsv + weights.json
+├── geometries/
+│   └── clements-hume.json  Clements & Hume (1995) feature geometry tree
+├── python/                 Python package (v0.5.0)
+│   ├── pyproject.toml
+│   ├── merkmal/
+│   └── tests/
+├── go/                     Go module (github.com/tresoldi/merkmal/go)
+│   ├── go.mod
+│   ├── merkmal.go          System interface, Role, DistanceOption
+│   └── *.go
+├── tests/golden/           cross-language parity expectations
+├── scripts/                model validation scripts
+├── docs/                   tutorials and notebooks
+└── paper/                  extended guides (programmer + linguist perspectives)
 ```
 
 ## Documentation
 
-See the [tutorials](docs/tutorials/) for worked examples covering phonological
-features, typology, historical linguistics, cognate detection, and UPA
-transcription.
+See the [tutorials](docs/tutorials/) for worked examples covering
+phonological features, typology, historical linguistics, and
+cognate detection. Extended guides are available under
+[paper/](paper/).
 
 ## License
 

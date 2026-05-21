@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.5.0
+
+- **Breaking**: data-code decoupling. Feature inventories, geometry
+  tree, partition definitions, and per-system metadata moved from
+  Python source files to pluggable model directories (`models/`) and
+  geometry files (`geometries/`). Both Python and Go implementations
+  load these data files at runtime.
+- **Breaking**: Python package moved from `src/merkmal/` to
+  `python/merkmal/`. Engine implementations reorganized into
+  `engines/categorical.py`, `engines/valued.py`, `engines/trained.py`.
+- Added: native Go module (`go/`) implementing the full `System`
+  interface — model loading, geometry-weighted distance, partition
+  derivation, grapheme normalization. All `fs.FS`-based for
+  embedding flexibility.
+- Added: cross-language golden test data (`tests/golden/`) pinning
+  feature extractions, pairwise distances, and partition assignments
+  across all nine systems. Both test suites validate against these.
+- Added: `model.py` / `model.go` — generic model loader that reads
+  `model.json` and dispatches to the appropriate engine by type.
+- Added: `geometry.py` / `geometry.go` — geometry loader from JSON,
+  replacing the hardcoded tree in the old `geometry.py`.
+- Added: `partition.py` / `partition.go` — partition derivation from
+  model config, replacing hardcoded slot definitions.
+- Added: `registry.py` / `registry.go` — model discovery from the
+  `models/` directory.
+- Removed: `cognator_export.py` and the `export-cognator` CLI
+  subcommand. Downstream Go packages now import `merkmal/go`
+  directly.
+- Removed: UPA transcription adapter (`upa.py`). Consumers requiring
+  UPA-to-IPA mapping should handle conversion upstream.
+- Removed: `exporters.py`, `data/` directory (data now in `models/`).
+
+## 0.4.0
+
+- Added: `--custom-level` flag to `export-cognator` for caller-specified
+  partition feature subsets (repeatable as
+  `--custom-level=name:feat1,feat2,...`). Mirrored in the Python API as
+  the `custom_levels=` kwarg of `merkmal.export_cognator` and
+  `merkmal.export_all_systems`. Custom levels appear in `partitions.tsv`
+  alongside the four standard levels; their feature subsets and source
+  are recorded in the manifest with `source: custom`.
+
 ## 0.3.0
 
 - Added: `partitions.tsv` in cognator export — feature-subset-derived
