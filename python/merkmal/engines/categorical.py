@@ -8,6 +8,8 @@ geometry tree. Supports optional scalar dimension overlay
 from __future__ import annotations
 
 import unicodedata
+
+from merkmal.segmentation import parse_chao_digits
 from dataclasses import dataclass
 from functools import cached_property
 from typing import TYPE_CHECKING
@@ -160,19 +162,6 @@ def _enrich_click_features(features: frozenset[str]) -> frozenset[str]:
     if "click" in features or "nasal-click" in features:
         added.add("velar")
     return features | added
-
-
-def parse_chao_digits(text: str) -> tuple[int, int, int] | None:
-    sup_to_digit = {"⁰": 0, "¹": 1, "²": 2, "³": 3, "⁴": 4, "⁵": 5}
-    digits = [sup_to_digit[ch] for ch in text if ch in sup_to_digit]
-    if not digits:
-        return None
-    if len(digits) == 1:
-        return digits[0], digits[0], digits[0]
-    if len(digits) == 2:
-        mid = round((digits[0] + digits[1]) / 2)
-        return digits[0], mid, digits[1]
-    return digits[0], digits[1], digits[-1]
 
 
 def decompose_grapheme(grapheme: str) -> tuple[str, frozenset[str]]:

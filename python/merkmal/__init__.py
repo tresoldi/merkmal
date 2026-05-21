@@ -41,6 +41,7 @@ from merkmal.registry import (
     set_registry,
     sound_distance,
 )
+from merkmal.segmentation import merge_tone_digits, parse_chao_digits
 from merkmal.representations import (
     CategoricalFeatures,
     FeatureRepresentation,
@@ -83,7 +84,9 @@ __all__ = [
     "load_model",
     "load_model_config",
     "matches",
+    "merge_tone_digits",
     "minimal_matrix",
+    "parse_chao_digits",
     "partial_match",
     "register",
     "reset_registry",
