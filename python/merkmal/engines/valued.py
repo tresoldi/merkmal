@@ -13,7 +13,12 @@ from functools import cached_property
 from typing import TYPE_CHECKING
 
 from merkmal.geometry import _node_depth, valued_geometry_distance
-from merkmal.grapheme import normalize_input_grapheme, normalize_sequences
+from merkmal.grapheme import (
+    apply_modifier_effects,
+    decompose_grapheme,
+    normalize_input_grapheme,
+    normalize_sequences,
+)
 from merkmal.representations import FeatureState, ValuedFeatures, _normalize_valued_query
 
 if TYPE_CHECKING:
@@ -102,6 +107,10 @@ class ValuedEngine:
     def list_graphemes(self) -> tuple[str, ...]:
         return tuple(sorted(self._table))
 
+    @cached_property
+    def _feature_name_set(self) -> set[str]:
+        return set(self._feature_names)
+
     def grapheme_to_representation(self, grapheme: str) -> ValuedFeatures | None:
         normalized = normalize_input_grapheme(grapheme)
         values = self._table.get(normalized)
@@ -110,6 +119,19 @@ class ValuedEngine:
                 values = self._table.get(candidate)
                 if values is not None:
                     break
+        if values is None:
+            base, modifiers = decompose_grapheme(normalized)
+            if base != normalized and modifiers:
+                base_values = self._table.get(base)
+                if base_values is None:
+                    for candidate in normalize_sequences(base):
+                        base_values = self._table.get(candidate)
+                        if base_values is not None:
+                            break
+                if base_values is not None:
+                    values = apply_modifier_effects(
+                        base_values, modifiers, self._feature_name_set,
+                    )
         if values is None:
             return None
         return ValuedFeatures(values=dict(values))

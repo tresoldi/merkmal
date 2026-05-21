@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from itertools import combinations
 from typing import TYPE_CHECKING, Literal
 
-from merkmal.engines.categorical import (
+from merkmal.grapheme import (
     available_modifiers,
     compose_grapheme,
 )

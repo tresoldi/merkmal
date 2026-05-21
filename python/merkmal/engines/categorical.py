@@ -7,18 +7,17 @@ geometry tree. Supports optional scalar dimension overlay
 
 from __future__ import annotations
 
-import unicodedata
 from dataclasses import dataclass
 from functools import cached_property
 from typing import TYPE_CHECKING
 
 from merkmal.grapheme import (
+    decompose_grapheme,
     normalize_input_grapheme,
     normalize_output_grapheme,
     normalize_sequences,
 )
 from merkmal.representations import CategoricalFeatures
-from merkmal.segmentation import parse_chao_digits
 
 if TYPE_CHECKING:
     from merkmal.geometry import Geometry
@@ -48,113 +47,6 @@ def parse_sound_name(
     return frozenset(features)
 
 
-# ── Tone / combining / modifier tables ──────────────────────────────────
-
-_CHAO_SUPERSCRIPT_DIGITS: frozenset[str] = frozenset("⁰¹²³⁴⁵")
-
-_TONE_MARK_TO_LEVELS: dict[int, tuple[int, int, int]] = {
-    0x030B: (5, 5, 5),
-    0x0301: (4, 4, 4),
-    0x0304: (3, 3, 3),
-    0x0300: (2, 2, 2),
-    0x030F: (1, 1, 1),
-    0x0302: (4, 3, 2),
-    0x030C: (2, 3, 4),
-}
-
-_LEVEL_TO_ONSET_FEATURES: dict[int, frozenset[str]] = {
-    5: frozenset({"tone-onset-upper", "tone-onset-raised"}),
-    4: frozenset({"tone-onset-upper", "tone-onset-lowered"}),
-    3: frozenset(),
-    2: frozenset({"tone-onset-lower", "tone-onset-raised"}),
-    1: frozenset({"tone-onset-lower", "tone-onset-lowered"}),
-}
-
-_LEVEL_TO_MID_FEATURES: dict[int, frozenset[str]] = {
-    5: frozenset({"tone-mid-upper", "tone-mid-raised"}),
-    4: frozenset({"tone-mid-upper", "tone-mid-lowered"}),
-    3: frozenset(),
-    2: frozenset({"tone-mid-lower", "tone-mid-raised"}),
-    1: frozenset({"tone-mid-lower", "tone-mid-lowered"}),
-}
-
-_LEVEL_TO_OFFSET_FEATURES: dict[int, frozenset[str]] = {
-    5: frozenset({"tone-offset-upper", "tone-offset-raised"}),
-    4: frozenset({"tone-offset-upper", "tone-offset-lowered"}),
-    3: frozenset(),
-    2: frozenset({"tone-offset-lower", "tone-offset-raised"}),
-    1: frozenset({"tone-offset-lower", "tone-offset-lowered"}),
-}
-
-
-def tone_features_for_levels(
-    onset: int, mid: int, offset: int,
-) -> frozenset[str]:
-    return (
-        _LEVEL_TO_ONSET_FEATURES[onset]
-        | _LEVEL_TO_MID_FEATURES[mid]
-        | _LEVEL_TO_OFFSET_FEATURES[offset]
-    )
-
-
-_COMBINING_TO_FEATURE: dict[int, str] = {
-    0x0325: "devoiced",
-    0x030A: "devoiced",
-    0x032C: "revoiced",
-    0x0330: "creaky",
-    0x0324: "breathy",
-    0x0303: "nasalized",
-    0x0329: "syllabic",
-    0x030D: "syllabic",
-    0x032F: "non-syllabic",
-    0x032A: "dental",
-    0x031F: "advanced",
-    0x0320: "retracted",
-    0x0318: "advanced-tongue-root",
-    0x0319: "retracted-tongue-root",
-    0x033A: "apical",
-    0x033B: "laminal",
-    0x033C: "linguolabial",
-    0x031D: "raised",
-    0x031E: "lowered",
-    0x0308: "centralized",
-    0x033D: "mid-centralized",
-    0x031C: "less-rounded",
-    0x0339: "more-rounded",
-    0x0306: "ultra-short",
-    0x031A: "unreleased",
-    0x0348: "strong",
-}
-
-_SUFFIX_MODIFIER_TO_FEATURE: dict[int, str] = {
-    0x02D0: "long",
-    0x02D1: "mid-long",
-    0x02B0: "aspirated",
-    0x02B1: "breathy",
-    0x02B2: "palatalized",
-    0x02B7: "labialized",
-    0x02E0: "velarized",
-    0x02E4: "pharyngealized",
-    0x02C0: "glottalized",
-    0x02BC: "ejective",
-    0x1DA3: "labio-palatalized",
-    0x207F: "with-nasal-release",
-    0x02DE: "rhotacized",
-    0x02E1: "with-lateral-release",
-}
-
-_PREFIX_MODIFIER_TO_FEATURE: dict[int, str] = {
-    0x02B0: "pre-aspirated",
-    0x02C0: "pre-glottalized",
-    0x207F: "pre-nasalized",
-    0x02B7: "pre-labialized",
-    0x02B2: "pre-palatalized",
-}
-
-_ALL_MODIFIER_CPS: frozenset[int] = frozenset(
-    _SUFFIX_MODIFIER_TO_FEATURE.keys() | _PREFIX_MODIFIER_TO_FEATURE.keys()
-)
-
 _NON_PULMONIC_FEATURES: frozenset[str] = frozenset({"click", "nasal-click", "implosive"})
 
 
@@ -165,82 +57,6 @@ def _enrich_click_features(features: frozenset[str]) -> frozenset[str]:
     if "click" in features or "nasal-click" in features:
         added.add("velar")
     return features | added
-
-
-def decompose_grapheme(grapheme: str) -> tuple[str, frozenset[str]]:
-    features: set[str] = set()
-
-    prefix_end = 0
-    for i, ch in enumerate(grapheme):
-        cp = ord(ch)
-        if (
-            unicodedata.category(ch) in ("Lm", "Sk")
-            and cp in _PREFIX_MODIFIER_TO_FEATURE
-        ):
-            features.add(_PREFIX_MODIFIER_TO_FEATURE[cp])
-            prefix_end = i + 1
-        else:
-            break
-
-    base_chars: list[str] = []
-    chao_chars: list[str] = []
-    remainder = grapheme[prefix_end:]
-
-    tail_start = len(remainder)
-    for k in range(len(remainder) - 1, -1, -1):
-        if remainder[k] in _CHAO_SUPERSCRIPT_DIGITS:
-            tail_start = k
-        else:
-            break
-
-    for idx, ch in enumerate(remainder):
-        if idx >= tail_start:
-            chao_chars.append(ch)
-            continue
-        cp = ord(ch)
-        cat = unicodedata.category(ch)
-        if cp in _TONE_MARK_TO_LEVELS:
-            onset, mid, offset = _TONE_MARK_TO_LEVELS[cp]
-            features |= tone_features_for_levels(onset, mid, offset)
-        elif cat.startswith("M") and cp in _COMBINING_TO_FEATURE:
-            features.add(_COMBINING_TO_FEATURE[cp])
-        elif cat in ("Lm", "Sk") and cp in _SUFFIX_MODIFIER_TO_FEATURE:
-            features.add(_SUFFIX_MODIFIER_TO_FEATURE[cp])
-        else:
-            base_chars.append(ch)
-
-    if chao_chars:
-        parsed = parse_chao_digits("".join(chao_chars))
-        if parsed is not None:
-            onset, mid, offset = parsed
-            features |= tone_features_for_levels(onset, mid, offset)
-
-    return "".join(base_chars), frozenset(features)
-
-
-def _build_feature_to_modifier() -> dict[str, str]:
-    result: dict[str, str] = {}
-    for cp, feat in _COMBINING_TO_FEATURE.items():
-        result.setdefault(feat, chr(cp))
-    for cp, feat in _SUFFIX_MODIFIER_TO_FEATURE.items():
-        result[feat] = chr(cp)
-    return result
-
-
-_FEATURE_TO_MODIFIER: dict[str, str] = _build_feature_to_modifier()
-
-
-def available_modifiers() -> tuple[str, ...]:
-    return tuple(sorted(_FEATURE_TO_MODIFIER))
-
-
-def compose_grapheme(base: str, modifiers: frozenset[str]) -> str:
-    suffix: list[str] = []
-    for feat in sorted(modifiers):
-        char = _FEATURE_TO_MODIFIER.get(feat)
-        if char is not None:
-            suffix.append(char)
-    return base + "".join(suffix)
 
 
 # ── Engine class ────────────────────────────────────────────────────────

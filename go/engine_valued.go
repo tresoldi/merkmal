@@ -12,6 +12,7 @@ type ValuedEngine struct {
 	geometry *Geometry
 
 	featureNames     []string
+	featureNameSet   map[string]bool
 	table            map[string]map[string]FeatureState
 	geometryMap      map[string]string
 	dimensionWeights map[string]float64
@@ -26,6 +27,10 @@ func NewValuedEngine(config *ModelConfig, geom *Geometry) (*ValuedEngine, error)
 
 	e.featureNames = make([]string, len(config.InventoryHeader)-1)
 	copy(e.featureNames, config.InventoryHeader[1:])
+	e.featureNameSet = make(map[string]bool, len(e.featureNames))
+	for _, name := range e.featureNames {
+		e.featureNameSet[name] = true
+	}
 
 	var rawModel struct {
 		GeometryMap map[string]string `json:"geometry_map"`
@@ -129,17 +134,38 @@ func (e *ValuedEngine) ListGraphemes() []string {
 	return result
 }
 
-func (e *ValuedEngine) GraphemeToFeatures(grapheme string) (map[string]bool, bool) {
-	normalized := NormalizeInputGrapheme(grapheme)
+func (e *ValuedEngine) lookupValues(normalized string) (map[string]FeatureState, bool) {
 	values, ok := e.table[normalized]
-	if !ok {
-		for _, candidate := range NormalizeSequences(normalized) {
-			values, ok = e.table[candidate]
-			if ok {
-				break
-			}
+	if ok {
+		return values, true
+	}
+	for _, candidate := range NormalizeSequences(normalized) {
+		values, ok = e.table[candidate]
+		if ok {
+			return values, true
 		}
 	}
+	base, modifiers := DecomposeGrapheme(normalized)
+	if base != normalized && len(modifiers) > 0 {
+		baseValues, baseOK := e.table[base]
+		if !baseOK {
+			for _, candidate := range NormalizeSequences(base) {
+				baseValues, baseOK = e.table[candidate]
+				if baseOK {
+					break
+				}
+			}
+		}
+		if baseOK {
+			return ApplyModifierEffects(baseValues, modifiers, e.featureNameSet), true
+		}
+	}
+	return nil, false
+}
+
+func (e *ValuedEngine) GraphemeToFeatures(grapheme string) (map[string]bool, bool) {
+	normalized := NormalizeInputGrapheme(grapheme)
+	values, ok := e.lookupValues(normalized)
 	if !ok {
 		return nil, false
 	}
@@ -160,24 +186,8 @@ func (e *ValuedEngine) FeatureDistance(a, b string) float64 {
 func (e *ValuedEngine) SegmentDistance(a, b string, opts ...DistanceOption) float64 {
 	normalizedA := NormalizeInputGrapheme(a)
 	normalizedB := NormalizeInputGrapheme(b)
-	valsA, okA := e.table[normalizedA]
-	if !okA {
-		for _, c := range NormalizeSequences(normalizedA) {
-			valsA, okA = e.table[c]
-			if okA {
-				break
-			}
-		}
-	}
-	valsB, okB := e.table[normalizedB]
-	if !okB {
-		for _, c := range NormalizeSequences(normalizedB) {
-			valsB, okB = e.table[c]
-			if okB {
-				break
-			}
-		}
-	}
+	valsA, okA := e.lookupValues(normalizedA)
+	valsB, okB := e.lookupValues(normalizedB)
 	if !okA || !okB {
 		return 1.0
 	}

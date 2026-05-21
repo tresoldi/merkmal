@@ -2,13 +2,13 @@
 
 import pytest
 
-from merkmal.engines.categorical import tone_features_for_levels
 from merkmal.geometry import (
     FeatureNode,
     GeometryNode,
     load_geometry,
     resolve_node_weights,
 )
+from merkmal.grapheme import tone_features_for_levels
 
 
 @pytest.fixture()

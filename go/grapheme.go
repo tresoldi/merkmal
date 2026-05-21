@@ -382,6 +382,57 @@ func EnrichClickFeatures(features map[string]bool) map[string]bool {
 	return result
 }
 
+// ── Valued-feature modifier effects ─────────────────────────────────
+
+type modifierEffect struct {
+	alternatives []string
+	state        FeatureState
+}
+
+var modifierToValuedEffect = map[string]modifierEffect{
+	"devoiced":             {[]string{"periodicGlottalSource", "voice", "voiced"}, StateNegative},
+	"revoiced":             {[]string{"periodicGlottalSource", "voice", "voiced"}, StatePositive},
+	"aspirated":            {[]string{"spreadGlottis", "spread"}, StatePositive},
+	"breathy":              {[]string{"spreadGlottis", "spread"}, StatePositive},
+	"creaky":               {[]string{"constrictedGlottis", "constr"}, StatePositive},
+	"nasalized":            {[]string{"nasal"}, StatePositive},
+	"long":                 {[]string{"long", "LONG"}, StatePositive},
+	"dental":               {[]string{"distributed"}, StatePositive},
+	"syllabic":             {[]string{"syllabic", "SYLLABIC"}, StatePositive},
+	"non-syllabic":         {[]string{"syllabic", "SYLLABIC"}, StateNegative},
+	"ejective":             {[]string{"raisedLarynxEjective", "constrictedGlottis", "constr"}, StatePositive},
+	"glottalized":          {[]string{"constrictedGlottis", "constr"}, StatePositive},
+	"palatalized":          {[]string{"high"}, StatePositive},
+	"labialized":           {[]string{"round"}, StatePositive},
+	"more-rounded":         {[]string{"round"}, StatePositive},
+	"less-rounded":         {[]string{"round"}, StateNegative},
+	"velarized":            {[]string{"dorsal"}, StatePositive},
+	"pharyngealized":       {[]string{"retractedTongueRoot"}, StatePositive},
+	"advanced-tongue-root": {[]string{"advancedTongueRoot", "ATR"}, StatePositive},
+	"retracted-tongue-root": {[]string{"retractedTongueRoot"}, StatePositive},
+}
+
+// ApplyModifierEffects applies modifier effects to a copy of base valued features.
+func ApplyModifierEffects(baseValues map[string]FeatureState, modifiers map[string]bool, modelFeatures map[string]bool) map[string]FeatureState {
+	result := make(map[string]FeatureState, len(baseValues))
+	for k, v := range baseValues {
+		result[k] = v
+	}
+	for modifier := range modifiers {
+		effect, ok := modifierToValuedEffect[modifier]
+		if !ok {
+			continue
+		}
+		for _, featName := range effect.alternatives {
+			if modelFeatures[featName] {
+				result[featName] = effect.state
+				break
+			}
+		}
+	}
+	return result
+}
+
 // ── Set helpers ─────────────────────────────────────────────────────
 
 func mergeSets(sets ...map[string]bool) map[string]bool {
