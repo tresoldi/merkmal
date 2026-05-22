@@ -9,15 +9,31 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
+// ipaEquivalences are bidirectional canonical pairs: folded to the lookup form
+// on input and mapped back to the preferred IPA glyph on output.
 var ipaEquivalences = map[rune]rune{
-	'ɡ':      'g',  // U+0261 → U+0067
-	'\'':     'ʼ',  // U+0027 APOSTROPHE → U+02BC MODIFIER LETTER APOSTROPHE
-	'’': 'ʼ',  // U+2019 RIGHT SINGLE QUOTATION MARK → U+02BC MODIFIER LETTER APOSTROPHE
+	'ɡ': 'g', // U+0261 → U+0067
 }
 
+// ipaInputFolds are one-directional (NOT reversed on output): assorted
+// apostrophes fold to the IPA modifier-letter apostrophe ʼ (U+02BC) used for
+// ejectives. Reversing them would turn canonical ʼ into a typographic quote.
+var ipaInputFolds = map[rune]rune{
+	'\'': 'ʼ', // U+0027 APOSTROPHE → U+02BC MODIFIER LETTER APOSTROPHE
+	'’':  'ʼ', // U+2019 RIGHT SINGLE QUOTATION MARK → U+02BC
+}
+
+var ipaInputMap map[rune]rune
 var ipaReverse map[rune]rune
 
 func init() {
+	ipaInputMap = make(map[rune]rune, len(ipaEquivalences)+len(ipaInputFolds))
+	for k, v := range ipaEquivalences {
+		ipaInputMap[k] = v
+	}
+	for k, v := range ipaInputFolds {
+		ipaInputMap[k] = v
+	}
 	ipaReverse = make(map[rune]rune, len(ipaEquivalences))
 	for k, v := range ipaEquivalences {
 		ipaReverse[v] = k
@@ -27,13 +43,51 @@ func init() {
 const tieBar = '͡'
 const tieBarStr = "͡"
 
-// NormalizeInputGrapheme applies NFD normalization and IPA equivalence substitutions.
+// ligatureExpansions maps deprecated single-codepoint affricate ligatures to
+// their digraph form. asciiToIPA maps the ASCII colon (a common length-mark
+// substitute) to the IPA length mark. Both are one-directional (not reversed
+// on output). stressMarksCutset holds the suprasegmental stress marks stripped
+// on input — they carry no segmental features.
+var ligatureExpansions = map[rune]string{
+	'ʣ': "dz", 'ʤ': "dʒ", 'ʥ': "dʑ",
+	'ʦ': "ts", 'ʧ': "tʃ", 'ʨ': "tɕ",
+}
+var asciiToIPA = map[rune]rune{
+	':': 'ː',
+}
+
+const stressMarksCutset = "ˈˌ"
+
+// resolveSlash resolves CLTS source/BIPA slash notation, keeping the
+// post-slash value. CLTS writes "source/bipa" to record a literature grapheme
+// before the slash and the BIPA value tools consume after it. Returns the
+// substring after the last slash when present and non-empty, else unchanged.
+func resolveSlash(grapheme string) string {
+	if idx := strings.LastIndex(grapheme, "/"); idx >= 0 {
+		if post := grapheme[idx+1:]; post != "" {
+			return post
+		}
+	}
+	return grapheme
+}
+
+// NormalizeInputGrapheme normalizes a lookup grapheme to its canonical BIPA
+// segmental form: resolves CLTS slash notation (a/b → b), strips leading
+// suprasegmental stress marks, applies NFD, expands deprecated affricate
+// ligatures (ʤ → dʒ …), maps ASCII colon to the IPA length mark, and applies
+// the reversible IPA equivalences (ɡ → g …).
 func NormalizeInputGrapheme(grapheme string) string {
+	grapheme = resolveSlash(grapheme)
+	grapheme = strings.TrimLeft(grapheme, stressMarksCutset)
 	nfd := norm.NFD.String(grapheme)
 	var b strings.Builder
 	b.Grow(len(nfd))
 	for _, r := range nfd {
-		if mapped, ok := ipaEquivalences[r]; ok {
+		if exp, ok := ligatureExpansions[r]; ok {
+			b.WriteString(exp)
+		} else if mapped, ok := asciiToIPA[r]; ok {
+			b.WriteRune(mapped)
+		} else if mapped, ok := ipaInputMap[r]; ok {
 			b.WriteRune(mapped)
 		} else {
 			b.WriteRune(r)
@@ -104,6 +158,15 @@ func NormalizeOutputGrapheme(grapheme string) string {
 		}
 	}
 	return b.String()
+}
+
+// Normalize returns the canonical NFC IPA form of a grapheme, suitable for
+// storage: resolves CLTS slash notation, strips stress, expands ligatures and
+// ASCII colon, maps equivalences back to preferred IPA glyphs (g → ɡ), and
+// recomposes to NFC. Returns "" for input that normalizes away entirely (e.g.
+// a bare stress mark).
+func Normalize(grapheme string) string {
+	return norm.NFC.String(NormalizeOutputGrapheme(NormalizeInputGrapheme(grapheme)))
 }
 
 // ── Tone / combining / modifier tables ──────────────────────────────
@@ -484,25 +547,25 @@ type modifierEffect struct {
 }
 
 var modifierToValuedEffect = map[string]modifierEffect{
-	"devoiced":             {[]string{"periodicGlottalSource", "voice", "voiced"}, StateNegative},
-	"revoiced":             {[]string{"periodicGlottalSource", "voice", "voiced"}, StatePositive},
-	"aspirated":            {[]string{"spreadGlottis", "spread"}, StatePositive},
-	"breathy":              {[]string{"spreadGlottis", "spread"}, StatePositive},
-	"creaky":               {[]string{"constrictedGlottis", "constr"}, StatePositive},
-	"nasalized":            {[]string{"nasal"}, StatePositive},
-	"long":                 {[]string{"long", "LONG"}, StatePositive},
-	"dental":               {[]string{"distributed"}, StatePositive},
-	"syllabic":             {[]string{"syllabic", "SYLLABIC"}, StatePositive},
-	"non-syllabic":         {[]string{"syllabic", "SYLLABIC"}, StateNegative},
-	"ejective":             {[]string{"raisedLarynxEjective", "constrictedGlottis", "constr"}, StatePositive},
-	"glottalized":          {[]string{"constrictedGlottis", "constr"}, StatePositive},
-	"palatalized":          {[]string{"high"}, StatePositive},
-	"labialized":           {[]string{"round"}, StatePositive},
-	"more-rounded":         {[]string{"round"}, StatePositive},
-	"less-rounded":         {[]string{"round"}, StateNegative},
-	"velarized":            {[]string{"dorsal"}, StatePositive},
-	"pharyngealized":       {[]string{"retractedTongueRoot"}, StatePositive},
-	"advanced-tongue-root": {[]string{"advancedTongueRoot", "ATR"}, StatePositive},
+	"devoiced":              {[]string{"periodicGlottalSource", "voice", "voiced"}, StateNegative},
+	"revoiced":              {[]string{"periodicGlottalSource", "voice", "voiced"}, StatePositive},
+	"aspirated":             {[]string{"spreadGlottis", "spread"}, StatePositive},
+	"breathy":               {[]string{"spreadGlottis", "spread"}, StatePositive},
+	"creaky":                {[]string{"constrictedGlottis", "constr"}, StatePositive},
+	"nasalized":             {[]string{"nasal"}, StatePositive},
+	"long":                  {[]string{"long", "LONG"}, StatePositive},
+	"dental":                {[]string{"distributed"}, StatePositive},
+	"syllabic":              {[]string{"syllabic", "SYLLABIC"}, StatePositive},
+	"non-syllabic":          {[]string{"syllabic", "SYLLABIC"}, StateNegative},
+	"ejective":              {[]string{"raisedLarynxEjective", "constrictedGlottis", "constr"}, StatePositive},
+	"glottalized":           {[]string{"constrictedGlottis", "constr"}, StatePositive},
+	"palatalized":           {[]string{"high"}, StatePositive},
+	"labialized":            {[]string{"round"}, StatePositive},
+	"more-rounded":          {[]string{"round"}, StatePositive},
+	"less-rounded":          {[]string{"round"}, StateNegative},
+	"velarized":             {[]string{"dorsal"}, StatePositive},
+	"pharyngealized":        {[]string{"retractedTongueRoot"}, StatePositive},
+	"advanced-tongue-root":  {[]string{"advancedTongueRoot", "ATR"}, StatePositive},
 	"retracted-tongue-root": {[]string{"retractedTongueRoot"}, StatePositive},
 }
 

@@ -112,3 +112,57 @@ func TestSegmentMergePipeline(t *testing.T) {
 		t.Errorf("pipeline did not produce o³¹: %v", merged)
 	}
 }
+
+func TestNormalizeInputGrapheme(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"ɡ", "g"},    // reversible IPA equivalence
+		{"y/j", "j"},  // CLTS slash: keep post-slash
+		{"sh/ʃ", "ʃ"}, // CLTS slash with digraph source
+		{"ʤ", "dʒ"},   // ligature expansion
+		{"ʧ", "tʃ"},   //
+		{"ʨ", "tɕ"},   //
+		{"a:", "aː"},  // ASCII colon → length
+		{"ˈɛ", "ɛ"},   // leading stress stripped
+		{"ˌa", "a"},   //
+	}
+	for _, tt := range tests {
+		if got := NormalizeInputGrapheme(tt.input); got != tt.want {
+			t.Errorf("NormalizeInputGrapheme(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+	// last slash wins; pre-slash content discarded
+	if got, want := NormalizeInputGrapheme("tsʰ~ʨʰ/ʨʰ"), NormalizeInputGrapheme("ʨʰ"); got != want {
+		t.Errorf("slash last-wins: got %q want %q", got, want)
+	}
+}
+
+func TestNormalize(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"y/j", "j"},
+		{"ʤ", "dʒ"},
+		{"a:", "aː"},
+		{"ˈɛ", "ɛ"},
+		{"g", "ɡ"}, // mapped back to preferred IPA
+		{"ˈ", ""},  // bare stress normalizes away
+	}
+	for _, tt := range tests {
+		if got := Normalize(tt.input); got != tt.want {
+			t.Errorf("Normalize(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+	// NFC output and idempotence on clean IPA
+	if got := Normalize(norm.NFD.String("ã")); got != "ã" {
+		t.Errorf("Normalize NFC: got %q", got)
+	}
+	for _, g := range []string{"p", "t̠ʃ", "aː", "kʰ", "o⁵⁵"} {
+		if Normalize(g) != Normalize(Normalize(g)) {
+			t.Errorf("Normalize not idempotent on %q", g)
+		}
+	}
+}

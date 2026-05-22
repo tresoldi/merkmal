@@ -11,15 +11,39 @@ import unicodedata
 from merkmal.representations import FeatureState
 from merkmal.segmentation import parse_chao_digits
 
+# Bidirectional canonical pairs: folded to the lookup form on input and mapped
+# back to the preferred IPA glyph on output.
 _IPA_EQUIVALENCES: dict[str, str] = {
     "ɡ": "g",
+}
+
+# One-directional input folds (NOT reversed on output): assorted apostrophes
+# fold to the IPA modifier-letter apostrophe ʼ (U+02BC) used for ejectives.
+# Reversing these would turn canonical ʼ into a typographic quote.
+_IPA_INPUT_FOLDS: dict[str, str] = {
     "'": "ʼ",
     "’": "ʼ",
 }
 
+_IPA_INPUT_MAP: dict[str, str] = {**_IPA_EQUIVALENCES, **_IPA_INPUT_FOLDS}
+
 _IPA_REVERSE: dict[str, str] = {
     value: key for key, value in _IPA_EQUIVALENCES.items()
 }
+
+# One-directional input normalizations (NOT reversed on output): deprecated
+# single-codepoint affricate ligatures → digraph, and ASCII colon → IPA length.
+_LIGATURE_EXPANSIONS: dict[str, str] = {
+    "ʣ": "dz", "ʤ": "dʒ", "ʥ": "dʑ",
+    "ʦ": "ts", "ʧ": "tʃ", "ʨ": "tɕ",
+}
+_ASCII_TO_IPA: dict[str, str] = {
+    ":": "ː",  # ASCII colon frequently substitutes the IPA length mark
+}
+
+# Suprasegmental stress marks (primary, secondary). Stripped on input: they
+# carry no segmental features, and feature-vector consumers ignore stress.
+_STRESS_MARKS: frozenset[str] = frozenset({"ˈ", "ˌ"})
 
 _TIE_BAR = "͡"
 _RETRACTION = "̠"
@@ -28,10 +52,42 @@ _POSTALVEOLAR_FRICATIVES: frozenset[str] = frozenset({"ʃ", "ʒ"})
 _AFFRICATE_STOPS: frozenset[str] = frozenset({"t", "d"})
 
 
+def _resolve_slash(grapheme: str) -> str:
+    """Resolve CLTS source/BIPA slash notation, keeping the post-slash value.
+
+    CLTS writes ``source/bipa`` to record a literature grapheme before the
+    slash and the BIPA value that tools (lingpy, …) consume after it.
+    Returns the substring after the last slash when present and non-empty,
+    otherwise the input unchanged.
+    """
+    if "/" in grapheme:
+        post = grapheme.rsplit("/", 1)[1]
+        if post:
+            return post
+    return grapheme
+
+
 def normalize_input_grapheme(grapheme: str) -> str:
-    """Normalize lookup graphemes with NFD and IPA equivalences."""
+    """Normalize a lookup grapheme to its canonical BIPA segmental form.
+
+    Resolves CLTS source/BIPA slash notation (``a/b`` → ``b``), strips
+    leading suprasegmental stress marks, applies NFD, expands deprecated
+    affricate ligatures (``ʤ`` → ``dʒ`` …), maps ASCII colon to the IPA
+    length mark, and applies the reversible IPA equivalences (``ɡ`` → ``g``).
+    """
+    grapheme = _resolve_slash(grapheme)
+    while grapheme[:1] in _STRESS_MARKS:
+        grapheme = grapheme[1:]
     normalized = unicodedata.normalize("NFD", grapheme)
-    return "".join(_IPA_EQUIVALENCES.get(char, char) for char in normalized)
+    out: list[str] = []
+    for char in normalized:
+        if char in _LIGATURE_EXPANSIONS:
+            out.append(_LIGATURE_EXPANSIONS[char])
+        elif char in _ASCII_TO_IPA:
+            out.append(_ASCII_TO_IPA[char])
+        else:
+            out.append(_IPA_INPUT_MAP.get(char, char))
+    return "".join(out)
 
 
 def normalize_sequences(grapheme: str) -> list[str]:
@@ -72,6 +128,19 @@ def _insert_affricate_retraction(text: str) -> str:
 def normalize_output_grapheme(grapheme: str) -> str:
     """Map canonical output forms back to preferred IPA graphemes."""
     return "".join(_IPA_REVERSE.get(char, char) for char in grapheme)
+
+
+def normalize(grapheme: str) -> str:
+    """Canonical NFC IPA form of a grapheme, suitable for storage.
+
+    Applies the full input normalization (slash resolution, stress
+    stripping, ligature/colon expansion, IPA equivalences), maps
+    equivalences back to preferred IPA graphemes (``g`` → ``ɡ``), and
+    recomposes to NFC. Returns ``""`` for input that normalizes away
+    entirely (e.g. a bare stress mark).
+    """
+    norm = normalize_output_grapheme(normalize_input_grapheme(grapheme))
+    return unicodedata.normalize("NFC", norm)
 
 
 # ── Tone / combining / modifier tables ──────────────────────────────────

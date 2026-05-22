@@ -6,6 +6,7 @@ import pytest
 
 from merkmal.grapheme import (
     decompose_grapheme,
+    normalize,
     normalize_input_grapheme,
     normalize_sequences,
     segment_ipa,
@@ -22,6 +23,41 @@ class TestNormalizeInputGrapheme:
 
     def test_apostrophe_to_ejective(self) -> None:
         assert normalize_input_grapheme("t'") == "tʼ"
+
+    def test_clts_slash_keeps_post_value(self) -> None:
+        assert normalize_input_grapheme("y/j") == "j"
+        assert normalize_input_grapheme("sh/ʃ") == "ʃ"
+        # last slash wins; pre-slash content is discarded
+        assert normalize_input_grapheme("tsʰ~ʨʰ/ʨʰ") == normalize_input_grapheme("ʨʰ")
+
+    def test_affricate_ligatures_expand(self) -> None:
+        assert normalize_input_grapheme("ʤ") == "dʒ"
+        assert normalize_input_grapheme("ʧ") == "tʃ"
+        assert normalize_input_grapheme("ʨ") == "tɕ"
+
+    def test_ascii_colon_is_length(self) -> None:
+        assert normalize_input_grapheme("a:") == "aː"
+
+    def test_leading_stress_stripped(self) -> None:
+        assert normalize_input_grapheme("ˈɛ") == "ɛ"
+        assert normalize_input_grapheme("ˌa") == "a"
+
+
+class TestNormalize:
+    def test_canonical_nfc_and_preferred_ipa(self) -> None:
+        assert normalize("y/j") == "j"
+        assert normalize("ʤ") == "dʒ"
+        assert normalize("a:") == "aː"
+        assert normalize("ˈɛ") == "ɛ"
+        assert normalize("g") == "ɡ"  # mapped back to preferred IPA
+        assert normalize(unicodedata.normalize("NFD", "ã")) == "ã"  # NFC output
+
+    def test_idempotent_on_clean_ipa(self) -> None:
+        for g in ("p", "t̠ʃ", "aː", "kʰ", "o⁵⁵"):
+            assert normalize(g) == normalize(normalize(g))
+
+    def test_bare_stress_normalizes_away(self) -> None:
+        assert normalize("ˈ") == ""
 
 
 class TestNormalizeSequences:

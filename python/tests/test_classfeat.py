@@ -229,7 +229,10 @@ class TestClassifyToClass:
         assert self.sys._classify_to_class("ᵐb") == "P"
 
     def test_legacy_ipa(self) -> None:
-        assert self.sys._classify_to_class("ʧ") == "C"
+        # The deprecated ligature ʧ normalizes to tʃ → t-affricate class T,
+        # matching tʃ / t̠ʃ / ts (was C only as an unrecognized-ligature fallback).
+        assert self.sys._classify_to_class("ʧ") == "T"
+        assert self.sys._classify_to_class("ʧ") == self.sys._classify_to_class("tʃ")
 
     def test_slash_notation(self) -> None:
         assert self.sys._classify_to_class("ќ/kʼ") is not None

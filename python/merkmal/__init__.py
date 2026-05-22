@@ -19,6 +19,7 @@ from merkmal.geometry import FeatureNode, Geometry, GeometryNode, load_geometry
 from merkmal.grapheme import (
     compose_grapheme,
     decompose_grapheme,
+    normalize,
     normalize_sequences,
     segment_ipa,
 )
@@ -94,6 +95,7 @@ __all__ = [
     "matches",
     "merge_tone_digits",
     "minimal_matrix",
+    "normalize",
     "normalize_sequences",
     "parse_chao_digits",
     "partial_match",
