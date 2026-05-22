@@ -10,3 +10,4 @@ site/
 *.out.md
 *.out.py
 paper/
+python/merkmal/data/

@@ -89,6 +89,14 @@ func TestMergeToneDigits(t *testing.T) {
 			[]string{"p", "a"},
 			[]string{"p", "a"},
 		},
+		{
+			[]string{"tʰ", "a", "ŋ", "³", "⁵"},
+			[]string{"tʰ", "a³⁵", "ŋ"},
+		},
+		{
+			[]string{"m", "a", "⁵", "¹"},
+			[]string{"m", "a⁵¹"},
+		},
 	}
 
 	for _, tc := range tests {

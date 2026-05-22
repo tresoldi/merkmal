@@ -14,30 +14,22 @@ both implementations produce identical results.
 
 ## Installation
 
-Python (from the `python/` directory):
+**Python** (from PyPI):
 
 ```bash
-cd python
+pip install merkmal
+```
+
+Or from source (from the `python/` directory):
+
+```bash
 pip install -e ".[dev]"
 ```
 
-Go:
+**Go**:
 
 ```go
 import merkmal "github.com/tresoldi/merkmal/go"
-```
-
-Run checks:
-
-```bash
-# Python (from python/)
-ruff check .
-mypy merkmal/
-pytest tests/ -q
-
-# Go (from go/)
-go test ./...
-go vet ./...
 ```
 
 ## Quick start (Python)
@@ -45,22 +37,27 @@ go vet ./...
 ```python
 import merkmal
 
-# Built-in systems
+# Nine built-in systems
 print(merkmal.list_systems())
 # ['descriptive', 'broad', 'distinctive', 'pbase-hc', 'pbase-jfh',
 #  'pbase-spe', 'pbase-uftc', 'phoible', 'classfeat']
 
-# Basic grapheme lookup
+# Feature lookup
 print(merkmal.get_features("p"))
 # frozenset({'consonant', 'voiceless', 'bilabial', 'stop'})
 
-# Predefined sound classes
-print(merkmal.get_class_features("V"))
-# frozenset({'vowel'})
+# Diacritics compose automatically
+print(merkmal.get_features("tʰ"))
+# frozenset({'consonant', 'voiceless', 'alveolar', 'stop', 'aspirated'})
 
-# Distance
-print(merkmal.distance("a", "e"))
-print(merkmal.distance("p", "b", system="classfeat"))
+# Distance (normalised to [0, 1], geometry-weighted)
+print(merkmal.distance("p", "b"))           # voicing: small
+print(merkmal.distance("p", "f"))           # manner: larger
+print(merkmal.distance("t", "d", system="classfeat"))
+
+# IPA segmentation
+phones = merkmal.segment_ipa("tʰoŋ⁵⁵")     # → ['tʰ', 'o', 'ŋ', '⁵⁵']
+merged = merkmal.merge_tone_digits(phones)  # → ['tʰ', 'o⁵⁵', 'ŋ']
 ```
 
 ## Quick start (Go)
@@ -71,6 +68,9 @@ geomFS := os.DirFS("geometries")
 reg, _ := merkmal.NewRegistry(modelsFS, geomFS)
 sys, _ := reg.Get("descriptive")
 dist := sys.SegmentDistance("p", "b")
+
+phones := merkmal.SegmentIPA("tʰoŋ⁵⁵")
+merged := merkmal.MergeToneDigits(phones)
 ```
 
 All Go loading is `fs.FS`-based. Use `os.DirFS` for disk-based
@@ -92,54 +92,7 @@ All systems implement the same interface (`FeatureSystem` protocol
 in Python, `System` interface in Go). Distances, queries, and
 partition derivation work uniformly across all of them.
 
-## Working with systems
-
-The Python package exposes a lazy default registry through
-top-level helpers, or individual system objects can be obtained
-directly.
-
-```python
-import merkmal
-
-descriptive = merkmal.get_system("descriptive")
-distinctive = merkmal.get_system("distinctive")
-pbase = merkmal.get_system("pbase-hc")
-
-print(descriptive.grapheme_to_features("a"))
-print(distinctive.grapheme_to_features("a"))
-print(pbase.grapheme_to_representation("a"))
-```
-
-Exact reverse lookup is available when a native representation maps
-directly to a known grapheme.
-
-```python
-descriptive = merkmal.get_system("descriptive")
-
-grapheme = descriptive.features_to_grapheme(
-    frozenset({"consonant", "voiced", "bilabial", "stop"})
-)
-print(grapheme)
-# 'b'
-```
-
 ## Feature queries
-
-Use `features_to_graphemes(...)` to find all graphemes matching a
-feature set. Matching is partial by default.
-
-```python
-import merkmal
-
-vowels = merkmal.features_to_graphemes(frozenset({"vowel"}))
-print(vowels[:10])
-
-# Exact matching
-features = merkmal.get_features("a")
-print(merkmal.features_to_graphemes(features, exact=True))
-```
-
-## Natural classes and matrices
 
 ```python
 import merkmal
@@ -147,6 +100,17 @@ import merkmal
 # Shared features of a segment set
 print(merkmal.derive_class_features(["p", "t", "k"]))
 # frozenset({'consonant', 'voiceless', 'stop'})
+
+# Find all graphemes matching a feature set
+vowels = merkmal.features_to_graphemes(frozenset({"vowel"}))
+print(vowels[:10])
+
+# Reverse lookup: features → grapheme
+descriptive = merkmal.get_system("descriptive")
+print(descriptive.features_to_grapheme(
+    frozenset({"consonant", "voiced", "bilabial", "stop"})
+))
+# 'b'
 
 # Minimal distinguishing matrix
 matrix = merkmal.minimal_matrix(["t", "d", "s"])
@@ -161,23 +125,64 @@ d        | False      | True
 s        | True       | False
 ```
 
-## Distance
+## IPA segmentation
+
+`segment_ipa` tokenizes raw IPA strings into individual phones,
+handling tie bars, prefix/suffix modifiers, combining marks, and
+Chao tone digits. `merge_tone_digits` attaches tone digit tokens
+to their syllabic nucleus.
 
 ```python
 import merkmal
 
-print(merkmal.distance("a", "e"))
-print(merkmal.distance("a", "u"))
-print(merkmal.distance("p", "b"))
-print(merkmal.distance("t", "d", system="pbase-hc"))
+merkmal.segment_ipa("t͡ʃaŋ⁵⁵")
+# ['t͡ʃ', 'a', 'ŋ', '⁵⁵']
+
+merkmal.merge_tone_digits(["t͡ʃ", "a", "ŋ", "⁵⁵"])
+# ['t͡ʃ', 'a⁵⁵', 'ŋ']
+
+# Grapheme decomposition
+base, mods = merkmal.decompose_grapheme("tʰ")
+# ('t', frozenset({'aspirated'}))
 ```
 
-A precomputed nested dictionary can also be supplied:
+## Distance
+
+Distances are normalised to [0, 1]. The Clements & Hume (1995)
+feature geometry tree gives structure-aware weights: features
+higher in the tree contribute more.
 
 ```python
-precomputed = {"a": {"e": 1.5, "u": 2.0}, "p": {"b": 0.5}}
-print(merkmal.distance("a", "e", precomputed=precomputed))
+import merkmal
+
+# Across systems
+merkmal.distance("p", "b")                    # voicing contrast
+merkmal.distance("p", "b", system="classfeat") # trained weights
+
+# Tonal distance with weight presets
+merkmal.distance("a⁵⁵", "a³⁵", system="distinctive")
+merkmal.distance("a⁵⁵", "a³⁵", system="distinctive",
+                 node_weights="tone-heavy")
+merkmal.distance("a⁵⁵", "a³⁵", system="distinctive",
+                 node_weights="segmental")    # ignores tone
 ```
+
+## Typological direction costs
+
+The typology module encodes diachronic priors (e.g. lenition is
+more frequent than fortition) as asymmetric direction costs,
+separate from the synchronic geometry.
+
+```python
+import merkmal
+
+typ = merkmal.load_typology("lenition-bias")
+print(typ.cost_for("continuant", +1))  # stop → fricative (lenition)
+print(typ.cost_for("continuant", -1))  # fricative → stop (fortition)
+```
+
+Three bundled typologies: `default` (symmetric), `lenition-bias`,
+`corecog-derived` (learned from Lexibank cognate data).
 
 ## Multi-state systems (P-base)
 
@@ -210,7 +215,8 @@ merkmal/
 │   └── classfeat/          model.json + inventory.tsv + weights.json
 ├── geometries/
 │   └── clements-hume.json  Clements & Hume (1995) feature geometry tree
-├── python/                 Python package (v0.5.0)
+├── typologies/             direction cost files for asymmetric distance
+├── python/                 Python package (v0.6.0)
 │   ├── pyproject.toml
 │   ├── merkmal/
 │   └── tests/
@@ -218,18 +224,24 @@ merkmal/
 │   ├── go.mod
 │   ├── merkmal.go          System interface, Role, DistanceOption
 │   └── *.go
-├── tests/golden/           cross-language parity expectations
+├── tests/golden/           cross-language parity expectations (10k+ entries)
 ├── scripts/                model validation scripts
-├── docs/                   tutorials and notebooks
-└── paper/                  extended guides (programmer + linguist perspectives)
+└── docs/                   getting started notebook and tutorials
 ```
 
 ## Documentation
 
-See the [tutorials](docs/tutorials/) for worked examples covering
-phonological features, typology, historical linguistics, and
-cognate detection. Extended guides are available under
-[paper/](paper/).
+The **[Getting Started notebook](docs/notebooks/getting_started.ipynb)**
+walks through the full API with worked examples: feature lookup,
+natural classes, distances across systems, sound change modelling
+(Grimm's law, lenition chains, tonogenesis), tone, and a small
+cognate detection experiment with Austronesian data.
+
+Four additional tutorials cover specific topics in depth:
+[phonological features](docs/tutorials/01_phonology.py),
+[typology](docs/tutorials/02_typology.py),
+[historical linguistics](docs/tutorials/03_historical_linguistics.py), and
+[cognate detection](docs/tutorials/04_cognate_detection.py).
 
 ## License
 

@@ -14,7 +14,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-_ROOT = Path(__file__).resolve().parent.parent.parent
+_PKG_DATA = Path(__file__).resolve().parent / "data"
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def _find_dir(name: str, env_var: str) -> Path:
@@ -23,12 +24,15 @@ def _find_dir(name: str, env_var: str) -> Path:
         p = Path(env)
         if p.is_dir():
             return p
-    candidate = _ROOT / name
-    if candidate.is_dir():
-        return candidate
+    pkg_candidate = _PKG_DATA / name
+    if pkg_candidate.is_dir():
+        return pkg_candidate
+    repo_candidate = _REPO_ROOT / name
+    if repo_candidate.is_dir():
+        return repo_candidate
     msg = (
         f"Cannot find {name}/ directory. Set {env_var} or ensure "
-        f"{candidate} exists."
+        f"the package data or {repo_candidate} exists."
     )
     raise FileNotFoundError(msg)
 

@@ -514,8 +514,10 @@ func MergeToneDigits(segments []string) []string {
 	result := make([]string, len(segments))
 	copy(result, segments)
 
-	for i := len(result) - 1; i >= 0; i-- {
+	i := 0
+	for i < len(result) {
 		if !isToneDigitString(result[i]) {
+			i++
 			continue
 		}
 		tone := result[i]

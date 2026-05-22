@@ -76,8 +76,10 @@ def merge_tone_digits(segments: list[str]) -> list[str]:
     ['a']
     """
     result = list(segments)
-    for i in range(len(result) - 1, -1, -1):
+    i = 0
+    while i < len(result):
         if not _TONE_DIGIT_RE.match(result[i]):
+            i += 1
             continue
         tone = result[i]
         parsed = parse_chao_digits(tone)

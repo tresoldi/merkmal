@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.6.0
+
+- Added: `segment_ipa(ipa) → [phones]` — IPA tokenizer that handles
+  tie bars, prefix/suffix modifiers, combining marks, and Chao tone
+  digits. Exported from the public API along with `decompose_grapheme`
+  and `compose_grapheme`.
+- Added: `MergeToneDigits` in the Go module, matching the Python
+  `merge_tone_digits`. Fixed `ParseChaoDigits` handling of all-zero
+  input.
+- Added: sequence normalization (`normalize_sequences`) — fallback
+  normalizations for postalveolar affricates (tie-bar stripping,
+  retraction).
+- Added: valued engine compositional fallback — valued engines
+  (phoible, pbase-*) now resolve unknown graphemes via
+  `decompose_grapheme` + modifier-to-feature mapping, matching the
+  categorical engine's compositional chain.
+- Added: CLTS normalization — slash stripping, ligature resolution,
+  ASCII-colon parsing, and stress mark normalization for broader
+  input compatibility.
+- Added: typology module (`typology.py`) with `DirectionCost` and
+  `Typology` types for asymmetric distance computation. Three
+  bundled typologies: `default`, `lenition-bias`, `corecog-derived`.
+- Added: geometry comparison and weight learning infrastructure
+  (`paper/`).
+- Added: 10,000+ cross-language golden test entries covering all
+  nine systems (features, distances, partitions, geometry).
+- Fixed: `parse_chao_digits` and `merge_tone_digits` restored to
+  public API after accidental omission in 0.5.0.
+- Cleaned up: removed one-time migration scripts, fixed import
+  sorting.
+
 ## 0.5.0
 
 - **Breaking**: data-code decoupling. Feature inventories, geometry

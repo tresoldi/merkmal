@@ -75,7 +75,7 @@ class TestAsymmetricDistance:
         assert d_pb != d_bp
 
     def test_devoicing_cheaper_than_voicing(self) -> None:
-        """b->p (devoicing, pos_to_neg=0.85) should be cheaper than p->b (voicing, neg_to_pos=1.15)."""
+        """Devoicing (b->p) should be cheaper than voicing (p->b) under lenition bias."""
         import merkmal
 
         d_pb = merkmal.distance("p", "b", typology="lenition-bias")

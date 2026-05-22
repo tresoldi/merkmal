@@ -13,7 +13,8 @@ from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 
-_ROOT = Path(__file__).resolve().parent.parent.parent
+_PKG_DATA = Path(__file__).resolve().parent / "data"
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 @dataclass(frozen=True)
@@ -44,12 +45,15 @@ def find_typologies_dir() -> Path:
         p = Path(env)
         if p.is_dir():
             return p
-    candidate = _ROOT / "typologies"
-    if candidate.is_dir():
-        return candidate
+    pkg_candidate = _PKG_DATA / "typologies"
+    if pkg_candidate.is_dir():
+        return pkg_candidate
+    repo_candidate = _REPO_ROOT / "typologies"
+    if repo_candidate.is_dir():
+        return repo_candidate
     msg = (
         f"Cannot find typologies/ directory. Set MERKMAL_TYPOLOGIES or ensure "
-        f"{candidate} exists."
+        f"the package data or {repo_candidate} exists."
     )
     raise FileNotFoundError(msg)
 
