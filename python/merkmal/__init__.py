@@ -7,6 +7,7 @@ from merkmal.analysis import (
     derive_class_features,
     distance,
     features_to_graphemes,
+    inventory_weights,
     minimal_matrix,
     tabulate_matrix,
     valued_distance,
@@ -55,12 +56,14 @@ from merkmal.representations import (
     ValuedFeatures,
 )
 from merkmal.segmentation import merge_tone_digits, parse_chao_digits
+from merkmal.typology import DirectionCost, Typology, load_typology
 
 __all__ = [
     "__version__",
     "CategoricalEngine",
     "CategoricalFeatures",
     "compose_grapheme",
+    "DirectionCost",
     "FeatureMatrix",
     "FeatureNode",
     "FeatureRepresentation",
@@ -71,6 +74,7 @@ __all__ = [
     "ModelConfig",
     "Registry",
     "TrainedEngine",
+    "Typology",
     "ValuedEngine",
     "ValuedFeatures",
     "add_features",
@@ -81,6 +85,7 @@ __all__ = [
     "feature_distance",
     "features_to_grapheme",
     "features_to_graphemes",
+    "inventory_weights",
     "get_class_features",
     "get_class_representation",
     "get_features",
@@ -92,6 +97,7 @@ __all__ = [
     "load_geometry",
     "load_model",
     "load_model_config",
+    "load_typology",
     "matches",
     "merge_tone_digits",
     "minimal_matrix",

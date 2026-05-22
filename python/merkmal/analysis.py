@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from itertools import combinations
+from math import log2
 from typing import TYPE_CHECKING, Literal
 
 from merkmal.grapheme import (
@@ -364,8 +365,14 @@ def distance(
     precomputed: dict[str, dict[str, float]] | None = None,
     valued_dot_policy: Literal["ignore", "partial", "strict"] = "ignore",
     node_weights: dict[str, float] | str | None = None,
+    typology: str | None = None,
 ) -> float:
-    """Return the distance between two graphemes."""
+    """Return the distance between two graphemes.
+
+    When *typology* is provided (e.g. ``"lenition-bias"``), the distance
+    is asymmetric: d(a, b) != d(b, a) in general.  When ``None``
+    (default), behaviour is unchanged (symmetric).
+    """
     if precomputed is not None:
         direct = precomputed.get(grapheme_a, {}).get(grapheme_b)
         if direct is not None:
@@ -377,6 +384,14 @@ def distance(
         raise KeyError(msg)
 
     system_obj = get_system(system)
+
+    if typology is not None:
+        return _directed_distance(
+            grapheme_a, grapheme_b, system_obj,
+            typology=typology,
+            valued_dot_policy=valued_dot_policy,
+            node_weights=node_weights,
+        )
 
     # Systems with a grapheme_cost method (e.g. ClassFeat) implement the
     # full distance themselves, including class-pair costs and trained
@@ -399,6 +414,57 @@ def distance(
     return system_obj.segment_distance(
         representation_a, representation_b, node_weights,
     )
+
+
+def _directed_distance(
+    grapheme_a: str,
+    grapheme_b: str,
+    system_obj: FeatureSystem,
+    *,
+    typology: str,
+    valued_dot_policy: Literal["ignore", "partial", "strict"],
+    node_weights: dict[str, float] | str | None,
+) -> float:
+    from merkmal.engines.categorical import CategoricalEngine
+    from merkmal.engines.valued import ValuedEngine, _quantize_state
+    from merkmal.typology import load_typology
+
+    typ = load_typology(typology)
+
+    representation_a = _lookup_representation(grapheme_a, system_obj)
+    representation_b = _lookup_representation(grapheme_b, system_obj)
+
+    if isinstance(system_obj, CategoricalEngine):
+        if not isinstance(representation_a, CategoricalFeatures) or not isinstance(
+            representation_b, CategoricalFeatures,
+        ):
+            msg = "Directed distance requires CategoricalFeatures for categorical systems."
+            raise NotImplementedError(msg)
+        return system_obj.geometry.directed_sound_distance(
+            representation_a.values, representation_b.values, typ, node_weights,
+        )
+
+    if isinstance(system_obj, ValuedEngine):
+        if not isinstance(representation_a, ValuedFeatures) or not isinstance(
+            representation_b, ValuedFeatures,
+        ):
+            msg = "Directed distance requires ValuedFeatures for valued systems."
+            raise NotImplementedError(msg)
+        a_q = {k: _quantize_state(v) for k, v in representation_a.values.items()}
+        b_q = {k: _quantize_state(v) for k, v in representation_b.values.items()}
+        from merkmal.geometry import directed_valued_geometry_distance
+
+        return directed_valued_geometry_distance(
+            system_obj.geometry.tree,
+            a_q, b_q,
+            system_obj._geometry_map,
+            system_obj._dimension_weights,
+            typ,
+            node_weights,
+        )
+
+    msg = f"Directed distance not supported for system type: {type(system_obj).__name__}"
+    raise NotImplementedError(msg)
 
 
 def valued_matches(
@@ -483,3 +549,143 @@ def valued_distance(
         total += 0.0 if left == right else 1.0
 
     return (total / comparable) if comparable > 0 else 0.0
+
+
+def inventory_weights(
+    inventory: list[str] | tuple[str, ...],
+    *,
+    system: str | None = None,
+) -> dict[str, float]:
+    """Compute per-geometry-node weights from an inventory's contrastiveness.
+
+    Returns a dict keyed by geometry node name, suitable for passing
+    directly to ``distance(..., node_weights=...)``.
+    """
+    if len(inventory) <= 1:
+        return {}
+
+    system_obj = get_system(system)
+
+    from merkmal.engines.categorical import CategoricalEngine
+    from merkmal.engines.valued import ValuedEngine
+
+    if isinstance(system_obj, ValuedEngine):
+        return _inventory_weights_valued(inventory, system_obj)
+
+    if not isinstance(system_obj, CategoricalEngine):
+        return {}
+
+    return _inventory_weights_categorical(inventory, system_obj)
+
+
+def _inventory_weights_categorical(
+    inventory: list[str] | tuple[str, ...],
+    system_obj: object,
+) -> dict[str, float]:
+    from merkmal.engines.categorical import CategoricalEngine
+    from merkmal.geometry import _iter_leaves
+
+    assert isinstance(system_obj, CategoricalEngine)
+
+    geometry = system_obj.geometry
+    tree = geometry.tree
+    ftn = geometry.feature_to_node
+
+    feature_sets: list[frozenset[str]] = []
+    for seg in inventory:
+        feats = system_obj.grapheme_to_features(seg)
+        if feats is not None:
+            feature_sets.append(feats)
+
+    if len(feature_sets) <= 1:
+        return {}
+
+    log_inv = log2(len(feature_sets))
+
+    leaf_feat_names: set[str] = set()
+    for leaf, _, _ in _iter_leaves(tree, 1):
+        if leaf.positive:
+            leaf_feat_names.add(leaf.positive)
+        if leaf.negative:
+            leaf_feat_names.add(leaf.negative)
+
+    # Group leaf features by parent node, build combined profile per segment.
+    parent_leaves: dict[str, list[tuple[str, str]]] = {}
+    for leaf, _, parent_name in _iter_leaves(tree, 1):
+        parent_leaves.setdefault(parent_name, []).append(
+            (leaf.positive, leaf.negative),
+        )
+
+    weights: dict[str, float] = {}
+
+    for parent_name, leaves in parent_leaves.items():
+        profiles: set[tuple[int, ...]] = set()
+        for feats in feature_sets:
+            profile = tuple(
+                (1 if (pos and pos in feats) else 0)
+                + (-1 if (neg and neg in feats) else 0)
+                for pos, neg in leaves
+            )
+            profiles.add(profile)
+        distinct = len(profiles)
+        if distinct > 1:
+            weights[parent_name] = log2(distinct) / log_inv
+
+    # Node-mapped features that are NOT leaf features.
+    node_to_feats: dict[str, list[str]] = {}
+    for feat, node in ftn.items():
+        if feat not in leaf_feat_names:
+            node_to_feats.setdefault(node, []).append(feat)
+
+    for node_name, mapped_feats in node_to_feats.items():
+        sorted_feats = sorted(mapped_feats)
+        profiles: set[tuple[bool, ...]] = set()
+        for feats in feature_sets:
+            profile = tuple(f in feats for f in sorted_feats)
+            profiles.add(profile)
+        distinct = len(profiles)
+        if distinct <= 1:
+            continue
+        w = log2(distinct) / log_inv
+        weights[node_name] = max(weights.get(node_name, 0.0), w)
+
+    return weights
+
+
+def _inventory_weights_valued(
+    inventory: list[str] | tuple[str, ...],
+    system_obj: object,
+) -> dict[str, float]:
+    from merkmal.engines.valued import ValuedEngine
+
+    assert isinstance(system_obj, ValuedEngine)
+
+    representations = []
+    for seg in inventory:
+        rep = system_obj.grapheme_to_representation(seg)
+        if rep is not None:
+            representations.append(rep.values)
+
+    if len(representations) <= 1:
+        return {}
+
+    log_inv = log2(len(representations))
+    geometry_map = system_obj._geometry_map
+
+    # Group feature dimensions by geometry node, build combined profile.
+    node_to_feats: dict[str, list[str]] = {}
+    for feat_name, node_name in geometry_map.items():
+        node_to_feats.setdefault(node_name, []).append(feat_name)
+
+    weights: dict[str, float] = {}
+    for node_name, feat_names in node_to_feats.items():
+        sorted_feats = sorted(feat_names)
+        profiles: set[tuple[FeatureState, ...]] = set()
+        for rep in representations:
+            profile = tuple(rep.get(f, FeatureState.DOT) for f in sorted_feats)
+            profiles.add(profile)
+        distinct = len(profiles)
+        if distinct > 1:
+            weights[node_name] = log2(distinct) / log_inv
+
+    return weights

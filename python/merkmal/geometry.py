@@ -9,7 +9,10 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from functools import cache
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from merkmal.typology import Typology
 
 
 @dataclass(frozen=True)
@@ -210,6 +213,92 @@ class GeometryNode:
 
         return total_diff / total_weight if total_weight > 0 else 0.0
 
+    def directed_sound_distance(
+        self,
+        feats_a: frozenset[str],
+        feats_b: frozenset[str],
+        typology: Typology,
+        node_weights: dict[str, float] | str | None = None,
+        feature_to_node: dict[str, str] | None = None,
+    ) -> float:
+        if feats_a == feats_b:
+            return 0.0
+
+        resolved = resolve_node_weights(self, node_weights)
+        flat = resolved is _FLAT_SENTINEL
+        ancestor_map = _build_ancestor_map(self) if resolved and not flat else {}
+        ftn = feature_to_node or {}
+
+        total_weight = 0.0
+        total_diff = 0.0
+
+        for leaf, depth, parent_name in _iter_leaves(self, 1):
+            if flat:
+                weight = 1.0
+            else:
+                nw = (
+                    _resolve_node_weight(parent_name, resolved, ancestor_map)
+                    if resolved
+                    else 1.0
+                )
+                weight = nw / depth
+            total_weight += weight
+
+            a_has_pos = leaf.positive in feats_a if leaf.positive else False
+            a_has_neg = leaf.negative in feats_a if leaf.negative else False
+            b_has_pos = leaf.positive in feats_b if leaf.positive else False
+            b_has_neg = leaf.negative in feats_b if leaf.negative else False
+
+            if not (a_has_pos or a_has_neg or b_has_pos or b_has_neg):
+                total_weight -= weight
+                continue
+
+            a_val = 1.0 if a_has_pos else (-1.0 if a_has_neg else 0.0)
+            b_val = 1.0 if b_has_pos else (-1.0 if b_has_neg else 0.0)
+            diff = a_val - b_val
+            divisor = 1.0 if leaf.is_privative else 2.0
+            total_diff += weight * typology.cost_for(leaf.name, diff) / divisor
+
+        leaf_feats: set[str] = set()
+        for leaf, _, _ in _iter_leaves(self, 1):
+            if leaf.positive:
+                leaf_feats.add(leaf.positive)
+            if leaf.negative:
+                leaf_feats.add(leaf.negative)
+
+        node_groups: dict[str, tuple[set[str], set[str]]] = {}
+        for feat in sorted(feats_a | feats_b):
+            if feat in leaf_feats:
+                continue
+            node = ftn.get(feat)
+            if node is None:
+                continue
+            if node not in node_groups:
+                node_groups[node] = (set(), set())
+            if feat in feats_a:
+                node_groups[node][0].add(feat)
+            if feat in feats_b:
+                node_groups[node][1].add(feat)
+
+        for node_name, (a_set, b_set) in node_groups.items():
+            if flat:
+                weight = 1.0
+            else:
+                depth = _node_depth(self, node_name, 1) or 2
+                nw = (
+                    _resolve_node_weight(node_name, resolved, ancestor_map)
+                    if resolved
+                    else 1.0
+                )
+                weight = nw / depth
+            total_weight += weight
+
+            if a_set == b_set:
+                continue
+            total_diff += weight
+
+        return total_diff / total_weight if total_weight > 0 else 0.0
+
 
 # ── Geometry object (tree + metadata) ───────────────────────────────────
 
@@ -253,6 +342,32 @@ class Geometry:
         return valued_geometry_distance(
             self.tree, a_values, b_values,
             geometry_map, dimension_weights, node_weights,
+        )
+
+    def directed_sound_distance(
+        self,
+        feats_a: frozenset[str],
+        feats_b: frozenset[str],
+        typology: Typology,
+        node_weights: dict[str, float] | str | None = None,
+    ) -> float:
+        return self.tree.directed_sound_distance(
+            feats_a, feats_b, typology, node_weights,
+            feature_to_node=self.feature_to_node,
+        )
+
+    def directed_valued_distance(
+        self,
+        a_values: dict[str, float | None],
+        b_values: dict[str, float | None],
+        geometry_map: dict[str, str],
+        dimension_weights: dict[str, float],
+        typology: Typology,
+        node_weights: dict[str, float] | str | None = None,
+    ) -> float:
+        return directed_valued_geometry_distance(
+            self.tree, a_values, b_values,
+            geometry_map, dimension_weights, typology, node_weights,
         )
 
     def node_depth(self, node_name: str) -> int:
@@ -431,5 +546,55 @@ def valued_geometry_distance(
             weight = base_w * nw
         total_weight += weight
         total_diff += weight * abs(val_a - val_b) / 2.0
+
+    return total_diff / total_weight if total_weight > 0 else 0.0
+
+
+def directed_valued_geometry_distance(
+    tree: GeometryNode,
+    a_values: dict[str, float | None],
+    b_values: dict[str, float | None],
+    geometry_map: dict[str, str],
+    dimension_weights: dict[str, float],
+    typology: Typology,
+    node_weights: dict[str, float] | str | None = None,
+) -> float:
+    if a_values == b_values:
+        return 0.0
+
+    resolved = resolve_node_weights(tree, node_weights)
+    flat = resolved is _FLAT_SENTINEL
+    ancestor_map = _build_ancestor_map(tree) if resolved and not flat else {}
+
+    total_weight = 0.0
+    total_diff = 0.0
+
+    all_keys = sorted(a_values.keys() | b_values.keys())
+    for key in all_keys:
+        val_a = a_values.get(key)
+        val_b = b_values.get(key)
+
+        if val_a is None or val_b is None:
+            continue
+        if val_a == 0.0 and val_b == 0.0:
+            continue
+
+        node_name = geometry_map.get(key)
+        if node_name is None:
+            continue
+
+        if flat:
+            weight = 1.0
+        else:
+            base_w = dimension_weights.get(key, 0.5)
+            nw = (
+                _resolve_node_weight(node_name, resolved, ancestor_map)
+                if resolved
+                else 1.0
+            )
+            weight = base_w * nw
+        total_weight += weight
+        diff = val_a - val_b
+        total_diff += weight * typology.cost_for(key, diff) / 2.0
 
     return total_diff / total_weight if total_weight > 0 else 0.0

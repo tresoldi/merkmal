@@ -9,6 +9,7 @@ from merkmal import (
     distance,
     features_to_graphemes,
     get_system,
+    inventory_weights,
     minimal_matrix,
     tabulate_matrix,
     valued_distance,
@@ -239,3 +240,66 @@ class TestCompose:
         query = frozenset({"vowel", "open", "front", "unrounded"})
         result = features_to_graphemes(query, compose=True, exact=True)
         assert len(result) == len(set(result))
+
+
+# -- Inventory weights --
+
+
+class TestInventoryWeights:
+    """Tests for inventory_weights()."""
+
+    _HAWAIIAN = ("p", "k", "ʔ", "m", "n", "ŋ", "h", "l", "w")
+    _GEORGIAN = ("p", "pʰ", "b", "t", "tʰ", "d", "k", "kʰ", "g")
+
+    def test_hawaiian_manner_high(self) -> None:
+        """Hawaiian has diverse manner classes -> Manner weight should be highest."""
+        w = inventory_weights(list(self._HAWAIIAN))
+        assert "Manner" in w
+        assert w["Manner"] == max(w.values())
+
+    def test_hawaiian_laryngeal_lower_than_manner(self) -> None:
+        """Hawaiian is mostly voiceless -> Laryngeal weight < Manner weight."""
+        w = inventory_weights(list(self._HAWAIIAN))
+        assert w.get("Laryngeal", 0.0) < w["Manner"]
+
+    def test_georgian_laryngeal_high(self) -> None:
+        """Georgian has 3-way laryngeal contrast -> Laryngeal weight high."""
+        w = inventory_weights(list(self._GEORGIAN))
+        assert "Laryngeal" in w
+        assert w["Laryngeal"] > w.get("Manner", 0.0) or w["Laryngeal"] >= 0.45
+
+    def test_georgian_laryngeal_exceeds_hawaiian(self) -> None:
+        """Georgian Laryngeal weight > Hawaiian Laryngeal weight."""
+        hw = inventory_weights(list(self._HAWAIIAN))
+        gw = inventory_weights(list(self._GEORGIAN))
+        assert gw["Laryngeal"] > hw["Laryngeal"]
+
+    def test_weights_work_with_distance(self) -> None:
+        """Returned dict integrates with distance(node_weights=...)."""
+        w = inventory_weights(list(self._HAWAIIAN))
+        d = distance("p", "b", node_weights=w)
+        assert isinstance(d, float)
+        assert d > 0.0
+
+    def test_single_segment_empty(self) -> None:
+        """Single-segment inventory returns empty weights."""
+        w = inventory_weights(["p"])
+        assert w == {}
+
+    def test_empty_inventory(self) -> None:
+        """Empty inventory returns empty weights."""
+        w = inventory_weights([])
+        assert w == {}
+
+    def test_place_distinction_nonzero(self) -> None:
+        """Node-mapped place features yield non-zero weights for d(p,k)."""
+        w = inventory_weights(list(self._HAWAIIAN))
+        d = distance("p", "k", node_weights=w)
+        assert d > 0.0
+
+    def test_all_weights_between_zero_and_one(self) -> None:
+        """All weights should be in (0, 1]."""
+        for inv in (self._HAWAIIAN, self._GEORGIAN):
+            w = inventory_weights(list(inv))
+            for v in w.values():
+                assert 0.0 < v <= 1.0
