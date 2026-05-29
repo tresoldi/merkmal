@@ -12,9 +12,9 @@ import unicodedata
 from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
-from merkmal.geometry import GeometryNode
+from merkmal.geometry import FeatureNode, GeometryNode
 from merkmal.grapheme import normalize_input_grapheme
 from merkmal.representations import (
     FeatureState,
@@ -42,15 +42,15 @@ class TrainedEngine:
 
     @cached_property
     def _feature_names(self) -> tuple[str, ...]:
-        return tuple(self.config.raw.get("feature_names", []))
+        return tuple(str(name) for name in self.config.raw.get("feature_names", []))
 
     @cached_property
     def _geometry_map(self) -> dict[str, str]:
-        return self.config.raw.get("geometry_map", {})
+        return cast("dict[str, str]", self.config.raw.get("geometry_map", {}))
 
     @cached_property
     def _sound_classes(self) -> dict[str, set[str]]:
-        raw = self.config.raw.get("sound_classes", {})
+        raw = cast("dict[str, list[str]]", self.config.raw.get("sound_classes", {}))
         return {cls: set(members) for cls, members in raw.items()}
 
     @cached_property
@@ -67,18 +67,21 @@ class TrainedEngine:
 
     @cached_property
     def _class_prototypes(self) -> dict[str, dict[str, float]]:
-        return self.config.raw.get("class_prototypes", {})
+        return cast(
+            "dict[str, dict[str, float]]",
+            self.config.raw.get("class_prototypes", {}),
+        )
 
     @cached_property
     def _alpha(self) -> float:
-        return self.config.raw.get("alpha", 0.5)
+        return float(self.config.raw.get("alpha", 0.5))
 
     @cached_property
-    def _weights(self) -> dict:
+    def _weights(self) -> dict[str, Any]:
         weights_path = self.config.model_dir / "weights.json"
         if weights_path.exists():
             with weights_path.open(encoding="utf-8") as f:
-                return json.load(f)
+                return cast("dict[str, Any]", json.load(f))
         return {
             "dimension_weights": {n: 1.0 for n in self._feature_names},
             "class_costs": {},
@@ -86,21 +89,24 @@ class TrainedEngine:
 
     @cached_property
     def _dimension_weights(self) -> dict[str, float]:
-        return self._weights.get(
-            "dimension_weights",
-            {n: 1.0 for n in self._feature_names},
+        return cast(
+            "dict[str, float]",
+            self._weights.get(
+                "dimension_weights",
+                {n: 1.0 for n in self._feature_names},
+            ),
         )
 
     @cached_property
     def _class_costs(self) -> dict[str, float]:
-        return self._weights.get("class_costs", {})
+        return cast("dict[str, float]", self._weights.get("class_costs", {}))
 
     @cached_property
     def _node_inv_depths(self) -> dict[str, float]:
         node_depth: dict[str, int] = {}
 
-        def _walk(node: object, depth: int) -> None:
-            node_depth[node.name] = depth  # type: ignore[union-attr]
+        def _walk(node: GeometryNode | FeatureNode, depth: int) -> None:
+            node_depth[node.name] = depth
             if isinstance(node, GeometryNode):
                 for child in node.children:
                     _walk(child, depth + 1)
@@ -370,6 +376,9 @@ class TrainedEngine:
 
     def features_to_grapheme(self, features: object) -> str | None:
         return None
+
+    def is_segment(self, grapheme: str) -> bool:
+        return self.grapheme_to_features(grapheme) is not None
 
     def is_class(self, grapheme: str) -> bool:
         return False

@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from itertools import combinations
 from math import log2
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, Protocol, cast
 
 from merkmal.grapheme import (
     available_modifiers,
@@ -23,6 +23,10 @@ from merkmal.representations import (
 
 if TYPE_CHECKING:
     from merkmal.protocol import FeatureSystem
+
+
+class _GraphemeCostSystem(Protocol):
+    def grapheme_cost(self, a: str, b: str) -> float: ...
 
 
 @dataclass(frozen=True)
@@ -123,6 +127,7 @@ def _compose_expand(
         modifier_subsets.extend(combinations(all_mods, 2))
     else:
         modifier_subsets = []
+        assert compose is not False
         mod_list = list(compose)
         for size in range(1, len(mod_list) + 1):
             modifier_subsets.extend(combinations(mod_list, size))
@@ -397,7 +402,9 @@ def distance(
     # full distance themselves, including class-pair costs and trained
     # weights.  Use it directly instead of the generic valued_distance.
     if hasattr(system_obj, "grapheme_cost") and node_weights is None:
-        return system_obj.grapheme_cost(grapheme_a, grapheme_b)
+        return cast("_GraphemeCostSystem", system_obj).grapheme_cost(
+            grapheme_a, grapheme_b,
+        )
 
     representation_a = _lookup_representation(grapheme_a, system_obj)
     representation_b = _lookup_representation(grapheme_b, system_obj)
@@ -639,11 +646,11 @@ def _inventory_weights_categorical(
 
     for node_name, mapped_feats in node_to_feats.items():
         sorted_feats = sorted(mapped_feats)
-        profiles: set[tuple[bool, ...]] = set()
+        mapped_profiles: set[tuple[bool, ...]] = set()
         for feats in feature_sets:
-            profile = tuple(f in feats for f in sorted_feats)
-            profiles.add(profile)
-        distinct = len(profiles)
+            mapped_profile = tuple(f in feats for f in sorted_feats)
+            mapped_profiles.add(mapped_profile)
+        distinct = len(mapped_profiles)
         if distinct <= 1:
             continue
         w = log2(distinct) / log_inv
@@ -681,8 +688,8 @@ def _inventory_weights_valued(
     for node_name, feat_names in node_to_feats.items():
         sorted_feats = sorted(feat_names)
         profiles: set[tuple[FeatureState, ...]] = set()
-        for rep in representations:
-            profile = tuple(rep.get(f, FeatureState.DOT) for f in sorted_feats)
+        for values in representations:
+            profile = tuple(values.get(f, FeatureState.DOT) for f in sorted_feats)
             profiles.add(profile)
         distinct = len(profiles)
         if distinct > 1:
