@@ -1,0 +1,288 @@
+{
+  "schema_version": 1,
+  "name": "ipa-clts",
+  "description": "Built-in IPA/CLTS diacritic, modifier, and tone feature mapping.",
+  "combining": {
+    "0303": "nasalized",
+    "0306": "ultra-short",
+    "0308": "centralized",
+    "030A": "devoiced",
+    "030D": "syllabic",
+    "0318": "advanced-tongue-root",
+    "0319": "retracted-tongue-root",
+    "031A": "unreleased",
+    "031C": "less-rounded",
+    "031D": "raised",
+    "031E": "lowered",
+    "031F": "advanced",
+    "0320": "retracted",
+    "0324": "breathy",
+    "0325": "devoiced",
+    "0329": "syllabic",
+    "032A": "dental",
+    "032C": "revoiced",
+    "032F": "non-syllabic",
+    "0330": "creaky",
+    "0339": "more-rounded",
+    "033A": "apical",
+    "033B": "laminal",
+    "033C": "linguolabial",
+    "033D": "mid-centralized",
+    "0348": "strong"
+  },
+  "suffix": {
+    "02B0": "aspirated",
+    "02B1": "breathy",
+    "02B2": "palatalized",
+    "02B7": "labialized",
+    "02BC": "ejective",
+    "02C0": "glottalized",
+    "02D0": "long",
+    "02D1": "mid-long",
+    "02DE": "rhotacized",
+    "02E0": "velarized",
+    "02E1": "with-lateral-release",
+    "02E4": "pharyngealized",
+    "1DA3": "labio-palatalized",
+    "207F": "with-nasal-release"
+  },
+  "prefix": {
+    "02B0": "pre-aspirated",
+    "02B2": "pre-palatalized",
+    "02B7": "pre-labialized",
+    "02C0": "pre-glottalized",
+    "207F": "pre-nasalized"
+  },
+  "tone_marks": {
+    "0300": [
+      2,
+      2,
+      2
+    ],
+    "0301": [
+      4,
+      4,
+      4
+    ],
+    "0302": [
+      4,
+      3,
+      2
+    ],
+    "0304": [
+      3,
+      3,
+      3
+    ],
+    "030B": [
+      5,
+      5,
+      5
+    ],
+    "030C": [
+      2,
+      3,
+      4
+    ],
+    "030F": [
+      1,
+      1,
+      1
+    ]
+  },
+  "tone_levels": {
+    "onset": {
+      "1": [
+        "tone-onset-lower",
+        "tone-onset-lowered"
+      ],
+      "2": [
+        "tone-onset-lower",
+        "tone-onset-raised"
+      ],
+      "3": [],
+      "4": [
+        "tone-onset-lowered",
+        "tone-onset-upper"
+      ],
+      "5": [
+        "tone-onset-raised",
+        "tone-onset-upper"
+      ]
+    },
+    "mid": {
+      "1": [
+        "tone-mid-lower",
+        "tone-mid-lowered"
+      ],
+      "2": [
+        "tone-mid-lower",
+        "tone-mid-raised"
+      ],
+      "3": [],
+      "4": [
+        "tone-mid-lowered",
+        "tone-mid-upper"
+      ],
+      "5": [
+        "tone-mid-raised",
+        "tone-mid-upper"
+      ]
+    },
+    "offset": {
+      "1": [
+        "tone-offset-lower",
+        "tone-offset-lowered"
+      ],
+      "2": [
+        "tone-offset-lower",
+        "tone-offset-raised"
+      ],
+      "3": [],
+      "4": [
+        "tone-offset-lowered",
+        "tone-offset-upper"
+      ],
+      "5": [
+        "tone-offset-raised",
+        "tone-offset-upper"
+      ]
+    }
+  },
+  "valued_effects": {
+    "devoiced": {
+      "features": [
+        "periodicGlottalSource",
+        "voice",
+        "voiced"
+      ],
+      "state": "-"
+    },
+    "revoiced": {
+      "features": [
+        "periodicGlottalSource",
+        "voice",
+        "voiced"
+      ],
+      "state": "+"
+    },
+    "aspirated": {
+      "features": [
+        "spreadGlottis",
+        "spread"
+      ],
+      "state": "+"
+    },
+    "breathy": {
+      "features": [
+        "spreadGlottis",
+        "spread"
+      ],
+      "state": "+"
+    },
+    "creaky": {
+      "features": [
+        "constrictedGlottis",
+        "constr"
+      ],
+      "state": "+"
+    },
+    "nasalized": {
+      "features": [
+        "nasal"
+      ],
+      "state": "+"
+    },
+    "long": {
+      "features": [
+        "long",
+        "LONG"
+      ],
+      "state": "+"
+    },
+    "dental": {
+      "features": [
+        "distributed"
+      ],
+      "state": "+"
+    },
+    "syllabic": {
+      "features": [
+        "syllabic",
+        "SYLLABIC"
+      ],
+      "state": "+"
+    },
+    "non-syllabic": {
+      "features": [
+        "syllabic",
+        "SYLLABIC"
+      ],
+      "state": "-"
+    },
+    "ejective": {
+      "features": [
+        "raisedLarynxEjective",
+        "constrictedGlottis",
+        "constr"
+      ],
+      "state": "+"
+    },
+    "glottalized": {
+      "features": [
+        "constrictedGlottis",
+        "constr"
+      ],
+      "state": "+"
+    },
+    "palatalized": {
+      "features": [
+        "high"
+      ],
+      "state": "+"
+    },
+    "labialized": {
+      "features": [
+        "round"
+      ],
+      "state": "+"
+    },
+    "more-rounded": {
+      "features": [
+        "round"
+      ],
+      "state": "+"
+    },
+    "less-rounded": {
+      "features": [
+        "round"
+      ],
+      "state": "-"
+    },
+    "velarized": {
+      "features": [
+        "dorsal"
+      ],
+      "state": "+"
+    },
+    "pharyngealized": {
+      "features": [
+        "retractedTongueRoot"
+      ],
+      "state": "+"
+    },
+    "advanced-tongue-root": {
+      "features": [
+        "advancedTongueRoot",
+        "ATR"
+      ],
+      "state": "+"
+    },
+    "retracted-tongue-root": {
+      "features": [
+        "retractedTongueRoot"
+      ],
+      "state": "+"
+    }
+  }
+}

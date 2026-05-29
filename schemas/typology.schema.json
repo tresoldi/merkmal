@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tresoldi/merkmal/schemas/typology.schema.json",
+  "title": "merkmal typology",
+  "description": "Asymmetric direction costs encoding diachronic priors. See docs/custom-models.md.",
+  "type": "object",
+  "required": ["name", "direction_costs"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "direction_costs": {
+      "type": "object",
+      "description": "Feature name -> directional multipliers. Missing features default to symmetric cost 1.0.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "pos_to_neg": { "type": "number", "description": "Cost multiplier for + -> - change." },
+          "neg_to_pos": { "type": "number", "description": "Cost multiplier for - -> + change." }
+        }
+      }
+    }
+  }
+}

@@ -9,10 +9,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from merkmal.grapheme import (
-    decompose_grapheme,
     normalize_input_grapheme,
     normalize_output_grapheme,
     normalize_sequences,
@@ -119,7 +118,7 @@ class CategoricalEngine:
     # ── Scalar dimensions (distinctive) ─────────────────────────────────
 
     @cached_property
-    def _scalar_dims(self) -> tuple[dict, ...]:
+    def _scalar_dims(self) -> tuple[dict[str, Any], ...]:
         return self.config.scalar_dimensions
 
     @cached_property
@@ -162,7 +161,7 @@ class CategoricalEngine:
         result = self._resolve_tie_bar(normalized)
         if result is not None:
             return _enrich_click_features(result)
-        base, added = decompose_grapheme(normalized)
+        base, added = self.config.diacritics.decompose(normalized)
         if base != normalized:
             base_features = self._grapheme_table.get(base)
             if base_features is None:
@@ -222,6 +221,9 @@ class CategoricalEngine:
         if not isinstance(features, frozenset):
             return None
         return self._reverse_table.get(features)
+
+    def is_segment(self, grapheme: str) -> bool:
+        return self.grapheme_to_features(grapheme) is not None
 
     def is_class(self, grapheme: str) -> bool:
         return grapheme in self._class_table
@@ -349,5 +351,5 @@ class CategoricalEngine:
         return self._features_to_scalar(features)
 
     @property
-    def dimensions(self) -> tuple[dict, ...]:
+    def dimensions(self) -> tuple[dict[str, Any], ...]:
         return self._scalar_dims

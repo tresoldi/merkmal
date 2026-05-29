@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
-"""Validate extracted model directories and geometry files.
+"""Validate model directories and geometry files.
 
 Checks: all model.json files are valid, all referenced data files
 exist and have expected structure, geometry tree is well-formed.
+
+Usage:
+    validate_models.py                 # validate the bundled models
+    validate_models.py PATH [PATH ...] # validate your own model dir(s)
+
+The second form is for users bringing their own model: point it at a
+directory containing a model.json. See docs/custom-models.md.
 """
 
 from __future__ import annotations
 
+import argparse
 import csv
 import json
 import sys
@@ -80,8 +88,12 @@ def validate_geometry() -> None:
 
 
 def validate_model(name: str) -> None:
-    print(f"\n[Model: {name}]")
-    model_dir = MODELS_DIR / name
+    validate_model_dir(MODELS_DIR / name, expected_name=name)
+
+
+def validate_model_dir(model_dir: Path, expected_name: str | None = None) -> None:
+    label = expected_name or model_dir.name
+    print(f"\n[Model: {label}]")
     if not model_dir.is_dir():
         error(f"Missing directory: {model_dir}")
         return
@@ -89,7 +101,7 @@ def validate_model(name: str) -> None:
     # model.json
     mj_path = model_dir / "model.json"
     if not mj_path.exists():
-        error(f"Missing model.json")
+        error("Missing model.json")
         return
 
     mj = json.loads(mj_path.read_text(encoding="utf-8"))
@@ -102,8 +114,16 @@ def validate_model(name: str) -> None:
     model_type = mj.get("type", "")
     ok(f"type={model_type}")
 
-    if mj.get("name") != name:
-        error(f"name mismatch: model.json says '{mj.get('name')}', dir is '{name}'")
+    if expected_name is not None and mj.get("name") != expected_name:
+        error(
+            f"name mismatch: model.json says '{mj.get('name')}', "
+            f"dir is '{expected_name}'"
+        )
+
+    # diacritics (optional; '' / absent means built-in IPA/CLTS set)
+    diac = mj.get("diacritics")
+    if diac:
+        ok(f"diacritics={diac} (resolved from the diacritics search path at load time)")
 
     # inventory.tsv
     inv_path = model_dir / "inventory.tsv"
@@ -229,16 +249,27 @@ def validate_cross_model_parity() -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "paths",
+        nargs="*",
+        type=Path,
+        help="model directories to validate (default: bundled models)",
+    )
+    args = parser.parse_args()
+
     print("Model Validation")
     print("=" * 60)
 
-    validate_geometry()
-
-    models = sorted(d.name for d in MODELS_DIR.iterdir() if d.is_dir())
-    for name in models:
-        validate_model(name)
-
-    validate_cross_model_parity()
+    if args.paths:
+        for path in args.paths:
+            validate_model_dir(path)
+    else:
+        validate_geometry()
+        models = sorted(d.name for d in MODELS_DIR.iterdir() if d.is_dir())
+        for name in models:
+            validate_model(name)
+        validate_cross_model_parity()
 
     print("\n" + "=" * 60)
     if errors:

@@ -24,6 +24,7 @@ type System interface {
 	FeatureDistance(a, b string) float64
 	SegmentDistance(a, b string, opts ...DistanceOption) float64
 	SoundDistance(featsA, featsB map[string]bool, opts ...DistanceOption) float64
+	IsSegment(grapheme string) bool
 	IsClass(grapheme string) bool
 	ClassFeatures(grapheme string) (map[string]bool, bool)
 }
@@ -32,9 +33,9 @@ type System interface {
 type DistanceOption func(*distanceConfig)
 
 type distanceConfig struct {
-	nodeWeights    map[string]float64
-	presetName     string
-	featureToNode  map[string]string
+	nodeWeights   map[string]float64
+	presetName    string
+	featureToNode map[string]string
 }
 
 func applyOpts(opts []DistanceOption) distanceConfig {

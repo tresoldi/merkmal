@@ -26,6 +26,13 @@ type ModelConfig struct {
 
 	Partitions map[string]map[string][]string
 
+	// DiacriticsName is the declared diacritic set name ("" = built-in).
+	DiacriticsName string
+	// Diacritics is the resolved diacritic table (defaults to the
+	// built-in IPA/CLTS set; the registry overrides it when a custom
+	// set is declared and available).
+	Diacritics *DiacriticTable
+
 	RawJSON json.RawMessage
 }
 
@@ -53,6 +60,7 @@ type rawModelJSON struct {
 	FeatureExtraction string                         `json:"feature_extraction"`
 	ScalarDimensions  []ScalarDimension              `json:"scalar_dimensions"`
 	Partitions        map[string]map[string][]string `json:"partitions"`
+	Diacritics        string                         `json:"diacritics"`
 }
 
 func readTSV(fsys fs.FS, path string) ([]string, [][]string, error) {
@@ -137,17 +145,26 @@ func LoadModelConfig(fsys fs.FS) (*ModelConfig, error) {
 		FeatureCategories: featureCategories,
 		ClassesData:       classesData,
 		Partitions:        raw.Partitions,
+		DiacriticsName:    raw.Diacritics,
+		Diacritics:        DefaultDiacritics,
 		RawJSON:           data,
 	}, nil
 }
 
-// LoadModel loads a model from an fs.FS and returns a System.
+// LoadModel loads a model from an fs.FS and returns a System. It uses the
+// built-in IPA/CLTS diacritic set; use a Registry (or set config.Diacritics)
+// to apply a custom diacritic table.
 func LoadModel(fsys fs.FS, geom *Geometry) (System, error) {
 	config, err := LoadModelConfig(fsys)
 	if err != nil {
 		return nil, err
 	}
+	return buildSystem(fsys, config, geom)
+}
 
+// buildSystem constructs the engine for an already-loaded config. The
+// config's Diacritics field (set by the loader/registry) is honored.
+func buildSystem(fsys fs.FS, config *ModelConfig, geom *Geometry) (System, error) {
 	switch config.ModelType {
 	case "categorical":
 		return NewCategoricalEngine(config, geom), nil

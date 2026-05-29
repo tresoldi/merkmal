@@ -8,13 +8,14 @@ the synchronic geometry because they encode different knowledge.
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass
 from functools import cache
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-_PKG_DATA = Path(__file__).resolve().parent / "data"
-_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+from merkmal import paths
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -40,30 +41,16 @@ class Typology:
 
 
 def find_typologies_dir() -> Path:
-    env = os.environ.get("MERKMAL_TYPOLOGIES")
-    if env:
-        p = Path(env)
-        if p.is_dir():
-            return p
-    pkg_candidate = _PKG_DATA / "typologies"
-    if pkg_candidate.is_dir():
-        return pkg_candidate
-    repo_candidate = _REPO_ROOT / "typologies"
-    if repo_candidate.is_dir():
-        return repo_candidate
-    msg = (
-        f"Cannot find typologies/ directory. Set MERKMAL_TYPOLOGIES or ensure "
-        f"the package data or {repo_candidate} exists."
-    )
-    raise FileNotFoundError(msg)
+    """Highest-precedence typologies directory (see :mod:`merkmal.paths`)."""
+    return paths.primary_dir("typologies")
 
 
 @cache
 def load_typology(name: str) -> Typology:
-    typ_dir = find_typologies_dir()
-    path = typ_dir / f"{name}.json"
-    if not path.exists():
-        msg = f"Typology not found: {name} (looked in {typ_dir})"
+    path = paths.resolve_file("typologies", f"{name}.json")
+    if path is None:
+        roots = paths.data_roots("typologies")
+        msg = f"Typology not found: {name} (looked in {roots})"
         raise FileNotFoundError(msg)
 
     data = json.loads(path.read_text(encoding="utf-8"))

@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tresoldi/merkmal/schemas/model.schema.json",
+  "title": "merkmal model.json",
+  "description": "Configuration for a merkmal feature system. The directory containing this file also holds the data files the declared type requires (see docs/custom-models.md).",
+  "type": "object",
+  "required": ["schema_version", "name", "version", "type", "default_geometry"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "name": {
+      "type": "string",
+      "description": "System name. Should match the directory name for bundled models."
+    },
+    "version": { "type": "string" },
+    "type": {
+      "enum": ["categorical", "valued", "trained"],
+      "description": "Engine type. Determines which data files and config keys apply."
+    },
+    "description": { "type": "string" },
+    "author": { "type": "string" },
+    "license": { "type": "string" },
+    "default_geometry": {
+      "type": "string",
+      "description": "Name of a geometry file (without .json) resolved from the geometries search path."
+    },
+    "diacritics": {
+      "type": "string",
+      "description": "Optional name of a diacritic set (without .json) resolved from the diacritics search path. Omit or leave empty to use the built-in IPA/CLTS set."
+    },
+    "partitions": {
+      "type": "object",
+      "description": "Optional partition levels mapping role (e.g. C, V) to ordered feature/dimension slot lists.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "type": { "const": "categorical" } } },
+      "then": {
+        "properties": {
+          "feature_extraction": {
+            "enum": ["filtered", "unfiltered"],
+            "description": "filtered: keep only words present in features.tsv; unfiltered: keep every word of the sound name."
+          },
+          "scalar_dimensions": {
+            "type": "array",
+            "description": "Optional continuous-dimension overlay (distinctive-style).",
+            "items": {
+              "type": "object",
+              "required": ["name", "positive", "negative", "geometry_node"],
+              "properties": {
+                "name": { "type": "string" },
+                "positive": { "type": "array", "items": { "type": "string" } },
+                "negative": { "type": "array", "items": { "type": "string" } },
+                "geometry_node": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "valued" } } },
+      "then": {
+        "required": ["geometry_map"],
+        "properties": {
+          "geometry_map": {
+            "type": "object",
+            "description": "Maps each feature column in inventory.tsv to a geometry node name.",
+            "additionalProperties": { "type": "string" }
+          },
+          "state_symbols": {
+            "type": "object",
+            "description": "Maps the symbols used in inventory.tsv cells to numeric values (or null).",
+            "additionalProperties": { "type": ["number", "null"] }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "trained" } } },
+      "then": {
+        "required": ["feature_names", "geometry_map", "sound_classes", "class_prototypes"],
+        "properties": {
+          "alpha": { "type": "number" },
+          "feature_names": { "type": "array", "items": { "type": "string" } },
+          "geometry_map": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          },
+          "sound_classes": {
+            "type": "object",
+            "additionalProperties": { "type": "array", "items": { "type": "string" } }
+          },
+          "class_prototypes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": { "type": "number" }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

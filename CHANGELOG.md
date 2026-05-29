@@ -1,5 +1,34 @@
 # Changelog
 
+## Unreleased
+
+- Added: bring-your-own-model support, start to end. Models,
+  geometries, typologies, and diacritic sets resolve from a layered
+  search path. `MERKMAL_MODELS`, `MERKMAL_GEOMETRIES`,
+  `MERKMAL_TYPOLOGIES`, and `MERKMAL_DIACRITICS` are now
+  `os.pathsep`-separated directory lists layered on top of the bundled
+  data (a name in an earlier directory shadows a later one);
+  `MERKMAL_DATA_ISOLATED=1` excludes the built-ins.
+- Added: `merkmal.load_model_from_dir(path)`, `Registry.register_dir`,
+  and `create_registry(extra_model_dirs=..., register_builtin=...)` for
+  loading custom models without environment variables.
+- Added: data-driven diacritics. The diacritic / modifier / tone →
+  feature mapping is now a `DiacriticTable` loadable from
+  `diacritics/<name>.json`; a model declares its set with the optional
+  `diacritics` key in `model.json`. This makes a fully custom feature
+  vocabulary work end to end. The built-in IPA/CLTS set is unchanged and
+  shipped as `diacritics/ipa-clts.json`.
+- Added (Go): `NewLayeredRegistry`, `LoadModelDir`, `DiacriticTable` /
+  `LoadDiacritics`, and a `data/diacritics` embed.
+- Fixed (Go): each model is now loaded with the geometry it declares in
+  `default_geometry` (and its declared diacritic set), rather than always
+  `clements-hume`. Restores Python/Go parity for custom per-model
+  geometry.
+- Added: JSON Schemas for model/geometry/typology/diacritics files under
+  `schemas/`, a "bring your own model" guide (`docs/custom-models.md`),
+  and `scripts/validate_models.py PATH` to validate an external model
+  directory.
+
 ## 0.6.0
 
 - Added: `segment_ipa(ipa) → [phones]` — IPA tokenizer that handles

@@ -5,9 +5,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from merkmal.model import list_available_models, load_model
+from merkmal.model import (
+    list_available_models,
+    load_model,
+    load_model_from_dir,
+)
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from merkmal.protocol import FeatureSystem
     from merkmal.representations import FeatureRepresentation
 
@@ -21,6 +27,18 @@ class Registry:
 
     def register(self, name: str, system: FeatureSystem) -> None:
         self.systems[name] = system
+
+    def register_dir(self, model_dir: Path | str, name: str | None = None) -> str:
+        """Load a model from a directory and register it.
+
+        The registered name defaults to the model's declared ``name``;
+        pass *name* to override (e.g. to avoid clashing with a built-in).
+        Returns the name under which it was registered.
+        """
+        system = load_model_from_dir(model_dir)
+        key = name or system.name
+        self.systems[key] = system
+        return key
 
     def get_system(self, name: str | None = None) -> FeatureSystem:
         key = name or self.default_system
@@ -43,12 +61,30 @@ def create_registry(
     *,
     register_builtin: bool = True,
     default_system: str = "descriptive",
+    extra_model_dirs: list[Path] | list[str] | None = None,
 ) -> Registry:
-    """Create a registry, optionally populated with built-in models."""
+    """Create a registry populated from the layered model search path.
+
+    By default this registers every model discoverable on the search
+    path (built-ins plus any ``MERKMAL_MODELS`` / *extra_model_dirs*
+    layers, with earlier layers shadowing later ones by name). Pass
+    ``register_builtin=False`` to register only models from
+    *extra_model_dirs* / the environment, excluding the bundled set.
+    """
     registry = Registry(default_system=default_system)
-    if register_builtin:
-        for name in list_available_models():
-            registry.register(name, load_model(name))
+    names = list_available_models(
+        extra_dirs=extra_model_dirs,
+        include_builtin=register_builtin,
+    )
+    for name in names:
+        registry.register(
+            name,
+            load_model(
+                name,
+                extra_dirs=extra_model_dirs,
+                include_builtin=register_builtin,
+            ),
+        )
     return registry
 
 
@@ -102,6 +138,10 @@ def get_representation(
     system: str | None = None,
 ) -> FeatureRepresentation | None:
     return get_system(system).grapheme_to_representation(grapheme)
+
+
+def is_segment(grapheme: str, *, system: str | None = None) -> bool:
+    return get_system(system).is_segment(grapheme)
 
 
 def get_class_features(grapheme: str, *, system: str | None = None) -> frozenset[str] | None:

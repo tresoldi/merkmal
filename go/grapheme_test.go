@@ -174,3 +174,20 @@ func TestNormalize(t *testing.T) {
 		}
 	}
 }
+
+func TestNewDefaultRegistry(t *testing.T) {
+	reg, err := NewDefaultRegistry()
+	if err != nil {
+		t.Fatalf("NewDefaultRegistry: %v", err)
+	}
+	sys, err := reg.Get("descriptive")
+	if err != nil {
+		t.Fatalf("Get(descriptive): %v", err)
+	}
+	if !sys.IsSegment("tʰ") {
+		t.Fatalf("bundled descriptive system does not recognize tʰ")
+	}
+	if sys.IsSegment("not-ipa") {
+		t.Fatalf("bundled descriptive system recognizes invalid segment")
+	}
+}

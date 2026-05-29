@@ -122,7 +122,7 @@ func quantizeStates(values map[string]FeatureState) map[string]float64 {
 
 // ── System interface ────────────────────────────────────────────────
 
-func (e *ValuedEngine) Name() string              { return e.config.Name }
+func (e *ValuedEngine) Name() string               { return e.config.Name }
 func (e *ValuedEngine) RepresentationKind() string { return "valued" }
 
 func (e *ValuedEngine) ListGraphemes() []string {
@@ -145,7 +145,7 @@ func (e *ValuedEngine) lookupValues(normalized string) (map[string]FeatureState,
 			return values, true
 		}
 	}
-	base, modifiers := DecomposeGrapheme(normalized)
+	base, modifiers := e.config.Diacritics.Decompose(normalized)
 	if base != normalized && len(modifiers) > 0 {
 		baseValues, baseOK := e.table[base]
 		if !baseOK {
@@ -157,7 +157,7 @@ func (e *ValuedEngine) lookupValues(normalized string) (map[string]FeatureState,
 			}
 		}
 		if baseOK {
-			return ApplyModifierEffects(baseValues, modifiers, e.featureNameSet), true
+			return e.config.Diacritics.ApplyValuedEffects(baseValues, modifiers, e.featureNameSet), true
 		}
 	}
 	return nil, false
@@ -200,6 +200,12 @@ func (e *ValuedEngine) SegmentDistance(a, b string, opts ...DistanceOption) floa
 
 func (e *ValuedEngine) SoundDistance(featsA, featsB map[string]bool, opts ...DistanceOption) float64 {
 	return 0.0
+}
+
+func (e *ValuedEngine) IsSegment(grapheme string) bool {
+	normalized := NormalizeInputGrapheme(grapheme)
+	_, ok := e.lookupValues(normalized)
+	return ok
 }
 
 func (e *ValuedEngine) IsClass(grapheme string) bool {

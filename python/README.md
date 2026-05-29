@@ -86,32 +86,6 @@ Go module. Lower-level loading is still `fs.FS`-based: use
 `NewRegistry` with `os.DirFS` for disk-based models, `embed.FS` for
 caller-provided compiled data, or `fstest.MapFS` for tests.
 
-## Bring your own model and configuration
-
-Every feature system, geometry, typology, and diacritic set is a
-pluggable data file. You can add or override any of them by editing
-JSON/TSV and pointing merkmal at an external directory — no code
-changes. Custom data layers on top of the built-ins by default (so you
-can drop in one model and keep the other nine), or replaces them in an
-isolated mode.
-
-```bash
-export MERKMAL_MODELS=/path/to/my/models        # also *_GEOMETRIES, *_TYPOLOGIES, *_DIACRITICS
-python -c "import merkmal; print(merkmal.list_systems())"
-```
-
-```python
-import merkmal
-system = merkmal.load_model_from_dir("/path/to/mymodel")
-reg = merkmal.create_registry(extra_model_dirs=["/path/to/models"])
-```
-
-This works start to end, including a fully custom feature vocabulary:
-diacritic, tone, and modifier → feature mappings are themselves a data
-file. See **[docs/custom-models.md](docs/custom-models.md)** for the
-complete guide and **[schemas/](schemas)** for JSON Schemas of every
-file type.
-
 ## Systems
 
 | System | Type | Features | Distance |
@@ -248,6 +222,26 @@ with conflicting values have the conflicting cells downgraded to
 `.` (`FeatureState.DOT`). The P-base data retains its own
 attribution and license notice.
 
+## Custom models and configuration
+
+Every feature system, geometry, typology, and diacritic set is a
+pluggable data file. Point merkmal at an external directory to add your
+own — layered on top of the built-ins by default:
+
+```python
+import merkmal
+
+system = merkmal.load_model_from_dir("/path/to/mymodel")
+reg = merkmal.create_registry(extra_model_dirs=["/path/to/models"])
+```
+
+Or via environment variables (`os.pathsep`-separated lists):
+`MERKMAL_MODELS`, `MERKMAL_GEOMETRIES`, `MERKMAL_TYPOLOGIES`,
+`MERKMAL_DIACRITICS`; `MERKMAL_DATA_ISOLATED=1` excludes the built-ins.
+This works start to end, including a fully custom feature vocabulary
+(the diacritic/tone/modifier → feature mapping is itself a data file).
+See [docs/custom-models.md](https://github.com/tresoldi/merkmal/blob/main/docs/custom-models.md).
+
 ## Repository structure
 
 ```
@@ -262,8 +256,6 @@ merkmal/
 ├── geometries/
 │   └── clements-hume.json  Clements & Hume (1995) feature geometry tree
 ├── typologies/             direction cost files for asymmetric distance
-├── diacritics/             diacritic/tone/modifier → feature mappings
-├── schemas/                JSON Schemas for model/geometry/typology/diacritics
 ├── python/                 Python package (v0.6.0)
 │   ├── pyproject.toml
 │   ├── README.md

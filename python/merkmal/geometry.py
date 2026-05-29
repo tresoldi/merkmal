@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from functools import cache
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from merkmal.typology import Typology
@@ -376,7 +376,7 @@ class Geometry:
 
 # ── Loading from JSON ───────────────────────────────────────────────────
 
-def _node_from_json(data: dict) -> GeometryNode | FeatureNode:
+def _node_from_json(data: dict[str, Any]) -> GeometryNode | FeatureNode:
     if "positive" in data:
         return FeatureNode(
             name=data["name"],
@@ -389,12 +389,12 @@ def _node_from_json(data: dict) -> GeometryNode | FeatureNode:
 
 @cache
 def load_geometry(name: str) -> Geometry:
-    from merkmal.model import find_geometries_dir
+    from merkmal import paths
 
-    geom_dir = find_geometries_dir()
-    path = geom_dir / f"{name}.json"
-    if not path.exists():
-        msg = f"Geometry not found: {name} (looked in {geom_dir})"
+    path = paths.resolve_file("geometries", f"{name}.json")
+    if path is None:
+        roots = paths.data_roots("geometries")
+        msg = f"Geometry not found: {name} (looked in {roots})"
         raise FileNotFoundError(msg)
 
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -482,9 +482,9 @@ def resolve_node_weights(
     else:
         presets = getattr(geom, "_weight_presets", {})
     if weights in presets:
-        return presets[weights]
+        return cast("dict[str, float]", presets[weights])
     # Fallback to built-in presets
-    builtin = {
+    builtin: dict[str, dict[str, float]] = {
         "ignore-tone": {"Tonal": 0.0},
         "ignore-prosodic": {"Prosodic": 0.0},
         "segmental": {"Tonal": 0.0, "Prosodic": 0.0},

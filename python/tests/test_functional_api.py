@@ -6,6 +6,7 @@ from merkmal import (
     get_class_features,
     get_features,
     get_representation,
+    is_segment,
     list_systems,
 )
 
@@ -36,3 +37,10 @@ def test_get_representation_for_pbase() -> None:
     representation = get_representation("a", system="pbase-hc")
     assert isinstance(representation, ValuedFeatures)
     assert representation.values["syllabic"] == FeatureState.POSITIVE
+
+
+def test_is_segment() -> None:
+    """Top-level validity helper accepts compositional IPA segments."""
+    assert is_segment("tʰ")
+    assert is_segment("ã", system="phoible")
+    assert not is_segment("not-ipa")

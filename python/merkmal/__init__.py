@@ -13,6 +13,11 @@ from merkmal.analysis import (
     valued_distance,
     valued_matches,
 )
+from merkmal.diacritics import (
+    DEFAULT_DIACRITICS,
+    DiacriticTable,
+    load_diacritics,
+)
 from merkmal.engines.categorical import CategoricalEngine
 from merkmal.engines.trained import TrainedEngine
 from merkmal.engines.valued import ValuedEngine
@@ -24,7 +29,12 @@ from merkmal.grapheme import (
     normalize_sequences,
     segment_ipa,
 )
-from merkmal.model import ModelConfig, load_model, load_model_config
+from merkmal.model import (
+    ModelConfig,
+    load_model,
+    load_model_config,
+    load_model_from_dir,
+)
 from merkmal.protocol import FeatureSystem
 from merkmal.registry import (
     Registry,
@@ -39,6 +49,7 @@ from merkmal.registry import (
     get_representation,
     get_system,
     is_class,
+    is_segment,
     list_systems,
     matches,
     partial_match,
@@ -63,6 +74,8 @@ __all__ = [
     "CategoricalEngine",
     "CategoricalFeatures",
     "compose_grapheme",
+    "DEFAULT_DIACRITICS",
+    "DiacriticTable",
     "DirectionCost",
     "FeatureMatrix",
     "FeatureNode",
@@ -92,11 +105,14 @@ __all__ = [
     "get_registry",
     "get_representation",
     "get_system",
+    "is_segment",
     "is_class",
     "list_systems",
+    "load_diacritics",
     "load_geometry",
     "load_model",
     "load_model_config",
+    "load_model_from_dir",
     "load_typology",
     "matches",
     "merge_tone_digits",

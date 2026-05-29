@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tresoldi/merkmal/schemas/diacritics.schema.json",
+  "title": "merkmal diacritic set",
+  "description": "Maps diacritics, modifier letters, and tone marks to the feature names a feature system uses. See docs/custom-models.md and the bundled diacritics/ipa-clts.json reference.",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "combining": {
+      "type": "object",
+      "description": "Combining-mark codepoint (uppercase hex string, e.g. \"0303\") -> feature name.",
+      "propertyNames": { "pattern": "^[0-9A-Fa-f]+$" },
+      "additionalProperties": { "type": "string" }
+    },
+    "suffix": {
+      "type": "object",
+      "description": "Trailing modifier-letter codepoint -> feature name (e.g. \"02B0\" -> \"aspirated\").",
+      "propertyNames": { "pattern": "^[0-9A-Fa-f]+$" },
+      "additionalProperties": { "type": "string" }
+    },
+    "prefix": {
+      "type": "object",
+      "description": "Leading modifier-letter codepoint -> feature name (e.g. \"02B0\" -> \"pre-aspirated\").",
+      "propertyNames": { "pattern": "^[0-9A-Fa-f]+$" },
+      "additionalProperties": { "type": "string" }
+    },
+    "tone_marks": {
+      "type": "object",
+      "description": "Combining tone-diacritic codepoint -> [onset, mid, offset] Chao levels (1-5).",
+      "propertyNames": { "pattern": "^[0-9A-Fa-f]+$" },
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "minItems": 3,
+        "maxItems": 3
+      }
+    },
+    "tone_levels": {
+      "type": "object",
+      "description": "Tone level (1-5, as string keys) -> feature names, for each of onset/mid/offset.",
+      "properties": {
+        "onset": { "$ref": "#/$defs/levelMap" },
+        "mid": { "$ref": "#/$defs/levelMap" },
+        "offset": { "$ref": "#/$defs/levelMap" }
+      }
+    },
+    "valued_effects": {
+      "type": "object",
+      "description": "Modifier feature name -> the valued-feature change it applies (for valued systems).",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["features", "state"],
+        "properties": {
+          "features": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Candidate feature names; the first present in the model is set."
+          },
+          "state": {
+            "description": "Target state to set: + or - (or the words positive/negative).",
+            "enum": ["+", "-", "positive", "negative"]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "levelMap": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[1-5]$" },
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    }
+  }
+}

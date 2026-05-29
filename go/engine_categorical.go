@@ -97,7 +97,7 @@ func ParseSoundName(name string, featureCategories map[string]string, filterCate
 
 // ── System interface ────────────────────────────────────────────────
 
-func (e *CategoricalEngine) Name() string              { return e.config.Name }
+func (e *CategoricalEngine) Name() string               { return e.config.Name }
 func (e *CategoricalEngine) RepresentationKind() string { return "categorical" }
 
 func (e *CategoricalEngine) ListGraphemes() []string {
@@ -126,7 +126,7 @@ func (e *CategoricalEngine) GraphemeToFeatures(grapheme string) (map[string]bool
 		return EnrichClickFeatures(result), true
 	}
 
-	base, added := DecomposeGrapheme(normalized)
+	base, added := e.config.Diacritics.Decompose(normalized)
 	if base != normalized {
 		baseFeatures, ok := e.graphemeTable[base]
 		if !ok {
@@ -213,6 +213,11 @@ func (e *CategoricalEngine) SoundDistance(featsA, featsB map[string]bool, opts .
 		return e.scalarSoundDistance(featsA, featsB, opts...)
 	}
 	return e.geometry.SoundDistance(featsA, featsB, opts...)
+}
+
+func (e *CategoricalEngine) IsSegment(grapheme string) bool {
+	_, ok := e.GraphemeToFeatures(grapheme)
+	return ok
 }
 
 func (e *CategoricalEngine) IsClass(grapheme string) bool {

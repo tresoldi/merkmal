@@ -183,109 +183,11 @@ var isChaoDigit = func() map[rune]bool {
 	return m
 }()
 
-type toneLevels struct{ onset, mid, offset int }
-
-var toneMarkToLevels = map[rune]toneLevels{
-	0x030B: {5, 5, 5},
-	0x0301: {4, 4, 4},
-	0x0304: {3, 3, 3},
-	0x0300: {2, 2, 2},
-	0x030F: {1, 1, 1},
-	0x0302: {4, 3, 2},
-	0x030C: {2, 3, 4},
-}
-
-var levelToOnsetFeatures = map[int][]string{
-	5: {"tone-onset-upper", "tone-onset-raised"},
-	4: {"tone-onset-upper", "tone-onset-lowered"},
-	3: nil,
-	2: {"tone-onset-lower", "tone-onset-raised"},
-	1: {"tone-onset-lower", "tone-onset-lowered"},
-}
-
-var levelToMidFeatures = map[int][]string{
-	5: {"tone-mid-upper", "tone-mid-raised"},
-	4: {"tone-mid-upper", "tone-mid-lowered"},
-	3: nil,
-	2: {"tone-mid-lower", "tone-mid-raised"},
-	1: {"tone-mid-lower", "tone-mid-lowered"},
-}
-
-var levelToOffsetFeatures = map[int][]string{
-	5: {"tone-offset-upper", "tone-offset-raised"},
-	4: {"tone-offset-upper", "tone-offset-lowered"},
-	3: nil,
-	2: {"tone-offset-lower", "tone-offset-raised"},
-	1: {"tone-offset-lower", "tone-offset-lowered"},
-}
-
-// ToneFeaturesForLevels returns tone features for given Chao onset/mid/offset levels.
+// ToneFeaturesForLevels returns tone features for given Chao onset/mid/offset
+// levels using the built-in IPA/CLTS table. Systems with a custom diacritic
+// set call the corresponding DiacriticTable method directly.
 func ToneFeaturesForLevels(onset, mid, offset int) map[string]bool {
-	result := map[string]bool{}
-	for _, f := range levelToOnsetFeatures[onset] {
-		result[f] = true
-	}
-	for _, f := range levelToMidFeatures[mid] {
-		result[f] = true
-	}
-	for _, f := range levelToOffsetFeatures[offset] {
-		result[f] = true
-	}
-	return result
-}
-
-var combiningToFeature = map[rune]string{
-	0x0325: "devoiced",
-	0x030A: "devoiced",
-	0x032C: "revoiced",
-	0x0330: "creaky",
-	0x0324: "breathy",
-	0x0303: "nasalized",
-	0x0329: "syllabic",
-	0x030D: "syllabic",
-	0x032F: "non-syllabic",
-	0x032A: "dental",
-	0x031F: "advanced",
-	0x0320: "retracted",
-	0x0318: "advanced-tongue-root",
-	0x0319: "retracted-tongue-root",
-	0x033A: "apical",
-	0x033B: "laminal",
-	0x033C: "linguolabial",
-	0x031D: "raised",
-	0x031E: "lowered",
-	0x0308: "centralized",
-	0x033D: "mid-centralized",
-	0x031C: "less-rounded",
-	0x0339: "more-rounded",
-	0x0306: "ultra-short",
-	0x031A: "unreleased",
-	0x0348: "strong",
-}
-
-var suffixModifierToFeature = map[rune]string{
-	0x02D0: "long",
-	0x02D1: "mid-long",
-	0x02B0: "aspirated",
-	0x02B1: "breathy",
-	0x02B2: "palatalized",
-	0x02B7: "labialized",
-	0x02E0: "velarized",
-	0x02E4: "pharyngealized",
-	0x02C0: "glottalized",
-	0x02BC: "ejective",
-	0x1DA3: "labio-palatalized",
-	0x207F: "with-nasal-release",
-	0x02DE: "rhotacized",
-	0x02E1: "with-lateral-release",
-}
-
-var prefixModifierToFeature = map[rune]string{
-	0x02B0: "pre-aspirated",
-	0x02C0: "pre-glottalized",
-	0x207F: "pre-nasalized",
-	0x02B7: "pre-labialized",
-	0x02B2: "pre-palatalized",
+	return DefaultDiacritics.ToneFeaturesForLevels(onset, mid, offset)
 }
 
 func isMark(r rune) bool {
@@ -339,105 +241,16 @@ func ParseChaoDigits(text string) (onset, mid, offset int, ok bool) {
 	return o, m, off, true
 }
 
-// DecomposeGrapheme extracts base characters and modifier features from a grapheme.
+// DecomposeGrapheme extracts base characters and modifier features from a
+// grapheme using the built-in IPA/CLTS table.
 func DecomposeGrapheme(grapheme string) (base string, features map[string]bool) {
-	runes := []rune(grapheme)
-	features = map[string]bool{}
-
-	prefixEnd := 0
-	for i, r := range runes {
-		if isLmOrSk(r) {
-			if feat, ok := prefixModifierToFeature[r]; ok {
-				features[feat] = true
-				prefixEnd = i + 1
-				continue
-			}
-		}
-		break
-	}
-
-	remainder := runes[prefixEnd:]
-
-	tailStart := len(remainder)
-	for k := len(remainder) - 1; k >= 0; k-- {
-		if isChaoDigit[remainder[k]] {
-			tailStart = k
-		} else {
-			break
-		}
-	}
-
-	var baseChars []rune
-	var chaoChars []rune
-
-	for idx, r := range remainder {
-		if idx >= tailStart {
-			chaoChars = append(chaoChars, r)
-			continue
-		}
-		if levels, ok := toneMarkToLevels[r]; ok {
-			for f := range ToneFeaturesForLevels(levels.onset, levels.mid, levels.offset) {
-				features[f] = true
-			}
-		} else if isMark(r) {
-			if feat, ok := combiningToFeature[r]; ok {
-				features[feat] = true
-			} else {
-				baseChars = append(baseChars, r)
-			}
-		} else if isLmOrSk(r) {
-			if feat, ok := suffixModifierToFeature[r]; ok {
-				features[feat] = true
-			} else {
-				baseChars = append(baseChars, r)
-			}
-		} else {
-			baseChars = append(baseChars, r)
-		}
-	}
-
-	if len(chaoChars) > 0 {
-		o, m, off, ok := ParseChaoDigits(string(chaoChars))
-		if ok {
-			for f := range ToneFeaturesForLevels(o, m, off) {
-				features[f] = true
-			}
-		}
-	}
-
-	return string(baseChars), features
+	return DefaultDiacritics.Decompose(grapheme)
 }
 
-// ComposeGrapheme reconstructs a grapheme from base + modifiers.
+// ComposeGrapheme reconstructs a grapheme from base + modifiers using the
+// built-in IPA/CLTS table.
 func ComposeGrapheme(base string, modifiers map[string]bool) string {
-	ftm := buildFeatureToModifier()
-	sorted := make([]string, 0, len(modifiers))
-	for f := range modifiers {
-		sorted = append(sorted, f)
-	}
-	sort.Strings(sorted)
-
-	var b strings.Builder
-	b.WriteString(base)
-	for _, feat := range sorted {
-		if ch, ok := ftm[feat]; ok {
-			b.WriteRune(ch)
-		}
-	}
-	return b.String()
-}
-
-func buildFeatureToModifier() map[string]rune {
-	result := make(map[string]rune)
-	for cp, feat := range combiningToFeature {
-		if _, exists := result[feat]; !exists {
-			result[feat] = cp
-		}
-	}
-	for cp, feat := range suffixModifierToFeature {
-		result[feat] = cp
-	}
-	return result
+	return DefaultDiacritics.Compose(base, modifiers)
 }
 
 var nonPulmonicFeatures = map[string]bool{
@@ -541,55 +354,10 @@ func MergeToneDigits(segments []string) []string {
 	return result
 }
 
-// ── Valued-feature modifier effects ─────────────────────────────────
-
-type modifierEffect struct {
-	alternatives []string
-	state        FeatureState
-}
-
-var modifierToValuedEffect = map[string]modifierEffect{
-	"devoiced":              {[]string{"periodicGlottalSource", "voice", "voiced"}, StateNegative},
-	"revoiced":              {[]string{"periodicGlottalSource", "voice", "voiced"}, StatePositive},
-	"aspirated":             {[]string{"spreadGlottis", "spread"}, StatePositive},
-	"breathy":               {[]string{"spreadGlottis", "spread"}, StatePositive},
-	"creaky":                {[]string{"constrictedGlottis", "constr"}, StatePositive},
-	"nasalized":             {[]string{"nasal"}, StatePositive},
-	"long":                  {[]string{"long", "LONG"}, StatePositive},
-	"dental":                {[]string{"distributed"}, StatePositive},
-	"syllabic":              {[]string{"syllabic", "SYLLABIC"}, StatePositive},
-	"non-syllabic":          {[]string{"syllabic", "SYLLABIC"}, StateNegative},
-	"ejective":              {[]string{"raisedLarynxEjective", "constrictedGlottis", "constr"}, StatePositive},
-	"glottalized":           {[]string{"constrictedGlottis", "constr"}, StatePositive},
-	"palatalized":           {[]string{"high"}, StatePositive},
-	"labialized":            {[]string{"round"}, StatePositive},
-	"more-rounded":          {[]string{"round"}, StatePositive},
-	"less-rounded":          {[]string{"round"}, StateNegative},
-	"velarized":             {[]string{"dorsal"}, StatePositive},
-	"pharyngealized":        {[]string{"retractedTongueRoot"}, StatePositive},
-	"advanced-tongue-root":  {[]string{"advancedTongueRoot", "ATR"}, StatePositive},
-	"retracted-tongue-root": {[]string{"retractedTongueRoot"}, StatePositive},
-}
-
-// ApplyModifierEffects applies modifier effects to a copy of base valued features.
-func ApplyModifierEffects(baseValues map[string]FeatureState, modifiers map[string]bool, modelFeatures map[string]bool) map[string]FeatureState {
-	result := make(map[string]FeatureState, len(baseValues))
-	for k, v := range baseValues {
-		result[k] = v
-	}
-	for modifier := range modifiers {
-		effect, ok := modifierToValuedEffect[modifier]
-		if !ok {
-			continue
-		}
-		for _, featName := range effect.alternatives {
-			if modelFeatures[featName] {
-				result[featName] = effect.state
-				break
-			}
-		}
-	}
-	return result
+// ApplyModifierEffects applies modifier effects to a copy of base valued
+// features using the built-in IPA/CLTS table.
+func ApplyModifierEffects(baseValues map[string]FeatureState, modifiers, modelFeatures map[string]bool) map[string]FeatureState {
+	return DefaultDiacritics.ApplyValuedEffects(baseValues, modifiers, modelFeatures)
 }
 
 // ── IPA segmentation ────────────────────────────────────────────────
@@ -658,8 +426,8 @@ func SegmentIPA(ipa string) []string {
 		}
 
 		if isLmOrSk(r) {
-			_, isPre := prefixModifierToFeature[r]
-			_, isSuf := suffixModifierToFeature[r]
+			_, isPre := DefaultDiacritics.Prefix[r]
+			_, isSuf := DefaultDiacritics.Suffix[r]
 			if hasBase || isPre || isSuf {
 				current = append(current, r)
 			} else {

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tresoldi/merkmal/schemas/geometry.schema.json",
+  "title": "merkmal geometry",
+  "description": "A feature-geometry tree plus feature-to-node mapping and weight presets. See docs/custom-models.md.",
+  "type": "object",
+  "required": ["name", "tree"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "name": { "type": "string" },
+    "version": { "type": "string" },
+    "description": { "type": "string" },
+    "reference": { "type": "string" },
+    "feature_to_node": {
+      "type": "object",
+      "description": "Maps non-leaf feature values to the geometry node that governs their weight.",
+      "additionalProperties": { "type": "string" }
+    },
+    "weight_presets": {
+      "type": "object",
+      "description": "Named node-weight overrides. A value of \"__flat__\" selects equal weights.",
+      "additionalProperties": {
+        "oneOf": [
+          { "const": "__flat__" },
+          {
+            "type": "object",
+            "additionalProperties": { "type": "number" }
+          }
+        ]
+      }
+    },
+    "tree": { "$ref": "#/$defs/node" }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": ["name"],
+      "oneOf": [
+        {
+          "description": "Leaf: a binary or privative feature.",
+          "required": ["positive"],
+          "properties": {
+            "name": { "type": "string" },
+            "positive": { "type": "string" },
+            "negative": { "type": "string", "description": "Empty string for a privative feature." }
+          }
+        },
+        {
+          "description": "Internal node grouping children.",
+          "required": ["children"],
+          "properties": {
+            "name": { "type": "string" },
+            "children": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/node" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

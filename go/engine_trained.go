@@ -2,11 +2,11 @@ package merkmal
 
 import (
 	"encoding/json"
+	"golang.org/x/text/unicode/norm"
 	"io/fs"
 	"math"
 	"sort"
 	"strings"
-	"golang.org/x/text/unicode/norm"
 )
 
 // TrainedEngine implements System for trained models (classfeat).
@@ -35,11 +35,11 @@ func NewTrainedEngine(fsys fs.FS, config *ModelConfig, geom *Geometry) (*Trained
 	}
 
 	var rawModel struct {
-		FeatureNames    []string                       `json:"feature_names"`
-		GeometryMap     map[string]string              `json:"geometry_map"`
-		SoundClasses    map[string][]string            `json:"sound_classes"`
-		ClassPrototypes map[string]map[string]float64  `json:"class_prototypes"`
-		Alpha           float64                        `json:"alpha"`
+		FeatureNames    []string                      `json:"feature_names"`
+		GeometryMap     map[string]string             `json:"geometry_map"`
+		SoundClasses    map[string][]string           `json:"sound_classes"`
+		ClassPrototypes map[string]map[string]float64 `json:"class_prototypes"`
+		Alpha           float64                       `json:"alpha"`
 	}
 	if err := json.Unmarshal(config.RawJSON, &rawModel); err != nil {
 		return nil, err
@@ -138,10 +138,10 @@ var modifierAdjustments = map[rune]map[string]float64{
 	'ʱ': {"aspirated": 1.0, "voice": 1.0},
 	'ʼ': {"glottalized": 1.0},
 	'ˀ': {"glottalized": 1.0},
-	'̃':  {"nasal": 1.0},
+	'̃': {"nasal": 1.0},
 	'ⁿ': {"nasal": 1.0},
-	'̥':  {"voice": -1.0},
-	'̬':  {"voice": 1.0},
+	'̥': {"voice": -1.0},
+	'̬': {"voice": 1.0},
 	'ˠ': {"dorsal": 1.0},
 	'ʷ': {"labial": 1.0, "round": 1.0},
 	'ʲ': {"dorsal": 1.0, "high": 1.0},
@@ -479,7 +479,7 @@ func (e *TrainedEngine) graphemeCost(a, b string) float64 {
 
 // ── System interface ────────────────────────────────────────────────
 
-func (e *TrainedEngine) Name() string              { return e.config.Name }
+func (e *TrainedEngine) Name() string               { return e.config.Name }
 func (e *TrainedEngine) RepresentationKind() string { return "valued" }
 
 func (e *TrainedEngine) ListGraphemes() []string {
@@ -526,6 +526,11 @@ func (e *TrainedEngine) SoundDistance(featsA, featsB map[string]bool, opts ...Di
 	return 0.0
 }
 
+func (e *TrainedEngine) IsSegment(grapheme string) bool {
+	_, ok := e.GraphemeToFeatures(grapheme)
+	return ok
+}
+
 func (e *TrainedEngine) IsClass(grapheme string) bool {
 	return false
 }
@@ -533,4 +538,3 @@ func (e *TrainedEngine) IsClass(grapheme string) bool {
 func (e *TrainedEngine) ClassFeatures(grapheme string) (map[string]bool, bool) {
 	return nil, false
 }
-

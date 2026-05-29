@@ -10,12 +10,10 @@ import contextlib
 from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from merkmal.geometry import _node_depth, valued_geometry_distance
 from merkmal.grapheme import (
-    apply_modifier_effects,
-    decompose_grapheme,
     normalize_input_grapheme,
     normalize_sequences,
 )
@@ -92,7 +90,7 @@ class ValuedEngine:
 
     @cached_property
     def _geometry_map(self) -> dict[str, str]:
-        return self.config.raw.get("geometry_map", {})
+        return cast("dict[str, str]", self.config.raw.get("geometry_map", {}))
 
     @cached_property
     def _dimension_weights(self) -> dict[str, float]:
@@ -120,7 +118,7 @@ class ValuedEngine:
                 if values is not None:
                     break
         if values is None:
-            base, modifiers = decompose_grapheme(normalized)
+            base, modifiers = self.config.diacritics.decompose(normalized)
             if base != normalized and modifiers:
                 base_values = self._table.get(base)
                 if base_values is None:
@@ -129,7 +127,7 @@ class ValuedEngine:
                         if base_values is not None:
                             break
                 if base_values is not None:
-                    values = apply_modifier_effects(
+                    values = self.config.diacritics.apply_valued_effects(
                         base_values, modifiers, self._feature_name_set,
                     )
         if values is None:
@@ -157,6 +155,9 @@ class ValuedEngine:
             if values == query:
                 return grapheme
         return None
+
+    def is_segment(self, grapheme: str) -> bool:
+        return self.grapheme_to_representation(grapheme) is not None
 
     def is_class(self, grapheme: str) -> bool:
         return False
