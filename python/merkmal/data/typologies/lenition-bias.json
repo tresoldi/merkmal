@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "name": "lenition-bias",
+  "description": "Lenition-biased direction costs. Losing stricture is cheaper than gaining it.",
+  "direction_costs": {
+    "voice": {"pos_to_neg": 0.85, "neg_to_pos": 1.15},
+    "continuant": {"pos_to_neg": 1.25, "neg_to_pos": 0.75},
+    "sonorant": {"pos_to_neg": 1.20, "neg_to_pos": 0.80},
+    "nasal": {"pos_to_neg": 1.10, "neg_to_pos": 0.90},
+    "spread_glottis": {"pos_to_neg": 0.90, "neg_to_pos": 1.10}
+  }
+}

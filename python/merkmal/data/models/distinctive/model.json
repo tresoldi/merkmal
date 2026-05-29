@@ -1,0 +1,403 @@
+{
+  "schema_version": 1,
+  "name": "distinctive",
+  "version": "1.0.0",
+  "type": "categorical",
+  "description": "Clements & Hume distinctive features with scalar dimensions",
+  "author": "Tiago Tresoldi",
+  "license": "MIT",
+  "default_geometry": "clements-hume",
+  "feature_extraction": "filtered",
+  "scalar_dimensions": [
+    {
+      "name": "voice",
+      "positive": [
+        "voiced"
+      ],
+      "negative": [
+        "voiceless"
+      ],
+      "geometry_node": "Laryngeal"
+    },
+    {
+      "name": "spread_glottis",
+      "positive": [
+        "aspirated"
+      ],
+      "negative": [],
+      "geometry_node": "Laryngeal"
+    },
+    {
+      "name": "constricted_glottis",
+      "positive": [
+        "glottalized"
+      ],
+      "negative": [],
+      "geometry_node": "Laryngeal"
+    },
+    {
+      "name": "sonorant",
+      "positive": [
+        "approximant",
+        "lateral",
+        "nasal",
+        "vowel"
+      ],
+      "negative": [
+        "consonant"
+      ],
+      "geometry_node": "Manner"
+    },
+    {
+      "name": "continuant",
+      "positive": [
+        "approximant",
+        "fricative"
+      ],
+      "negative": [
+        "affricate",
+        "stop"
+      ],
+      "geometry_node": "Manner"
+    },
+    {
+      "name": "nasal",
+      "positive": [
+        "nasal"
+      ],
+      "negative": [],
+      "geometry_node": "Manner"
+    },
+    {
+      "name": "lateral",
+      "positive": [
+        "lateral"
+      ],
+      "negative": [],
+      "geometry_node": "Manner"
+    },
+    {
+      "name": "strident",
+      "positive": [
+        "sibilant"
+      ],
+      "negative": [],
+      "geometry_node": "Manner"
+    },
+    {
+      "name": "delayed_release",
+      "positive": [
+        "affricate"
+      ],
+      "negative": [],
+      "geometry_node": "Manner"
+    },
+    {
+      "name": "tap_feature",
+      "positive": [
+        "tap"
+      ],
+      "negative": [],
+      "geometry_node": "Manner"
+    },
+    {
+      "name": "airstream",
+      "positive": [
+        "non-pulmonic"
+      ],
+      "negative": [],
+      "geometry_node": "Manner"
+    },
+    {
+      "name": "syllabic",
+      "positive": [
+        "syllabic",
+        "vowel"
+      ],
+      "negative": [
+        "consonant",
+        "non-syllabic"
+      ],
+      "geometry_node": "Manner"
+    },
+    {
+      "name": "labial",
+      "positive": [
+        "bilabial",
+        "labial",
+        "labio-dental",
+        "labio-palatal",
+        "labio-velar"
+      ],
+      "negative": [],
+      "geometry_node": "Labial"
+    },
+    {
+      "name": "round",
+      "positive": [
+        "rounded"
+      ],
+      "negative": [
+        "unrounded"
+      ],
+      "geometry_node": "Labial"
+    },
+    {
+      "name": "coronal",
+      "positive": [
+        "alveolar",
+        "alveolo-palatal",
+        "dental",
+        "linguolabial",
+        "post-alveolar",
+        "retroflex"
+      ],
+      "negative": [],
+      "geometry_node": "Coronal"
+    },
+    {
+      "name": "anterior",
+      "positive": [
+        "alveolar",
+        "dental"
+      ],
+      "negative": [
+        "alveolo-palatal",
+        "post-alveolar",
+        "retroflex"
+      ],
+      "geometry_node": "Coronal"
+    },
+    {
+      "name": "distributed",
+      "positive": [
+        "alveolo-palatal",
+        "post-alveolar"
+      ],
+      "negative": [
+        "alveolar",
+        "retroflex"
+      ],
+      "geometry_node": "Coronal"
+    },
+    {
+      "name": "dorsal",
+      "positive": [
+        "palatal",
+        "palatal-velar",
+        "uvular",
+        "velar"
+      ],
+      "negative": [],
+      "geometry_node": "Dorsal"
+    },
+    {
+      "name": "high",
+      "positive": [
+        "close",
+        "near-close"
+      ],
+      "negative": [
+        "near-open",
+        "open"
+      ],
+      "geometry_node": "Dorsal"
+    },
+    {
+      "name": "low",
+      "positive": [
+        "near-open",
+        "open"
+      ],
+      "negative": [
+        "close",
+        "near-close"
+      ],
+      "geometry_node": "Dorsal"
+    },
+    {
+      "name": "back",
+      "positive": [
+        "back",
+        "near-back"
+      ],
+      "negative": [
+        "front",
+        "near-front"
+      ],
+      "geometry_node": "Dorsal"
+    },
+    {
+      "name": "breathy_voice",
+      "positive": [
+        "breathy"
+      ],
+      "negative": [],
+      "geometry_node": "Laryngeal"
+    },
+    {
+      "name": "creaky_voice",
+      "positive": [
+        "creaky"
+      ],
+      "negative": [],
+      "geometry_node": "Laryngeal"
+    },
+    {
+      "name": "atr",
+      "positive": [
+        "advanced-tongue-root"
+      ],
+      "negative": [
+        "retracted-tongue-root"
+      ],
+      "geometry_node": "TongueRoot"
+    },
+    {
+      "name": "apical",
+      "positive": [
+        "apical"
+      ],
+      "negative": [
+        "laminal"
+      ],
+      "geometry_node": "Coronal"
+    },
+    {
+      "name": "long",
+      "positive": [
+        "long"
+      ],
+      "negative": [],
+      "geometry_node": "Prosodic"
+    },
+    {
+      "name": "nasalized",
+      "positive": [
+        "nasalized"
+      ],
+      "negative": [],
+      "geometry_node": "Prosodic"
+    },
+    {
+      "name": "labialized",
+      "positive": [
+        "labialized"
+      ],
+      "negative": [],
+      "geometry_node": "Prosodic"
+    },
+    {
+      "name": "palatalized",
+      "positive": [
+        "palatalized"
+      ],
+      "negative": [],
+      "geometry_node": "Prosodic"
+    },
+    {
+      "name": "pharyngealized",
+      "positive": [
+        "pharyngealized"
+      ],
+      "negative": [],
+      "geometry_node": "Prosodic"
+    },
+    {
+      "name": "ejective",
+      "positive": [
+        "ejective"
+      ],
+      "negative": [],
+      "geometry_node": "Prosodic"
+    },
+    {
+      "name": "rhotacized",
+      "positive": [
+        "rhotacized"
+      ],
+      "negative": [],
+      "geometry_node": "Prosodic"
+    },
+    {
+      "name": "velarized",
+      "positive": [
+        "velarized"
+      ],
+      "negative": [],
+      "geometry_node": "Prosodic"
+    },
+    {
+      "name": "tone_onset_register",
+      "positive": [
+        "tone-onset-upper"
+      ],
+      "negative": [
+        "tone-onset-lower"
+      ],
+      "geometry_node": "TonalOnset"
+    },
+    {
+      "name": "tone_onset_height",
+      "positive": [
+        "tone-onset-raised"
+      ],
+      "negative": [
+        "tone-onset-lowered"
+      ],
+      "geometry_node": "TonalOnset"
+    },
+    {
+      "name": "tone_offset_register",
+      "positive": [
+        "tone-offset-upper"
+      ],
+      "negative": [
+        "tone-offset-lower"
+      ],
+      "geometry_node": "TonalOffset"
+    },
+    {
+      "name": "tone_offset_height",
+      "positive": [
+        "tone-offset-raised"
+      ],
+      "negative": [
+        "tone-offset-lowered"
+      ],
+      "geometry_node": "TonalOffset"
+    }
+  ],
+  "partitions": {
+    "coarse": {
+      "C": [
+        "manner"
+      ],
+      "V": [
+        "height"
+      ]
+    },
+    "medium": {
+      "C": [
+        "manner",
+        "place"
+      ],
+      "V": [
+        "height",
+        "centrality"
+      ]
+    },
+    "fine": {
+      "C": [
+        "manner",
+        "place",
+        "phonation"
+      ],
+      "V": [
+        "height",
+        "centrality",
+        "roundedness"
+      ]
+    }
+  }
+}

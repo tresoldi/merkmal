@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "name": "pbase-uftc",
+  "version": "1.0.0",
+  "type": "valued",
+  "description": "P-base feature system, UFTC family",
+  "license": "CC-BY-NC-SA-4.0",
+  "default_geometry": "clements-hume",
+  "state_symbols": {
+    "+": 1.0,
+    "-": -1.0,
+    ".": null,
+    "n": 0.0,
+    "o": 0.0,
+    "x": 0.0
+  },
+  "geometry_map": {
+    "ATR": "TongueRoot",
+    "C-place": "Place",
+    "EXTRA": "Prosodic",
+    "LONG": "Prosodic",
+    "SYLLABIC": "Manner",
+    "V-place": "Place",
+    "anterior (C)": "Coronal",
+    "anterior (V)": "Coronal",
+    "anterior (any)": "Coronal",
+    "approximant": "Manner",
+    "constricted": "Laryngeal",
+    "continuant": "Manner",
+    "coronal (C)": "Coronal",
+    "coronal (V)": "Coronal",
+    "coronal (any)": "Coronal",
+    "distributed (C)": "Coronal",
+    "distributed (V)": "Coronal",
+    "distributed (any)": "Coronal",
+    "dorsal (C)": "Dorsal",
+    "dorsal (V)": "Dorsal",
+    "dorsal (any)": "Dorsal",
+    "labial (C)": "Labial",
+    "labial (V)": "Labial",
+    "labial (any)": "Labial",
+    "lateral": "Manner",
+    "lingual (C)": "Coronal",
+    "lingual (V)": "Coronal",
+    "lingual (any)": "Coronal",
+    "nasal": "Manner",
+    "open1": "Dorsal",
+    "open2": "Dorsal",
+    "open3": "Dorsal",
+    "open4": "Dorsal",
+    "open5": "Dorsal",
+    "open6": "Dorsal",
+    "pharyngeal (C)": "Pharyngeal",
+    "pharyngeal (V)": "Pharyngeal",
+    "pharyngeal (any)": "Pharyngeal",
+    "sonorant": "Manner",
+    "spread": "Laryngeal",
+    "strident": "Manner",
+    "vocalic": "Manner",
+    "vocoid": "Manner",
+    "voice": "Laryngeal"
+  },
+  "partitions": {
+    "coarse": {
+      "C": [
+        "sonorant",
+        "continuant"
+      ],
+      "V": [
+        "SYLLABIC",
+        "open1"
+      ]
+    },
+    "medium": {
+      "C": [
+        "sonorant",
+        "continuant",
+        "coronal (any)",
+        "dorsal (any)",
+        "labial (any)"
+      ],
+      "V": [
+        "SYLLABIC",
+        "open1",
+        "open3",
+        "open5"
+      ]
+    },
+    "fine": {
+      "C": [
+        "sonorant",
+        "continuant",
+        "coronal (any)",
+        "dorsal (any)",
+        "labial (any)",
+        "voice"
+      ],
+      "V": [
+        "SYLLABIC",
+        "open1",
+        "open3",
+        "open5"
+      ]
+    }
+  }
+}

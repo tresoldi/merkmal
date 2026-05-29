@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "name": "pbase-spe",
+  "version": "1.0.0",
+  "type": "valued",
+  "description": "P-base feature system, SPE family",
+  "license": "CC-BY-NC-SA-4.0",
+  "default_geometry": "clements-hume",
+  "state_symbols": {
+    "+": 1.0,
+    "-": -1.0,
+    ".": null,
+    "n": 0.0,
+    "o": 0.0,
+    "x": 0.0
+  },
+  "geometry_map": {
+    "EXTRA": "Prosodic",
+    "LONG": "Prosodic",
+    "anterior": "Coronal",
+    "back": "Dorsal",
+    "consonantal": "Manner",
+    "continuant": "Manner",
+    "coronal": "Coronal",
+    "covered": "Laryngeal",
+    "delayed_primary_release": "Manner",
+    "delayed_release_of_secondary_closure": "Manner",
+    "distributed": "Coronal",
+    "glottal_(tertiary)_closure": "Laryngeal",
+    "heightened_subglottal_pressure": "Laryngeal",
+    "high": "Dorsal",
+    "lateral": "Manner",
+    "low": "Dorsal",
+    "movement_of_glottal_closure": "Laryngeal",
+    "nasal": "Manner",
+    "round": "Labial",
+    "sonorant": "Manner",
+    "spread": "Laryngeal",
+    "strident": "Manner",
+    "syllabic": "Manner",
+    "tense": "TongueRoot",
+    "vocalic": "Manner",
+    "voice": "Laryngeal"
+  },
+  "partitions": {
+    "coarse": {
+      "C": [
+        "sonorant",
+        "continuant"
+      ],
+      "V": [
+        "high",
+        "low"
+      ]
+    },
+    "medium": {
+      "C": [
+        "sonorant",
+        "continuant",
+        "coronal",
+        "anterior"
+      ],
+      "V": [
+        "high",
+        "low",
+        "back"
+      ]
+    },
+    "fine": {
+      "C": [
+        "sonorant",
+        "continuant",
+        "coronal",
+        "anterior",
+        "voice"
+      ],
+      "V": [
+        "high",
+        "low",
+        "back",
+        "round"
+      ]
+    }
+  }
+}
