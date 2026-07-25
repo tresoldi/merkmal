@@ -67,6 +67,15 @@ mk_status mk_string_list_from_borrowed(
     return MK_OK;
 }
 
+mk_status mk_string_list_new(
+    const char *const *items,
+    size_t count,
+    mk_string_list **out
+)
+{
+    return mk_string_list_from_borrowed(items, count, out);
+}
+
 size_t mk_string_list_size(const mk_string_list *list)
 {
     return list == NULL ? 0 : list->count;

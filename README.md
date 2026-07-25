@@ -8,9 +8,9 @@ distances.
 The repository is being reorganized around a small C ABI. The C library
 contains compiled-in built-in models and can also accept caller-supplied
 runtime models. Python support is now a native wrapper around the C
-library. The old pure-Python implementation remains archived in the tree only
-for data generation and parity scaffolding while the wrapper surface is
-completed. Go support has been retired.
+library. The old pure-Python implementation and Go support have been removed
+from the active codebase. Historical Python tutorials, notebooks, and research
+scripts are archived under `docs/legacy_python/`.
 
 ## Current Status
 
@@ -42,7 +42,7 @@ Built-in C systems currently include:
 `classfeat` is intentionally not part of the first native C slice, but
 the generated-data and API layout leave room for it.
 
-## Build
+## Build And Install
 
 From the repository root:
 
@@ -59,6 +59,36 @@ library:
 ```sh
 cmake -S . -B build/c-debug -DMERKMAL_REQUIRE_UTF8PROC=ON
 ```
+
+For installation as a downstream C dependency:
+
+```sh
+cmake -S . -B build/release \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX=/usr/local \
+  -DMERKMAL_REQUIRE_UTF8PROC=ON
+cmake --build build/release
+cmake --install build/release
+```
+
+Installed consumers can use either CMake:
+
+```cmake
+find_package(merkmal CONFIG REQUIRED)
+target_link_libraries(example PRIVATE merkmal::merkmal)
+```
+
+or pkg-config:
+
+```sh
+cc example.c $(pkg-config --cflags --libs merkmal) -o example
+```
+
+See [docs/distribution.md](docs/distribution.md) for static/shared builds,
+custom prefixes, and `utf8proc` dependency notes. See
+[docs/release-policy.md](docs/release-policy.md) for release dependency and
+validation policy. See [docs/webassembly.md](docs/webassembly.md) for the
+initial Emscripten and Node smoke-test path.
 
 ## C Example
 
@@ -95,6 +125,8 @@ int main(void) {
 ```
 
 See [docs/c-api.md](docs/c-api.md) for the public C surface and
+[docs/distribution.md](docs/distribution.md) for installation and downstream
+integration. See
 [docs/runtime-model-format.md](docs/runtime-model-format.md) for the
 line-oriented caller-supplied model format.
 
@@ -125,6 +157,20 @@ print(merkmal.segment_ipa("tʰoŋ⁵⁵"))
 The Python package is intentionally native-only; unsupported legacy helper
 APIs are no longer exported from `merkmal`.
 
+Runtime model registration is exposed through an owned native registry:
+
+```python
+registry = merkmal.Registry()
+registry.add_model_text("""
+@model toy
+@type categorical
+@geometry clements-hume
+grapheme X consonant voiceless bilabial stop
+grapheme Y vowel open front unrounded
+""")
+print(registry.distance("X", "Y", system="toy"))
+```
+
 ## Runtime Models
 
 The C registry can accept a complete categorical model supplied as text:
@@ -150,16 +196,17 @@ Only categorical models are currently public in this format.
 merkmal/
 ├── include/                public C headers
 ├── src/                    C99 implementation and generated built-in data
+├── cmake/                  CMake and pkg-config package templates
 ├── tools/                  data generators for compiled-in C tables
+├── scripts/                active source-data validation and audit scripts
 ├── tests/c/                C tests
 ├── tests/golden/           parity fixtures for the native implementation
-├── tests/legacy_python/    archived tests for the pre-C Python implementation
 ├── models/                 source model data used by generators
 ├── geometries/             source geometry data
 ├── diacritics/             source diacritic/tone/modifier mappings
-├── typologies/             legacy Python typology data
+├── typologies/             source typology data reserved for later C support
 ├── python/                 native Python wrapper
-├── tools/legacy_python/    archived Python implementation for generators
+├── docs/legacy_python/     archived pre-C tutorials, notebooks, and scripts
 └── docs/                   C API and format documentation
 ```
 

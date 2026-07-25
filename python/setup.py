@@ -9,6 +9,7 @@ SOURCES = [
     "../src/feature_set.c",
     "../src/geometry.c",
     "../src/registry.c",
+    "../src/status.c",
     "../src/string_list.c",
     "../src/system.c",
     "../src/unicode.c",

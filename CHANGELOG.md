@@ -5,34 +5,28 @@
 - Breaking: repository direction changed from parallel Python/Go
   implementations to a C99 core library with a native Python wrapper.
   Go support has been retired.
+- Breaking: the installable Python package is now native-only. The old
+  pure-Python implementation and its tests have been removed from the active
+  codebase.
 - Added: C99 library skeleton, public `merkmal.h`, CMake build, compiled-in
   built-in data, C golden tests, and CPython Limited API wrapper.
+- Added: C install rules, exported CMake package metadata, pkg-config metadata,
+  public symbol annotations, and `mk_status_string`.
+- Added: release policy documentation, sanitizer CI, and an Emscripten/Node
+  smoke test for the raw C ABI with filesystem support disabled.
 - Added: public C APIs for built-in registries, runtime categorical model
   registration, feature lookup, segment distance, geometry feature
   distance, sound distance with weight presets, IPA normalization,
   segmentation, and Chao tone digit merging.
-- Added: public documentation for the C API and the line-oriented runtime
-  categorical model format.
-- Added: bring-your-own-model support, start to end. Models,
-  geometries, typologies, and diacritic sets resolve from a layered
-  search path. `MERKMAL_MODELS`, `MERKMAL_GEOMETRIES`,
-  `MERKMAL_TYPOLOGIES`, and `MERKMAL_DIACRITICS` are now
-  `os.pathsep`-separated directory lists layered on top of the bundled
-  data (a name in an earlier directory shadows a later one);
-  `MERKMAL_DATA_ISOLATED=1` excludes the built-ins.
-- Added: `merkmal.load_model_from_dir(path)`, `Registry.register_dir`,
-  and `create_registry(extra_model_dirs=..., register_builtin=...)` for
-  loading custom models without environment variables.
-- Added: data-driven diacritics. The diacritic / modifier / tone →
-  feature mapping is now a `DiacriticTable` loadable from
-  `diacritics/<name>.json`; a model declares its set with the optional
-  `diacritics` key in `model.json`. This makes a fully custom feature
-  vocabulary work end to end. The built-in IPA/CLTS set is unchanged and
-  shipped as `diacritics/ipa-clts.json`.
-- Added: JSON Schemas for model/geometry/typology/diacritics files under
-  `schemas/`, a "bring your own model" guide (`docs/custom-models.md`),
-  and `scripts/validate_models.py PATH` to validate an external model
-  directory.
+- Added: Python wrapper access to `node_weights`, tone-digit merging,
+  merged IPA segmentation, and a minimal native `Registry` for runtime model
+  text.
+- Added: public documentation for C distribution, the C API, and the
+  line-oriented runtime categorical model format.
+- Changed: pre-C Python tutorials, notebooks, and research scripts are archived under
+  `docs/legacy_python/` until they are rewritten for the native API.
+- Changed: generated C data now comes directly from the top-level source data
+  files instead of importing archived Python loaders.
 
 ## 0.6.0
 

@@ -92,8 +92,8 @@ python/
     merkmal_module.c
 ```
 
-The existing Python implementation can remain temporarily while the C slice is
-being built, but the target end state is that Python calls the C library.
+The old Python implementation has been removed from the active codebase.
+Python support is now the native wrapper calling the C library.
 
 ## Public C API Shape
 
@@ -343,21 +343,64 @@ and makes diffs visible while the generator matures.
 - [x] Update changelog with intentional compatibility breaks.
 - [x] Keep golden fixtures as cross-checks for the C implementation.
 
-## Open Questions To Revisit
+## Phase 2 Decisions
 
-- Should generated C data be checked in permanently, or only during the first
-  development phase?
-- How much of the current Python object model should be preserved after the
-  wrapper is feature-complete?
-- Should the line-oriented runtime model format become public and stable?
-- Should a command-line utility be part of the C project or remain Python-only?
-- What is the minimum WebAssembly API surface: C ABI only, or a small JS-facing
-  wrapper as well?
+- Keep generated C data checked in for source releases and Python wheel builds.
+- Require system `utf8proc` for release/distribution builds; keep the fallback
+  path for development, bootstrap, and the first WebAssembly spike.
+- Do not vendor `utf8proc` for native C distribution in Phase 2.
+- Support both static and shared library builds through the standard CMake
+  `BUILD_SHARED_LIBS` option.
+- Keep the Python package native-only, with a minimal `Registry` wrapper rather
+  than the old Python object model.
+- Target the raw C ABI for the first WebAssembly surface; defer a JS wrapper
+  until downstream requirements are clearer.
 
 ## Immediate Next Tasks
 
-1. Decide whether to vendor `utf8proc` or require a system package per
-   platform. The C code has verified `utf8proc` NFD/NFC hooks and an
-   IPA-focused fallback.
-2. Decide whether the archived Python data-generation helpers should be
-   replaced by a generator that reads the source JSON/TSV files directly.
+1. Continue release validation on additional compilers/platforms.
+2. Rewrite native-first tutorials to replace `docs/legacy_python/`.
+
+## Phase 2 Roadmap: C Distribution First
+
+### Milestone 11: C Install And Consumer Integration
+
+- [x] Add install rules for `merkmal.h` and `libmerkmal`.
+- [x] Export a CMake package with `merkmal::merkmal`.
+- [x] Generate and install `merkmal.pc` for pkg-config consumers.
+- [x] Add public symbol export annotations for shared-library builds.
+- [x] Add a small public status-to-string helper.
+- [x] Add install-tree smoke tests for CMake consumers.
+- [x] Add install-tree smoke tests for pkg-config consumers.
+- [x] Verify both static and shared library builds.
+
+### Milestone 12: Release Build Policy
+
+- [x] Decide whether release builds require system `utf8proc`.
+- [x] Decide whether to vendor `utf8proc` for WebAssembly and platforms without
+  good system packages.
+- [x] Document supported compiler/platform matrix.
+- [x] Add sanitizer CI jobs for the C library.
+- [x] Add release artifact notes for source tarballs and Python wheels.
+
+### Milestone 13: Source Data Pipeline Cleanup
+
+- [x] Make top-level `models/`, `geometries/`, `diacritics/`, and `typologies/`
+  the canonical source data.
+- [x] Rewrite `tools/generate_c_data.py` so it reads source data directly.
+- [x] Remove the archived Python runtime after the direct parser is complete.
+- [x] Regenerate C data and verify deterministic output.
+
+### Milestone 14: Native Wrapper Ergonomics
+
+- [x] Expose `node_weights` in Python `distance`.
+- [x] Expose `merge_tone_digits` and `segment_ipa_merged`.
+- [x] Add a minimal Python registry wrapper for runtime model text.
+- [x] Keep unsupported legacy object-model APIs out of the top-level package.
+
+### Milestone 15: WebAssembly Spike
+
+- [x] Add an Emscripten build preset or documented build command.
+- [x] Verify built-in models work without filesystem access.
+- [x] Decide whether to ship raw C ABI only or a tiny JS wrapper.
+- [x] Add a browser or Node smoke test for normalization, features, and distance.

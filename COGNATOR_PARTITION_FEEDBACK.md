@@ -8,6 +8,10 @@
 > `merkmal/go` directly. Custom partition levels are supported
 > through `model.json` configuration. Retained as a historical
 > record.
+>
+> The repository has since moved again to a C99 core library with a
+> native Python wrapper, and Go support has been retired. Treat this
+> file as historical design input, not current API documentation.
 
 **Audience:** the agent maintaining `merkmal`.
 **Author:** cognator (2026-04-19).

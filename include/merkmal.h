@@ -3,6 +3,18 @@
 
 #include <stddef.h>
 
+#if defined(_WIN32) && defined(MERKMAL_SHARED)
+#  if defined(MERKMAL_BUILDING_LIBRARY)
+#    define MK_API __declspec(dllexport)
+#  else
+#    define MK_API __declspec(dllimport)
+#  endif
+#elif defined(__GNUC__) || defined(__clang__)
+#  define MK_API __attribute__((visibility("default")))
+#else
+#  define MK_API
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,48 +34,50 @@ typedef enum mk_status {
     MK_ERR_OOM
 } mk_status;
 
-mk_status mk_registry_new_builtin(mk_registry **out);
-void mk_registry_free(mk_registry *registry);
+MK_API const char *mk_status_string(mk_status status);
 
-mk_status mk_registry_list_systems(
+MK_API mk_status mk_registry_new_builtin(mk_registry **out);
+MK_API void mk_registry_free(mk_registry *registry);
+
+MK_API mk_status mk_registry_list_systems(
     const mk_registry *registry,
     mk_string_list **out
 );
 
-mk_status mk_registry_get_system(
+MK_API mk_status mk_registry_get_system(
     const mk_registry *registry,
     const char *name,
     const mk_system **out
 );
 
-mk_status mk_registry_add_model_text(
+MK_API mk_status mk_registry_add_model_text(
     mk_registry *registry,
     const char *model_text
 );
 
-mk_status mk_system_name(const mk_system *system, const char **out);
-mk_status mk_system_kind(const mk_system *system, const char **out);
+MK_API mk_status mk_system_name(const mk_system *system, const char **out);
+MK_API mk_status mk_system_kind(const mk_system *system, const char **out);
 
-mk_status mk_system_is_segment(
+MK_API mk_status mk_system_is_segment(
     const mk_system *system,
     const char *utf8_grapheme,
     int *out
 );
 
-mk_status mk_system_grapheme_features(
+MK_API mk_status mk_system_grapheme_features(
     const mk_system *system,
     const char *utf8_grapheme,
     mk_feature_set **out
 );
 
-mk_status mk_system_segment_distance(
+MK_API mk_status mk_system_segment_distance(
     const mk_system *system,
     const char *utf8_a,
     const char *utf8_b,
     double *out
 );
 
-mk_status mk_system_segment_distance_with_weights(
+MK_API mk_status mk_system_segment_distance_with_weights(
     const mk_system *system,
     const char *utf8_a,
     const char *utf8_b,
@@ -71,13 +85,13 @@ mk_status mk_system_segment_distance_with_weights(
     double *out
 );
 
-mk_status mk_feature_distance(
+MK_API mk_status mk_feature_distance(
     const char *feature_a,
     const char *feature_b,
     int *out
 );
 
-mk_status mk_sound_distance(
+MK_API mk_status mk_sound_distance(
     const char *const *features_a,
     size_t feature_a_count,
     const char *const *features_b,
@@ -86,35 +100,40 @@ mk_status mk_sound_distance(
     double *out
 );
 
-mk_status mk_normalize_grapheme(
+MK_API mk_status mk_normalize_grapheme(
     const char *utf8_in,
     char **utf8_out
 );
 
-mk_status mk_segment_ipa(
+MK_API mk_status mk_segment_ipa(
     const char *utf8_in,
     mk_string_list **out
 );
 
-mk_status mk_merge_tone_digits(
+MK_API mk_status mk_merge_tone_digits(
     const mk_string_list *segments,
     mk_string_list **out
 );
 
-mk_status mk_segment_ipa_merged(
+MK_API mk_status mk_segment_ipa_merged(
     const char *utf8_in,
     mk_string_list **out
 );
 
-size_t mk_string_list_size(const mk_string_list *list);
-const char *mk_string_list_get(const mk_string_list *list, size_t index);
-void mk_string_list_free(mk_string_list *list);
+MK_API mk_status mk_string_list_new(
+    const char *const *items,
+    size_t count,
+    mk_string_list **out
+);
+MK_API size_t mk_string_list_size(const mk_string_list *list);
+MK_API const char *mk_string_list_get(const mk_string_list *list, size_t index);
+MK_API void mk_string_list_free(mk_string_list *list);
 
-size_t mk_feature_set_size(const mk_feature_set *features);
-const char *mk_feature_set_get(const mk_feature_set *features, size_t index);
-void mk_feature_set_free(mk_feature_set *features);
+MK_API size_t mk_feature_set_size(const mk_feature_set *features);
+MK_API const char *mk_feature_set_get(const mk_feature_set *features, size_t index);
+MK_API void mk_feature_set_free(mk_feature_set *features);
 
-void mk_free_string(char *s);
+MK_API void mk_free_string(char *s);
 
 #ifdef __cplusplus
 }

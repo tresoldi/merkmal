@@ -1,16 +1,17 @@
 # Golden Test Data
 
-Parity expectations for the merkmal feature systems. The C test suite
-and the transitional Python test suite validate against these files.
+Parity expectations for the merkmal feature systems. The active C test suite
+validates the native C slice against the relevant files here.
 
 ## Regenerating
 
-From the repo root:
+The pre-C Python generator that created the historical full fixtures is
+archived under `docs/legacy_python/scripts/generate_golden.py`. The active C
+implementation treats these fixtures as checked-in parity data; it does not
+currently cover the historical `classfeat` trained-system fixtures.
 
-```sh
-source ~/.venvs/new_chl/bin/activate
-python tests/generate_golden.py
-```
+Regenerate `src/generated/builtin_data.c` from the source model data with
+`python tools/generate_c_data.py`; this does not rewrite the golden fixtures.
 
 ## File formats
 

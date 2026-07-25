@@ -9,6 +9,10 @@
 > and `go/partition.go`, with partition level definitions
 > stored in each model's `model.json`. Retained as a
 > historical record.
+>
+> The repository has since moved again to a C99 core library with a
+> native Python wrapper, and Go support has been retired. Treat this
+> file as historical design input, not current API documentation.
 
 **Audience:** the agent maintaining `merkmal`.
 **Author:** cognator (2026-04-18).

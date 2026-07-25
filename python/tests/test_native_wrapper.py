@@ -35,6 +35,7 @@ def test_native_lists_expanded_systems() -> None:
 def test_native_wrapper_surface_is_small() -> None:
     assert "load_model" not in merkmal.__all__
     assert not hasattr(merkmal, "CategoricalEngine")
+    assert "Registry" in merkmal.__all__
 
 
 def test_native_features_and_validity() -> None:
@@ -59,6 +60,11 @@ def test_native_distance_matches_golden_probe() -> None:
     assert merkmal.feature_distance("voiced", "voiceless") == 2
     assert merkmal.feature_distance("tone-onset-upper", "tone-offset-upper") == 6
     assert merkmal.feature_distance("bilabial", "velar") == 999
+    assert math.isclose(
+        merkmal.distance("p", "b", system="distinctive", node_weights="flat"),
+        0.2,
+        abs_tol=1e-10,
+    )
 
 
 def test_native_unicode_helpers() -> None:
@@ -66,8 +72,32 @@ def test_native_unicode_helpers() -> None:
     assert merkmal.normalize("sh/ʃ") == "ʃ"
     assert merkmal.normalize("ã") == "ã"
     assert merkmal.segment_ipa("tʰoŋ⁵⁵") == ["tʰ", "o", "ŋ", "⁵⁵"]
+    assert merkmal.segment_ipa_merged("tʰoŋ⁵⁵") == ["tʰ", "o⁵⁵", "ŋ"]
+    assert merkmal.merge_tone_digits(["tʰ", "o", "ŋ", "⁵⁵"]) == ["tʰ", "o⁵⁵", "ŋ"]
     assert merkmal.segment_ipa("ⁿda") == ["ⁿd", "a"]
     assert merkmal.segment_ipa("n̥a") == ["n̥", "a"]
+
+
+def test_native_registry_runtime_model() -> None:
+    registry = merkmal.Registry()
+    registry.add_model_text(
+        "\n".join(
+            [
+                "@model toy",
+                "@type categorical",
+                "@geometry clements-hume",
+                "grapheme X consonant voiceless bilabial stop",
+                "grapheme Y consonant voiced bilabial stop",
+            ]
+        )
+    )
+
+    assert "toy" in registry.list_systems()
+    assert registry.get_features("X", system="toy") == frozenset(
+        {"consonant", "voiceless", "bilabial", "stop"}
+    )
+    assert registry.is_segment("Y", system="toy")
+    assert math.isclose(registry.distance("X", "Y", system="toy"), 0.375, abs_tol=1e-10)
 
 
 def test_cli_uses_native_wrapper(capsys: pytest.CaptureFixture[str]) -> None:

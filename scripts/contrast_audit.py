@@ -37,17 +37,19 @@ def audit_system(
     covered = []
     uncovered = []
     for seg in inventory:
-        if merkmal.get_features(seg, system=system_name) is not None:
-            covered.append(seg)
-        else:
+        try:
+            merkmal.get_features(seg, system=system_name)
+        except ValueError:
             uncovered.append(seg)
+        else:
+            covered.append(seg)
 
     collapsed: list[tuple[str, str]] = []
     distances: list[float] = []
     for seg_a, seg_b in combinations(covered, 2):
         try:
             d = merkmal.distance(seg_a, seg_b, system=system_name)
-        except (KeyError, NotImplementedError):
+        except (KeyError, NotImplementedError, ValueError):
             continue
         distances.append(d)
         if d == 0.0:

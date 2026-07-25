@@ -25,7 +25,6 @@ See [runtime-model-format.md](runtime-model-format.md) for the current format.
 Only categorical runtime models are public for now; the parser and C data model
 leave room for valued and class-feature formats later.
 
-The pre-C Python directory-loader implementation is archived under
-`tools/legacy_python/` for data generation and parity work. It is not part of
-the installable Python package and should not be treated as a supported runtime
-API.
+The pre-C Python directory-loader implementation is no longer part of the
+active codebase. Historical tutorials and scripts that referenced it are kept
+under `docs/legacy_python/` as reference material only.

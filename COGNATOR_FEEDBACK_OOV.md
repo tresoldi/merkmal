@@ -6,6 +6,10 @@
 > described below (length vowels, nasal vowels, aspirated
 > consonants, secondary articulations) are resolved by the
 > compositional pipeline. Retained as a historical record.
+>
+> The repository has since moved again to a C99 core library with a
+> native Python wrapper, and Go support has been retired. Treat this
+> file as historical design input, not current API documentation.
 
 **From:** cognator (2026-04-18).
 **Against:** merkmal 0.2.0, `descriptive` system (778 graphemes).

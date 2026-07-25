@@ -2,6 +2,8 @@
 
 The public C API is declared in [`include/merkmal.h`](../include/merkmal.h).
 It is C99-compatible and uses explicit status codes instead of exceptions.
+Public functions are annotated with `MK_API` so shared-library builds export
+only the supported ABI surface.
 
 ## Ownership
 
@@ -28,6 +30,14 @@ documented otherwise.
 - `MK_ERR_PARSE`
 - `MK_ERR_OOM`
 
+Use `mk_status_string(status)` for a stable English diagnostic label suitable
+for logs and error messages. The returned string is static storage owned by
+the library and must not be freed.
+
+```c
+const char *mk_status_string(mk_status status);
+```
+
 ## Registry
 
 ```c
@@ -40,7 +50,9 @@ mk_status mk_registry_add_model_text(mk_registry *registry, const char *model_te
 
 `mk_registry_new_builtin` creates a registry containing the compiled-in
 models. `mk_registry_add_model_text` appends a caller-supplied runtime
-model; see [runtime-model-format.md](runtime-model-format.md).
+model; see [runtime-model-format.md](runtime-model-format.md). Runtime models
+are copied into the registry and do not depend on the lifetime of
+`model_text`.
 
 ## Systems
 
@@ -69,10 +81,13 @@ mk_status mk_segment_ipa_merged(const char *utf8_in, mk_string_list **out);
 
 `mk_normalize_grapheme` uses `utf8proc` when available. The fallback path
 covers the IPA normalization cases used by the built-in models and tests.
+Release builds should enable `utf8proc`; see
+[release-policy.md](release-policy.md).
 
 ## Containers
 
 ```c
+mk_status mk_string_list_new(const char *const *items, size_t count, mk_string_list **out);
 size_t mk_string_list_size(const mk_string_list *list);
 const char *mk_string_list_get(const mk_string_list *list, size_t index);
 void mk_string_list_free(mk_string_list *list);
@@ -81,3 +96,7 @@ size_t mk_feature_set_size(const mk_feature_set *features);
 const char *mk_feature_set_get(const mk_feature_set *features, size_t index);
 void mk_feature_set_free(mk_feature_set *features);
 ```
+
+`mk_string_list_new` copies caller-provided UTF-8 strings into an owned list.
+It is useful for APIs such as `mk_merge_tone_digits` where callers provide
+segments that did not originate from `mk_segment_ipa`.

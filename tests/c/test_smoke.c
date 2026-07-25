@@ -75,6 +75,13 @@ int main(void)
     int is_segment = 0;
     int failed = 0;
 
+    failed |= expect_string(mk_status_string(MK_OK), "ok", "status ok");
+    failed |= expect_string(
+        mk_status_string(MK_ERR_UNKNOWN_GRAPHEME),
+        "unknown grapheme",
+        "status unknown grapheme"
+    );
+
     failed |= expect_status(mk_registry_new_builtin(&registry), MK_OK, "registry");
     failed |= expect_status(mk_registry_list_systems(registry, &systems), MK_OK, "list systems");
     if (mk_string_list_size(systems) != 8) {

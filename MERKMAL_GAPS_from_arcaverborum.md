@@ -7,9 +7,13 @@
 > **valued engine** (phoible — arca's primary system) remains
 > literal-lookup only: no compositional fallback, no tone-mark
 > handling, no sequence normalization. The IPA segmenter (§2) and
-> public `normalize()`/`is_segment()` APIs (§5) are not yet
-> implemented. These items are on the merkmal roadmap, prioritised
-> after plan-phase completion.
+> public `normalize()`/`is_segment()` APIs (§5) were not yet
+> implemented at that point. Some of these items are now covered by
+> the C99 API; the rest remain historical design input.
+>
+> The repository has since moved again to a C99 core library with a
+> native Python wrapper, and Go support has been retired. Treat this
+> file as historical design input, not current API documentation.
 
 **Author:** generated during Arca Verborum IECOR transcription work, 2026-05-21
 **merkmal version evaluated:** `0.1.0` (system: `phoible`, 3,142 graphemes)

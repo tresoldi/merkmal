@@ -21,6 +21,30 @@ jobs:
       - name: Test
         run: ctest --test-dir build/c-debug --output-on-failure
 
+  c-sanitizers:
+    name: C sanitizers
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [address, undefined]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake pkg-config libutf8proc-dev
+      - name: Configure
+        run: >
+          cmake -S . -B build/c-sanitizer
+          -DCMAKE_BUILD_TYPE=Debug
+          -DMERKMAL_REQUIRE_UTF8PROC=ON
+          -DMERKMAL_ENABLE_SANITIZER=${{ matrix.sanitizer }}
+      - name: Build
+        run: cmake --build build/c-sanitizer
+      - name: Test
+        run: ctest --test-dir build/c-sanitizer --output-on-failure
+
   python:
     name: Python wrapper
     runs-on: ubuntu-latest
@@ -35,3 +59,15 @@ jobs:
         run: python -m pytest python/tests -q
       - name: Build wheel
         run: python -m build python --wheel
+
+  wasm:
+    name: WebAssembly smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run Node smoke test
+        run: tests/wasm/run_node_smoke.sh

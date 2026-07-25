@@ -1,0 +1,11 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: merkmal
+Description: @PROJECT_DESCRIPTION@
+Version: @PROJECT_VERSION@
+Requires.private: @MERKMAL_PC_REQUIRES_PRIVATE@
+Libs: -L${libdir} -lmerkmal
+Cflags: -I${includedir}

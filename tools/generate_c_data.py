@@ -7,16 +7,10 @@ import argparse
 import csv
 import json
 import re
-import sys
+import unicodedata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-LEGACY_PYTHON = ROOT / "tools" / "legacy_python"
-if str(LEGACY_PYTHON) not in sys.path:
-    sys.path.insert(0, str(LEGACY_PYTHON))
-
-from merkmal.grapheme import normalize_input_grapheme  # noqa: E402
-from merkmal.model import load_model  # noqa: E402
 
 
 CATEGORICAL_SYSTEMS = [
@@ -32,6 +26,33 @@ VALUED_SYSTEMS = [
     "pbase-uftc",
     "phoible",
 ]
+
+FEATURE_ALIASES = {
+    "plosive": "stop",
+}
+
+NON_PULMONIC_FEATURES = frozenset({"click", "nasal-click", "implosive"})
+
+IPA_INPUT_MAP = {
+    "ɡ": "g",
+    "'": "ʼ",
+    "’": "ʼ",
+}
+
+LIGATURE_EXPANSIONS = {
+    "ʣ": "dz",
+    "ʤ": "dʒ",
+    "ʥ": "dʑ",
+    "ʦ": "ts",
+    "ʧ": "tʃ",
+    "ʨ": "tɕ",
+}
+
+ASCII_TO_IPA = {
+    ":": "ː",
+}
+
+STRESS_MARKS = frozenset({"ˈ", "ˌ"})
 
 
 def c_string(value: str) -> str:
@@ -59,6 +80,53 @@ def read_tsv(path: Path) -> tuple[list[str], list[list[str]]]:
         header = next(reader)
         rows = list(reader)
     return header, rows
+
+
+def resolve_slash(grapheme: str) -> str:
+    if "/" in grapheme:
+        post = grapheme.rsplit("/", 1)[1]
+        if post:
+            return post
+    return grapheme
+
+
+def normalize_input_grapheme(grapheme: str) -> str:
+    grapheme = resolve_slash(grapheme)
+    while grapheme[:1] in STRESS_MARKS:
+        grapheme = grapheme[1:]
+    normalized = unicodedata.normalize("NFD", grapheme)
+    out: list[str] = []
+    for char in normalized:
+        if char in LIGATURE_EXPANSIONS:
+            out.append(LIGATURE_EXPANSIONS[char])
+        elif char in ASCII_TO_IPA:
+            out.append(ASCII_TO_IPA[char])
+        else:
+            out.append(IPA_INPUT_MAP.get(char, char))
+    return "".join(out)
+
+
+def parse_sound_name(
+    name: str,
+    feature_categories: dict[str, str],
+    filter_categories: bool,
+) -> frozenset[str]:
+    features: set[str] = set()
+    for word in name.split():
+        value = word.lower().strip().replace("_", "-")
+        value = FEATURE_ALIASES.get(value, value)
+        if value and (not filter_categories or value in feature_categories):
+            features.add(value)
+    return frozenset(features)
+
+
+def enrich_click_features(features: frozenset[str]) -> frozenset[str]:
+    if not (features & NON_PULMONIC_FEATURES):
+        return features
+    added = {"non-pulmonic"}
+    if "click" in features or "nasal-click" in features:
+        added.add("velar")
+    return features | added
 
 
 def geometry_node_depth(tree: dict[str, object], name: str, depth: int = 1) -> int | None:
@@ -139,13 +207,29 @@ def load_diacritics() -> dict[str, object]:
 def load_categorical(name: str, geometry: dict[str, object]) -> tuple[str, list[tuple[str, list[str]]], list[tuple[str, str]], list[float], list[dict[str, object]]]:
     model_dir = ROOT / "models" / name
     raw = json.loads((model_dir / "model.json").read_text(encoding="utf-8"))
+    _, inventory_rows = read_tsv(model_dir / "inventory.tsv")
+    feature_categories: dict[str, str] = {}
+    features_path = model_dir / "features.tsv"
+    if features_path.exists():
+        _, feature_rows = read_tsv(features_path)
+        feature_categories = {
+            row[0]: row[1]
+            for row in feature_rows
+            if len(row) >= 2
+        }
     entries: dict[str, list[str]] = {}
-    system = load_model(name)
-    for grapheme in system.list_graphemes():
-        features = system.grapheme_to_features(grapheme)
-        if features is None:
+    filter_categories = raw.get("feature_extraction", "") == "filtered"
+    for row in inventory_rows:
+        if len(row) < 2:
             continue
-        entries[normalize_input_grapheme(grapheme)] = sorted(features)
+        grapheme, sound_name = row[0], row[1]
+        features = parse_sound_name(
+            sound_name,
+            feature_categories=feature_categories,
+            filter_categories=filter_categories,
+        )
+        if features:
+            entries[normalize_input_grapheme(grapheme)] = sorted(enrich_click_features(features))
     scalar_dimensions = []
     tree = geometry["tree"]
     for dim in raw.get("scalar_dimensions", []):
@@ -165,14 +249,31 @@ def load_categorical(name: str, geometry: dict[str, object]) -> tuple[str, list[
 def load_valued(name: str, geometry: dict[str, object]) -> tuple[str, list[tuple[str, list[str]]], list[tuple[str, str]], list[float], list[dict[str, object]]]:
     model_dir = ROOT / "models" / name
     raw = json.loads((model_dir / "model.json").read_text(encoding="utf-8"))
-    system = load_model(name)
+    header, inventory_rows = read_tsv(model_dir / "inventory.tsv")
 
-    entries: dict[str, list[str]] = {}
-    for grapheme in system.list_graphemes():
-        features = system.grapheme_to_features(grapheme)
-        if features is None:
+    table: dict[str, dict[str, str]] = {}
+    feature_names = header[1:]
+    for row in inventory_rows:
+        if not row:
             continue
-        entries[normalize_input_grapheme(grapheme)] = sorted(features)
+        grapheme = normalize_input_grapheme(row[0])
+        values: dict[str, str] = {}
+        for index, feature in enumerate(feature_names):
+            raw_value = row[index + 1].strip().strip('"') if index + 1 < len(row) else "."
+            values[feature] = raw_value if raw_value in {"+", "-", "n", ".", "o", "x"} else "."
+        existing = table.get(grapheme)
+        if existing is None:
+            table[grapheme] = values
+        elif existing != values:
+            table[grapheme] = {
+                key: existing[key] if existing[key] == values[key] else "."
+                for key in existing
+            }
+
+    entries = {
+        grapheme: sorted(f"{feature}={state}" for feature, state in values.items())
+        for grapheme, values in table.items()
+    }
     geometry_map = sorted(raw.get("geometry_map", {}).items())
     weights: list[float] = []
     tree = geometry["tree"]

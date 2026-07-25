@@ -12,10 +12,39 @@ The current wrapper covers the high-level native slice:
 - `feature_distance`
 - `normalize`
 - `segment_ipa`
+- `merge_tone_digits`
+- `segment_ipa_merged`
+- `Registry`
 
-The package is intentionally native-only. The pre-C Python implementation is
-archived in `tools/legacy_python/` at the repository root for generator and
-parity work; it is not installed as part of the Python package.
+The package is intentionally native-only. The pre-C Python implementation has
+been removed from the active package; old tutorials, notebooks, and research
+scripts live under `docs/legacy_python/` as historical reference material.
+
+```python
+import merkmal
+
+print(merkmal.list_systems())
+print(merkmal.get_features("pʰ"))
+print(merkmal.distance("p", "b", node_weights="ignore-tone"))
+print(merkmal.merge_tone_digits(["a", "5", "5"]))
+print(merkmal.segment_ipa_merged("tʰoŋ⁵⁵"))
+```
+
+Runtime categorical models can be registered on an owned native registry:
+
+```python
+registry = merkmal.Registry()
+registry.add_model_text("""
+@model toy
+@type categorical
+@geometry clements-hume
+grapheme X consonant voiceless bilabial stop
+""")
+print(registry.get_features("X", system="toy"))
+```
+
+`Registry` owns its C registry handle. Top-level functions use the compiled-in
+built-in registry.
 
 ## Development
 
