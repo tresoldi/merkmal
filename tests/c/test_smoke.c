@@ -211,6 +211,26 @@ int main(void)
     }
 
     failed |= expect_status(
+        mk_system_is_segment(descriptive, "a³³", &is_segment),
+        MK_OK,
+        "is segment level tone vowel a33"
+    );
+    if (is_segment != 1) {
+        fprintf(stderr, "is segment level tone vowel a33: expected 1, got %d\n", is_segment);
+        failed = 1;
+    }
+
+    failed |= expect_status(
+        mk_system_is_segment(descriptive, "ə³³", &is_segment),
+        MK_OK,
+        "is segment level tone vowel schwa33"
+    );
+    if (is_segment != 1) {
+        fprintf(stderr, "is segment level tone vowel schwa33: expected 1, got %d\n", is_segment);
+        failed = 1;
+    }
+
+    failed |= expect_status(
         mk_system_grapheme_features(descriptive, "a³¹", &features),
         MK_OK,
         "features tone vowel 31"
@@ -241,6 +261,23 @@ int main(void)
     features = NULL;
 
     failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "a³³", &features),
+        MK_OK,
+        "features level tone vowel a33"
+    );
+    if (!features_contains(features, "vowel")) {
+        fprintf(stderr, "features level tone vowel a33: expected base vowel features\n");
+        failed = 1;
+    }
+    if (features_contains(features, "tone-onset-upper") ||
+        features_contains(features, "tone-offset-lower")) {
+        fprintf(stderr, "features level tone vowel a33: expected neutral level tone to add no tone features\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
         mk_system_grapheme_features(descriptive, "<?>", &features),
         MK_ERR_UNKNOWN_GRAPHEME,
         "features unknown still raises status"
@@ -252,6 +289,15 @@ int main(void)
     );
     if (is_segment != 0) {
         fprintf(stderr, "is segment tone consonant: expected 0, got %d\n", is_segment);
+        failed = 1;
+    }
+    failed |= expect_status(
+        mk_system_is_segment(descriptive, "p³³", &is_segment),
+        MK_OK,
+        "is segment level tone consonant"
+    );
+    if (is_segment != 0) {
+        fprintf(stderr, "is segment level tone consonant: expected 0, got %d\n", is_segment);
         failed = 1;
     }
 

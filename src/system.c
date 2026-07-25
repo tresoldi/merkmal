@@ -342,19 +342,6 @@ static int mk_feature_array_contains_exact(char **items, size_t count, const cha
     return 0;
 }
 
-static int mk_feature_array_contains_prefix(char **items, size_t count, const char *prefix)
-{
-    size_t i;
-    size_t prefix_len = strlen(prefix);
-
-    for (i = 0; i < count; i++) {
-        if (strncmp(items[i], prefix, prefix_len) == 0) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static int mk_feature_array_marks_nucleus(char **items, size_t count)
 {
     return mk_feature_array_contains_exact(items, count, "vowel") ||
@@ -589,7 +576,9 @@ static mk_status mk_decompose_diacritics(
     const char *normalized,
     char **base_out,
     char ***modifiers_out,
-    size_t *modifier_count_out
+    size_t *modifier_count_out,
+    int *recognized_modifier_out,
+    int *tone_seen_out
 )
 {
     const char *p;
@@ -599,14 +588,22 @@ static mk_status mk_decompose_diacritics(
     char **modifiers = NULL;
     size_t modifier_count = 0;
     size_t modifier_cap = 0;
+    int recognized_modifier = 0;
+    int tone_seen = 0;
     mk_status status = MK_OK;
 
-    if (base_out == NULL || modifiers_out == NULL || modifier_count_out == NULL) {
+    if (base_out == NULL ||
+        modifiers_out == NULL ||
+        modifier_count_out == NULL ||
+        recognized_modifier_out == NULL ||
+        tone_seen_out == NULL) {
         return MK_ERR_INVALID_ARGUMENT;
     }
     *base_out = NULL;
     *modifiers_out = NULL;
     *modifier_count_out = 0;
+    *recognized_modifier_out = 0;
+    *tone_seen_out = 0;
 
     p = normalized;
     while (*p != '\0') {
@@ -622,6 +619,7 @@ static mk_status mk_decompose_diacritics(
         if (status != MK_OK) {
             goto fail;
         }
+        recognized_modifier = 1;
         p += strlen(prefix->mark);
     }
 
@@ -641,6 +639,8 @@ static mk_status mk_decompose_diacritics(
                     goto fail;
                 }
             }
+            recognized_modifier = 1;
+            tone_seen = 1;
             p += strlen(tone->mark);
             continue;
         }
@@ -653,6 +653,8 @@ static mk_status mk_decompose_diacritics(
             &modifier_cap
         );
         if (status == MK_OK) {
+            recognized_modifier = 1;
+            tone_seen = 1;
             p += chao_bytes;
             continue;
         }
@@ -670,6 +672,7 @@ static mk_status mk_decompose_diacritics(
             if (status != MK_OK) {
                 goto fail;
             }
+            recognized_modifier = 1;
             p += strlen(combining->mark);
             continue;
         }
@@ -684,6 +687,7 @@ static mk_status mk_decompose_diacritics(
             if (status != MK_OK) {
                 goto fail;
             }
+            recognized_modifier = 1;
             p += strlen(suffix->mark);
             continue;
         }
@@ -709,6 +713,8 @@ static mk_status mk_decompose_diacritics(
     *base_out = base;
     *modifiers_out = modifiers;
     *modifier_count_out = modifier_count;
+    *recognized_modifier_out = recognized_modifier;
+    *tone_seen_out = tone_seen;
     return MK_OK;
 
 fail:
@@ -779,6 +785,8 @@ static mk_status mk_synthesize_from_diacritics(
     char *base = NULL;
     char **modifiers = NULL;
     size_t modifier_count = 0;
+    int recognized_modifier = 0;
+    int tone_seen = 0;
     const mk_builtin_entry *base_entry = NULL;
     char **features = NULL;
     size_t count = 0;
@@ -786,11 +794,18 @@ static mk_status mk_synthesize_from_diacritics(
     mk_status status;
     size_t i;
 
-    status = mk_decompose_diacritics(normalized, &base, &modifiers, &modifier_count);
+    status = mk_decompose_diacritics(
+        normalized,
+        &base,
+        &modifiers,
+        &modifier_count,
+        &recognized_modifier,
+        &tone_seen
+    );
     if (status != MK_OK) {
         return status;
     }
-    if (modifier_count == 0 || mk_streq(base, normalized)) {
+    if (!recognized_modifier || mk_streq(base, normalized)) {
         status = MK_ERR_UNKNOWN_GRAPHEME;
         goto finish;
     }
@@ -816,8 +831,7 @@ static mk_status mk_synthesize_from_diacritics(
             }
         }
     }
-    if (mk_feature_array_contains_prefix(modifiers, modifier_count, "tone-") &&
-        !mk_feature_array_marks_nucleus(features, count)) {
+    if (tone_seen && !mk_feature_array_marks_nucleus(features, count)) {
         status = MK_ERR_UNKNOWN_GRAPHEME;
         goto finish;
     }
