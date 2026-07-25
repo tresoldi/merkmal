@@ -48,6 +48,28 @@ def test_native_features_and_validity() -> None:
     assert "spreadGlottis=+" in merkmal.get_features("bʰ", system="phoible")
     assert merkmal.is_segment("t͡ʃ")
     assert not merkmal.is_segment("not-ipa")
+    assert not merkmal.is_segment("<?>", system="descriptive")
+    with pytest.raises(ValueError):
+        merkmal.get_features("<?>", system="descriptive")
+
+
+def test_native_descriptive_tone_bearing_vowels_are_segments() -> None:
+    assert merkmal.merge_tone_digits(["k", "a", "³¹"]) == ["k", "a³¹"]
+    assert merkmal.is_segment("a³¹", system="descriptive")
+    assert merkmal.is_segment("a⁵¹", system="descriptive")
+    assert not merkmal.is_segment("p³¹", system="descriptive")
+
+    features_31 = merkmal.get_features("a³¹", system="descriptive")
+    assert {"vowel", "tone-offset-lower", "tone-offset-lowered"} <= features_31
+
+    features_51 = merkmal.get_features("a⁵¹", system="descriptive")
+    assert {
+        "vowel",
+        "tone-onset-upper",
+        "tone-onset-raised",
+        "tone-offset-lower",
+        "tone-offset-lowered",
+    } <= features_51
 
 
 def test_native_distance_matches_golden_probe() -> None:

@@ -1,6 +1,7 @@
 #include "internal.h"
 
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -329,6 +330,38 @@ static mk_status mk_copy_entry_features(const mk_builtin_entry *entry, char ***i
     return MK_OK;
 }
 
+static int mk_feature_array_contains_exact(char **items, size_t count, const char *feature)
+{
+    size_t i;
+
+    for (i = 0; i < count; i++) {
+        if (mk_streq(items[i], feature)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int mk_feature_array_contains_prefix(char **items, size_t count, const char *prefix)
+{
+    size_t i;
+    size_t prefix_len = strlen(prefix);
+
+    for (i = 0; i < count; i++) {
+        if (strncmp(items[i], prefix, prefix_len) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int mk_feature_array_marks_nucleus(char **items, size_t count)
+{
+    return mk_feature_array_contains_exact(items, count, "vowel") ||
+        mk_feature_array_contains_exact(items, count, "syllabic") ||
+        mk_feature_array_contains_exact(items, count, "syllabic=+");
+}
+
 static int mk_feature_base_present(char **items, size_t count, const char *feature)
 {
     size_t i;
@@ -368,6 +401,176 @@ static const mk_tone_mark *mk_match_tone_mark(const char *text)
         }
     }
     return NULL;
+}
+
+static int mk_chao_digit_value_local(const char *p)
+{
+    if (mk_has_prefix_local(p, "¹")) {
+        return 1;
+    }
+    if (mk_has_prefix_local(p, "²")) {
+        return 2;
+    }
+    if (mk_has_prefix_local(p, "³")) {
+        return 3;
+    }
+    if (mk_has_prefix_local(p, "⁴")) {
+        return 4;
+    }
+    if (mk_has_prefix_local(p, "⁵")) {
+        return 5;
+    }
+    return -1;
+}
+
+static mk_status mk_add_chao_level_features(
+    char ***modifiers,
+    size_t *modifier_count,
+    size_t *modifier_cap,
+    const char *position,
+    int level
+)
+{
+    mk_status status;
+    char feature[32];
+
+    if (level == 3) {
+        return MK_OK;
+    }
+    if (level < 1 || level > 5) {
+        return MK_ERR_UNKNOWN_GRAPHEME;
+    }
+
+    if (level == 1 || level == 2) {
+        snprintf(feature, sizeof(feature), "tone-%s-lower", position);
+        status = mk_add_owned_feature(modifiers, modifier_count, modifier_cap, feature);
+        if (status != MK_OK) {
+            return status;
+        }
+    } else {
+        snprintf(feature, sizeof(feature), "tone-%s-upper", position);
+        status = mk_add_owned_feature(modifiers, modifier_count, modifier_cap, feature);
+        if (status != MK_OK) {
+            return status;
+        }
+    }
+
+    snprintf(
+        feature,
+        sizeof(feature),
+        "tone-%s-%s",
+        position,
+        level == 1 || level == 4 ? "lowered" : "raised"
+    );
+    return mk_add_owned_feature(modifiers, modifier_count, modifier_cap, feature);
+}
+
+static mk_status mk_add_chao_tone_features(
+    char ***modifiers,
+    size_t *modifier_count,
+    size_t *modifier_cap,
+    const int *levels,
+    size_t level_count
+)
+{
+    mk_status status;
+
+    if (level_count == 1) {
+        status = mk_add_chao_level_features(
+            modifiers,
+            modifier_count,
+            modifier_cap,
+            "onset",
+            levels[0]
+        );
+        if (status != MK_OK) {
+            return status;
+        }
+        status = mk_add_chao_level_features(
+            modifiers,
+            modifier_count,
+            modifier_cap,
+            "mid",
+            levels[0]
+        );
+        if (status != MK_OK) {
+            return status;
+        }
+        return mk_add_chao_level_features(
+            modifiers,
+            modifier_count,
+            modifier_cap,
+            "offset",
+            levels[0]
+        );
+    }
+
+    status = mk_add_chao_level_features(
+        modifiers,
+        modifier_count,
+        modifier_cap,
+        "onset",
+        levels[0]
+    );
+    if (status != MK_OK) {
+        return status;
+    }
+    if (level_count == 3) {
+        status = mk_add_chao_level_features(
+            modifiers,
+            modifier_count,
+            modifier_cap,
+            "mid",
+            levels[1]
+        );
+        if (status != MK_OK) {
+            return status;
+        }
+    }
+    return mk_add_chao_level_features(
+        modifiers,
+        modifier_count,
+        modifier_cap,
+        "offset",
+        levels[level_count - 1]
+    );
+}
+
+static mk_status mk_match_chao_tone_sequence(
+    const char *text,
+    size_t *bytes_out,
+    char ***modifiers,
+    size_t *modifier_count,
+    size_t *modifier_cap
+)
+{
+    const char *p = text;
+    int levels[3];
+    size_t count = 0;
+
+    if (bytes_out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *bytes_out = 0;
+
+    while (*p != '\0' && count < 3) {
+        int value = mk_chao_digit_value_local(p);
+        if (value < 1 || value > 5) {
+            break;
+        }
+        levels[count++] = value;
+        p += mk_utf8_char_len_local((unsigned char)*p);
+    }
+
+    if (count == 0) {
+        return MK_ERR_UNKNOWN_GRAPHEME;
+    }
+    if (mk_chao_digit_value_local(p) >= 1) {
+        return MK_ERR_UNKNOWN_GRAPHEME;
+    }
+
+    *bytes_out = (size_t)(p - text);
+    return mk_add_chao_tone_features(modifiers, modifier_count, modifier_cap, levels, count);
 }
 
 static const mk_valued_diacritic_effect *mk_find_valued_effect(const char *modifier)
@@ -426,6 +629,7 @@ static mk_status mk_decompose_diacritics(
         const mk_tone_mark *tone = mk_match_tone_mark(p);
         const mk_diacritic_map *combining;
         const mk_diacritic_map *suffix;
+        size_t chao_bytes = 0;
         char one[5];
         size_t n;
         size_t i;
@@ -439,6 +643,21 @@ static mk_status mk_decompose_diacritics(
             }
             p += strlen(tone->mark);
             continue;
+        }
+
+        status = mk_match_chao_tone_sequence(
+            p,
+            &chao_bytes,
+            &modifiers,
+            &modifier_count,
+            &modifier_cap
+        );
+        if (status == MK_OK) {
+            p += chao_bytes;
+            continue;
+        }
+        if (status != MK_ERR_UNKNOWN_GRAPHEME) {
+            goto fail;
         }
 
         combining = mk_match_diacritic_map(
@@ -596,6 +815,11 @@ static mk_status mk_synthesize_from_diacritics(
                 goto finish;
             }
         }
+    }
+    if (mk_feature_array_contains_prefix(modifiers, modifier_count, "tone-") &&
+        !mk_feature_array_marks_nucleus(features, count)) {
+        status = MK_ERR_UNKNOWN_GRAPHEME;
+        goto finish;
     }
 
 finish:

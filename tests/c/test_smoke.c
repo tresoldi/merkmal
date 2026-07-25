@@ -191,6 +191,71 @@ int main(void)
     }
 
     failed |= expect_status(
+        mk_system_is_segment(descriptive, "a³¹", &is_segment),
+        MK_OK,
+        "is segment tone vowel 31"
+    );
+    if (is_segment != 1) {
+        fprintf(stderr, "is segment tone vowel 31: expected 1, got %d\n", is_segment);
+        failed = 1;
+    }
+
+    failed |= expect_status(
+        mk_system_is_segment(descriptive, "a⁵¹", &is_segment),
+        MK_OK,
+        "is segment tone vowel 51"
+    );
+    if (is_segment != 1) {
+        fprintf(stderr, "is segment tone vowel 51: expected 1, got %d\n", is_segment);
+        failed = 1;
+    }
+
+    failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "a³¹", &features),
+        MK_OK,
+        "features tone vowel 31"
+    );
+    if (!features_contains(features, "vowel") ||
+        !features_contains(features, "tone-offset-lower") ||
+        !features_contains(features, "tone-offset-lowered")) {
+        fprintf(stderr, "features tone vowel 31: expected base vowel and offset tone features\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "a⁵¹", &features),
+        MK_OK,
+        "features tone vowel 51"
+    );
+    if (!features_contains(features, "vowel") ||
+        !features_contains(features, "tone-onset-upper") ||
+        !features_contains(features, "tone-onset-raised") ||
+        !features_contains(features, "tone-offset-lower") ||
+        !features_contains(features, "tone-offset-lowered")) {
+        fprintf(stderr, "features tone vowel 51: expected base vowel and onset/offset tone features\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "<?>", &features),
+        MK_ERR_UNKNOWN_GRAPHEME,
+        "features unknown still raises status"
+    );
+    failed |= expect_status(
+        mk_system_is_segment(descriptive, "p³¹", &is_segment),
+        MK_OK,
+        "is segment tone consonant"
+    );
+    if (is_segment != 0) {
+        fprintf(stderr, "is segment tone consonant: expected 0, got %d\n", is_segment);
+        failed = 1;
+    }
+
+    failed |= expect_status(
         mk_system_segment_distance(descriptive, "p", "b", &distance),
         MK_OK,
         "distance p b"
