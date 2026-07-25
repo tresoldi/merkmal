@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Breaking: repository direction changed from parallel Python/Go
+  implementations to a C99 core library with a native Python wrapper.
+  Go support has been retired.
+- Added: C99 library skeleton, public `merkmal.h`, CMake build, compiled-in
+  built-in data, C golden tests, and CPython Limited API wrapper.
+- Added: public C APIs for built-in registries, runtime categorical model
+  registration, feature lookup, segment distance, geometry feature
+  distance, sound distance with weight presets, IPA normalization,
+  segmentation, and Chao tone digit merging.
+- Added: public documentation for the C API and the line-oriented runtime
+  categorical model format.
 - Added: bring-your-own-model support, start to end. Models,
   geometries, typologies, and diacritic sets resolve from a layered
   search path. `MERKMAL_MODELS`, `MERKMAL_GEOMETRIES`,
@@ -18,12 +29,6 @@
   `diacritics` key in `model.json`. This makes a fully custom feature
   vocabulary work end to end. The built-in IPA/CLTS set is unchanged and
   shipped as `diacritics/ipa-clts.json`.
-- Added (Go): `NewLayeredRegistry`, `LoadModelDir`, `DiacriticTable` /
-  `LoadDiacritics`, and a `data/diacritics` embed.
-- Fixed (Go): each model is now loaded with the geometry it declares in
-  `default_geometry` (and its declared diacritic set), rather than always
-  `clements-hume`. Restores Python/Go parity for custom per-model
-  geometry.
 - Added: JSON Schemas for model/geometry/typology/diacritics files under
   `schemas/`, a "bring your own model" guide (`docs/custom-models.md`),
   and `scripts/validate_models.py PATH` to validate an external model

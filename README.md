@@ -1,298 +1,167 @@
 # merkmal
 
-`merkmal` is a phonological feature library for computational
-historical linguistics. It maps IPA graphemes to feature
-representations and computes geometry-weighted distances between
-them, supporting nine feature systems across approximately 780
-graphemes.
+`merkmal` is a C99 phonological feature library for computational
+historical linguistics. It maps IPA graphemes to phonological feature
+sets or valued feature vectors and computes geometry-weighted segment
+distances.
 
-The library has dual implementations — a Python package (zero
-runtime dependencies, Python 3.12+) and a Go module
-(`golang.org/x/text` only) — that load the same pluggable model
-directories and geometry files. Cross-language golden tests ensure
-both implementations produce identical results.
+The repository is being reorganized around a small C ABI. The C library
+contains compiled-in built-in models and can also accept caller-supplied
+runtime models. Python support is now a native wrapper around the C
+library. The old pure-Python implementation remains archived in the tree only
+for data generation and parity scaffolding while the wrapper surface is
+completed. Go support has been retired.
 
-Version 0.6.0 is the first colleague-facing release. The exported
-Python API and Go `System` interface are intended to be stable
-within the 0.6 series; later 0.x releases may add capabilities but
-should not remove documented functions without a changelog note.
+## Current Status
 
-## Installation
+The C implementation currently covers the high-level operations selected
+for the first native slice:
 
-**Python** (from PyPI):
+- built-in registry creation and system lookup
+- listing built-in systems
+- grapheme feature lookup
+- segment validity checks
+- categorical and valued segment distance
+- geometry feature distance
+- set-based sound distance with weight presets
+- IPA normalization and segmentation
+- Chao tone digit merging
+- registering a simple caller-supplied categorical model from text
 
-```bash
-pip install merkmal
+Built-in C systems currently include:
+
+- `broad`
+- `descriptive`
+- `distinctive`
+- `pbase-hc`
+- `pbase-jfh`
+- `pbase-spe`
+- `pbase-uftc`
+- `phoible`
+
+`classfeat` is intentionally not part of the first native C slice, but
+the generated-data and API layout leave room for it.
+
+## Build
+
+From the repository root:
+
+```sh
+cmake -S . -B build/c-debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/c-debug
+ctest --test-dir build/c-debug --output-on-failure
 ```
 
-Or from source (from the `python/` directory):
+`utf8proc` is detected with `pkg-config` when available. Development
+builds can use the built-in IPA-focused fallback. To require the system
+library:
 
-```bash
-pip install -e ".[dev]"
+```sh
+cmake -S . -B build/c-debug -DMERKMAL_REQUIRE_UTF8PROC=ON
 ```
 
-**Go**:
+## C Example
 
-```go
-import merkmal "github.com/tresoldi/merkmal/go"
+```c
+#include "merkmal.h"
+
+#include <stdio.h>
+
+int main(void) {
+    mk_registry *registry = NULL;
+    const mk_system *system = NULL;
+    mk_feature_set *features = NULL;
+    double distance = 0.0;
+
+    if (mk_registry_new_builtin(&registry) != MK_OK) {
+        return 1;
+    }
+    if (mk_registry_get_system(registry, "descriptive", &system) != MK_OK) {
+        mk_registry_free(registry);
+        return 1;
+    }
+    if (mk_system_grapheme_features(system, "pʰ", &features) == MK_OK) {
+        for (size_t i = 0; i < mk_feature_set_size(features); i++) {
+            puts(mk_feature_set_get(features, i));
+        }
+        mk_feature_set_free(features);
+    }
+    if (mk_system_segment_distance(system, "p", "b", &distance) == MK_OK) {
+        printf("%f\n", distance);
+    }
+    mk_registry_free(registry);
+    return 0;
+}
 ```
 
-## Quick start (Python)
+See [docs/c-api.md](docs/c-api.md) for the public C surface and
+[docs/runtime-model-format.md](docs/runtime-model-format.md) for the
+line-oriented caller-supplied model format.
+
+## Python Wrapper
+
+The Python package builds `merkmal._native` with the CPython Limited API
+and exposes the supported high-level operations from the top-level
+`merkmal` module.
+
+```sh
+python -m pip install -e python
+python -m pytest python/tests -q
+python -m build python --wheel
+```
+
+The wheel is built as `cp312-abi3` for broad CPython compatibility.
 
 ```python
 import merkmal
 
-# Nine built-in systems
 print(merkmal.list_systems())
-# ['descriptive', 'broad', 'distinctive', 'pbase-hc', 'pbase-jfh',
-#  'pbase-spe', 'pbase-uftc', 'phoible', 'classfeat']
-
-# Feature lookup
-print(merkmal.get_features("p"))
-# frozenset({'consonant', 'voiceless', 'bilabial', 'stop'})
-
-# Diacritics compose automatically
-print(merkmal.get_features("tʰ"))
-# frozenset({'consonant', 'voiceless', 'alveolar', 'stop', 'aspirated'})
-
-# First-class segment validity
-print(merkmal.is_segment("tʰ"))             # True
-print(merkmal.is_segment("not-ipa"))        # False
-
-# Distance (normalised to [0, 1], geometry-weighted)
-print(merkmal.distance("p", "b"))           # voicing: small
-print(merkmal.distance("p", "f"))           # manner: larger
-print(merkmal.distance("t", "d", system="classfeat"))
-
-# IPA segmentation
-phones = merkmal.segment_ipa("tʰoŋ⁵⁵")     # → ['tʰ', 'o', 'ŋ', '⁵⁵']
-merged = merkmal.merge_tone_digits(phones)  # → ['tʰ', 'o⁵⁵', 'ŋ']
+print(merkmal.get_features("pʰ"))
+print(merkmal.distance("p", "b"))
+print(merkmal.feature_distance("voiced", "voiceless"))
+print(merkmal.segment_ipa("tʰoŋ⁵⁵"))
 ```
 
-## Quick start (Go)
+The Python package is intentionally native-only; unsupported legacy helper
+APIs are no longer exported from `merkmal`.
 
-```go
-reg, _ := merkmal.NewDefaultRegistry()
-sys, _ := reg.Get("descriptive")
-dist := sys.SegmentDistance("p", "b")
-ok := sys.IsSegment("tʰ")
+## Runtime Models
 
-phones := merkmal.SegmentIPA("tʰoŋ⁵⁵")
-merged := merkmal.MergeToneDigits(phones)
-```
-
-`NewDefaultRegistry` uses the models and geometries bundled in the
-Go module. Lower-level loading is still `fs.FS`-based: use
-`NewRegistry` with `os.DirFS` for disk-based models, `embed.FS` for
-caller-provided compiled data, or `fstest.MapFS` for tests.
-
-## Bring your own model and configuration
-
-Every feature system, geometry, typology, and diacritic set is a
-pluggable data file. You can add or override any of them by editing
-JSON/TSV and pointing merkmal at an external directory — no code
-changes. Custom data layers on top of the built-ins by default (so you
-can drop in one model and keep the other nine), or replaces them in an
-isolated mode.
-
-```bash
-export MERKMAL_MODELS=/path/to/my/models        # also *_GEOMETRIES, *_TYPOLOGIES, *_DIACRITICS
-python -c "import merkmal; print(merkmal.list_systems())"
-```
-
-```python
-import merkmal
-system = merkmal.load_model_from_dir("/path/to/mymodel")
-reg = merkmal.create_registry(extra_model_dirs=["/path/to/models"])
-```
-
-This works start to end, including a fully custom feature vocabulary:
-diacritic, tone, and modifier → feature mappings are themselves a data
-file. See **[docs/custom-models.md](docs/custom-models.md)** for the
-complete guide and **[schemas/](schemas)** for JSON Schemas of every
-file type.
-
-## Systems
-
-| System | Type | Features | Distance |
-|--------|------|----------|----------|
-| `descriptive` | categorical | articulatory | geometry-weighted |
-| `broad` | categorical | simplified | geometry-weighted |
-| `distinctive` | categorical + scalar | Clements & Hume | geometry-weighted |
-| `pbase-hc`, `-jfh`, `-spe`, `-uftc` | multi-state | 4 theoretical families | geometry-weighted |
-| `phoible` | binary | 37 features | geometry-weighted |
-| `classfeat` | hybrid | sound classes + continuous | trained weights |
-
-All systems implement the same interface (`FeatureSystem` protocol
-in Python, `System` interface in Go). Distances, queries, and
-partition derivation work uniformly across all of them.
-
-The default system is `descriptive`. It is the recommended first
-choice for examples and exploratory use because its feature names
-are articulatory and readable. `phoible` and the P-base systems are
-available when a valued feature matrix is needed.
-
-## Feature queries
-
-```python
-import merkmal
-
-# Shared features of a segment set
-print(merkmal.derive_class_features(["p", "t", "k"]))
-# frozenset({'consonant', 'voiceless', 'stop'})
-
-# Find all graphemes matching a feature set
-vowels = merkmal.features_to_graphemes(frozenset({"vowel"}))
-print(vowels[:10])
-
-# Reverse lookup: features → grapheme
-descriptive = merkmal.get_system("descriptive")
-print(descriptive.features_to_grapheme(
-    frozenset({"consonant", "voiced", "bilabial", "stop"})
-))
-# 'b'
-
-# Minimal distinguishing matrix
-matrix = merkmal.minimal_matrix(["t", "d", "s"])
-print(merkmal.tabulate_matrix(matrix))
-```
+The C registry can accept a complete categorical model supplied as text:
 
 ```text
-grapheme | continuant | voiced
----------+------------+-------
-t        | False      | False
-d        | False      | True
-s        | True       | False
+@model toy
+@type categorical
+@geometry clements-hume
+grapheme X consonant voiceless bilabial stop
+grapheme Y vowel open front unrounded
 ```
 
-## IPA segmentation
-
-`segment_ipa` tokenizes raw IPA strings into individual phones,
-handling tie bars, prefix/suffix modifiers, combining marks, and
-Chao tone digits. `merge_tone_digits` attaches tone digit tokens
-to their syllabic nucleus.
-
-Input normalization is intentionally opinionated and stable in the
-0.6 series: CLTS `source/bipa` slash notation keeps the post-slash
-value, leading stress marks are stripped, ASCII `g` is accepted and
-output as IPA `ɡ`, deprecated affricate ligatures are expanded, and
-ASCII `:` is treated as IPA length `ː`.
-
-```python
-import merkmal
-
-merkmal.segment_ipa("t͡ʃaŋ⁵⁵")
-# ['t͡ʃ', 'a', 'ŋ', '⁵⁵']
-
-merkmal.merge_tone_digits(["t͡ʃ", "a", "ŋ", "⁵⁵"])
-# ['t͡ʃ', 'a⁵⁵', 'ŋ']
-
-# Grapheme decomposition
-base, mods = merkmal.decompose_grapheme("tʰ")
-# ('t', frozenset({'aspirated'}))
+```c
+mk_registry_add_model_text(registry, model_text);
 ```
 
-## Distance
+The format is intentionally line-oriented, UTF-8, and grep-friendly.
+Only categorical models are currently public in this format.
 
-Distances are normalised to [0, 1]. The Clements & Hume (1995)
-feature geometry tree gives structure-aware weights: features
-higher in the tree contribute more.
+## Repository Structure
 
-```python
-import merkmal
-
-# Across systems
-merkmal.distance("p", "b")                    # voicing contrast
-merkmal.distance("p", "b", system="classfeat") # trained weights
-
-# Tonal distance with weight presets
-merkmal.distance("a⁵⁵", "a³⁵", system="distinctive")
-merkmal.distance("a⁵⁵", "a³⁵", system="distinctive",
-                 node_weights="tone-heavy")
-merkmal.distance("a⁵⁵", "a³⁵", system="distinctive",
-                 node_weights="segmental")    # ignores tone
-```
-
-## Typological direction costs
-
-The typology module encodes diachronic priors (e.g. lenition is
-more frequent than fortition) as asymmetric direction costs,
-separate from the synchronic geometry.
-
-```python
-import merkmal
-
-typ = merkmal.load_typology("lenition-bias")
-print(typ.cost_for("continuant", +1))  # stop → fricative (lenition)
-print(typ.cost_for("continuant", -1))  # fricative → stop (fortition)
-```
-
-Three bundled typologies: `default` (symmetric), `lenition-bias`,
-`corecog-derived` (learned from Lexibank cognate data).
-
-## Multi-state systems (P-base)
-
-P-base-derived systems expose multi-state values (`+`, `-`, `n`,
-`.`, `o`, `x`) through `FeatureState`.
-
-```python
-import merkmal
-
-rep = merkmal.get_representation("a", system="pbase-hc")
-print(rep.values["syllabic"])
-# FeatureState.POSITIVE
-```
-
-The bundled P-base table is derived, not verbatim. Duplicate rows
-with conflicting values have the conflicting cells downgraded to
-`.` (`FeatureState.DOT`). The P-base data retains its own
-attribution and license notice.
-
-## Repository structure
-
-```
+```text
 merkmal/
-├── models/                 pluggable model directories (data)
-│   ├── descriptive/        model.json + inventory.tsv + features.tsv + classes.tsv
-│   ├── broad/
-│   ├── distinctive/
-│   ├── phoible/            model.json + inventory.tsv (37 feature columns)
-│   ├── pbase-{hc,jfh,spe,uftc}/
-│   └── classfeat/          model.json + inventory.tsv + weights.json
-├── geometries/
-│   └── clements-hume.json  Clements & Hume (1995) feature geometry tree
-├── typologies/             direction cost files for asymmetric distance
-├── diacritics/             diacritic/tone/modifier → feature mappings
-├── schemas/                JSON Schemas for model/geometry/typology/diacritics
-├── python/                 Python package (v0.6.0)
-│   ├── pyproject.toml
-│   ├── README.md
-│   ├── LICENSE
-│   ├── merkmal/            package code + bundled data
-│   └── tests/
-├── go/                     Go module (github.com/tresoldi/merkmal/go)
-│   ├── data/               bundled models/geometries for NewDefaultRegistry
-│   ├── go.mod
-│   ├── merkmal.go          System interface, Role, DistanceOption
-│   └── *.go
-├── tests/golden/           cross-language parity expectations (10k+ entries)
-├── scripts/                model validation scripts
-└── docs/                   getting started notebook and tutorials
+├── include/                public C headers
+├── src/                    C99 implementation and generated built-in data
+├── tools/                  data generators for compiled-in C tables
+├── tests/c/                C tests
+├── tests/golden/           parity fixtures for the native implementation
+├── tests/legacy_python/    archived tests for the pre-C Python implementation
+├── models/                 source model data used by generators
+├── geometries/             source geometry data
+├── diacritics/             source diacritic/tone/modifier mappings
+├── typologies/             legacy Python typology data
+├── python/                 native Python wrapper
+├── tools/legacy_python/    archived Python implementation for generators
+└── docs/                   C API and format documentation
 ```
-
-## Documentation
-
-The **[Getting Started notebook](docs/notebooks/getting_started.ipynb)**
-walks through the full API with worked examples: feature lookup,
-natural classes, distances across systems, sound change modelling
-(Grimm's law, lenition chains, tonogenesis), tone, and a small
-cognate detection experiment with Austronesian data.
-
-Four additional tutorials cover specific topics in depth:
-[phonological features](docs/tutorials/01_phonology.py),
-[typology](docs/tutorials/02_typology.py),
-[historical linguistics](docs/tutorials/03_historical_linguistics.py), and
-[cognate detection](docs/tutorials/04_cognate_detection.py).
 
 ## License
 

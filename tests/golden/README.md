@@ -1,8 +1,7 @@
 # Golden Test Data
 
-Cross-language parity expectations for the merkmal feature systems.
-Both the Python test suite and the Go test suite validate against
-these files.
+Parity expectations for the merkmal feature systems. The C test suite
+and the transitional Python test suite validate against these files.
 
 ## Regenerating
 

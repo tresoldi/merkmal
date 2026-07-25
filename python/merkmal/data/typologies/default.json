@@ -1,6 +1,0 @@
-{
-  "schema_version": 1,
-  "name": "default",
-  "description": "Symmetric direction costs (all 1.0).",
-  "direction_costs": {}
-}

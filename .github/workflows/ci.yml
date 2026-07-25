@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  c:
+    name: C build and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake pkg-config libutf8proc-dev
+      - name: Configure
+        run: cmake -S . -B build/c-debug -DCMAKE_BUILD_TYPE=Debug -DMERKMAL_REQUIRE_UTF8PROC=ON
+      - name: Build
+        run: cmake --build build/c-debug
+      - name: Test
+        run: ctest --test-dir build/c-debug --output-on-failure
+
+  python:
+    name: Python wrapper
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: python -m pip install -e "python[dev]"
+      - name: Test
+        run: python -m pytest python/tests -q
+      - name: Build wheel
+        run: python -m build python --wheel

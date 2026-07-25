@@ -5,8 +5,8 @@ Run from the merkmal repo root (or anywhere with the package installed):
 
     python tests/generate_golden.py
 
-Outputs TSV files into tests/golden/.  Both the Python test suite and
-the future Go test suite validate against these files.
+Outputs TSV files into tests/golden/.  The C tests validate against these
+files.
 """
 
 from __future__ import annotations
@@ -16,10 +16,10 @@ import sys
 from itertools import combinations
 from pathlib import Path
 
-# Ensure the local python/ package is importable when running from repo root.
+# Ensure the archived Python implementation is importable when running from repo root.
 _HERE = Path(__file__).resolve().parent
 _REPO = _HERE.parent
-_PY = _REPO / "python"
+_PY = _REPO / "tools" / "legacy_python"
 if str(_PY) not in sys.path:
     sys.path.insert(0, str(_PY))
 

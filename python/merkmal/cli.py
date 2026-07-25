@@ -1,12 +1,11 @@
-"""Command-line interface for the merkmal package."""
+"""Small native-backed command line interface."""
 
 from __future__ import annotations
 
 import argparse
 import sys
 
-from merkmal.model import list_available_models
-from merkmal.registry import get_registry
+import merkmal
 
 _EXIT_OK = 0
 _EXIT_USAGE = 1
@@ -14,49 +13,63 @@ _EXIT_USAGE = 1
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="merkmal")
+    parser.add_argument(
+        "-s",
+        "--system",
+        default=None,
+        help="feature system name; defaults to the C library default",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("list", help="List available feature systems.")
+    sub.add_parser("systems", help="list built-in feature systems")
 
-    info_cmd = sub.add_parser("info", help="Show info about a feature system.")
-    info_cmd.add_argument("system")
+    features_cmd = sub.add_parser("features", help="print features for one grapheme")
+    features_cmd.add_argument("grapheme")
+
+    distance_cmd = sub.add_parser("distance", help="print segment distance")
+    distance_cmd.add_argument("a")
+    distance_cmd.add_argument("b")
+
+    normalize_cmd = sub.add_parser("normalize", help="normalize one grapheme")
+    normalize_cmd.add_argument("grapheme")
+
+    segment_cmd = sub.add_parser("segment", help="segment IPA text")
+    segment_cmd.add_argument("text")
 
     return parser
 
 
-def _run_list() -> int:
-    models = list_available_models()
-    for name in models:
-        print(name)
-    return _EXIT_OK
-
-
-def _run_info(args: argparse.Namespace) -> int:
-    registry = get_registry()
-    try:
-        system = registry.get_system(args.system)
-    except KeyError:
-        print(
-            f"error: unknown system {args.system!r}. "
-            f"Available: {registry.list_systems()}",
-            file=sys.stderr,
-        )
-        return _EXIT_USAGE
-
-    print(f"name: {system.name}")
-    print(f"kind: {system.representation_kind}")
-    graphemes = system.list_graphemes()
-    print(f"graphemes: {len(graphemes)}")
-    return _EXIT_OK
+def _print_error(exc: Exception) -> int:
+    print(f"error: {exc}", file=sys.stderr)
+    return _EXIT_USAGE
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
-    if args.command == "list":
-        return _run_list()
-    if args.command == "info":
-        return _run_info(args)
+
+    try:
+        if args.command == "systems":
+            for system in merkmal.list_systems():
+                print(system)
+            return _EXIT_OK
+        if args.command == "features":
+            for feature in sorted(merkmal.get_features(args.grapheme, system=args.system)):
+                print(feature)
+            return _EXIT_OK
+        if args.command == "distance":
+            print(merkmal.distance(args.a, args.b, system=args.system))
+            return _EXIT_OK
+        if args.command == "normalize":
+            print(merkmal.normalize(args.grapheme))
+            return _EXIT_OK
+        if args.command == "segment":
+            for segment in merkmal.segment_ipa(args.text):
+                print(segment)
+            return _EXIT_OK
+    except merkmal.NativeError as exc:
+        return _print_error(exc)
+
     parser.error(f"unknown command: {args.command}")
     return _EXIT_USAGE
 

@@ -9,6 +9,7 @@ site/
 .venv/
 venv/
 *.pyc
+*.so
 *.out.md
 *.out.py
 paper/
