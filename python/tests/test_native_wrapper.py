@@ -115,11 +115,24 @@ def test_native_descriptive_broadened_source_tokens() -> None:
         "ä",
         "ă",
         "ç",
+        "ñ",
+        "ń",
+        "ỹ",
+        "mb",
+        "nd",
+        "kw",
+        "gw",
+        "ŋg",
+        "kk",
+        "ll",
+        "tt",
+        "nn",
+        "pp",
     ]
     for token in positive:
         assert merkmal.is_segment(token, system="descriptive"), token
 
-    negative = ["<?>", "<<->>", "<<[>>", "→", "mb", "nd", "p³³"]
+    negative = ["<?>", "<<->>", "<<[>>", "→", "+", "∼", "p³³"]
     for token in negative:
         assert not merkmal.is_segment(token, system="descriptive"), token
 
@@ -153,6 +166,20 @@ def test_native_descriptive_broadened_source_tokens() -> None:
     features_affricate = merkmal.get_features("kɣ", system="descriptive")
     assert {"consonant", "affricate", "velar"} <= features_affricate
     assert "voiceless" not in features_affricate
+
+    features_prenasal = merkmal.get_features("mb", system="descriptive")
+    assert {"consonant", "complex", "consonant-cluster", "pre-nasalized"} <= features_prenasal
+    assert {"n1-nasal", "n2-stop", "n2-bilabial"} <= features_prenasal
+
+    features_labialized = merkmal.get_features("kw", system="descriptive")
+    assert {"consonant", "complex", "consonant-cluster"} <= features_labialized
+    assert {"n1-velar", "n2-labio-velar"} <= features_labialized
+
+    features_geminate = merkmal.get_features("kk", system="descriptive")
+    assert {"consonant", "complex", "consonant-cluster", "geminate"} <= features_geminate
+
+    assert {"consonant", "nasalized"} <= merkmal.get_features("ñ", system="descriptive")
+    assert {"vowel", "nasalized"} <= merkmal.get_features("ỹ", system="descriptive")
     assert "voiced" not in features_affricate
     assert "sibilant" not in features_affricate
 

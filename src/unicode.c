@@ -217,6 +217,12 @@ mk_status mk_normalize_input_grapheme(
         } else if (mk_has_prefix(p, "ũ")) {
             status = mk_append_bytes(&tmp, &len, &cap, "ũ");
             p += strlen("ũ");
+        } else if (mk_has_prefix(p, "ñ")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ñ");
+            p += strlen("ñ");
+        } else if (mk_has_prefix(p, "ỹ")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ỹ");
+            p += strlen("ỹ");
         } else if (mk_has_prefix(p, "ä")) {
             status = mk_append_bytes(&tmp, &len, &cap, "ä");
             p += strlen("ä");
@@ -262,6 +268,9 @@ mk_status mk_normalize_input_grapheme(
         } else if (mk_has_prefix(p, "ú")) {
             status = mk_append_bytes(&tmp, &len, &cap, "ú");
             p += strlen("ú");
+        } else if (mk_has_prefix(p, "ń")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ń");
+            p += strlen("ń");
         } else if (mk_has_prefix(p, "à")) {
             status = mk_append_bytes(&tmp, &len, &cap, "à");
             p += strlen("à");

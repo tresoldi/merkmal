@@ -31,18 +31,25 @@ print(merkmal.segment_ipa_merged("tʰoŋ⁵⁵"))
 ```
 
 The `descriptive` system accepts synthesized source-token segments used by
-lexical datasets, including vowel clusters and tone-bearing nuclei:
+lexical datasets, including vowel clusters, author-defined consonant clusters,
+precomposed Latin source letters, and tone-bearing nuclei:
 
 ```python
 print(merkmal.is_segment("aːi³³", system="descriptive"))
 print(merkmal.is_segment("ɛï³³", system="descriptive"))
 print(merkmal.is_segment("kɣ", system="descriptive"))
+print(merkmal.is_segment("mb", system="descriptive"))
+print(merkmal.is_segment("ñ", system="descriptive"))
 print(merkmal.get_features("ai", system="descriptive"))
 print(merkmal.distance("ai", "a", system="descriptive"))
 ```
 
 Vowel clusters use short synthetic features such as `diphthong`, `n1-open`,
 `n2-close`, and `move-height-open-close`.
+Consonant clusters use `consonant-cluster`, positional component features such
+as `n1-nasal` and `n2-stop`, plus `geminate` or `pre-nasalized` when the
+component sequence supports those readings. Markup/control tokens such as
+`<?>`, `<<->>`, and `→` are still rejected.
 
 Use `is_segment()` as the non-throwing predicate for source tokens. Unknown
 tokens return `False` from `is_segment()` and raise `ValueError` from

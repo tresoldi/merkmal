@@ -379,6 +379,35 @@ int main(void)
     features = NULL;
 
     failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "mb", &features),
+        MK_OK,
+        "features prenasalized cluster mb"
+    );
+    if (!features_contains(features, "consonant") ||
+        !features_contains(features, "consonant-cluster") ||
+        !features_contains(features, "pre-nasalized") ||
+        !features_contains(features, "n1-nasal") ||
+        !features_contains(features, "n2-stop")) {
+        fprintf(stderr, "features prenasalized cluster mb: expected positional cluster features\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "kk", &features),
+        MK_OK,
+        "features geminate cluster kk"
+    );
+    if (!features_contains(features, "consonant-cluster") ||
+        !features_contains(features, "geminate")) {
+        fprintf(stderr, "features geminate cluster kk: expected geminate cluster features\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
         mk_system_grapheme_features(descriptive, "ŋ̀", &features),
         MK_OK,
         "features tone syllabic sonorant"
@@ -447,12 +476,25 @@ int main(void)
     failed |= expect_segment(descriptive, "ä", 1, "is segment ä");
     failed |= expect_segment(descriptive, "ă", 1, "is segment ă");
     failed |= expect_segment(descriptive, "ç", 1, "is segment ç");
+    failed |= expect_segment(descriptive, "ñ", 1, "is segment ñ");
+    failed |= expect_segment(descriptive, "ń", 1, "is segment ń");
+    failed |= expect_segment(descriptive, "ỹ", 1, "is segment ỹ");
+    failed |= expect_segment(descriptive, "mb", 1, "is segment bare mb");
+    failed |= expect_segment(descriptive, "nd", 1, "is segment bare nd");
+    failed |= expect_segment(descriptive, "kw", 1, "is segment kw");
+    failed |= expect_segment(descriptive, "gw", 1, "is segment gw");
+    failed |= expect_segment(descriptive, "ŋg", 1, "is segment ŋg");
+    failed |= expect_segment(descriptive, "kk", 1, "is segment kk");
+    failed |= expect_segment(descriptive, "ll", 1, "is segment ll");
+    failed |= expect_segment(descriptive, "tt", 1, "is segment tt");
+    failed |= expect_segment(descriptive, "nn", 1, "is segment nn");
+    failed |= expect_segment(descriptive, "pp", 1, "is segment pp");
     failed |= expect_segment(descriptive, "<?>", 0, "is segment markup question");
     failed |= expect_segment(descriptive, "<<->>", 0, "is segment markup deletion");
     failed |= expect_segment(descriptive, "<<[>>", 0, "is segment markup left bracket");
     failed |= expect_segment(descriptive, "→", 0, "is segment arrow");
-    failed |= expect_segment(descriptive, "mb", 0, "is segment bare mb");
-    failed |= expect_segment(descriptive, "nd", 0, "is segment bare nd");
+    failed |= expect_segment(descriptive, "+", 0, "is segment plus markup");
+    failed |= expect_segment(descriptive, "∼", 0, "is segment tilde markup");
 
     failed |= expect_status(
         mk_system_segment_distance(descriptive, "p", "b", &distance),
