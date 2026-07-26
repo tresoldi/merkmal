@@ -26,6 +26,8 @@ for the first native slice:
 - set-based sound distance with weight presets
 - IPA normalization and segmentation
 - Chao tone digit merging
+- descriptive source-token validation for vowel clusters, explicit complex
+  consonants, broader affricate spellings, and tone-bearing nuclei
 - registering a simple caller-supplied categorical model from text
 
 Built-in C systems currently include:
@@ -152,6 +154,7 @@ print(merkmal.get_features("pʰ"))
 print(merkmal.distance("p", "b"))
 print(merkmal.feature_distance("voiced", "voiceless"))
 print(merkmal.segment_ipa("tʰoŋ⁵⁵"))
+print(merkmal.is_segment("aːi³³", system="descriptive"))
 ```
 
 The Python package is intentionally native-only; unsupported legacy helper

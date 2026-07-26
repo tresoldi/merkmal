@@ -68,6 +68,26 @@ mk_status mk_system_segment_distance_with_weights(const mk_system *system, const
 `node_weights` may be `NULL`, `"ignore-tone"`, `"ignore-prosodic"`,
 `"segmental"`, `"tone-heavy"`, `"tone-only"`, or `"flat"`.
 
+For the `descriptive` system, lookup and distance also support synthesized
+source-token segments used by lexical datasets. These include vowel clusters
+such as `ai`, `aːi`, and `əi³¹`, broader affricate spellings such as `tʂʰ`,
+explicit prenasalized forms such as `ᵐb` and `ⁿdʳ`, labial-velar stops such as
+`kpʷ` and `ɡb`, and tone-bearing sonorant nuclei such as `ŋ̀`.
+
+Synthesized vowel clusters expose position-qualified and movement features
+instead of contradictory unqualified component qualities:
+
+```text
+vowel
+diphthong
+n1-open
+n2-close
+move-height-open-close
+```
+
+The behavior is currently descriptive-only. Other categorical systems are a
+roadmap item, and valued systems need a separate design pass.
+
 ## Geometry And Unicode
 
 ```c

@@ -81,6 +81,61 @@ def test_native_descriptive_tone_bearing_vowels_are_segments() -> None:
     assert not any(feature.startswith("tone-") for feature in features_33)
 
 
+def test_native_descriptive_broadened_source_tokens() -> None:
+    positive = [
+        "ai",
+        "au",
+        "ei",
+        "aːi",
+        "iau",
+        "ai³³",
+        "aːi³³",
+        "ɐu³³",
+        "əi³¹",
+        "ᵐb",
+        "ⁿd",
+        "ⁿdʳ",
+        "ɡb",
+        "gb",
+        "kp",
+        "kpʷ",
+        "tʂ",
+        "tʂʰ",
+        "ŋ̀",
+        "m̀",
+        "ä",
+        "ă",
+        "ç",
+    ]
+    for token in positive:
+        assert merkmal.is_segment(token, system="descriptive"), token
+
+    negative = ["<?>", "<<->>", "<<[>>", "→", "mb", "nd", "p³³"]
+    for token in negative:
+        assert not merkmal.is_segment(token, system="descriptive"), token
+
+    features_ai = merkmal.get_features("ai", system="descriptive")
+    assert {
+        "vowel",
+        "diphthong",
+        "n1-open",
+        "n2-close",
+        "move-height-open-close",
+    } <= features_ai
+    assert "open" not in features_ai
+    assert "close" not in features_ai
+
+    features_long = merkmal.get_features("aːi³³", system="descriptive")
+    assert {"diphthong", "n1-long"} <= features_long
+    assert not any(feature.startswith("tone-") for feature in features_long)
+
+    features_tone = merkmal.get_features("əi³¹", system="descriptive")
+    assert {"diphthong", "n1-mid", "tone-offset-lower", "tone-offset-lowered"} <= features_tone
+
+    features_syllabic = merkmal.get_features("ŋ̀", system="descriptive")
+    assert {"syllabic", "tone-onset-lower", "tone-offset-lower"} <= features_syllabic
+
+
 def test_native_distance_matches_golden_probe() -> None:
     assert math.isclose(merkmal.distance("p", "b"), 0.375, abs_tol=1e-10)
     assert math.isclose(
@@ -96,6 +151,12 @@ def test_native_distance_matches_golden_probe() -> None:
         0.2,
         abs_tol=1e-10,
     )
+    assert merkmal.distance("ai", "ai", system="descriptive") == 0.0
+    assert merkmal.distance("ai", "a", system="descriptive") < merkmal.distance(
+        "ai", "i", system="descriptive"
+    )
+    assert 0.0 < merkmal.distance("ai", "au", system="descriptive") < 1.0
+    assert math.isfinite(merkmal.distance("ai³³", "aːi³³", system="descriptive"))
 
 
 def test_native_unicode_helpers() -> None:

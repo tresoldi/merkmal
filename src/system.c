@@ -243,12 +243,18 @@ void mk_resolved_entry_clear(mk_resolved_entry *entry)
     }
     free(entry->owned_features);
     free(entry->owned_grapheme);
+    for (i = 0; i < entry->cluster_component_count; i++) {
+        free(entry->cluster_components[i]);
+    }
+    free(entry->cluster_components);
     entry->grapheme = NULL;
     entry->features = NULL;
     entry->feature_count = 0;
     entry->owned_features = NULL;
     entry->owned_feature_count = 0;
     entry->owned_grapheme = NULL;
+    entry->cluster_components = NULL;
+    entry->cluster_component_count = 0;
 }
 
 static int mk_feature_list_contains(char **items, size_t count, const char *feature)
@@ -349,6 +355,110 @@ static int mk_feature_array_marks_nucleus(char **items, size_t count)
         mk_feature_array_contains_exact(items, count, "syllabic=+");
 }
 
+static int mk_feature_array_marks_sonorant(char **items, size_t count)
+{
+    return mk_feature_array_contains_exact(items, count, "sonorant") ||
+        mk_feature_array_contains_exact(items, count, "nasal") ||
+        mk_feature_array_contains_exact(items, count, "lateral") ||
+        mk_feature_array_contains_exact(items, count, "trill") ||
+        mk_feature_array_contains_exact(items, count, "tap") ||
+        mk_feature_array_contains_exact(items, count, "approximant");
+}
+
+static const char *mk_feature_dimension(const char *feature)
+{
+    if (mk_streq(feature, "close") ||
+        mk_streq(feature, "near-close") ||
+        mk_streq(feature, "close-mid") ||
+        mk_streq(feature, "mid") ||
+        mk_streq(feature, "open-mid") ||
+        mk_streq(feature, "near-open") ||
+        mk_streq(feature, "open")) {
+        return "height";
+    }
+    if (mk_streq(feature, "front") ||
+        mk_streq(feature, "near-front") ||
+        mk_streq(feature, "central") ||
+        mk_streq(feature, "near-back") ||
+        mk_streq(feature, "back")) {
+        return "centrality";
+    }
+    if (mk_streq(feature, "rounded") || mk_streq(feature, "unrounded")) {
+        return "roundedness";
+    }
+    if (mk_streq(feature, "long") ||
+        mk_streq(feature, "mid-long") ||
+        mk_streq(feature, "ultra-long") ||
+        mk_streq(feature, "ultra-short")) {
+        return "duration";
+    }
+    if (mk_streq(feature, "nasalized")) {
+        return "nasalization";
+    }
+    if (mk_streq(feature, "centralized") ||
+        mk_streq(feature, "mid-centralized") ||
+        mk_streq(feature, "advanced") ||
+        mk_streq(feature, "retracted")) {
+        return "relative";
+    }
+    if (mk_streq(feature, "non-syllabic") || mk_streq(feature, "syllabic")) {
+        return "syllabicity";
+    }
+    return NULL;
+}
+
+static const char *mk_entry_feature_for_dimension(
+    const mk_builtin_entry *entry,
+    const char *dimension
+)
+{
+    size_t i;
+
+    for (i = 0; i < entry->feature_count; i++) {
+        const char *candidate = entry->features[i];
+        const char *candidate_dimension = mk_feature_dimension(candidate);
+        if (candidate_dimension != NULL && mk_streq(candidate_dimension, dimension)) {
+            return candidate;
+        }
+    }
+    return NULL;
+}
+
+static mk_status mk_add_prefixed_feature(
+    char ***items,
+    size_t *count,
+    size_t *cap,
+    const char *prefix,
+    const char *feature
+)
+{
+    char label[96];
+
+    if (feature == NULL || feature[0] == '\0') {
+        return MK_OK;
+    }
+    snprintf(label, sizeof(label), "%s-%s", prefix, feature);
+    return mk_add_owned_feature(items, count, cap, label);
+}
+
+static mk_status mk_add_movement_feature(
+    char ***items,
+    size_t *count,
+    size_t *cap,
+    const char *dimension,
+    const char *from,
+    const char *to
+)
+{
+    char label[128];
+
+    if (dimension == NULL || from == NULL || to == NULL) {
+        return MK_OK;
+    }
+    snprintf(label, sizeof(label), "move-%s-%s-%s", dimension, from, to);
+    return mk_add_owned_feature(items, count, cap, label);
+}
+
 static int mk_feature_base_present(char **items, size_t count, const char *feature)
 {
     size_t i;
@@ -374,6 +484,24 @@ static const mk_diacritic_map *mk_match_diacritic_map(
         if (mk_has_prefix_local(text, map[i].mark)) {
             return &map[i];
         }
+    }
+    return NULL;
+}
+
+static const char *mk_match_extra_suffix_feature(const char *text, size_t *bytes_out)
+{
+    if (mk_has_prefix_local(text, "ʳ")) {
+        *bytes_out = strlen("ʳ");
+        return "rhotacized";
+    }
+    return NULL;
+}
+
+static const char *mk_match_extra_prefix_feature(const char *text, size_t *bytes_out)
+{
+    if (mk_has_prefix_local(text, "ᵐ")) {
+        *bytes_out = strlen("ᵐ");
+        return "pre-nasalized";
     }
     return NULL;
 }
@@ -612,8 +740,20 @@ static mk_status mk_decompose_diacritics(
             mk_default_prefix_diacritic_count,
             p
         );
+        const char *extra_prefix;
+        size_t extra_prefix_bytes = 0;
         if (prefix == NULL) {
-            break;
+            extra_prefix = mk_match_extra_prefix_feature(p, &extra_prefix_bytes);
+            if (extra_prefix == NULL) {
+                break;
+            }
+            status = mk_add_owned_feature(&modifiers, &modifier_count, &modifier_cap, extra_prefix);
+            if (status != MK_OK) {
+                goto fail;
+            }
+            recognized_modifier = 1;
+            p += extra_prefix_bytes;
+            continue;
         }
         status = mk_add_owned_feature(&modifiers, &modifier_count, &modifier_cap, prefix->feature);
         if (status != MK_OK) {
@@ -627,6 +767,8 @@ static mk_status mk_decompose_diacritics(
         const mk_tone_mark *tone = mk_match_tone_mark(p);
         const mk_diacritic_map *combining;
         const mk_diacritic_map *suffix;
+        const char *extra_suffix;
+        size_t extra_suffix_bytes = 0;
         size_t chao_bytes = 0;
         char one[5];
         size_t n;
@@ -674,6 +816,17 @@ static mk_status mk_decompose_diacritics(
             }
             recognized_modifier = 1;
             p += strlen(combining->mark);
+            continue;
+        }
+
+        extra_suffix = mk_match_extra_suffix_feature(p, &extra_suffix_bytes);
+        if (extra_suffix != NULL) {
+            status = mk_add_owned_feature(&modifiers, &modifier_count, &modifier_cap, extra_suffix);
+            if (status != MK_OK) {
+                goto fail;
+            }
+            recognized_modifier = 1;
+            p += extra_suffix_bytes;
             continue;
         }
 
@@ -776,6 +929,508 @@ static mk_status mk_apply_valued_modifiers(
     return MK_OK;
 }
 
+static int mk_is_descriptive_system(const mk_system *system)
+{
+    return system != NULL &&
+        system->builtin != NULL &&
+        system->builtin->kind == MK_SYSTEM_CATEGORICAL &&
+        mk_streq(system->builtin->name, "descriptive");
+}
+
+static mk_status mk_synthesize_from_diacritics(
+    const mk_system *system,
+    const char *normalized,
+    mk_resolved_entry *out
+);
+
+static mk_status mk_set_synthesized_entry(
+    mk_resolved_entry *out,
+    const char *grapheme,
+    char **features,
+    size_t count,
+    char **components,
+    size_t component_count
+)
+{
+    out->owned_grapheme = mk_strdup_internal(grapheme);
+    if (out->owned_grapheme == NULL) {
+        return MK_ERR_OOM;
+    }
+    out->grapheme = out->owned_grapheme;
+    out->owned_features = features;
+    out->owned_feature_count = count;
+    out->features = (const char *const *)features;
+    out->feature_count = count;
+    out->cluster_components = components;
+    out->cluster_component_count = component_count;
+    return MK_OK;
+}
+
+static mk_status mk_add_cluster_component(
+    char ***components,
+    size_t *count,
+    size_t *cap,
+    const char *start,
+    size_t len
+)
+{
+    char **next;
+    char *component;
+
+    if (*count + 1 > *cap) {
+        size_t new_cap = *cap == 0 ? 4 : *cap * 2;
+        next = (char **)realloc(*components, new_cap * sizeof(**components));
+        if (next == NULL) {
+            return MK_ERR_OOM;
+        }
+        *components = next;
+        *cap = new_cap;
+    }
+    component = (char *)malloc(len + 1);
+    if (component == NULL) {
+        return MK_ERR_OOM;
+    }
+    memcpy(component, start, len);
+    component[len] = '\0';
+    (*components)[*count] = component;
+    (*count)++;
+    return MK_OK;
+}
+
+static void mk_free_cluster_components(char **components, size_t count)
+{
+    size_t i;
+
+    if (components == NULL) {
+        return;
+    }
+    for (i = 0; i < count; i++) {
+        free(components[i]);
+    }
+    free(components);
+}
+
+static mk_status mk_add_position_features(
+    char ***features,
+    size_t *count,
+    size_t *cap,
+    const mk_resolved_entry *component,
+    size_t position
+)
+{
+    size_t i;
+    char prefix[8];
+
+    snprintf(prefix, sizeof(prefix), "n%zu", position + 1);
+    for (i = 0; i < component->feature_count; i++) {
+        const char *feature = component->features[i];
+        if (mk_streq(feature, "vowel") || mk_has_prefix_local(feature, "tone-")) {
+            continue;
+        }
+        if (mk_add_prefixed_feature(features, count, cap, prefix, feature) != MK_OK) {
+            return MK_ERR_OOM;
+        }
+    }
+    return MK_OK;
+}
+
+static mk_status mk_add_cluster_movement_features(
+    char ***features,
+    size_t *count,
+    size_t *cap,
+    const mk_resolved_entry *from,
+    const mk_resolved_entry *to
+)
+{
+    static const char *const dimensions[] = {
+        "height",
+        "centrality",
+        "roundedness"
+    };
+    size_t i;
+
+    for (i = 0; i < sizeof(dimensions) / sizeof(dimensions[0]); i++) {
+        mk_builtin_entry a;
+        mk_builtin_entry b;
+        const char *from_feature;
+        const char *to_feature;
+
+        a.grapheme = from->grapheme;
+        a.features = from->features;
+        a.feature_count = from->feature_count;
+        b.grapheme = to->grapheme;
+        b.features = to->features;
+        b.feature_count = to->feature_count;
+        from_feature = mk_entry_feature_for_dimension(&a, dimensions[i]);
+        to_feature = mk_entry_feature_for_dimension(&b, dimensions[i]);
+        if (mk_add_movement_feature(features, count, cap, dimensions[i], from_feature, to_feature) != MK_OK) {
+            return MK_ERR_OOM;
+        }
+    }
+    return MK_OK;
+}
+
+static mk_status mk_parse_component_at(
+    const mk_system *system,
+    const char *start,
+    const char **end_out,
+    mk_resolved_entry *component_out
+)
+{
+    const char *p = start;
+    char *component = NULL;
+    size_t len = 0;
+    size_t cap = 0;
+    mk_status status;
+
+    if (*p == '\0' || mk_chao_digit_value_local(p) >= 1 || mk_match_tone_mark(p) != NULL) {
+        return MK_ERR_UNKNOWN_GRAPHEME;
+    }
+    if (!(*p == 'a' ||
+        *p == 'e' ||
+        *p == 'i' ||
+        *p == 'o' ||
+        *p == 'u' ||
+        mk_has_prefix_local(p, "y") ||
+        mk_has_prefix_local(p, "ɛ") ||
+        mk_has_prefix_local(p, "ɔ") ||
+        mk_has_prefix_local(p, "ə") ||
+        mk_has_prefix_local(p, "ɐ") ||
+        mk_has_prefix_local(p, "ɨ") ||
+        mk_has_prefix_local(p, "ʉ") ||
+        mk_has_prefix_local(p, "ɯ") ||
+        mk_has_prefix_local(p, "ɵ") ||
+        mk_has_prefix_local(p, "œ") ||
+        mk_has_prefix_local(p, "æ") ||
+        mk_has_prefix_local(p, "ɑ") ||
+        mk_has_prefix_local(p, "ʌ") ||
+        mk_has_prefix_local(p, "ɪ") ||
+        mk_has_prefix_local(p, "ʊ") ||
+        mk_has_prefix_local(p, "ɤ") ||
+        mk_has_prefix_local(p, "ø") ||
+        mk_has_prefix_local(p, "ɘ") ||
+        mk_has_prefix_local(p, "ɜ") ||
+        mk_has_prefix_local(p, "ɞ") ||
+        mk_has_prefix_local(p, "ɒ") ||
+        mk_has_prefix_local(p, "ɶ") ||
+        mk_has_prefix_local(p, "ɿ") ||
+        mk_has_prefix_local(p, "ʅ"))) {
+        return MK_ERR_UNKNOWN_GRAPHEME;
+    }
+
+    status = mk_append_text(&component, &len, &cap, "");
+    if (status != MK_OK) {
+        return status;
+    }
+    {
+        char one[5];
+        size_t n = mk_utf8_char_len_local((unsigned char)*p);
+        memcpy(one, p, n);
+        one[n] = '\0';
+        status = mk_append_text(&component, &len, &cap, one);
+        if (status != MK_OK) {
+            free(component);
+            return status;
+        }
+        p += n;
+    }
+
+    while (*p != '\0') {
+        const mk_diacritic_map *combining;
+        const mk_diacritic_map *suffix;
+        const char *extra_suffix;
+        size_t extra_suffix_bytes = 0;
+
+        if (mk_chao_digit_value_local(p) >= 1 || mk_match_tone_mark(p) != NULL) {
+            break;
+        }
+        combining = mk_match_diacritic_map(
+            mk_default_combining_diacritics,
+            mk_default_combining_diacritic_count,
+            p
+        );
+        if (combining != NULL) {
+            status = mk_append_text(&component, &len, &cap, combining->mark);
+            if (status != MK_OK) {
+                free(component);
+                return status;
+            }
+            p += strlen(combining->mark);
+            continue;
+        }
+        extra_suffix = mk_match_extra_suffix_feature(p, &extra_suffix_bytes);
+        if (extra_suffix != NULL) {
+            char mark[5];
+            memcpy(mark, p, extra_suffix_bytes);
+            mark[extra_suffix_bytes] = '\0';
+            status = mk_append_text(&component, &len, &cap, mark);
+            if (status != MK_OK) {
+                free(component);
+                return status;
+            }
+            p += extra_suffix_bytes;
+            continue;
+        }
+        suffix = mk_match_diacritic_map(
+            mk_default_suffix_diacritics,
+            mk_default_suffix_diacritic_count,
+            p
+        );
+        if (suffix != NULL) {
+            status = mk_append_text(&component, &len, &cap, suffix->mark);
+            if (status != MK_OK) {
+                free(component);
+                return status;
+            }
+            p += strlen(suffix->mark);
+            continue;
+        }
+        break;
+    }
+
+    {
+        const mk_builtin_entry *entry = NULL;
+        status = mk_lookup_normalized(system, component, &entry);
+        if (status == MK_OK) {
+            component_out->grapheme = entry->grapheme;
+            component_out->features = entry->features;
+            component_out->feature_count = entry->feature_count;
+        } else if (status == MK_ERR_UNKNOWN_GRAPHEME) {
+            status = mk_synthesize_from_diacritics(system, component, component_out);
+        }
+    }
+    if (status != MK_OK) {
+        free(component);
+        return status;
+    }
+    if (!mk_feature_array_marks_nucleus((char **)component_out->features, component_out->feature_count) ||
+        !mk_feature_array_contains_exact((char **)component_out->features, component_out->feature_count, "vowel")) {
+        mk_resolved_entry_clear(component_out);
+        free(component);
+        return MK_ERR_UNKNOWN_GRAPHEME;
+    }
+    *end_out = p;
+    free(component);
+    return MK_OK;
+}
+
+static mk_status mk_synthesize_vowel_cluster(
+    const mk_system *system,
+    const char *normalized,
+    mk_resolved_entry *out
+)
+{
+    const char *p;
+    mk_resolved_entry components[3];
+    size_t component_count = 0;
+    char **component_names = NULL;
+    size_t component_name_count = 0;
+    size_t component_name_cap = 0;
+    char **features = NULL;
+    size_t feature_count = 0;
+    size_t feature_cap = 0;
+    mk_status status = MK_ERR_UNKNOWN_GRAPHEME;
+    size_t i;
+
+    memset(components, 0, sizeof(components));
+    if (!mk_is_descriptive_system(system)) {
+        return MK_ERR_UNKNOWN_GRAPHEME;
+    }
+
+    p = normalized;
+    while (*p != '\0') {
+        const char *next = NULL;
+        size_t chao_bytes = 0;
+        const mk_tone_mark *tone = mk_match_tone_mark(p);
+
+        if (tone != NULL) {
+            if (component_count < 2 || p[strlen(tone->mark)] != '\0') {
+                status = MK_ERR_UNKNOWN_GRAPHEME;
+                goto finish;
+            }
+            for (i = 0; i < tone->feature_count; i++) {
+                status = mk_add_owned_feature(&features, &feature_count, &feature_cap, tone->features[i]);
+                if (status != MK_OK) {
+                    goto finish;
+                }
+            }
+            p += strlen(tone->mark);
+            break;
+        }
+
+        status = mk_match_chao_tone_sequence(
+            p,
+            &chao_bytes,
+            &features,
+            &feature_count,
+            &feature_cap
+        );
+        if (status == MK_OK) {
+            if (component_count < 2 || p[chao_bytes] != '\0') {
+                status = MK_ERR_UNKNOWN_GRAPHEME;
+                goto finish;
+            }
+            p += chao_bytes;
+            break;
+        }
+        if (status != MK_ERR_UNKNOWN_GRAPHEME) {
+            goto finish;
+        }
+
+        if (component_count == 3) {
+            status = MK_ERR_UNKNOWN_GRAPHEME;
+            goto finish;
+        }
+        status = mk_parse_component_at(system, p, &next, &components[component_count]);
+        if (status != MK_OK) {
+            goto finish;
+        }
+        status = mk_add_cluster_component(
+            &component_names,
+            &component_name_count,
+            &component_name_cap,
+            p,
+            (size_t)(next - p)
+        );
+        if (status != MK_OK) {
+            goto finish;
+        }
+        component_count++;
+        p = next;
+    }
+
+    if (component_count < 2 || component_count > 3) {
+        status = MK_ERR_UNKNOWN_GRAPHEME;
+        goto finish;
+    }
+    status = mk_add_owned_feature(&features, &feature_count, &feature_cap, "vowel");
+    if (status != MK_OK) {
+        goto finish;
+    }
+    status = mk_add_owned_feature(
+        &features,
+        &feature_count,
+        &feature_cap,
+        component_count == 2 ? "diphthong" : "triphthong"
+    );
+    if (status != MK_OK) {
+        goto finish;
+    }
+    for (i = 0; i < component_count; i++) {
+        status = mk_add_position_features(&features, &feature_count, &feature_cap, &components[i], i);
+        if (status != MK_OK) {
+            goto finish;
+        }
+    }
+    for (i = 1; i < component_count; i++) {
+        status = mk_add_cluster_movement_features(&features, &feature_count, &feature_cap, &components[i - 1], &components[i]);
+        if (status != MK_OK) {
+            goto finish;
+        }
+    }
+    status = mk_set_synthesized_entry(out, normalized, features, feature_count, component_names, component_name_count);
+    if (status == MK_OK) {
+        features = NULL;
+        component_names = NULL;
+        component_name_count = 0;
+    }
+
+finish:
+    for (i = 0; i < component_count; i++) {
+        mk_resolved_entry_clear(&components[i]);
+    }
+    mk_free_owned_feature_array(features, feature_count);
+    mk_free_cluster_components(component_names, component_name_count);
+    return status;
+}
+
+static mk_status mk_synthesize_descriptive_complex(
+    const mk_system *system,
+    const char *normalized,
+    mk_resolved_entry *out
+)
+{
+    char **features = NULL;
+    size_t count = 0;
+    size_t cap = 0;
+    const char *place = NULL;
+    const char *phonation = NULL;
+    mk_status status;
+
+    if (!mk_is_descriptive_system(system)) {
+        return MK_ERR_UNKNOWN_GRAPHEME;
+    }
+
+    if (mk_streq(normalized, "kp")) {
+        place = "labio-velar";
+        phonation = "voiceless";
+    } else if (mk_streq(normalized, "gb")) {
+        place = "labio-velar";
+        phonation = "voiced";
+    } else if (mk_streq(normalized, "ts")) {
+        place = "alveolar";
+        phonation = "voiceless";
+    } else if (mk_streq(normalized, "dz")) {
+        place = "alveolar";
+        phonation = "voiced";
+    } else if (mk_streq(normalized, "tʃ")) {
+        place = "post-alveolar";
+        phonation = "voiceless";
+    } else if (mk_streq(normalized, "dʒ")) {
+        place = "post-alveolar";
+        phonation = "voiced";
+    } else if (mk_streq(normalized, "tɕ")) {
+        place = "alveolo-palatal";
+        phonation = "voiceless";
+    } else if (mk_streq(normalized, "dʑ")) {
+        place = "alveolo-palatal";
+        phonation = "voiced";
+    } else if (mk_streq(normalized, "tʂ")) {
+        place = "retroflex";
+        phonation = "voiceless";
+    } else if (mk_streq(normalized, "dʐ")) {
+        place = "retroflex";
+        phonation = "voiced";
+    } else {
+        return MK_ERR_UNKNOWN_GRAPHEME;
+    }
+
+    status = mk_add_owned_feature(&features, &count, &cap, "consonant");
+    if (status != MK_OK) {
+        goto fail;
+    }
+    status = mk_add_owned_feature(&features, &count, &cap, place);
+    if (status != MK_OK) {
+        goto fail;
+    }
+    if (mk_streq(normalized, "kp") || mk_streq(normalized, "gb")) {
+        status = mk_add_owned_feature(&features, &count, &cap, "stop");
+    } else {
+        status = mk_add_owned_feature(&features, &count, &cap, "affricate");
+    }
+    if (status != MK_OK) {
+        goto fail;
+    }
+    status = mk_add_owned_feature(&features, &count, &cap, phonation);
+    if (status != MK_OK) {
+        goto fail;
+    }
+    if (!mk_streq(normalized, "kp") && !mk_streq(normalized, "gb")) {
+        status = mk_add_owned_feature(&features, &count, &cap, "sibilant");
+        if (status != MK_OK) {
+            goto fail;
+        }
+    }
+    status = mk_set_synthesized_entry(out, normalized, features, count, NULL, 0);
+    if (status == MK_OK) {
+        return MK_OK;
+    }
+
+fail:
+    mk_free_owned_feature_array(features, count);
+    return status;
+}
+
 static mk_status mk_synthesize_from_diacritics(
     const mk_system *system,
     const char *normalized,
@@ -788,12 +1443,14 @@ static mk_status mk_synthesize_from_diacritics(
     int recognized_modifier = 0;
     int tone_seen = 0;
     const mk_builtin_entry *base_entry = NULL;
+    mk_resolved_entry base_resolved;
     char **features = NULL;
     size_t count = 0;
     size_t cap = 0;
     mk_status status;
     size_t i;
 
+    memset(&base_resolved, 0, sizeof(base_resolved));
     status = mk_decompose_diacritics(
         normalized,
         &base,
@@ -810,13 +1467,23 @@ static mk_status mk_synthesize_from_diacritics(
         goto finish;
     }
 
-    status = mk_lookup_normalized(system, base, &base_entry);
-    if (status != MK_OK) {
-        goto finish;
-    }
-    status = mk_copy_entry_features(base_entry, &features, &count, &cap);
-    if (status != MK_OK) {
-        goto finish;
+    status = mk_resolve_entry(system, base, &base_resolved);
+    if (status == MK_OK) {
+        for (i = 0; i < base_resolved.feature_count; i++) {
+            status = mk_add_owned_feature(&features, &count, &cap, base_resolved.features[i]);
+            if (status != MK_OK) {
+                goto finish;
+            }
+        }
+    } else {
+        status = mk_lookup_normalized(system, base, &base_entry);
+        if (status != MK_OK) {
+            goto finish;
+        }
+        status = mk_copy_entry_features(base_entry, &features, &count, &cap);
+        if (status != MK_OK) {
+            goto finish;
+        }
     }
     if (system->builtin->kind == MK_SYSTEM_VALUED) {
         status = mk_apply_valued_modifiers(features, count, modifiers, modifier_count);
@@ -831,6 +1498,14 @@ static mk_status mk_synthesize_from_diacritics(
             }
         }
     }
+    if (tone_seen &&
+        !mk_feature_array_marks_nucleus(features, count) &&
+        mk_feature_array_marks_sonorant(features, count)) {
+        status = mk_add_owned_feature(&features, &count, &cap, "syllabic");
+        if (status != MK_OK) {
+            goto finish;
+        }
+    }
     if (tone_seen && !mk_feature_array_marks_nucleus(features, count)) {
         status = MK_ERR_UNKNOWN_GRAPHEME;
         goto finish;
@@ -838,6 +1513,7 @@ static mk_status mk_synthesize_from_diacritics(
 
 finish:
     free(base);
+    mk_resolved_entry_clear(&base_resolved);
     mk_free_owned_feature_array(modifiers, modifier_count);
     if (status != MK_OK) {
         mk_free_owned_feature_array(features, count);
@@ -885,7 +1561,13 @@ mk_status mk_resolve_entry(
         return MK_OK;
     }
     if (status == MK_ERR_UNKNOWN_GRAPHEME) {
-        status = mk_synthesize_from_diacritics(system, normalized, out);
+        status = mk_synthesize_vowel_cluster(system, normalized, out);
+        if (status == MK_ERR_UNKNOWN_GRAPHEME) {
+            status = mk_synthesize_from_diacritics(system, normalized, out);
+        }
+        if (status == MK_ERR_UNKNOWN_GRAPHEME) {
+            status = mk_synthesize_descriptive_complex(system, normalized, out);
+        }
     }
     mk_free_string(normalized);
     return status;
@@ -948,6 +1630,142 @@ mk_status mk_system_segment_distance(
     return mk_system_segment_distance_with_weights(system, utf8_a, utf8_b, NULL, out);
 }
 
+static double mk_min_double(double a, double b)
+{
+    return a < b ? a : b;
+}
+
+static double mk_component_distance(
+    const mk_system *system,
+    const char *a_text,
+    const mk_resolved_entry *b_entry,
+    const char *node_weights
+)
+{
+    mk_resolved_entry a_resolved;
+    mk_builtin_entry a;
+    mk_builtin_entry b;
+    double distance;
+
+    memset(&a_resolved, 0, sizeof(a_resolved));
+    if (mk_resolve_entry(system, a_text, &a_resolved) != MK_OK) {
+        return 1.0;
+    }
+    a.grapheme = a_resolved.grapheme;
+    a.features = a_resolved.features;
+    a.feature_count = a_resolved.feature_count;
+    b.grapheme = b_entry->grapheme;
+    b.features = b_entry->features;
+    b.feature_count = b_entry->feature_count;
+    distance = mk_categorical_distance(system->builtin, &a, &b, node_weights);
+    mk_resolved_entry_clear(&a_resolved);
+    return isnan(distance) ? 1.0 : distance;
+}
+
+static double mk_cluster_component_distance(
+    const mk_system *system,
+    const char *a_text,
+    const char *b_text,
+    const char *node_weights
+)
+{
+    mk_resolved_entry a_resolved;
+    double distance;
+
+    memset(&a_resolved, 0, sizeof(a_resolved));
+    if (mk_resolve_entry(system, a_text, &a_resolved) != MK_OK) {
+        return 1.0;
+    }
+    distance = mk_component_distance(system, b_text, &a_resolved, node_weights);
+    mk_resolved_entry_clear(&a_resolved);
+    return distance;
+}
+
+static double mk_distance_cluster_to_segment(
+    const mk_system *system,
+    const mk_resolved_entry *cluster,
+    const mk_resolved_entry *segment,
+    const char *node_weights
+)
+{
+    double score;
+    size_t i;
+
+    if (cluster->cluster_component_count == 0) {
+        return 1.0;
+    }
+    score = 0.7 * mk_component_distance(system, cluster->cluster_components[0], segment, node_weights);
+    if (cluster->cluster_component_count > 1) {
+        double rest = 0.0;
+        for (i = 1; i < cluster->cluster_component_count; i++) {
+            rest += mk_component_distance(system, cluster->cluster_components[i], segment, node_weights);
+        }
+        rest /= (double)(cluster->cluster_component_count - 1);
+        score += 0.3 * rest;
+    }
+    score += 0.15 * (double)(cluster->cluster_component_count - 1);
+    return mk_min_double(score, 1.0);
+}
+
+static double mk_vowel_cluster_distance(
+    const mk_system *system,
+    const mk_resolved_entry *a,
+    const mk_resolved_entry *b,
+    const char *node_weights
+)
+{
+    mk_builtin_entry a_entry;
+    mk_builtin_entry b_entry;
+    double component_score = 0.0;
+    double tone_score;
+    double score;
+    size_t i;
+
+    if (mk_streq(a->grapheme, b->grapheme)) {
+        return 0.0;
+    }
+    if (a->cluster_component_count == 0 && b->cluster_component_count == 0) {
+        return 1.0;
+    }
+    if (a->cluster_component_count > 0 && b->cluster_component_count == 0) {
+        component_score = mk_distance_cluster_to_segment(system, a, b, node_weights);
+    } else if (a->cluster_component_count == 0 && b->cluster_component_count > 0) {
+        component_score = mk_distance_cluster_to_segment(system, b, a, node_weights);
+    } else {
+        size_t common = a->cluster_component_count < b->cluster_component_count ?
+            a->cluster_component_count : b->cluster_component_count;
+        for (i = 0; i < common; i++) {
+            component_score += mk_cluster_component_distance(
+                system,
+                a->cluster_components[i],
+                b->cluster_components[i],
+                node_weights
+            );
+        }
+        component_score = common > 0 ? component_score / (double)common : 1.0;
+        if (a->cluster_component_count > common) {
+            component_score += 0.15 * (double)(a->cluster_component_count - common);
+        }
+        if (b->cluster_component_count > common) {
+            component_score += 0.15 * (double)(b->cluster_component_count - common);
+        }
+        component_score = mk_min_double(component_score, 1.0);
+    }
+
+    a_entry.grapheme = a->grapheme;
+    a_entry.features = a->features;
+    a_entry.feature_count = a->feature_count;
+    b_entry.grapheme = b->grapheme;
+    b_entry.features = b->features;
+    b_entry.feature_count = b->feature_count;
+    tone_score = mk_categorical_distance(system->builtin, &a_entry, &b_entry, node_weights);
+    if (isnan(tone_score)) {
+        tone_score = 0.0;
+    }
+    score = 0.8 * component_score + 0.2 * tone_score;
+    return mk_min_double(score, 1.0);
+}
+
 mk_status mk_system_segment_distance_with_weights(
     const mk_system *system,
     const char *utf8_a,
@@ -985,7 +1803,11 @@ mk_status mk_system_segment_distance_with_weights(
     b.feature_count = resolved_b.feature_count;
 
     if (system->builtin->kind == MK_SYSTEM_CATEGORICAL) {
-        *out = mk_categorical_distance(system->builtin, &a, &b, node_weights);
+        if (resolved_a.cluster_component_count > 0 || resolved_b.cluster_component_count > 0) {
+            *out = mk_vowel_cluster_distance(system, &resolved_a, &resolved_b, node_weights);
+        } else {
+            *out = mk_categorical_distance(system->builtin, &a, &b, node_weights);
+        }
     } else if (system->builtin->kind == MK_SYSTEM_VALUED) {
         *out = mk_valued_distance(system->builtin, &a, &b, node_weights);
     } else {

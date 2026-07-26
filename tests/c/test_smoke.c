@@ -48,6 +48,24 @@ static int features_contains(const mk_feature_set *features, const char *value)
     return 0;
 }
 
+static int expect_segment(
+    const mk_system *system,
+    const char *grapheme,
+    int expected,
+    const char *label
+)
+{
+    int is_segment = 0;
+    int failed = 0;
+
+    failed |= expect_status(mk_system_is_segment(system, grapheme, &is_segment), MK_OK, label);
+    if (is_segment != expected) {
+        fprintf(stderr, "%s: expected %d, got %d\n", label, expected, is_segment);
+        failed = 1;
+    }
+    return failed;
+}
+
 static int expect_list_item(
     const mk_string_list *list,
     size_t index,
@@ -278,6 +296,70 @@ int main(void)
     features = NULL;
 
     failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "ai", &features),
+        MK_OK,
+        "features diphthong ai"
+    );
+    if (!features_contains(features, "vowel") ||
+        !features_contains(features, "diphthong") ||
+        !features_contains(features, "n1-open") ||
+        !features_contains(features, "n2-close") ||
+        !features_contains(features, "move-height-open-close")) {
+        fprintf(stderr, "features diphthong ai: expected synthetic cluster features\n");
+        failed = 1;
+    }
+    if (features_contains(features, "open") || features_contains(features, "close")) {
+        fprintf(stderr, "features diphthong ai: expected no unqualified component qualities\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "aːi³³", &features),
+        MK_OK,
+        "features long level tone diphthong"
+    );
+    if (!features_contains(features, "diphthong") ||
+        !features_contains(features, "n1-long") ||
+        features_contains(features, "tone-onset-upper") ||
+        features_contains(features, "tone-offset-lower")) {
+        fprintf(stderr, "features long level tone diphthong: expected n1-long and neutral level tone\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "əi³¹", &features),
+        MK_OK,
+        "features tone diphthong"
+    );
+    if (!features_contains(features, "diphthong") ||
+        !features_contains(features, "n1-mid") ||
+        !features_contains(features, "tone-offset-lower") ||
+        !features_contains(features, "tone-offset-lowered")) {
+        fprintf(stderr, "features tone diphthong: expected cluster and tone features\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "ŋ̀", &features),
+        MK_OK,
+        "features tone syllabic sonorant"
+    );
+    if (!features_contains(features, "syllabic") ||
+        !features_contains(features, "tone-onset-lower") ||
+        !features_contains(features, "tone-offset-lower")) {
+        fprintf(stderr, "features tone syllabic sonorant: expected syllabic and tone features\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
         mk_system_grapheme_features(descriptive, "<?>", &features),
         MK_ERR_UNKNOWN_GRAPHEME,
         "features unknown still raises status"
@@ -300,6 +382,35 @@ int main(void)
         fprintf(stderr, "is segment level tone consonant: expected 0, got %d\n", is_segment);
         failed = 1;
     }
+    failed |= expect_segment(descriptive, "ai", 1, "is segment ai");
+    failed |= expect_segment(descriptive, "au", 1, "is segment au");
+    failed |= expect_segment(descriptive, "ei", 1, "is segment ei");
+    failed |= expect_segment(descriptive, "aːi", 1, "is segment aːi");
+    failed |= expect_segment(descriptive, "iau", 1, "is segment iau");
+    failed |= expect_segment(descriptive, "ai³³", 1, "is segment ai³³");
+    failed |= expect_segment(descriptive, "aːi³³", 1, "is segment aːi³³");
+    failed |= expect_segment(descriptive, "ɐu³³", 1, "is segment ɐu³³");
+    failed |= expect_segment(descriptive, "əi³¹", 1, "is segment əi³¹");
+    failed |= expect_segment(descriptive, "ᵐb", 1, "is segment ᵐb");
+    failed |= expect_segment(descriptive, "ⁿd", 1, "is segment ⁿd");
+    failed |= expect_segment(descriptive, "ⁿdʳ", 1, "is segment ⁿdʳ");
+    failed |= expect_segment(descriptive, "ɡb", 1, "is segment ɡb");
+    failed |= expect_segment(descriptive, "gb", 1, "is segment gb");
+    failed |= expect_segment(descriptive, "kp", 1, "is segment kp");
+    failed |= expect_segment(descriptive, "kpʷ", 1, "is segment kpʷ");
+    failed |= expect_segment(descriptive, "tʂ", 1, "is segment tʂ");
+    failed |= expect_segment(descriptive, "tʂʰ", 1, "is segment tʂʰ");
+    failed |= expect_segment(descriptive, "ŋ̀", 1, "is segment ŋ̀");
+    failed |= expect_segment(descriptive, "m̀", 1, "is segment m̀");
+    failed |= expect_segment(descriptive, "ä", 1, "is segment ä");
+    failed |= expect_segment(descriptive, "ă", 1, "is segment ă");
+    failed |= expect_segment(descriptive, "ç", 1, "is segment ç");
+    failed |= expect_segment(descriptive, "<?>", 0, "is segment markup question");
+    failed |= expect_segment(descriptive, "<<->>", 0, "is segment markup deletion");
+    failed |= expect_segment(descriptive, "<<[>>", 0, "is segment markup left bracket");
+    failed |= expect_segment(descriptive, "→", 0, "is segment arrow");
+    failed |= expect_segment(descriptive, "mb", 0, "is segment bare mb");
+    failed |= expect_segment(descriptive, "nd", 0, "is segment bare nd");
 
     failed |= expect_status(
         mk_system_segment_distance(descriptive, "p", "b", &distance),
@@ -315,6 +426,48 @@ int main(void)
         mk_system_segment_distance(descriptive, "p", "not-ipa", &distance),
         MK_ERR_UNKNOWN_GRAPHEME,
         "distance unknown"
+    );
+
+    failed |= expect_status(
+        mk_system_segment_distance(descriptive, "ai", "ai", &distance),
+        MK_OK,
+        "distance ai ai"
+    );
+    if (distance != 0.0) {
+        fprintf(stderr, "distance ai ai: expected 0.0, got %.10f\n", distance);
+        failed = 1;
+    }
+    {
+        double ai_a = 0.0;
+        double ai_i = 0.0;
+        failed |= expect_status(
+            mk_system_segment_distance(descriptive, "ai", "a", &ai_a),
+            MK_OK,
+            "distance ai a"
+        );
+        failed |= expect_status(
+            mk_system_segment_distance(descriptive, "ai", "i", &ai_i),
+            MK_OK,
+            "distance ai i"
+        );
+        if (!(ai_a < ai_i)) {
+            fprintf(stderr, "distance ai endpoint weighting: expected ai~a < ai~i, got %.10f %.10f\n", ai_a, ai_i);
+            failed = 1;
+        }
+    }
+    failed |= expect_status(
+        mk_system_segment_distance(descriptive, "ai", "au", &distance),
+        MK_OK,
+        "distance ai au"
+    );
+    if (!(distance > 0.0 && distance < 1.0)) {
+        fprintf(stderr, "distance ai au: expected finite nonzero normalized value, got %.10f\n", distance);
+        failed = 1;
+    }
+    failed |= expect_status(
+        mk_system_segment_distance(descriptive, "ai³³", "aːi³³", &distance),
+        MK_OK,
+        "distance tone clusters"
     );
 
     failed |= expect_status(mk_normalize_grapheme("g", &normalized), MK_OK, "normalize g");

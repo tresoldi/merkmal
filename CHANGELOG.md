@@ -21,6 +21,8 @@
 - Added: Python wrapper access to `node_weights`, tone-digit merging,
   merged IPA segmentation, and a minimal native `Registry` for runtime model
   text.
+- Added: descriptive source-token synthesis for vowel clusters, explicit
+  complex consonants, broader affricate spellings, and tone-bearing nuclei.
 - Added: public documentation for C distribution, the C API, and the
   line-oriented runtime categorical model format.
 - Changed: pre-C Python tutorials, notebooks, and research scripts are archived under

@@ -217,6 +217,21 @@ mk_status mk_normalize_input_grapheme(
         } else if (mk_has_prefix(p, "ũ")) {
             status = mk_append_bytes(&tmp, &len, &cap, "ũ");
             p += strlen("ũ");
+        } else if (mk_has_prefix(p, "ä")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ä");
+            p += strlen("ä");
+        } else if (mk_has_prefix(p, "ă")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ă");
+            p += strlen("ă");
+        } else if (mk_has_prefix(p, "ĭ")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ĭ");
+            p += strlen("ĭ");
+        } else if (mk_has_prefix(p, "ŭ")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ŭ");
+            p += strlen("ŭ");
+        } else if (mk_has_prefix(p, "ç")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ç");
+            p += strlen("ç");
         } else if (mk_has_prefix(p, "á")) {
             status = mk_append_bytes(&tmp, &len, &cap, "á");
             p += strlen("á");
@@ -323,6 +338,21 @@ static const char *mk_compose_known_pair(const char *base, const char *mark)
     }
     if (mk_streq(base, "u") && mk_streq(mark, "̃")) {
         return "ũ";
+    }
+    if (mk_streq(base, "a") && mk_streq(mark, "̈")) {
+        return "ä";
+    }
+    if (mk_streq(base, "a") && mk_streq(mark, "̆")) {
+        return "ă";
+    }
+    if (mk_streq(base, "i") && mk_streq(mark, "̆")) {
+        return "ĭ";
+    }
+    if (mk_streq(base, "u") && mk_streq(mark, "̆")) {
+        return "ŭ";
+    }
+    if (mk_streq(base, "c") && mk_streq(mark, "̧")) {
+        return "ç";
     }
     if (mk_streq(base, "a") && mk_streq(mark, "́")) {
         return "á";

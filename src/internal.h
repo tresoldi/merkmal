@@ -24,6 +24,8 @@ typedef struct mk_resolved_entry {
     char **owned_features;
     size_t owned_feature_count;
     char *owned_grapheme;
+    char **cluster_components;
+    size_t cluster_component_count;
 } mk_resolved_entry;
 
 typedef struct mk_geometry_leaf {
