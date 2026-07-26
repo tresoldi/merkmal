@@ -1585,6 +1585,9 @@ static mk_status mk_synthesize_descriptive_consonant_cluster(
     if (!mk_is_descriptive_system(system)) {
         return MK_ERR_UNKNOWN_GRAPHEME;
     }
+    if (mk_streq(normalized, "mb") || mk_streq(normalized, "nd")) {
+        return MK_ERR_UNKNOWN_GRAPHEME;
+    }
 
     p = normalized;
     while (*p != '\0') {

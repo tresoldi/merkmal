@@ -26,6 +26,12 @@
 - Added: Arca-driven residual descriptive support for precomposed-vowel
   clusters such as `ɛï³³` and mixed velar affricate source tokens such as
   `kɣ`.
+- Added: compositional descriptive support for precomposed vowel/modifier
+  source tokens such as `ḭ`, `ṳ`, `ṵ`, and `ṵː`, plus `ṽ` as a nasalized
+  consonant.
+- Changed: bare `mb` and `nd`, standalone tone clusters, slash-delimited
+  tone/control forms, and source markup/control tokens remain invalid source
+  segments.
 - Added: public documentation for C distribution, the C API, and the
   line-oriented runtime categorical model format.
 - Changed: pre-C Python tutorials, notebooks, and research scripts are archived under

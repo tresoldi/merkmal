@@ -379,22 +379,6 @@ int main(void)
     features = NULL;
 
     failed |= expect_status(
-        mk_system_grapheme_features(descriptive, "mb", &features),
-        MK_OK,
-        "features prenasalized cluster mb"
-    );
-    if (!features_contains(features, "consonant") ||
-        !features_contains(features, "consonant-cluster") ||
-        !features_contains(features, "pre-nasalized") ||
-        !features_contains(features, "n1-nasal") ||
-        !features_contains(features, "n2-stop")) {
-        fprintf(stderr, "features prenasalized cluster mb: expected positional cluster features\n");
-        failed = 1;
-    }
-    mk_feature_set_free(features);
-    features = NULL;
-
-    failed |= expect_status(
         mk_system_grapheme_features(descriptive, "kk", &features),
         MK_OK,
         "features geminate cluster kk"
@@ -402,6 +386,58 @@ int main(void)
     if (!features_contains(features, "consonant-cluster") ||
         !features_contains(features, "geminate")) {
         fprintf(stderr, "features geminate cluster kk: expected geminate cluster features\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "ḭ", &features),
+        MK_OK,
+        "features precomposed i creaky"
+    );
+    if (!features_contains(features, "vowel") || !features_contains(features, "creaky")) {
+        fprintf(stderr, "features precomposed i creaky: expected vowel and creaky\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "ṳ", &features),
+        MK_OK,
+        "features precomposed u breathy"
+    );
+    if (!features_contains(features, "vowel") || !features_contains(features, "breathy")) {
+        fprintf(stderr, "features precomposed u breathy: expected vowel and breathy\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "ṵː", &features),
+        MK_OK,
+        "features precomposed u creaky long"
+    );
+    if (!features_contains(features, "vowel") ||
+        !features_contains(features, "creaky") ||
+        !features_contains(features, "long")) {
+        fprintf(stderr, "features precomposed u creaky long: expected vowel, creaky, and long\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "ṽ", &features),
+        MK_OK,
+        "features precomposed nasalized v"
+    );
+    if (!features_contains(features, "consonant") ||
+        !features_contains(features, "nasalized") ||
+        features_contains(features, "vowel")) {
+        fprintf(stderr, "features precomposed nasalized v: expected nasalized consonant, not vowel\n");
         failed = 1;
     }
     mk_feature_set_free(features);
@@ -476,11 +512,14 @@ int main(void)
     failed |= expect_segment(descriptive, "ä", 1, "is segment ä");
     failed |= expect_segment(descriptive, "ă", 1, "is segment ă");
     failed |= expect_segment(descriptive, "ç", 1, "is segment ç");
+    failed |= expect_segment(descriptive, "ḭ", 1, "is segment ḭ");
+    failed |= expect_segment(descriptive, "ṳ", 1, "is segment ṳ");
+    failed |= expect_segment(descriptive, "ṵ", 1, "is segment ṵ");
+    failed |= expect_segment(descriptive, "ṵː", 1, "is segment ṵː");
+    failed |= expect_segment(descriptive, "ṽ", 1, "is segment ṽ");
     failed |= expect_segment(descriptive, "ñ", 1, "is segment ñ");
     failed |= expect_segment(descriptive, "ń", 1, "is segment ń");
     failed |= expect_segment(descriptive, "ỹ", 1, "is segment ỹ");
-    failed |= expect_segment(descriptive, "mb", 1, "is segment bare mb");
-    failed |= expect_segment(descriptive, "nd", 1, "is segment bare nd");
     failed |= expect_segment(descriptive, "kw", 1, "is segment kw");
     failed |= expect_segment(descriptive, "gw", 1, "is segment gw");
     failed |= expect_segment(descriptive, "ŋg", 1, "is segment ŋg");
@@ -495,6 +534,23 @@ int main(void)
     failed |= expect_segment(descriptive, "→", 0, "is segment arrow");
     failed |= expect_segment(descriptive, "+", 0, "is segment plus markup");
     failed |= expect_segment(descriptive, "∼", 0, "is segment tilde markup");
+    failed |= expect_segment(descriptive, "<<]>>", 0, "is segment markup right bracket");
+    failed |= expect_segment(descriptive, "<<~>>", 0, "is segment markup tilde");
+    failed |= expect_segment(descriptive, "<</>>", 0, "is segment markup slash");
+    failed |= expect_segment(descriptive, "<<.>>", 0, "is segment markup dot");
+    failed |= expect_segment(descriptive, "_", 0, "is segment underscore control");
+    failed |= expect_segment(descriptive, "S", 0, "is segment S annotation");
+    failed |= expect_segment(descriptive, "T", 0, "is segment T annotation");
+    failed |= expect_segment(descriptive, "¹/¹", 0, "is segment slash tone 11");
+    failed |= expect_segment(descriptive, "³/¹", 0, "is segment slash tone 31");
+    failed |= expect_segment(descriptive, "³¹", 0, "is segment bare tone 31");
+    failed |= expect_segment(descriptive, "³⁵", 0, "is segment bare tone 35");
+    failed |= expect_segment(descriptive, "⁵⁵", 0, "is segment bare tone 55");
+    failed |= expect_segment(descriptive, "mb", 0, "is segment bare mb");
+    failed |= expect_segment(descriptive, "nd", 0, "is segment bare nd");
+    failed |= expect_segment(descriptive, "ě", 0, "is segment deferred e caron");
+    failed |= expect_segment(descriptive, "ǎ", 0, "is segment deferred a caron");
+    failed |= expect_segment(descriptive, "ý", 0, "is segment deferred y acute");
 
     failed |= expect_status(
         mk_system_segment_distance(descriptive, "p", "b", &distance),
@@ -576,6 +632,26 @@ int main(void)
 
     failed |= expect_status(mk_normalize_grapheme("ï", &normalized), MK_OK, "normalize i diaeresis");
     failed |= expect_string(normalized, "ï", "normalize i diaeresis");
+    mk_free_string(normalized);
+    normalized = NULL;
+
+    failed |= expect_status(mk_normalize_grapheme("ḭ", &normalized), MK_OK, "normalize i creaky");
+    failed |= expect_string(normalized, "ḭ", "normalize i creaky");
+    mk_free_string(normalized);
+    normalized = NULL;
+
+    failed |= expect_status(mk_normalize_grapheme("ṳ", &normalized), MK_OK, "normalize u breathy");
+    failed |= expect_string(normalized, "ṳ", "normalize u breathy");
+    mk_free_string(normalized);
+    normalized = NULL;
+
+    failed |= expect_status(mk_normalize_grapheme("ṵ", &normalized), MK_OK, "normalize u creaky");
+    failed |= expect_string(normalized, "ṵ", "normalize u creaky");
+    mk_free_string(normalized);
+    normalized = NULL;
+
+    failed |= expect_status(mk_normalize_grapheme("ṽ", &normalized), MK_OK, "normalize v nasalized");
+    failed |= expect_string(normalized, "ṽ", "normalize v nasalized");
     mk_free_string(normalized);
     normalized = NULL;
 

@@ -217,6 +217,9 @@ mk_status mk_normalize_input_grapheme(
         } else if (mk_has_prefix(p, "ũ")) {
             status = mk_append_bytes(&tmp, &len, &cap, "ũ");
             p += strlen("ũ");
+        } else if (mk_has_prefix(p, "ṽ")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ṽ");
+            p += strlen("ṽ");
         } else if (mk_has_prefix(p, "ñ")) {
             status = mk_append_bytes(&tmp, &len, &cap, "ñ");
             p += strlen("ñ");
@@ -304,6 +307,15 @@ mk_status mk_normalize_input_grapheme(
         } else if (mk_has_prefix(p, "ü")) {
             status = mk_append_bytes(&tmp, &len, &cap, "ü");
             p += strlen("ü");
+        } else if (mk_has_prefix(p, "ṳ")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ṳ");
+            p += strlen("ṳ");
+        } else if (mk_has_prefix(p, "ḭ")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ḭ");
+            p += strlen("ḭ");
+        } else if (mk_has_prefix(p, "ṵ")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ṵ");
+            p += strlen("ṵ");
         } else if (mk_has_prefix(p, "ÿ")) {
             status = mk_append_bytes(&tmp, &len, &cap, "ÿ");
             p += strlen("ÿ");
@@ -380,6 +392,9 @@ static const char *mk_compose_known_pair(const char *base, const char *mark)
     }
     if (mk_streq(base, "u") && mk_streq(mark, "̃")) {
         return "ũ";
+    }
+    if (mk_streq(base, "v") && mk_streq(mark, "̃")) {
+        return "ṽ";
     }
     if (mk_streq(base, "a") && mk_streq(mark, "̈")) {
         return "ä";
@@ -461,6 +476,15 @@ static const char *mk_compose_known_pair(const char *base, const char *mark)
     }
     if (mk_streq(base, "u") && mk_streq(mark, "̈")) {
         return "ü";
+    }
+    if (mk_streq(base, "u") && mk_streq(mark, "̤")) {
+        return "ṳ";
+    }
+    if (mk_streq(base, "i") && mk_streq(mark, "̰")) {
+        return "ḭ";
+    }
+    if (mk_streq(base, "u") && mk_streq(mark, "̰")) {
+        return "ṵ";
     }
     if (mk_streq(base, "a") && mk_streq(mark, "̄")) {
         return "ā";

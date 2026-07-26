@@ -26,9 +26,9 @@ for the first native slice:
 - set-based sound distance with weight presets
 - IPA normalization and segmentation
 - Chao tone digit merging
-- descriptive source-token validation for vowel clusters, author-defined
-  consonant clusters, precomposed Latin source letters, broader affricate
-  spellings, and tone-bearing nuclei
+- descriptive source-token validation for vowel clusters, selected
+  author-defined consonant clusters, precomposed Latin source letters,
+  broader affricate spellings, and tone-bearing nuclei
 - registering a simple caller-supplied categorical model from text
 
 Built-in C systems currently include:

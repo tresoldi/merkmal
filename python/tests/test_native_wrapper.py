@@ -115,11 +115,14 @@ def test_native_descriptive_broadened_source_tokens() -> None:
         "ä",
         "ă",
         "ç",
+        "ḭ",
+        "ṳ",
+        "ṵ",
+        "ṵː",
+        "ṽ",
         "ñ",
         "ń",
         "ỹ",
-        "mb",
-        "nd",
         "kw",
         "gw",
         "ŋg",
@@ -132,7 +135,32 @@ def test_native_descriptive_broadened_source_tokens() -> None:
     for token in positive:
         assert merkmal.is_segment(token, system="descriptive"), token
 
-    negative = ["<?>", "<<->>", "<<[>>", "→", "+", "∼", "p³³"]
+    negative = [
+        "<?>",
+        "<<->>",
+        "<<[>>",
+        "<<]>>",
+        "<<~>>",
+        "<</>>",
+        "<<.>>",
+        "→",
+        "+",
+        "∼",
+        "_",
+        "S",
+        "T",
+        "¹/¹",
+        "³/¹",
+        "³¹",
+        "³⁵",
+        "⁵⁵",
+        "mb",
+        "nd",
+        "ě",
+        "ǎ",
+        "ý",
+        "p³³",
+    ]
     for token in negative:
         assert not merkmal.is_segment(token, system="descriptive"), token
 
@@ -167,10 +195,6 @@ def test_native_descriptive_broadened_source_tokens() -> None:
     assert {"consonant", "affricate", "velar"} <= features_affricate
     assert "voiceless" not in features_affricate
 
-    features_prenasal = merkmal.get_features("mb", system="descriptive")
-    assert {"consonant", "complex", "consonant-cluster", "pre-nasalized"} <= features_prenasal
-    assert {"n1-nasal", "n2-stop", "n2-bilabial"} <= features_prenasal
-
     features_labialized = merkmal.get_features("kw", system="descriptive")
     assert {"consonant", "complex", "consonant-cluster"} <= features_labialized
     assert {"n1-velar", "n2-labio-velar"} <= features_labialized
@@ -180,6 +204,14 @@ def test_native_descriptive_broadened_source_tokens() -> None:
 
     assert {"consonant", "nasalized"} <= merkmal.get_features("ñ", system="descriptive")
     assert {"vowel", "nasalized"} <= merkmal.get_features("ỹ", system="descriptive")
+    assert {"vowel", "creaky"} <= merkmal.get_features("ḭ", system="descriptive")
+    assert {"vowel", "breathy"} <= merkmal.get_features("ṳ", system="descriptive")
+    assert {"vowel", "creaky"} <= merkmal.get_features("ṵ", system="descriptive")
+    assert {"vowel", "creaky", "long"} <= merkmal.get_features("ṵː", system="descriptive")
+
+    features_v_tilde = merkmal.get_features("ṽ", system="descriptive")
+    assert {"consonant", "nasalized"} <= features_v_tilde
+    assert "vowel" not in features_v_tilde
     assert "voiced" not in features_affricate
     assert "sibilant" not in features_affricate
 
@@ -219,6 +251,10 @@ def test_native_unicode_helpers() -> None:
     assert merkmal.normalize("sh/ʃ") == "ʃ"
     assert merkmal.normalize("ã") == "ã"
     assert merkmal.normalize("ï") == "ï"
+    assert merkmal.normalize("ḭ") == "ḭ"
+    assert merkmal.normalize("ṳ") == "ṳ"
+    assert merkmal.normalize("ṵ") == "ṵ"
+    assert merkmal.normalize("ṽ") == "ṽ"
     assert merkmal.segment_ipa("tʰoŋ⁵⁵") == ["tʰ", "o", "ŋ", "⁵⁵"]
     assert merkmal.segment_ipa_merged("tʰoŋ⁵⁵") == ["tʰ", "o⁵⁵", "ŋ"]
     assert merkmal.merge_tone_digits(["tʰ", "o", "ŋ", "⁵⁵"]) == ["tʰ", "o⁵⁵", "ŋ"]
