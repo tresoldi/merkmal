@@ -220,12 +220,27 @@ mk_status mk_normalize_input_grapheme(
         } else if (mk_has_prefix(p, "ä")) {
             status = mk_append_bytes(&tmp, &len, &cap, "ä");
             p += strlen("ä");
+        } else if (mk_has_prefix(p, "ë")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ë");
+            p += strlen("ë");
+        } else if (mk_has_prefix(p, "ï")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ï");
+            p += strlen("ï");
+        } else if (mk_has_prefix(p, "ö")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ö");
+            p += strlen("ö");
         } else if (mk_has_prefix(p, "ă")) {
             status = mk_append_bytes(&tmp, &len, &cap, "ă");
             p += strlen("ă");
+        } else if (mk_has_prefix(p, "ĕ")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ĕ");
+            p += strlen("ĕ");
         } else if (mk_has_prefix(p, "ĭ")) {
             status = mk_append_bytes(&tmp, &len, &cap, "ĭ");
             p += strlen("ĭ");
+        } else if (mk_has_prefix(p, "ŏ")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ŏ");
+            p += strlen("ŏ");
         } else if (mk_has_prefix(p, "ŭ")) {
             status = mk_append_bytes(&tmp, &len, &cap, "ŭ");
             p += strlen("ŭ");
@@ -280,6 +295,24 @@ mk_status mk_normalize_input_grapheme(
         } else if (mk_has_prefix(p, "ü")) {
             status = mk_append_bytes(&tmp, &len, &cap, "ü");
             p += strlen("ü");
+        } else if (mk_has_prefix(p, "ÿ")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ÿ");
+            p += strlen("ÿ");
+        } else if (mk_has_prefix(p, "ā")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ā");
+            p += strlen("ā");
+        } else if (mk_has_prefix(p, "ē")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ē");
+            p += strlen("ē");
+        } else if (mk_has_prefix(p, "ī")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ī");
+            p += strlen("ī");
+        } else if (mk_has_prefix(p, "ō")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ō");
+            p += strlen("ō");
+        } else if (mk_has_prefix(p, "ū")) {
+            status = mk_append_bytes(&tmp, &len, &cap, "ū");
+            p += strlen("ū");
         } else if (mk_has_prefix(p, "'") || mk_has_prefix(p, "’")) {
             status = mk_append_bytes(&tmp, &len, &cap, "ʼ");
             p += mk_has_prefix(p, "'") ? 1 : strlen("’");
@@ -342,11 +375,29 @@ static const char *mk_compose_known_pair(const char *base, const char *mark)
     if (mk_streq(base, "a") && mk_streq(mark, "̈")) {
         return "ä";
     }
+    if (mk_streq(base, "e") && mk_streq(mark, "̈")) {
+        return "ë";
+    }
+    if (mk_streq(base, "i") && mk_streq(mark, "̈")) {
+        return "ï";
+    }
+    if (mk_streq(base, "o") && mk_streq(mark, "̈")) {
+        return "ö";
+    }
+    if (mk_streq(base, "y") && mk_streq(mark, "̈")) {
+        return "ÿ";
+    }
     if (mk_streq(base, "a") && mk_streq(mark, "̆")) {
         return "ă";
     }
+    if (mk_streq(base, "e") && mk_streq(mark, "̆")) {
+        return "ĕ";
+    }
     if (mk_streq(base, "i") && mk_streq(mark, "̆")) {
         return "ĭ";
+    }
+    if (mk_streq(base, "o") && mk_streq(mark, "̆")) {
+        return "ŏ";
     }
     if (mk_streq(base, "u") && mk_streq(mark, "̆")) {
         return "ŭ";
@@ -401,6 +452,21 @@ static const char *mk_compose_known_pair(const char *base, const char *mark)
     }
     if (mk_streq(base, "u") && mk_streq(mark, "̈")) {
         return "ü";
+    }
+    if (mk_streq(base, "a") && mk_streq(mark, "̄")) {
+        return "ā";
+    }
+    if (mk_streq(base, "e") && mk_streq(mark, "̄")) {
+        return "ē";
+    }
+    if (mk_streq(base, "i") && mk_streq(mark, "̄")) {
+        return "ī";
+    }
+    if (mk_streq(base, "o") && mk_streq(mark, "̄")) {
+        return "ō";
+    }
+    if (mk_streq(base, "u") && mk_streq(mark, "̄")) {
+        return "ū";
     }
     return NULL;
 }

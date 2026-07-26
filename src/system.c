@@ -1367,6 +1367,14 @@ static mk_status mk_synthesize_descriptive_complex(
     } else if (mk_streq(normalized, "gb")) {
         place = "labio-velar";
         phonation = "voiced";
+    } else if (mk_streq(normalized, "kx")) {
+        place = "velar";
+        phonation = "voiceless";
+    } else if (mk_streq(normalized, "gɣ")) {
+        place = "velar";
+        phonation = "voiced";
+    } else if (mk_streq(normalized, "kɣ")) {
+        place = "velar";
     } else if (mk_streq(normalized, "ts")) {
         place = "alveolar";
         phonation = "voiceless";
@@ -1415,7 +1423,7 @@ static mk_status mk_synthesize_descriptive_complex(
     if (status != MK_OK) {
         goto fail;
     }
-    if (!mk_streq(normalized, "kp") && !mk_streq(normalized, "gb")) {
+    if (!mk_streq(place, "velar") && !mk_streq(normalized, "kp") && !mk_streq(normalized, "gb")) {
         status = mk_add_owned_feature(&features, &count, &cap, "sibilant");
         if (status != MK_OK) {
             goto fail;

@@ -35,12 +35,18 @@ lexical datasets, including vowel clusters and tone-bearing nuclei:
 
 ```python
 print(merkmal.is_segment("aːi³³", system="descriptive"))
+print(merkmal.is_segment("ɛï³³", system="descriptive"))
+print(merkmal.is_segment("kɣ", system="descriptive"))
 print(merkmal.get_features("ai", system="descriptive"))
 print(merkmal.distance("ai", "a", system="descriptive"))
 ```
 
 Vowel clusters use short synthetic features such as `diphthong`, `n1-open`,
 `n2-close`, and `move-height-open-close`.
+
+Use `is_segment()` as the non-throwing predicate for source tokens. Unknown
+tokens return `False` from `is_segment()` and raise `ValueError` from
+`get_features()`.
 
 Runtime categorical models can be registered on an owned native registry:
 

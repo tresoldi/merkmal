@@ -23,6 +23,9 @@
   text.
 - Added: descriptive source-token synthesis for vowel clusters, explicit
   complex consonants, broader affricate spellings, and tone-bearing nuclei.
+- Added: Arca-driven residual descriptive support for precomposed-vowel
+  clusters such as `ɛï³³` and mixed velar affricate source tokens such as
+  `kɣ`.
 - Added: public documentation for C distribution, the C API, and the
   line-oriented runtime categorical model format.
 - Changed: pre-C Python tutorials, notebooks, and research scripts are archived under

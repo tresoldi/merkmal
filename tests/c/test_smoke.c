@@ -346,6 +346,39 @@ int main(void)
     features = NULL;
 
     failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "ɛï³³", &features),
+        MK_OK,
+        "features precomposed tone diphthong"
+    );
+    if (!features_contains(features, "vowel") ||
+        !features_contains(features, "diphthong") ||
+        !features_contains(features, "n1-open-mid") ||
+        !features_contains(features, "n2-close") ||
+        !features_contains(features, "n2-centralized")) {
+        fprintf(stderr, "features precomposed tone diphthong: expected cluster and normalized diaeresis features\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
+        mk_system_grapheme_features(descriptive, "kɣ", &features),
+        MK_OK,
+        "features mixed velar affricate"
+    );
+    if (!features_contains(features, "consonant") ||
+        !features_contains(features, "affricate") ||
+        !features_contains(features, "velar") ||
+        features_contains(features, "voiceless") ||
+        features_contains(features, "voiced") ||
+        features_contains(features, "sibilant")) {
+        fprintf(stderr, "features mixed velar affricate: expected velar affricate without phonation or sibilant\n");
+        failed = 1;
+    }
+    mk_feature_set_free(features);
+    features = NULL;
+
+    failed |= expect_status(
         mk_system_grapheme_features(descriptive, "ŋ̀", &features),
         MK_OK,
         "features tone syllabic sonorant"
@@ -391,6 +424,12 @@ int main(void)
     failed |= expect_segment(descriptive, "aːi³³", 1, "is segment aːi³³");
     failed |= expect_segment(descriptive, "ɐu³³", 1, "is segment ɐu³³");
     failed |= expect_segment(descriptive, "əi³¹", 1, "is segment əi³¹");
+    failed |= expect_segment(descriptive, "ɛï", 1, "is segment ɛï");
+    failed |= expect_segment(descriptive, "ɛï³³", 1, "is segment ɛï³³");
+    failed |= expect_segment(descriptive, "ɛï³¹", 1, "is segment ɛï³¹");
+    failed |= expect_segment(descriptive, "ɛï³⁵", 1, "is segment ɛï³⁵");
+    failed |= expect_segment(descriptive, "ɛï⁴⁵", 1, "is segment ɛï⁴⁵");
+    failed |= expect_segment(descriptive, "ɛï⁴⁵³", 1, "is segment ɛï⁴⁵³");
     failed |= expect_segment(descriptive, "ᵐb", 1, "is segment ᵐb");
     failed |= expect_segment(descriptive, "ⁿd", 1, "is segment ⁿd");
     failed |= expect_segment(descriptive, "ⁿdʳ", 1, "is segment ⁿdʳ");
@@ -398,6 +437,9 @@ int main(void)
     failed |= expect_segment(descriptive, "gb", 1, "is segment gb");
     failed |= expect_segment(descriptive, "kp", 1, "is segment kp");
     failed |= expect_segment(descriptive, "kpʷ", 1, "is segment kpʷ");
+    failed |= expect_segment(descriptive, "kx", 1, "is segment kx");
+    failed |= expect_segment(descriptive, "gɣ", 1, "is segment gɣ");
+    failed |= expect_segment(descriptive, "kɣ", 1, "is segment kɣ");
     failed |= expect_segment(descriptive, "tʂ", 1, "is segment tʂ");
     failed |= expect_segment(descriptive, "tʂʰ", 1, "is segment tʂʰ");
     failed |= expect_segment(descriptive, "ŋ̀", 1, "is segment ŋ̀");
@@ -487,6 +529,11 @@ int main(void)
 
     failed |= expect_status(mk_normalize_grapheme("ü", &normalized), MK_OK, "normalize u diaeresis");
     failed |= expect_string(normalized, "ü", "normalize u diaeresis");
+    mk_free_string(normalized);
+    normalized = NULL;
+
+    failed |= expect_status(mk_normalize_grapheme("ï", &normalized), MK_OK, "normalize i diaeresis");
+    failed |= expect_string(normalized, "ï", "normalize i diaeresis");
     mk_free_string(normalized);
     normalized = NULL;
 

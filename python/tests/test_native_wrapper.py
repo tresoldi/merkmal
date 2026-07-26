@@ -92,6 +92,12 @@ def test_native_descriptive_broadened_source_tokens() -> None:
         "aːi³³",
         "ɐu³³",
         "əi³¹",
+        "ɛï",
+        "ɛï³³",
+        "ɛï³¹",
+        "ɛï³⁵",
+        "ɛï⁴⁵",
+        "ɛï⁴⁵³",
         "ᵐb",
         "ⁿd",
         "ⁿdʳ",
@@ -99,6 +105,9 @@ def test_native_descriptive_broadened_source_tokens() -> None:
         "gb",
         "kp",
         "kpʷ",
+        "kx",
+        "gɣ",
+        "kɣ",
         "tʂ",
         "tʂʰ",
         "ŋ̀",
@@ -132,8 +141,27 @@ def test_native_descriptive_broadened_source_tokens() -> None:
     features_tone = merkmal.get_features("əi³¹", system="descriptive")
     assert {"diphthong", "n1-mid", "tone-offset-lower", "tone-offset-lowered"} <= features_tone
 
+    features_precomposed = merkmal.get_features("ɛï³³", system="descriptive")
+    assert {
+        "vowel",
+        "diphthong",
+        "n1-open-mid",
+        "n2-close",
+        "n2-centralized",
+    } <= features_precomposed
+
+    features_affricate = merkmal.get_features("kɣ", system="descriptive")
+    assert {"consonant", "affricate", "velar"} <= features_affricate
+    assert "voiceless" not in features_affricate
+    assert "voiced" not in features_affricate
+    assert "sibilant" not in features_affricate
+
     features_syllabic = merkmal.get_features("ŋ̀", system="descriptive")
     assert {"syllabic", "tone-onset-lower", "tone-offset-lower"} <= features_syllabic
+
+    for token in negative:
+        with pytest.raises(ValueError):
+            merkmal.get_features(token, system="descriptive")
 
 
 def test_native_distance_matches_golden_probe() -> None:
@@ -163,6 +191,7 @@ def test_native_unicode_helpers() -> None:
     assert merkmal.normalize("g") == "ɡ"
     assert merkmal.normalize("sh/ʃ") == "ʃ"
     assert merkmal.normalize("ã") == "ã"
+    assert merkmal.normalize("ï") == "ï"
     assert merkmal.segment_ipa("tʰoŋ⁵⁵") == ["tʰ", "o", "ŋ", "⁵⁵"]
     assert merkmal.segment_ipa_merged("tʰoŋ⁵⁵") == ["tʰ", "o⁵⁵", "ŋ"]
     assert merkmal.merge_tone_digits(["tʰ", "o", "ŋ", "⁵⁵"]) == ["tʰ", "o⁵⁵", "ŋ"]
