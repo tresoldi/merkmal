@@ -361,6 +361,24 @@ and makes diffs visible while the generator matures.
 1. Continue release validation on additional compilers/platforms.
 2. Rewrite native-first tutorials to replace `docs/legacy_python/`.
 
+## Deferred Downstream Requests
+
+Historical Cognator and Arca request notes have been consolidated and should no
+longer drive implementation directly. Most of those requests either targeted
+the retired Python/Go code, are now covered by the C API, or require fresh
+consumer evidence before design work resumes.
+
+Two generic ideas remain deferred:
+
+- Partition/projection API: if a current C or Python consumer needs
+  sound-class partitions, design this as feature-subset projection in the C
+  library with a Python wrapper. Do not revive the old `export-cognator`
+  bundle shape or add Cognator-specific presets.
+- Pitch/accent policy: do not silently treat caron, acute, grave, or similar
+  source marks as tone. Decide first whether a mark represents phonological
+  tone, stress/accent, orthographic decoration, or source-specific
+  normalization, then add tested behavior.
+
 ## Phase 2 Roadmap: C Distribution First
 
 ### Milestone 11: C Install And Consumer Integration
