@@ -133,7 +133,7 @@ Old asks and current status:
 | Public normalization API | Addressed: `mk_normalize_grapheme`, Python `normalize`. |
 | Public segment validity predicate | Addressed: `mk_system_is_segment`, Python `is_segment`. |
 | Continuous IPA tokenizer | Addressed for the current high-level slice: `mk_segment_ipa`, `mk_segment_ipa_merged`. It is not system-aware. |
-| Tone digit merging | Addressed: `mk_merge_tone_digits`, Python `merge_tone_digits`. |
+| Tone digit merging | Addressed for superscript Chao digits (`⁰`–`⁵`): `mk_merge_tone_digits`, Python `merge_tone_digits`. ASCII digits are not Chao pitch and stay unrecognised; see `docs/c-api.md`. Splitting a merged segment back apart is `mk_split_tone`. |
 | Affricate sequence normalization | Addressed for current tested spellings. |
 | Generative base+diacritic fallback | Addressed broadly for categorical and valued systems, with current model/diacritic limits. |
 | Attached tone-bearing nuclei | Addressed for descriptive vowel and vowel-cluster segments. |

@@ -106,7 +106,34 @@ mk_status mk_normalize_grapheme(const char *utf8_in, char **utf8_out);
 mk_status mk_segment_ipa(const char *utf8_in, mk_string_list **out);
 mk_status mk_merge_tone_digits(const mk_string_list *segments, mk_string_list **out);
 mk_status mk_segment_ipa_merged(const char *utf8_in, mk_string_list **out);
+mk_status mk_split_tone(const char *segment, char **base_out, char **tone_out);
 ```
+
+`mk_split_tone` inverts the merge: `"a¹³"` becomes `("a", "¹³")`. Consumers
+that model tone as a dimension of its own need it, because the merged form
+fuses the nucleus and its tone into one string. `*tone_out` is `NULL` for an
+untoned segment, which is not an error; a token that is nothing but tone
+digits returns `MK_ERR_UNKNOWN_GRAPHEME`, matching the standalone-tone policy
+above. Both outputs are caller-owned and freed with `mk_free_string`.
+
+### Chao digits are pitch, not tone-category numbers
+
+Tone merging recognises **superscript** Chao digits (`⁰`–`⁵`) only, and this is
+deliberate rather than an omission. A Chao digit is a pitch level, and a
+sequence of them is a contour: `a⁵⁵` is high-level, `a³¹` is mid-falling, and
+the feature system expands them into `tone-onset-*`, `tone-mid-*` and
+`tone-offset-*` features.
+
+ASCII digits in transcriptions usually mean something else entirely — a tone
+*category* label from a romanisation. Jyutping `ji6`, Vietnamese `mot6`,
+Yoruba `ori3` and Pinyin `i1` number contrastive tone categories, and those
+numbers encode no pitch: Jyutping tone 6 is not "Chao level 6", which does not
+exist. Reading them as Chao digits would synthesise pitch features that the
+notation never asserted, so ASCII digits stay unrecognised and surface as an
+unknown grapheme.
+
+A corpus using category numbers should carry tone in its own column rather
+than inline, and let the consumer decide what the labels mean.
 
 `mk_normalize_grapheme` uses `utf8proc` when available. The fallback path
 covers the IPA normalization cases used by the built-in models and tests.
