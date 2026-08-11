@@ -120,6 +120,21 @@ MK_API mk_status mk_segment_ipa_merged(
     mk_string_list **out
 );
 
+/* Inverse of the merge step: separates a merged segment such as "a¹" into its
+ * base grapheme ("a") and its Chao tone token ("¹"). Without this, a consumer
+ * that models tone as its own dimension has to reimplement Chao digit parsing
+ * to undo what mk_merge_tone_digits did.
+ *
+ * On MK_OK both outputs are caller-owned and freed with mk_free_string.
+ * *tone_out is NULL when the segment carries no tone, which is not an error.
+ * A token consisting only of tone digits returns MK_ERR_UNKNOWN_GRAPHEME,
+ * matching the policy that standalone tone clusters are not segments. */
+MK_API mk_status mk_split_tone(
+    const char *segment,
+    char **base_out,
+    char **tone_out
+);
+
 MK_API mk_status mk_string_list_new(
     const char *const *items,
     size_t count,

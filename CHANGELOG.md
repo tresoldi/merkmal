@@ -18,6 +18,14 @@
   registration, feature lookup, segment distance, geometry feature
   distance, sound distance with weight presets, IPA normalization,
   segmentation, and Chao tone digit merging.
+- Added: `mk_split_tone` and Python `split_tone`, which separate a merged
+  segment such as `a¹³` into its base grapheme and its Chao tone token.
+  Consumers that model tone as its own dimension previously had to
+  reimplement Chao digit parsing to undo `mk_merge_tone_digits`.
+- Documented: Chao digits are pitch levels, not tone-category numbers.
+  Superscript `⁰`-`⁵` merge; ASCII digits such as Jyutping `ji6` or Yoruba
+  `ori3` label tone categories, carry no pitch, and stay unrecognised
+  rather than synthesising tone features the notation never asserted.
 - Added: Python wrapper access to `node_weights`, tone-digit merging,
   merged IPA segmentation, and a minimal native `Registry` for runtime model
   text.

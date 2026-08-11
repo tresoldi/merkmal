@@ -22,6 +22,7 @@ merge_tone_digits = _native.merge_tone_digits
 normalize = _native.normalize
 segment_ipa = _native.segment_ipa
 segment_ipa_merged = _native.segment_ipa_merged
+split_tone = _native.split_tone
 
 
 class Registry:
@@ -65,4 +66,5 @@ __all__ = [
     "normalize",
     "segment_ipa",
     "segment_ipa_merged",
+    "split_tone",
 ]

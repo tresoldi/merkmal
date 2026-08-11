@@ -262,6 +262,26 @@ def test_native_unicode_helpers() -> None:
     assert merkmal.segment_ipa("n̥a") == ["n̥", "a"]
 
 
+def test_native_split_tone_inverts_the_merge() -> None:
+    assert merkmal.split_tone("a¹³") == ("a", "¹³")
+    assert merkmal.split_tone("o³¹") == ("o", "³¹")
+    # An untoned segment has no tone, which is None rather than "" so that
+    # "carries no tone" cannot be confused with "carries an empty tone".
+    assert merkmal.split_tone("kʰ") == ("kʰ", None)
+    # Splitting every merged segment recovers the word with tone separated.
+    merged = merkmal.segment_ipa_merged("tʰo³¹pan¹³")
+    assert [merkmal.split_tone(s) for s in merged] == [
+        ("tʰ", None),
+        ("o", "³¹"),
+        ("p", None),
+        ("a", "¹³"),
+        ("n", None),
+    ]
+    # A standalone tone cluster is not a segment.
+    with pytest.raises(ValueError):
+        merkmal.split_tone("³¹")
+
+
 def test_native_registry_runtime_model() -> None:
     registry = merkmal.Registry()
     registry.add_model_text(

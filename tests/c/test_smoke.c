@@ -720,6 +720,66 @@ int main(void)
         mk_string_list_free(segments);
     }
 
+    {
+        /* mk_split_tone undoes the merge, so a consumer that models tone as a
+         * separate dimension does not have to reparse Chao digits itself. */
+        char *base = NULL;
+        char *tone = NULL;
+
+        failed |= expect_status(mk_split_tone("a¹³", &base, &tone), MK_OK, "split tone");
+        if (base == NULL || strcmp(base, "a") != 0) {
+            fprintf(stderr, "split tone: expected base \"a\", got \"%s\"\n", base ? base : "(null)");
+            failed = 1;
+        }
+        if (tone == NULL || strcmp(tone, "¹³") != 0) {
+            fprintf(stderr, "split tone: expected tone \"¹³\", got \"%s\"\n", tone ? tone : "(null)");
+            failed = 1;
+        }
+        mk_free_string(base);
+        mk_free_string(tone);
+        base = NULL;
+        tone = NULL;
+
+        /* An untoned segment is returned whole, with no tone. Not an error. */
+        failed |= expect_status(mk_split_tone("kʰ", &base, &tone), MK_OK, "split untoned");
+        if (base == NULL || strcmp(base, "kʰ") != 0) {
+            fprintf(stderr, "split untoned: expected base \"kʰ\", got \"%s\"\n", base ? base : "(null)");
+            failed = 1;
+        }
+        if (tone != NULL) {
+            fprintf(stderr, "split untoned: expected no tone, got \"%s\"\n", tone);
+            failed = 1;
+        }
+        mk_free_string(base);
+        base = NULL;
+
+        /* Splitting every merged segment round-trips the whole word. */
+        failed |= expect_status(mk_split_tone("o³¹", &base, &tone), MK_OK, "split tone 2");
+        if (base == NULL || strcmp(base, "o") != 0 || tone == NULL || strcmp(tone, "³¹") != 0) {
+            fprintf(stderr, "split tone 2: got base \"%s\" tone \"%s\"\n",
+                base ? base : "(null)", tone ? tone : "(null)");
+            failed = 1;
+        }
+        mk_free_string(base);
+        mk_free_string(tone);
+        base = NULL;
+        tone = NULL;
+
+        /* A standalone tone cluster is not a segment, and splitting one is an
+         * error rather than an empty base. */
+        failed |= expect_status(
+            mk_split_tone("³¹", &base, &tone),
+            MK_ERR_UNKNOWN_GRAPHEME,
+            "split standalone tone"
+        );
+        if (base != NULL || tone != NULL) {
+            fprintf(stderr, "split standalone tone: expected no outputs on error\n");
+            failed = 1;
+        }
+
+        failed |= expect_status(mk_split_tone(NULL, &base, &tone), MK_ERR_INVALID_ARGUMENT, "split null");
+    }
+
     failed |= expect_status(
         mk_registry_add_model_text(
             registry,

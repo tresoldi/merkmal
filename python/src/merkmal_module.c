@@ -487,6 +487,36 @@ static PyObject *py_segment_ipa_merged(PyObject *self, PyObject *args)
     return result;
 }
 
+static PyObject *py_split_tone(PyObject *self, PyObject *args)
+{
+    PyObject *segment_obj;
+    py_utf8 segment_arg = {NULL, NULL};
+    char *base = NULL;
+    char *tone = NULL;
+    PyObject *result;
+    mk_status status;
+
+    (void)self;
+
+    if (!PyArg_ParseTuple(args, "O:split_tone", &segment_obj)) {
+        return NULL;
+    }
+    if (py_utf8_from_unicode(segment_obj, "segment", &segment_arg) < 0) {
+        return NULL;
+    }
+    status = mk_split_tone(segment_arg.value, &base, &tone);
+    py_utf8_clear(&segment_arg);
+    if (status != MK_OK) {
+        return status_error(status, "split_tone");
+    }
+    /* An untoned segment yields None for the tone, not an empty string, so
+     * "has no tone" and "has an empty tone" cannot be confused. */
+    result = Py_BuildValue("(sz)", base, tone);
+    mk_free_string(base);
+    mk_free_string(tone);
+    return result;
+}
+
 static PyObject *py_merge_tone_digits(PyObject *self, PyObject *args)
 {
     PyObject *segments_obj;
@@ -810,6 +840,7 @@ static PyMethodDef methods[] = {
     {"normalize", py_normalize, METH_VARARGS, "Normalize an IPA grapheme."},
     {"segment_ipa", py_segment_ipa, METH_VARARGS, "Segment an IPA string."},
     {"merge_tone_digits", py_merge_tone_digits, METH_VARARGS, "Attach Chao tone digit segments to nuclei."},
+    {"split_tone", py_split_tone, METH_VARARGS, "Split a merged segment into (base, tone); tone is None when absent."},
     {"segment_ipa_merged", py_segment_ipa_merged, METH_VARARGS, "Segment IPA and attach Chao tone digits to nuclei."},
     {"_registry_new", py_registry_new, METH_NOARGS, "Create a native registry capsule."},
     {"_registry_add_model_text", py_registry_add_model_text, METH_VARARGS, "Add runtime model text to a native registry."},
