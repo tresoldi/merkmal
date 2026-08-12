@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import math
 
-import pytest
-
 import merkmal
+import pytest
 from merkmal.cli import main
-
 
 pytestmark = pytest.mark.skipif(
     getattr(merkmal, "_native", None) is None,
