@@ -20,6 +20,21 @@ jobs:
         run: cmake --build build/c-debug
       - name: Test
         run: ctest --test-dir build/c-debug --output-on-failure
+      - name: Check generated data
+        run: cmake --build build/c-debug --target check-generated-data
+      - name: Install
+        run: cmake --install build/c-debug --prefix "$GITHUB_WORKSPACE/build/install"
+      - name: Test installed CMake package
+        run: |
+          cmake -S tests/c/install_consumer -B build/install-consumer \
+            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/build/install"
+          cmake --build build/install-consumer
+          ctest --test-dir build/install-consumer --output-on-failure
+      - name: Test installed pkg-config package
+        run: |
+          export PKG_CONFIG_PATH="$GITHUB_WORKSPACE/build/install/lib/pkgconfig:$GITHUB_WORKSPACE/build/install/lib64/pkgconfig"
+          cc tests/c/install_consumer/main.c $(pkg-config --cflags --libs merkmal) -o build/pkg-config-consumer
+          build/pkg-config-consumer
 
   c-sanitizers:
     name: C sanitizers
@@ -45,6 +60,26 @@ jobs:
       - name: Test
         run: ctest --test-dir build/c-sanitizer --output-on-failure
 
+  c-shared:
+    name: Shared C library
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake pkg-config libutf8proc-dev
+      - name: Configure
+        run: >
+          cmake -S . -B build/c-shared
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_SHARED_LIBS=ON
+          -DMERKMAL_REQUIRE_UTF8PROC=ON
+      - name: Build
+        run: cmake --build build/c-shared
+      - name: Test
+        run: ctest --test-dir build/c-shared --output-on-failure
+
   python:
     name: Python wrapper
     runs-on: ubuntu-latest
@@ -53,16 +88,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install native dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libutf8proc-dev
       - name: Install package
         run: python -m pip install -e ".[dev]"
       - name: Test
         run: python -m pytest python/tests -q
       - name: Build source distribution and wheel
-        run: python -m build --sdist --wheel
+        run: MERKMAL_REQUIRE_UTF8PROC=1 python -m build --sdist --wheel
       - name: Install source distribution
         run: python -m pip install --force-reinstall dist/merkmal-*.tar.gz
       - name: Test source distribution
         run: python -m pytest python/tests -q
+      - name: Lint maintained Python code
+        run: python -m ruff check python/merkmal python/tests scripts tools
+      - name: Type-check maintained Python code
+        run: python -m mypy python/merkmal
 
   wasm:
     name: WebAssembly smoke

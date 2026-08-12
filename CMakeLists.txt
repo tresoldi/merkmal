@@ -6,6 +6,8 @@ project(merkmal
     LANGUAGES C
 )
 
+find_package(Python3 COMPONENTS Interpreter QUIET)
+
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
@@ -113,6 +115,15 @@ if(MERKMAL_BUILD_TESTS)
     )
     target_link_libraries(test_geometry PRIVATE merkmal)
     add_test(NAME geometry COMMAND test_geometry)
+endif()
+
+if(Python3_Interpreter_FOUND)
+    add_custom_target(check-generated-data
+        COMMAND Python3::Interpreter
+            "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check_generated_data.py"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Checking generated C data"
+    )
 endif()
 
 if(UTF8PROC_FOUND)

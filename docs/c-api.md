@@ -54,6 +54,10 @@ model; see [runtime-model-format.md](runtime-model-format.md). Runtime models
 are copied into the registry and do not depend on the lifetime of
 `model_text`.
 
+System pointers returned by `mk_registry_get_system` remain valid until the
+registry is freed. Adding a model does not invalidate an existing system
+pointer.
+
 ## Systems
 
 ```c

@@ -116,7 +116,8 @@ struct mk_system {
 };
 
 struct mk_registry {
-    mk_system *systems;
+    /* The array may grow, so each system has a stable allocation. */
+    mk_system **systems;
     size_t system_count;
 };
 
