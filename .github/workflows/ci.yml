@@ -33,7 +33,8 @@ jobs:
       - name: Test installed pkg-config package
         run: |
           export PKG_CONFIG_PATH="$GITHUB_WORKSPACE/build/install/lib/pkgconfig:$GITHUB_WORKSPACE/build/install/lib64/pkgconfig"
-          cc tests/c/install_consumer/main.c $(pkg-config --cflags --libs merkmal) -o build/pkg-config-consumer
+          # The default CMake build installs a static library, so include private utf8proc.
+          cc tests/c/install_consumer/main.c $(pkg-config --static --cflags --libs merkmal) -o build/pkg-config-consumer
           build/pkg-config-consumer
 
   c-sanitizers:
