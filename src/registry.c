@@ -29,6 +29,11 @@ static void mk_free_owned_system(mk_system *system)
     system->owns = 0;
 }
 
+/*
+ * Allocates each system separately. The registry array may be reallocated
+ * when a runtime model is added, but a system returned to the caller must not
+ * move as a result of that operation.
+ */
 mk_status mk_registry_new_builtin(mk_registry **out)
 {
     mk_registry *registry;
@@ -44,7 +49,7 @@ mk_status mk_registry_new_builtin(mk_registry **out)
         return MK_ERR_OOM;
     }
 
-    registry->systems = (mk_system *)calloc(
+    registry->systems = (mk_system **)calloc(
         mk_builtin_system_count,
         sizeof(*registry->systems)
     );
@@ -55,7 +60,17 @@ mk_status mk_registry_new_builtin(mk_registry **out)
     registry->system_count = mk_builtin_system_count;
 
     for (i = 0; i < mk_builtin_system_count; i++) {
-        registry->systems[i].builtin = &mk_builtin_systems[i];
+        registry->systems[i] = (mk_system *)calloc(1, sizeof(*registry->systems[i]));
+        if (registry->systems[i] == NULL) {
+            while (i > 0) {
+                i--;
+                free(registry->systems[i]);
+            }
+            free(registry->systems);
+            free(registry);
+            return MK_ERR_OOM;
+        }
+        registry->systems[i]->builtin = &mk_builtin_systems[i];
     }
 
     *out = registry;
@@ -70,7 +85,8 @@ void mk_registry_free(mk_registry *registry)
         return;
     }
     for (i = 0; i < registry->system_count; i++) {
-        mk_free_owned_system(&registry->systems[i]);
+        mk_free_owned_system(registry->systems[i]);
+        free(registry->systems[i]);
     }
     free(registry->systems);
     free(registry);
@@ -94,7 +110,7 @@ mk_status mk_registry_list_systems(
         return MK_ERR_OOM;
     }
     for (i = 0; i < registry->system_count; i++) {
-        names[i] = registry->systems[i].builtin->name;
+        names[i] = registry->systems[i]->builtin->name;
     }
 
     status = mk_string_list_from_borrowed(names, registry->system_count, out);
@@ -116,8 +132,8 @@ mk_status mk_registry_get_system(
     *out = NULL;
 
     for (i = 0; i < registry->system_count; i++) {
-        if (mk_streq(registry->systems[i].builtin->name, name)) {
-            *out = &registry->systems[i];
+        if (mk_streq(registry->systems[i]->builtin->name, name)) {
+            *out = registry->systems[i];
             return MK_OK;
         }
     }
@@ -267,7 +283,7 @@ mk_status mk_registry_add_model_text(
     mk_builtin_entry *entries = NULL;
     size_t entry_count = 0;
     size_t entry_cap = 0;
-    mk_system *next_systems;
+    mk_system **next_systems;
     mk_system *slot;
 
     if (registry == NULL || model_text == NULL) {
@@ -331,7 +347,7 @@ mk_status mk_registry_add_model_text(
         return MK_ERR_PARSE;
     }
 
-    next_systems = (mk_system *)realloc(
+    next_systems = (mk_system **)realloc(
         registry->systems,
         (registry->system_count + 1) * sizeof(*registry->systems)
     );
@@ -341,8 +357,13 @@ mk_status mk_registry_add_model_text(
         return MK_ERR_OOM;
     }
     registry->systems = next_systems;
-    slot = &registry->systems[registry->system_count];
-    memset(slot, 0, sizeof(*slot));
+    slot = (mk_system *)calloc(1, sizeof(*slot));
+    if (slot == NULL) {
+        free(name);
+        mk_free_entries(entries, entry_count);
+        return MK_ERR_OOM;
+    }
+    registry->systems[registry->system_count] = slot;
     slot->owned.name = name;
     slot->owned.kind = MK_SYSTEM_CATEGORICAL;
     slot->owned.entries = entries;

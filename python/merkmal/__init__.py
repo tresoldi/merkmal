@@ -28,24 +28,34 @@ split_tone = _native.split_tone
 
 
 class Registry:
-    """Owned native registry for built-ins plus caller-supplied model text."""
+    """Owns built-in systems and caller-supplied categorical models.
+
+    The registry keeps the native handle alive for the lifetime of this
+    object. Methods raise ``KeyError`` for unknown systems and ``ValueError``
+    for invalid or unknown graphemes.
+    """
 
     def __init__(self) -> None:
+        """Create a registry containing the built-in systems."""
         self._handle = _native._registry_new()
 
     def add_model_text(self, model_text: str) -> None:
+        """Add a categorical model using the documented text format."""
         _native._registry_add_model_text(self._handle, model_text)
 
     def list_systems(self) -> list[str]:
+        """Return the names of built-in and registered systems."""
         return cast("list[str]", _native._registry_list_systems(self._handle))
 
     def get_features(self, grapheme: str, *, system: str = "descriptive") -> frozenset[str]:
+        """Return the feature set for ``grapheme`` in ``system``."""
         return cast(
             "frozenset[str]",
             _native._registry_get_features(self._handle, system, grapheme),
         )
 
     def is_segment(self, grapheme: str, *, system: str = "descriptive") -> bool:
+        """Return whether ``grapheme`` is a valid segment in ``system``."""
         return cast("bool", _native._registry_is_segment(self._handle, system, grapheme))
 
     def distance(
@@ -56,6 +66,7 @@ class Registry:
         system: str = "descriptive",
         node_weights: str | None = None,
     ) -> float:
+        """Return the geometry-weighted distance between two graphemes."""
         return cast(
             "float",
             _native._registry_distance(self._handle, system, a, b, node_weights),

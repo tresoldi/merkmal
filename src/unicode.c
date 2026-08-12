@@ -361,17 +361,12 @@ mk_status mk_normalize_input_grapheme(
         }
     }
 
-#if MK_HAVE_UTF8PROC
-    {
-        utf8proc_uint8_t *normalized = utf8proc_NFD((const utf8proc_uint8_t *)tmp);
-        free(tmp);
-        if (normalized == NULL) {
-            return MK_ERR_OOM;
-        }
-        tmp = (char *)normalized;
-    }
-#endif
-
+    /*
+     * Keep this input policy explicit. Full Unicode NFD here would turn
+     * unsupported source letters such as "ě" into a base letter plus a tone
+     * mark. The fallback path does not do that, so system lookup must not
+     * depend on whether utf8proc is installed.
+     */
     *utf8_out = tmp;
     return MK_OK;
 }
