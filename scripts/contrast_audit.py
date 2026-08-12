@@ -4,16 +4,12 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from collections import Counter
 from itertools import combinations
 
 import merkmal
 
-DEFAULT_INVENTORY = (
-    "p b t d k g f v s z ʃ ʒ m n ŋ l r j w "
-    "i ɪ e ɛ æ a ɑ ɒ o ɔ u ʊ ə"
-).split()
+DEFAULT_INVENTORY = ["p", "b", "t", "d", "k", "g", "f", "v", "s", "z", "ʃ", "ʒ", "m", "n", "ŋ", "l", "r", "j", "w", "i", "ɪ", "e", "ɛ", "æ", "a", "ɑ", "ɒ", "o", "ɔ", "u", "ʊ", "ə"]
 
 
 def parse_args(argv: list[str] | None = None) -> list[str]:
@@ -71,7 +67,7 @@ def print_report(inventory: list[str], results: dict[str, dict]) -> None:
     print()
 
     collapse_counter: Counter[tuple[str, str]] = Counter()
-    for system_name, data in results.items():
+    for _system_name, data in results.items():
         for pair in data["collapsed"]:
             collapse_counter[pair] += 1
 
@@ -118,7 +114,10 @@ def print_report(inventory: list[str], results: dict[str, dict]) -> None:
                 name for name, data in results.items()
                 if (seg_a, seg_b) in data["collapsed"]
             ]
-            print(f"  {seg_a}~{seg_b}  collapsed by {count} systems: {', '.join(systems_collapsing)}")
+            print(
+                f"  {seg_a}~{seg_b}  collapsed by {count} systems: "
+                f"{', '.join(systems_collapsing)}"
+            )
     else:
         print()
         print("No pair is collapsed by more than one system.")

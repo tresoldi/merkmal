@@ -12,6 +12,7 @@ _EXIT_USAGE = 1
 
 
 def _build_parser() -> argparse.ArgumentParser:
+    """Create the command-line parser for the supported wrapper operations."""
     parser = argparse.ArgumentParser(prog="merkmal")
     parser.add_argument(
         "-s",
@@ -40,11 +41,13 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _print_error(exc: Exception) -> int:
+    """Print a user-facing error and return the command-line failure code."""
     print(f"error: {exc}", file=sys.stderr)
     return _EXIT_USAGE
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface and return its process exit code."""
     parser = _build_parser()
     args = parser.parse_args(argv)
 

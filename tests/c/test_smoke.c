@@ -99,6 +99,27 @@ int main(void)
         "unknown grapheme",
         "status unknown grapheme"
     );
+    failed |= expect_status(
+        mk_registry_new_builtin(NULL),
+        MK_ERR_INVALID_ARGUMENT,
+        "registry null output"
+    );
+    failed |= expect_status(
+        mk_string_list_new(NULL, 1, &systems),
+        MK_ERR_INVALID_ARGUMENT,
+        "list null items"
+    );
+    failed |= expect_status(
+        mk_string_list_new(NULL, 0, &systems),
+        MK_OK,
+        "empty list"
+    );
+    if (mk_string_list_size(systems) != 0 || mk_string_list_get(systems, 0) != NULL) {
+        fprintf(stderr, "empty list: unexpected contents\n");
+        failed = 1;
+    }
+    mk_string_list_free(systems);
+    systems = NULL;
 
     failed |= expect_status(mk_registry_new_builtin(&registry), MK_OK, "registry");
     failed |= expect_status(mk_registry_list_systems(registry, &systems), MK_OK, "list systems");
@@ -794,6 +815,8 @@ int main(void)
         "add runtime model"
     );
     failed |= expect_status(mk_registry_get_system(registry, "toy", &toy), MK_OK, "get runtime model");
+    /* A system pointer remains valid when the registry grows. */
+    failed |= expect_segment(descriptive, "p", 1, "system pointer after registry growth");
     failed |= expect_status(mk_system_grapheme_features(toy, "X", &features), MK_OK, "features runtime X");
     if (mk_feature_set_size(features) != 4) {
         fprintf(stderr, "features runtime X: expected 4, got %zu\n", mk_feature_set_size(features));

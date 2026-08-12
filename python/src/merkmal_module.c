@@ -172,6 +172,31 @@ static PyObject *py_string_list_to_list(mk_string_list *strings)
     return result;
 }
 
+/* Converts an owned C feature set into the immutable Python result type. */
+static PyObject *py_feature_set_to_frozenset(const mk_feature_set *features)
+{
+    PyObject *result = PyFrozenSet_New(NULL);
+    size_t i;
+
+    if (result == NULL) {
+        return NULL;
+    }
+    for (i = 0; i < mk_feature_set_size(features); i++) {
+        PyObject *item = PyUnicode_FromString(mk_feature_set_get(features, i));
+        if (item == NULL) {
+            Py_DECREF(result);
+            return NULL;
+        }
+        if (PySet_Add(result, item) < 0) {
+            Py_DECREF(item);
+            Py_DECREF(result);
+            return NULL;
+        }
+        Py_DECREF(item);
+    }
+    return result;
+}
+
 static PyObject *py_list_systems(PyObject *self, PyObject *args)
 {
     mk_string_list *systems = NULL;
@@ -205,7 +230,6 @@ static PyObject *py_get_features(PyObject *self, PyObject *args, PyObject *kwarg
     const mk_system *system;
     mk_feature_set *features = NULL;
     PyObject *result;
-    size_t i;
     mk_status status;
 
     (void)self;
@@ -232,27 +256,7 @@ static PyObject *py_get_features(PyObject *self, PyObject *args, PyObject *kwarg
         return status_error(status, "get_features");
     }
 
-    result = PyFrozenSet_New(NULL);
-    if (result == NULL) {
-        mk_feature_set_free(features);
-        return NULL;
-    }
-    for (i = 0; i < mk_feature_set_size(features); i++) {
-        PyObject *item = PyUnicode_FromString(mk_feature_set_get(features, i));
-        int add_status;
-        if (item == NULL) {
-            mk_feature_set_free(features);
-            Py_DECREF(result);
-            return NULL;
-        }
-        add_status = PySet_Add(result, item);
-        Py_DECREF(item);
-        if (add_status < 0) {
-            mk_feature_set_free(features);
-            Py_DECREF(result);
-            return NULL;
-        }
-    }
+    result = py_feature_set_to_frozenset(features);
     mk_feature_set_free(features);
     return result;
 }
@@ -672,7 +676,6 @@ static PyObject *py_registry_get_features(PyObject *self, PyObject *args)
     const mk_system *system;
     mk_feature_set *features = NULL;
     PyObject *result;
-    size_t i;
     mk_status status;
 
     (void)self;
@@ -701,27 +704,7 @@ static PyObject *py_registry_get_features(PyObject *self, PyObject *args)
     if (status != MK_OK) {
         return status_error(status, "registry_get_features");
     }
-    result = PyFrozenSet_New(NULL);
-    if (result == NULL) {
-        mk_feature_set_free(features);
-        return NULL;
-    }
-    for (i = 0; i < mk_feature_set_size(features); i++) {
-        PyObject *item = PyUnicode_FromString(mk_feature_set_get(features, i));
-        int add_status;
-        if (item == NULL) {
-            mk_feature_set_free(features);
-            Py_DECREF(result);
-            return NULL;
-        }
-        add_status = PySet_Add(result, item);
-        Py_DECREF(item);
-        if (add_status < 0) {
-            mk_feature_set_free(features);
-            Py_DECREF(result);
-            return NULL;
-        }
-    }
+    result = py_feature_set_to_frozenset(features);
     mk_feature_set_free(features);
     return result;
 }

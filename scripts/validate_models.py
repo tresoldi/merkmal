@@ -128,7 +128,7 @@ def validate_model_dir(model_dir: Path, expected_name: str | None = None) -> Non
     # inventory.tsv
     inv_path = model_dir / "inventory.tsv"
     if not inv_path.exists():
-        error(f"Missing inventory.tsv")
+        error("Missing inventory.tsv")
         return
 
     header, rows = read_tsv(inv_path)
@@ -143,7 +143,7 @@ def validate_model_dir(model_dir: Path, expected_name: str | None = None) -> Non
         if feat_path.exists():
             fh, fr = read_tsv(feat_path)
             if fh != ["VALUE", "FEATURE"]:
-                error(f"features.tsv: expected [VALUE, FEATURE] header")
+                error("features.tsv: expected [VALUE, FEATURE] header")
             ok(f"features.tsv: {len(fr)} entries")
         else:
             warn("No features.tsv (optional for categorical)")
