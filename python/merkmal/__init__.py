@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-__version__ = "0.6.0"
+from typing import cast
+
+__version__ = "0.7.0"
 
 try:
-    from merkmal import _native as _native
+    from merkmal import _native as _native  # type: ignore[attr-defined]
 except ImportError as exc:  # pragma: no cover - exercised before extension build
     raise ImportError(
         "merkmal requires its native C extension. Install the package from a built "
-        "wheel or run `python -m pip install -e python` from the repository root."
+        "wheel or run `python -m pip install -e .` from the repository root."
     ) from exc
 
 NativeError = _native.NativeError
@@ -35,13 +37,16 @@ class Registry:
         _native._registry_add_model_text(self._handle, model_text)
 
     def list_systems(self) -> list[str]:
-        return _native._registry_list_systems(self._handle)
+        return cast("list[str]", _native._registry_list_systems(self._handle))
 
     def get_features(self, grapheme: str, *, system: str = "descriptive") -> frozenset[str]:
-        return _native._registry_get_features(self._handle, system, grapheme)
+        return cast(
+            "frozenset[str]",
+            _native._registry_get_features(self._handle, system, grapheme),
+        )
 
     def is_segment(self, grapheme: str, *, system: str = "descriptive") -> bool:
-        return _native._registry_is_segment(self._handle, system, grapheme)
+        return cast("bool", _native._registry_is_segment(self._handle, system, grapheme))
 
     def distance(
         self,
@@ -51,7 +56,10 @@ class Registry:
         system: str = "descriptive",
         node_weights: str | None = None,
     ) -> float:
-        return _native._registry_distance(self._handle, system, a, b, node_weights)
+        return cast(
+            "float",
+            _native._registry_distance(self._handle, system, a, b, node_weights),
+        )
 
 __all__ = [
     "NativeError",

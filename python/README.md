@@ -78,9 +78,9 @@ built-in registry.
 From the repository root:
 
 ```sh
-python -m pip install -e python
+python -m pip install -e ".[dev]"
 python -m pytest python/tests -q
-python -m build python --wheel
+python -m build --sdist --wheel
 ```
 
 The extension is built with `Py_LIMITED_API=0x030C0000`, producing a

@@ -140,9 +140,9 @@ and exposes the supported high-level operations from the top-level
 `merkmal` module.
 
 ```sh
-python -m pip install -e python
+python -m pip install -e ".[dev]"
 python -m pytest python/tests -q
-python -m build python --wheel
+python -m build --sdist --wheel
 ```
 
 The wheel is built as `cp312-abi3` for broad CPython compatibility.

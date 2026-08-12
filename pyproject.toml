@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "merkmal"
-version = "0.6.0"
+version = "0.7.0"
 description = "Standalone phonological feature systems for historical linguistics"
 authors = [
     {name = "Tiago Tresoldi", email = "tiago.tresoldi@lingfil.uu.se"}
 ]
 license = "MIT"
 license-files = ["LICENSE"]
-readme = "README.md"
+readme = "python/README.md"
 requires-python = ">=3.12"
 keywords = [
     "phonology",
@@ -46,7 +46,11 @@ Documentation = "https://github.com/tresoldi/merkmal#readme"
 Repository = "https://github.com/tresoldi/merkmal"
 "Bug Tracker" = "https://github.com/tresoldi/merkmal/issues"
 
+[tool.setuptools]
+package-dir = {"" = "python"}
+
 [tool.setuptools.packages.find]
+where = ["python"]
 include = ["merkmal*"]
 
 [tool.setuptools.package-data]
@@ -66,7 +70,7 @@ python_version = "3.12"
 strict = true
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["python/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

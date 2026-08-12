@@ -8,6 +8,8 @@
 - Breaking: the installable Python package is now native-only. The old
   pure-Python implementation and its tests have been removed from the active
   codebase.
+- Changed: Python packaging now lives at the repository root so source
+  distributions include the C core and can build independently of a checkout.
 - Added: C99 library skeleton, public `merkmal.h`, CMake build, compiled-in
   built-in data, C golden tests, and CPython Limited API wrapper.
 - Added: C install rules, exported CMake package metadata, pkg-config metadata,

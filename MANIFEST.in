@@ -1,0 +1,17 @@
+# The sdist has to carry the C core, or `pip install merkmal` from source has
+# nothing to compile. setuptools does not infer these: they sit outside the
+# package directory, and the extension names them only as build inputs.
+include LICENSE
+include README.md
+include python/README.md
+
+include include/merkmal.h
+include src/*.c
+include src/*.h
+include src/generated/builtin_data.c
+include src/generated/builtin_data.h
+include python/src/merkmal_module.c
+
+# Generated data is committed and shipped so building the C library needs no
+# Python tooling, per docs/release-policy.md.
+recursive-include python/tests *.py
