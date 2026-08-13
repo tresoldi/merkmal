@@ -88,5 +88,12 @@ inventories within one system rather than across systems.
 
 `data/` carries the reshaped PHOIBLE tables with their own
 [`provenance.json`](data/provenance.json), pinned to `cldf-datasets/phoible`
-v2.0.1 (`f36deac7f80b`). **CC-BY-SA-3.0**: redistributing them or an adaptation
-obliges you to license the adaptation identically.
+v2.0.1 (`f36deac7f80b`). **CC-BY-4.0 by permission** — upstream PHOIBLE is
+CC-BY-SA-3.0, and the share-alike clause is lifted by a grant whose grantor and
+date the manifest still marks `UNVERIFIED`. Attribution to PHOIBLE is required
+regardless.
+
+That clause was one of two reasons this layer is a separate package. It is gone;
+the other one — keeping sampling weight and genealogy out of a core that has
+spent its life refusing them — is the one that actually mattered, and it still
+holds.

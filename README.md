@@ -357,24 +357,24 @@ every wheel:
 
 | Data | License |
 | --- | --- |
-| `broad`, `descriptive`, `distinctive` | CC BY 4.0 (attribution) — derived from CLTS v1.4.1 |
+| `broad`, `descriptive`, `distinctive` | CC BY 4.0 — derived from CLTS v1.4.1 |
+| `phoible` | CC BY 4.0 **by permission** (upstream: CC BY-SA 3.0) |
+| `pbase-hc`, `pbase-jfh`, `pbase-spe`, `pbase-uftc` | CC BY 4.0 **by permission** (upstream: CC BY-NC-SA 4.0) |
 | `classfeat` | MIT |
-| `phoible` | CC BY-SA 3.0 (share-alike) |
-| `pbase-hc`, `pbase-jfh`, `pbase-spe`, `pbase-uftc` | CC BY-NC-SA 4.0 (non-commercial, share-alike) |
 
-The three categorical inventories are derived from
-[CLTS](https://github.com/cldf-clts/clts) v1.4.1: 768 of 769 graphemes and 766
-of 769 sound names are byte-identical to `data/sounds.tsv` at that tag. Using
-them obliges you to credit CLTS and to indicate that changes were made. Cite
-List et al., *Cross-Linguistic Transcription Systems*; the three divergences
-from upstream are recorded in `models/*/provenance.json`.
+The distribution declares `MIT AND CC-BY-4.0`. **There is no non-commercial or
+share-alike restriction on anything bundled here**, which is the practical
+answer to "can my institution use this".
 
-The distribution therefore declares
-`MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`. If non-commercial
-terms are not acceptable for your use, the P-base models must be unbundled
-rather than shipped. See [NOTICE](NOTICE), generated from the per-artifact
-manifests in `models/*/provenance.json`. The `phoible` and `pbase-*` manifests
-still carry `UNVERIFIED` upstream release, commit, and retrieval fields, which
-must be established before the next data release.
+Two things to know before relying on that. Attribution is still required: credit
+the upstream project each manifest names and say that changes were made. And
+PHOIBLE and P-base are carried under CC-BY-4.0 **by permission**, not under
+their own terms — CC-BY-SA-3.0 and CC-BY-NC-SA-4.0 do not allow dropping
+share-alike or the non-commercial clause unilaterally, so the declaration rests
+on a grant. Each manifest has a `relicensed` block whose grantor, date and
+evidence are still `UNVERIFIED`; they must be established before the next data
+release, the same way the CLTS derivation was established rather than assumed.
+
+See [NOTICE](NOTICE), generated from `models/*/provenance.json`.
 
 This is a record, not legal advice.

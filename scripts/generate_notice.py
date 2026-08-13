@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Generate NOTICE from the per-artifact provenance manifests.
 
-The repository root is MIT, but bundled data is not: the categorical
-inventories are CLTS-derived and attribution-bound, PHOIBLE is share-alike, and
-P-base is non-commercial share-alike. Describing a distribution that contains
-them as simply "MIT" is wrong, so the bill of materials is generated from the
-manifests rather than maintained by hand.
+The repository root is MIT, but bundled data is not: every table carries
+attribution obligations, and several are redistributed under terms their
+upstream does not itself use. Describing a distribution that contains them as
+simply "MIT" is wrong, so the bill of materials is generated from the manifests
+rather than maintained by hand.
 
     python scripts/generate_notice.py            # rewrite NOTICE
     python scripts/generate_notice.py --check    # fail if NOTICE is stale
@@ -74,10 +74,17 @@ def render() -> str:
             lines.append(f"  * {spdx}: {', '.join(sorted(by_license[spdx]))}")
         lines += [
             "",
-            "  CC-BY-NC-SA-4.0 forbids commercial redistribution and requires",
-            "  share-alike; CC-BY-SA-3.0 requires share-alike. If that is not",
-            "  acceptable for your distribution, ship those models separately or",
-            "  as an optional download rather than bundling them.",
+            "  CC-BY-4.0 requires attribution: credit the upstream project and",
+            "  say that changes were made. Cite what each artifact's manifest",
+            "  names, not this project alone.",
+            "",
+            "  PHOIBLE and the four P-base models are redistributed under these",
+            "  terms by permission rather than under their own. Upstream they are",
+            "  CC-BY-SA-3.0 and CC-BY-NC-SA-4.0, neither of which allows dropping",
+            "  share-alike or the non-commercial clause unilaterally, so this",
+            "  rests on a grant. Each manifest carries a `relicensed` block, and",
+            "  its grantor, date and evidence are still UNVERIFIED. Establish",
+            "  them before relying on this for redistribution.",
             "",
         ]
 

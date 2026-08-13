@@ -94,8 +94,14 @@ numbers even when no code changed.
   network is not something a build should depend on. It is how the 5,272
   miscopied cells were found, so run it rather than trusting that the table
   still says what upstream says.
-- Never describe a distribution bundling the CLTS-derived categorical
-  inventories, PHOIBLE, or P-base data as MIT-only. The current expression is
-  `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`.
+- Never describe a distribution bundling the data tables as MIT-only. The
+  current expression is `MIT AND CC-BY-4.0`.
+- PHOIBLE and the four P-base models are redistributed under CC-BY-4.0 by
+  permission, not under their upstream terms (`CC-BY-SA-3.0` and
+  `CC-BY-NC-SA-4.0`). Those terms do not allow that relicense unilaterally, so
+  the permission is what the declaration rests on. Each manifest carries a
+  `relicensed` block whose `grantor`, `granted_on` and `evidence` are still
+  `UNVERIFIED`; establish them before the next data release, the same way the
+  CLTS derivation was established rather than assumed.
 - Fields marked `UNVERIFIED` in a provenance manifest must be established
   before the next data release, not guessed from filenames.

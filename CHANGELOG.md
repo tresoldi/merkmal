@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+### One license for the data, and what it rests on
+
+**No bundled table now carries a non-commercial or share-alike restriction.**
+The distribution declares `MIT AND CC-BY-4.0`, down from
+`MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`. That was the item
+gating adoption: many institutional and industrial users cannot depend on a
+package bundling NC data at all, and they no longer have to.
+
+- `phoible`: CC-BY-SA-3.0 → CC-BY-4.0
+- `pbase-hc`, `pbase-jfh`, `pbase-spe`, `pbase-uftc`: CC-BY-NC-SA-4.0 → CC-BY-4.0
+- `broad`, `descriptive`, `distinctive`: already CC-BY-4.0, unchanged
+- `classfeat`: MIT, unchanged — first-party and more permissive
+
+**This rests on a permission the repository does not yet evidence, and says so
+in every place it is declared.** Neither CC-BY-SA-3.0 nor CC-BY-NC-SA-4.0 allows
+relicensing to CC-BY-4.0 unilaterally: dropping share-alike and the
+non-commercial clause makes the terms *less* restrictive, which only the
+rightsholder can do. So each manifest gains a `relicensed` block recording what
+it supersedes and carrying `grantor`, `granted_on` and `evidence` as
+`UNVERIFIED`, and `NOTICE`, the README and `docs/release-policy.md` all repeat
+it. Establish those before relying on this for redistribution — the same
+discipline that established the CLTS derivation in Phase 0 rather than assuming
+it, applied to a claim that is currently weaker than that one was.
+
+Attribution is unaffected and still required: credit the upstream project each
+manifest names, and say that changes were made.
+
+One consequence worth noting: the share-alike clause was one of two reasons the
+typology layer is a separate package. It is gone. The other — keeping sampling
+weight and genealogy out of a core that has spent its life refusing them — is
+the one that mattered, and it still holds.
+
 ### A tone and a segment are no longer compared
 
 **Breaking (C, unreleased):** `mk_system_segment_distance_ex` takes a fourth

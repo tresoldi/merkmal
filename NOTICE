@@ -20,9 +20,7 @@ distribution.
 Summary of bundled data licenses
 --------------------------------
 
-  CC-BY-4.0          broad, descriptive, distinctive
-  CC-BY-NC-SA-4.0    pbase-hc, pbase-jfh, pbase-spe, pbase-uftc
-  CC-BY-SA-3.0       phoible
+  CC-BY-4.0          broad, descriptive, distinctive, pbase-hc, pbase-jfh, pbase-spe, pbase-uftc, phoible
   MIT                classfeat
 
 Redistribution consequences
@@ -30,14 +28,19 @@ Redistribution consequences
 
   Some bundled tables are not MIT. In particular:
 
-  * CC-BY-4.0: broad, descriptive, distinctive
-  * CC-BY-NC-SA-4.0: pbase-hc, pbase-jfh, pbase-spe, pbase-uftc
-  * CC-BY-SA-3.0: phoible
+  * CC-BY-4.0: broad, descriptive, distinctive, pbase-hc, pbase-jfh, pbase-spe, pbase-uftc, phoible
 
-  CC-BY-NC-SA-4.0 forbids commercial redistribution and requires
-  share-alike; CC-BY-SA-3.0 requires share-alike. If that is not
-  acceptable for your distribution, ship those models separately or
-  as an optional download rather than bundling them.
+  CC-BY-4.0 requires attribution: credit the upstream project and
+  say that changes were made. Cite what each artifact's manifest
+  names, not this project alone.
+
+  PHOIBLE and the four P-base models are redistributed under these
+  terms by permission rather than under their own. Upstream they are
+  CC-BY-SA-3.0 and CC-BY-NC-SA-4.0, neither of which allows dropping
+  share-alike or the non-commercial clause unilaterally, so this
+  rests on a grant. Each manifest carries a `relicensed` block, and
+  its grantor, date and evidence are still UNVERIFIED. Establish
+  them before relying on this for redistribution.
 
 Per-artifact detail
 -------------------
@@ -112,12 +115,12 @@ Per-artifact detail
   upstream_url:            https://pbase.phon.chass.ncsu.edu/
   upstream_commit_or_doi:  UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
   retrieved:               UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
-  license_spdx:            CC-BY-NC-SA-4.0
+  license_spdx:            CC-BY-4.0
   citation:                Mielke, Jeff. P-base. North Carolina State University.
   transformation:          Segment-indexed feature table for the HC feature family, extracted from P-base. The exact extraction procedure is UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
-  redistribution_notes:    Non-commercial and share-alike. These terms are materially narrower than the MIT terms covering the merkmal source code, and they restrict commercial redistribution of any package that bundles this table.
+  redistribution_notes:    Upstream terms are CC-BY-NC-SA-4.0. Redistributed here under CC-BY-4.0 by permission; see `relicensed`, whose grantor and date are not yet recorded. Attribution to the upstream project remains required and is not affected by the relicense.
   sha256(inventory.tsv):   fdccfdb0fe2e51f1a6ae76f96c5fe2c15bb67775cf32885a581ad7e277e468ab
-  sha256(model.json):      1d0a3d20d08228b1211be7640415a18a63ec1f4bd4a11bb7ae682724a9ba7850
+  sha256(model.json):      5d065c59f18d28269f2f0b3cc5b5b1e5d486741402587a418f6518326ad0ebda
 
 [pbase-jfh]  (models/pbase-jfh)
   artifact_version:        1.0.0
@@ -126,12 +129,12 @@ Per-artifact detail
   upstream_url:            https://pbase.phon.chass.ncsu.edu/
   upstream_commit_or_doi:  UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
   retrieved:               UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
-  license_spdx:            CC-BY-NC-SA-4.0
+  license_spdx:            CC-BY-4.0
   citation:                Mielke, Jeff. P-base. North Carolina State University.
   transformation:          Segment-indexed feature table for the JFH feature family, extracted from P-base. The exact extraction procedure is UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
-  redistribution_notes:    Non-commercial and share-alike. These terms are materially narrower than the MIT terms covering the merkmal source code, and they restrict commercial redistribution of any package that bundles this table.
+  redistribution_notes:    Upstream terms are CC-BY-NC-SA-4.0. Redistributed here under CC-BY-4.0 by permission; see `relicensed`, whose grantor and date are not yet recorded. Attribution to the upstream project remains required and is not affected by the relicense.
   sha256(inventory.tsv):   4becb9bc3cf1a98718dc47dc8c835b5ff75afbb9feb94c74fc5d852af6184403
-  sha256(model.json):      0dc560acc3b02906901d8d31ac59f0b737555e6747a86ebce867a72fd07f3dff
+  sha256(model.json):      1e14dca10c8572cdaaabcd79998707f3226a70dd1135c8ee49b26d5dc07530e1
 
 [pbase-spe]  (models/pbase-spe)
   artifact_version:        1.0.0
@@ -140,12 +143,12 @@ Per-artifact detail
   upstream_url:            https://pbase.phon.chass.ncsu.edu/
   upstream_commit_or_doi:  UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
   retrieved:               UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
-  license_spdx:            CC-BY-NC-SA-4.0
+  license_spdx:            CC-BY-4.0
   citation:                Mielke, Jeff. P-base. North Carolina State University.
   transformation:          Segment-indexed feature table for the SPE feature family, extracted from P-base. The exact extraction procedure is UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
-  redistribution_notes:    Non-commercial and share-alike. These terms are materially narrower than the MIT terms covering the merkmal source code, and they restrict commercial redistribution of any package that bundles this table.
+  redistribution_notes:    Upstream terms are CC-BY-NC-SA-4.0. Redistributed here under CC-BY-4.0 by permission; see `relicensed`, whose grantor and date are not yet recorded. Attribution to the upstream project remains required and is not affected by the relicense.
   sha256(inventory.tsv):   72aa86adbc583053150b703f44e1e3602d8507ea1572d754f5225809529fe769
-  sha256(model.json):      61ada7e5e67cc05ecf1fdc3119aa4a617c2b51b492307a514949ec37bd1def23
+  sha256(model.json):      2691ab7e7b9136324e61b26f2e47d7c9522fcc4df523056618c3b39facf828c3
 
 [pbase-uftc]  (models/pbase-uftc)
   artifact_version:        1.0.0
@@ -154,12 +157,12 @@ Per-artifact detail
   upstream_url:            https://pbase.phon.chass.ncsu.edu/
   upstream_commit_or_doi:  UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
   retrieved:               UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
-  license_spdx:            CC-BY-NC-SA-4.0
+  license_spdx:            CC-BY-4.0
   citation:                Mielke, Jeff. P-base. North Carolina State University.
   transformation:          Segment-indexed feature table for the UFTC feature family, extracted from P-base. The exact extraction procedure is UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
-  redistribution_notes:    Non-commercial and share-alike. These terms are materially narrower than the MIT terms covering the merkmal source code, and they restrict commercial redistribution of any package that bundles this table.
+  redistribution_notes:    Upstream terms are CC-BY-NC-SA-4.0. Redistributed here under CC-BY-4.0 by permission; see `relicensed`, whose grantor and date are not yet recorded. Attribution to the upstream project remains required and is not affected by the relicense.
   sha256(inventory.tsv):   c61995ab79dfe970634b16b2dce10b4953e5d104cee81a908186c7f1a2825497
-  sha256(model.json):      9e40ed67dc074b56a2fda8f1a9fab375ac35846f504f6e719b8c672614c0bdae
+  sha256(model.json):      ce0637a24a52b3ff09bec8c2e68c71a89e6a544be112e6fb6bfa015acb4b33f7
 
 [phoible]  (models/phoible)
   artifact_version:        1.0.0
@@ -168,9 +171,9 @@ Per-artifact detail
   upstream_url:            https://phoible.org/ (CLDF packaging: https://github.com/cldf-datasets/phoible, cldf/parameters.csv)
   upstream_commit_or_doi:  f36deac7f80b39483038af1a6134f27139e5417f
   retrieved:               UNVERIFIED: the retrieval date was not recorded when this artifact was produced. The release itself is no longer unverified (see upstream_release).
-  license_spdx:            CC-BY-SA-3.0
+  license_spdx:            CC-BY-4.0
   citation:                Moran, Steven & McCloy, Daniel (eds.) 2019. PHOIBLE 2.0. Jena: Max Planck Institute for the Science of Human History. https://phoible.org/
   transformation:          Segment-indexed feature table extracted from cldf/parameters.csv of the PHOIBLE CLDF StructureDataset at tag v2.0.1. The release is established from the maintainer's direct knowledge of having produced it, and corroborated by diff: 3,125 of 3,142 graphemes match after NFD normalization and U+0261 -> U+0067 folding. Cell values are now derived from upstream by one rule, applied by scripts/rebuild_phoible_inventory.py, which --check re-verifies against the pinned table: '+' and '-' are carried through; '0' (the feature does not apply), 'N' (upstream has no feature vector, 2 segments), a per-phase contour such as '+,-', and an empty cell all become '.'. Contours collapse rather than resolve to one phase, because choosing a phase invents a claim the source does not make; the resulting loss of comparability is reported by mk_system_segment_distance_ex. The earlier extraction was not self-consistent and 5,272 cells across 2,002 rows have been corrected: 3,729 where upstream said '0' had been written '-', asserting the feature applies and is absent; 761 where upstream gives '+' or '-' had been written '.'; and 686 contours had been resolved to a single sign while 3,788 others became '.'. Reading '0' as '-' manufactured agreement, so distances were systematically too small: over a 24,090-pair sample the mean rises from 0.2208 to 0.2420 and zero-distance pairs fall from 6.06% to 5.89%. Still open, and a different question: the row *sets* differ from v2.0.1 by 17 graphemes here that it lacks and 58 there that this inventory lacks. Which release's segment list to carry is a decision, not a defect.
-  redistribution_notes:    Share-alike. Redistributing this table obliges downstream users to license their adaptation of it under the same terms. This is not the same as the MIT terms covering the merkmal source code. The license was checked against the pinned release rather than assumed: the CLDF packaging at v2.0.1 declares no dc:license of its own (CC-BY-4.0 appears only from the later 3.0 revision), so PHOIBLE 2.0's own terms govern, and phoible.org publishes PHOIBLE 2.0 under the Creative Commons Attribution-ShareAlike 3.0 Unported License.
+  redistribution_notes:    Upstream terms are CC-BY-SA-3.0. Redistributed here under CC-BY-4.0 by permission; see `relicensed`, whose grantor and date are not yet recorded. Attribution to the upstream project remains required and is not affected by the relicense.
   sha256(inventory.tsv):   6383fa5c6de97ff87657266aa4e235bc63281b1f62934d395bb142cff97ed4f9
-  sha256(model.json):      6ed42e6495a5beb481afdbf8e6a02c2f5ced3255aded4d9a812e3cb7716738de
+  sha256(model.json):      c6e3142db468d2123a93d04892f69810430311b6a01558cac54e49222d9ef351

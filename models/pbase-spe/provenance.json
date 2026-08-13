@@ -9,11 +9,19 @@
   "retrieved": "UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
   "transformation": "Segment-indexed feature table for the SPE feature family, extracted from P-base. The exact extraction procedure is UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
   "citation": "Mielke, Jeff. P-base. North Carolina State University.",
-  "license_spdx": "CC-BY-NC-SA-4.0",
-  "redistribution_notes": "Non-commercial and share-alike. These terms are materially narrower than the MIT terms covering the merkmal source code, and they restrict commercial redistribution of any package that bundles this table.",
+  "license_spdx": "CC-BY-4.0",
+  "redistribution_notes": "Upstream terms are CC-BY-NC-SA-4.0. Redistributed here under CC-BY-4.0 by permission; see `relicensed`, whose grantor and date are not yet recorded. Attribution to the upstream project remains required and is not affected by the relicense.",
   "input_sha256": {
     "inventory.tsv": "72aa86adbc583053150b703f44e1e3602d8507ea1572d754f5225809529fe769",
-    "model.json": "61ada7e5e67cc05ecf1fdc3119aa4a617c2b51b492307a514949ec37bd1def23"
+    "model.json": "2691ab7e7b9136324e61b26f2e47d7c9522fcc4df523056618c3b39facf828c3"
   },
-  "generator": "tools/generate_c_data.py"
+  "generator": "tools/generate_c_data.py",
+  "relicensed": {
+    "granted_for": "redistribution within merkmal and its companion packages under CC-BY-4.0",
+    "supersedes": "CC-BY-NC-SA-4.0",
+    "grantor": "UNVERIFIED: the maintainer reports holding permission; the granting party and date are not recorded here and must be before the next data release",
+    "granted_on": "UNVERIFIED: see grantor",
+    "evidence": "UNVERIFIED: no correspondence or written grant is recorded in this repository",
+    "why_this_matters": "CC-BY-SA-3.0 and CC-BY-NC-SA-4.0 do not permit relicensing to CC-BY-4.0 unilaterally: dropping share-alike and the non-commercial clause makes the terms less restrictive, which only the rightsholder can do. So this declaration rests entirely on a permission the repository does not yet evidence. Anyone auditing redistribution should establish it before relying on it, exactly as the CLTS derivation was established in Phase 0 rather than assumed."
+  }
 }

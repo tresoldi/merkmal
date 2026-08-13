@@ -9,11 +9,19 @@
   "retrieved": "UNVERIFIED: the retrieval date was not recorded when this artifact was produced. The release itself is no longer unverified (see upstream_release).",
   "transformation": "Segment-indexed feature table extracted from cldf/parameters.csv of the PHOIBLE CLDF StructureDataset at tag v2.0.1. The release is established from the maintainer's direct knowledge of having produced it, and corroborated by diff: 3,125 of 3,142 graphemes match after NFD normalization and U+0261 -> U+0067 folding. Cell values are now derived from upstream by one rule, applied by scripts/rebuild_phoible_inventory.py, which --check re-verifies against the pinned table: '+' and '-' are carried through; '0' (the feature does not apply), 'N' (upstream has no feature vector, 2 segments), a per-phase contour such as '+,-', and an empty cell all become '.'. Contours collapse rather than resolve to one phase, because choosing a phase invents a claim the source does not make; the resulting loss of comparability is reported by mk_system_segment_distance_ex. The earlier extraction was not self-consistent and 5,272 cells across 2,002 rows have been corrected: 3,729 where upstream said '0' had been written '-', asserting the feature applies and is absent; 761 where upstream gives '+' or '-' had been written '.'; and 686 contours had been resolved to a single sign while 3,788 others became '.'. Reading '0' as '-' manufactured agreement, so distances were systematically too small: over a 24,090-pair sample the mean rises from 0.2208 to 0.2420 and zero-distance pairs fall from 6.06% to 5.89%. Still open, and a different question: the row *sets* differ from v2.0.1 by 17 graphemes here that it lacks and 58 there that this inventory lacks. Which release's segment list to carry is a decision, not a defect.",
   "citation": "Moran, Steven & McCloy, Daniel (eds.) 2019. PHOIBLE 2.0. Jena: Max Planck Institute for the Science of Human History. https://phoible.org/",
-  "license_spdx": "CC-BY-SA-3.0",
-  "redistribution_notes": "Share-alike. Redistributing this table obliges downstream users to license their adaptation of it under the same terms. This is not the same as the MIT terms covering the merkmal source code. The license was checked against the pinned release rather than assumed: the CLDF packaging at v2.0.1 declares no dc:license of its own (CC-BY-4.0 appears only from the later 3.0 revision), so PHOIBLE 2.0's own terms govern, and phoible.org publishes PHOIBLE 2.0 under the Creative Commons Attribution-ShareAlike 3.0 Unported License.",
+  "license_spdx": "CC-BY-4.0",
+  "redistribution_notes": "Upstream terms are CC-BY-SA-3.0. Redistributed here under CC-BY-4.0 by permission; see `relicensed`, whose grantor and date are not yet recorded. Attribution to the upstream project remains required and is not affected by the relicense.",
   "input_sha256": {
     "inventory.tsv": "6383fa5c6de97ff87657266aa4e235bc63281b1f62934d395bb142cff97ed4f9",
-    "model.json": "6ed42e6495a5beb481afdbf8e6a02c2f5ced3255aded4d9a812e3cb7716738de"
+    "model.json": "c6e3142db468d2123a93d04892f69810430311b6a01558cac54e49222d9ef351"
   },
-  "generator": "tools/generate_c_data.py"
+  "generator": "tools/generate_c_data.py",
+  "relicensed": {
+    "granted_for": "redistribution within merkmal and its companion packages under CC-BY-4.0",
+    "supersedes": "CC-BY-SA-3.0",
+    "grantor": "UNVERIFIED: the maintainer reports holding permission; the granting party and date are not recorded here and must be before the next data release",
+    "granted_on": "UNVERIFIED: see grantor",
+    "evidence": "UNVERIFIED: no correspondence or written grant is recorded in this repository",
+    "why_this_matters": "CC-BY-SA-3.0 and CC-BY-NC-SA-4.0 do not permit relicensing to CC-BY-4.0 unilaterally: dropping share-alike and the non-commercial clause makes the terms less restrictive, which only the rightsholder can do. So this declaration rests entirely on a permission the repository does not yet evidence. Anyone auditing redistribution should establish it before relying on it, exactly as the CLTS derivation was established in Phase 0 rather than assumed."
+  }
 }
