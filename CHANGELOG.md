@@ -2,6 +2,47 @@
 
 ## Unreleased
 
+### Every categorical system reads what `descriptive` reads
+
+Diphthongs, consonant clusters and complex segments such as `kp` were
+synthesized for `descriptive` and refused by `broad` and `distinctive`, on a
+hardcoded check of the system's *name*. Nothing about the synthesis was ever
+descriptive-specific: components resolve through whichever system is asking, and
+the cluster scorer in `system.c` never looked at the name either.
+
+That mattered little while `descriptive` was the system to reach for. It
+mattered a great deal with `distinctive` about to become the default, because
+the default would have been the system least able to read the field's data —
+1,188 segment types and 78,762 Lexibank tokens it rejected and `descriptive`
+accepted.
+
+| | before tone work | after tone | now |
+| --- | ---: | ---: | ---: |
+| `distinctive` types | 73.4% | 78.5% | **94.5%** |
+| `distinctive` tokens | 95.57% | 99.16% | **99.71%** |
+| median dataset, forms parsed | 95.9% | 98.2% | **100.0%** |
+| datasets below 90% of forms | 52 | 27 | **3** |
+| datasets below 3% of forms | 26 | 1 | **1** |
+
+**On the alignment benchmark this restores parity with SCA**, and on a sounder
+footing than the claim retracted earlier in this file. The readable subset is
+now 2,091 of 2,250 pairs (**92.9%**, from 64.4%), and over it `distinctive`
+scores 96.16% against SCA's 96.72% — a difference of −0.39% with a 95% CI of
+[−0.95, +0.15], **not significant**. Over all pairs it is 95.00% against 96.35%.
+Every point of that came from reading more data; nothing about how segments
+score was changed.
+
+- Cluster parses report `n1-`/`n2-`/`n3-` component labels, `move-` trajectories,
+  and `diphthong`/`triphthong`/`complex`/`geminate`/`consonant-cluster`. None of
+  them score — clusters are scored through their components — and they are now
+  **declared** as unscored in the geometry, by prefix for the open-ended ones.
+  They had been returned to callers as if they participated since the cluster
+  paths were written; an earlier review flagged it and it was never closed.
+- The contrast audit sweeps cluster spellings, taken from Lexibank by token
+  frequency. Like bare tone before them, they are recognized by every
+  categorical system and carried by no inventory row, so an inventory-derived
+  sweep never saw them.
+
 ### Tone as its own segment, which is how the field writes it
 
 CLTS/BIPA spells tone as a segment in its own right — `t o ³³`, not `t o³³` —

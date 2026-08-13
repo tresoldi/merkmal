@@ -72,6 +72,17 @@ COMPOSED_PREFIXES = ["ʷ", "ʲ", "ᵐ"]
 # every-zero-declared contract lives.
 DEFAULT_MAX_VALUED_FORMS = 700
 
+# A caution about the valued counts, learned by tripping over it. The cap makes
+# them a property of *which* 700 forms were sampled, and the sample is drawn
+# evenly from whatever the sweep covers. So changing the sweep's input -- adding
+# bare tone forms, adding cluster spellings -- reselects the sample and moves the
+# counts, with nothing about the library having changed. `ai` and `au` are
+# inventory rows in P-base, not synthesized clusters, which is how a
+# categorical-only change moved `pbase-jfh` from 5,722 to 6,067.
+#
+# So a rise here is only evidence of regression when the swept population is
+# unchanged. When the population deliberately grows, re-record and say so.
+
 VALUED_REASON = (
     "upstream: the {system} feature table assigns these graphemes identical "
     "values on every dimension it defines, so the collapse is a property of that "
@@ -98,6 +109,13 @@ BARE_TONE_FORMS = (
     + [a + b + c for a in TONE_LEVELS for b in TONE_LEVELS for c in TONE_LEVELS]
     + ["˩", "˨", "˧", "˦", "˥", "˥˩", "˩˥", "˧˥", "⁰"]
 )
+
+
+# Cluster spellings are recognized by every categorical system now, and no
+# inventory row carries them, so an inventory-derived sweep never sees them --
+# the same blind spot bare tone had. Taken from Lexibank by token frequency:
+# what people write, not what came to mind.
+CLUSTER_FORMS = ['ai', 'au', 'ei', 'ou', 'aːi', 'əu', 'ui', 'ia', 'oi', 'ɛi', 'eu', 'ɑi', 'əi', 'ɑu', 'aɪ', 'aːu', 'ɔi', 'uɔ', 'aa', 'ua', 'ɐu', 'ai̯', 'ao', 'ɔu', 'eɪ', 'aʊ', 'ae', 'ea', 'iɛ', 'uə', 'oa', 'au̯', 'ɔɪ', 'ie', 'mb', 'ɐi']
 
 
 _CHAO_DIGITS = {"⁰": 0, "¹": 1, "²": 2, "³": 3, "⁴": 4, "⁵": 5}
@@ -149,7 +167,7 @@ def spelling_equivalent(a: str, b: str) -> bool:
 
 def composed_forms(system: str, bases: list[str]) -> list[str]:
     step = max(1, len(bases) // 40)
-    out: list[str] = list(BARE_TONE_FORMS)
+    out: list[str] = list(BARE_TONE_FORMS) + list(CLUSTER_FORMS)
     for base in bases[::step][:40]:
         candidates = [base + suffix for suffix in COMPOSED_SUFFIXES]
         candidates += [prefix + base for prefix in COMPOSED_PREFIXES]
@@ -184,6 +202,14 @@ def collapses(system: str, covered: list[str]) -> list[tuple[str, str]]:
 def dead_labels(system: str, covered: list[str]) -> list[str]:
     geometry = json.loads(GEOMETRY.read_text(encoding="utf-8"))
     metadata = set(geometry.get("metadata_features", {}))
+    # Cluster parses report a label per component (`n1-front`, `n2-stop`) and a
+    # trajectory (`move-height-open-close`). They are open-ended -- any base
+    # feature can appear under any prefix -- so they are declared by prefix
+    # rather than enumerated. They do not score, and saying so is the point:
+    # a caller reading `move-height-open-close` would otherwise reasonably
+    # assume it participates. The components themselves are scored, by
+    # mk_distance_cluster_to_segment in system.c.
+    prefixes = tuple(geometry.get("metadata_feature_prefixes", {}))
     # An ordered level is skipped when the other segment has no value on the
     # scale, so probing it against an unrelated label always scores zero. The
     # meaningful comparison is against a different level of the same scale.
@@ -200,7 +226,7 @@ def dead_labels(system: str, covered: list[str]) -> list[str]:
     for label in sorted(labels):
         if "=" in label:
             continue  # a valued state pair, not a categorical label
-        if label in metadata:
+        if label in metadata or (prefixes and label.startswith(prefixes)):
             continue  # declared as deliberately unscored
         probe = merkmal.Registry()
         try:

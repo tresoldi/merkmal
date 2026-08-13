@@ -283,6 +283,41 @@ comparing a tone with a segment are getting a number nobody defends.
 - Fix `segment_ipa_merged('to⁶/⁵¹')` → `['t', 'o⁶⁵¹', '/']`. It merges across
   the slash into a tone that does not exist and leaves a stray delimiter.
 
+### 1b-0. Cluster parity — done 2026-08-13, and it unblocks D4
+
+Diphthongs, clusters and complex segments were gated on a `strcmp` of the
+system's *name* against `"descriptive"`. Nothing in the synthesis was ever
+descriptive-specific, and opening the gate to any categorical system caused
+**zero golden-fixture drift** — confirmation it was gating recognition, not
+behaviour.
+
+`distinctive` goes from 78.5% to **94.5%** of Lexibank segment types, and the
+median dataset now parses **100%** of its forms. Three datasets remain below 90%.
+
+**This was a precondition for D4, not an optional extra.** Making `distinctive`
+the default while it rejected 1,188 types that `descriptive` accepted would have
+shipped a default that was the least able to read the field's data. That is now
+resolved and D4 can land.
+
+**Parity with SCA returns, on a sound basis.** Readable subset 92.9% of BDPA
+(from 64.4%); `distinctive` 96.16% against SCA's 96.72%, difference −0.39%
+[−0.95, +0.15], **not significant**. The retracted claim rested on 64.4% of the
+benchmark with annotation rows contaminating it; this rests on nearly all of it,
+clean. Nothing about scoring changed — every point came from reading more data.
+
+**An old finding closed.** Cluster parses return 61 labels no dimension reads —
+`n1-`/`n2-`/`n3-` component copies, `move-` trajectories, and the unit labels.
+The first independent review raised this and it was never resolved. They are now
+declared unscored in the geometry, by prefix for the open-ended families, and
+the audit sweeps cluster spellings drawn from Lexibank by token frequency.
+
+**A fragility worth remembering.** The valued systems' collapse counts are a
+property of *which* 700 forms the cap sampled. Growing the sweep reselects the
+sample and moves the counts with nothing in the library having changed — `ai`
+and `au` are P-base inventory rows, which is how a categorical-only change moved
+`pbase-jfh` from 5,722 to 6,067. A rise there is evidence of regression only
+when the swept population is unchanged.
+
 ### 1b. The rest of the contract
 
 - **Diphthongs and clusters in every system**, not `descriptive` only. This is

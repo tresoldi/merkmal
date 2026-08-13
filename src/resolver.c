@@ -1012,12 +1012,24 @@ static mk_status mk_apply_valued_modifiers(
     return MK_OK;
 }
 
-static int mk_is_descriptive_system(const mk_system *system)
+/* Whether a system synthesizes the spellings no inventory row carries:
+ * diphthongs, consonant clusters, and complex segments such as "kp".
+ *
+ * This used to name `descriptive` and only `descriptive`. That left the other
+ * categorical systems rejecting 1,188 segment types -- `ai`, `au`, `ei`, `gb`,
+ * 78,762 tokens of Lexibank -- which mattered little while `descriptive` was
+ * the system to reach for, and matters a great deal now that `distinctive` is
+ * to become the default: the default would have been the least able to read the
+ * field's data.
+ *
+ * Nothing about the synthesis was ever descriptive-specific. Components are
+ * resolved through whichever system is asking and scored by the component path
+ * in system.c, which never looked at the system's name either. */
+static int mk_admits_synthesized_clusters(const mk_system *system)
 {
     return system != NULL &&
         system->builtin != NULL &&
-        system->builtin->kind == MK_SYSTEM_CATEGORICAL &&
-        mk_streq(system->builtin->name, "descriptive");
+        system->builtin->kind == MK_SYSTEM_CATEGORICAL;
 }
 
 static mk_status mk_synthesize_from_diacritics(
@@ -1464,7 +1476,7 @@ static mk_status mk_synthesize_cluster(
     size_t i;
 
     memset(components, 0, sizeof(components));
-    if (!mk_is_descriptive_system(system)) {
+    if (!mk_admits_synthesized_clusters(system)) {
         return MK_ERR_UNKNOWN_GRAPHEME;
     }
 
@@ -1627,7 +1639,7 @@ static mk_status mk_synthesize_descriptive_complex(
     const char *phonation = NULL;
     mk_status status;
 
-    if (!mk_is_descriptive_system(system)) {
+    if (!mk_admits_synthesized_clusters(system)) {
         return MK_ERR_UNKNOWN_GRAPHEME;
     }
 

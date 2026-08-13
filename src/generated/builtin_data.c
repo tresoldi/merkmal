@@ -5831,8 +5831,13 @@ const size_t mk_clements_hume_ordinal_scale_count =
     sizeof(mk_clements_hume_ordinal_scales) / sizeof(mk_clements_hume_ordinal_scales[0]);
 
 const char *const mk_default_metadata_features[] = {
+    "complex",
     "consonant",
+    "consonant-cluster",
+    "diphthong",
+    "geminate",
     "tonal-autosegment",
+    "triphthong",
     "vowel",
 };
 
