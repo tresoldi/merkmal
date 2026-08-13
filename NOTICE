@@ -20,15 +20,17 @@ distribution.
 Summary of bundled data licenses
 --------------------------------
 
+  CC-BY-4.0          broad, descriptive, distinctive
   CC-BY-NC-SA-4.0    pbase-hc, pbase-jfh, pbase-spe, pbase-uftc
   CC-BY-SA-3.0       phoible
-  MIT                broad, classfeat, descriptive, distinctive
+  MIT                classfeat
 
 Redistribution consequences
 ---------------------------
 
   Some bundled tables are not MIT. In particular:
 
+  * CC-BY-4.0: broad, descriptive, distinctive
   * CC-BY-NC-SA-4.0: pbase-hc, pbase-jfh, pbase-spe, pbase-uftc
   * CC-BY-SA-3.0: phoible
 
@@ -42,19 +44,19 @@ Per-artifact detail
 
 [broad]  (models/broad)
   artifact_version:        1.0.0
-  upstream_name:           merkmal (first-party)
-  upstream_release:        (n/a)
-  upstream_url:            https://github.com/tresoldi/merkmal
-  upstream_commit_or_doi:  (n/a)
-  retrieved:               (n/a)
-  license_spdx:            MIT
-  citation:                Tresoldi, Tiago. merkmal.
-  transformation:          Hand-authored grapheme/sound-name inventory. The IPA-style sound names follow standard IPA descriptive terminology; whether any specific CLTS release was used as a source is UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
-  redistribution_notes:    Same terms as the merkmal source code.
+  upstream_name:           CLTS (Cross-Linguistic Transcription Systems)
+  upstream_release:        v1.4.1
+  upstream_url:            https://github.com/cldf-clts/clts
+  upstream_commit_or_doi:  d0dbd4bd5c1c0745db15d113745c685cdd95e9d9
+  retrieved:               2026-08-13
+  license_spdx:            CC-BY-4.0
+  citation:                List, Johann-Mattis, Cormac Anderson, Tiago Tresoldi, Christoph Rzymski, and Robert Forkel. Cross-Linguistic Transcription Systems (CLTS), version 1.4.1. Max Planck Institute for the Science of Human History. https://github.com/cldf-clts/clts (author list per the CLTS Zenodo record, concept DOI 10.5281/zenodo.3515744).
+  transformation:          Derived from CLTS v1.4.1 data/sounds.tsv (GRAPHEME, NAME columns). Established empirically on 2026-08-13 by diffing this inventory against every tagged CLTS release: v1.4.1 matches 768 of 769 graphemes and 766 of 769 byte-identical NAME strings, against 689 and 680 respectively for v2.0.0 and later, so v1.4.1 is the source. Three rows diverge and are kept as they are: z̻ is not a CLTS v1.4.1 sound; ʈʂː is named 'long voiceless retroflex sibilant affricate consonant' here where v1.4.1 says 'voiced', which was an upstream inconsistency with its own ʈʂ entry and was corrected upstream in v2.0.0; ⁿgǃ is named with 'click' where v1.4.1 says 'nasal-click'. Feature sets are computed from the NAME tokens by tools/generate_c_data.py; no CLTS feature values, sound classes, or grapheme mappings are used.
+  redistribution_notes:    CC-BY-4.0 requires attribution: redistributing these inventories, or any adaptation of them, obliges you to credit CLTS and indicate that changes were made. This is narrower than the MIT terms covering the merkmal source code and wider than the share-alike terms on phoible. The v1.4.1 tag carries no in-repo license file; CC-BY-4.0 is the license the CLTS project declares for the catalog (dc:license in its CLDF metadata, and the Zenodo record).
   sha256(classes.tsv):     0e89f4bfbc3d2479ab06bbef2546fac5ec38ba6b0391b05837e0e2b581ba4dca
   sha256(features.tsv):    6b6a59227720e3f28790b0fbb4242819bfaaf05a9a8310aeceb20a1a404102a7
   sha256(inventory.tsv):   f519520eeaf4922ebdc92da19ba209344c63d53eca6b698914032c8f07560a56
-  sha256(model.json):      f8a35f0181902a350235273fa42592b04269adc5a7ab8a78ec24b834a827c302
+  sha256(model.json):      7dd66f019ab144c96a3a47325319d17e3e6dc3be4d5f46dcc05afcf56af7b098
 
 [classfeat]  (models/classfeat)
   artifact_version:        1.0.0
@@ -73,35 +75,35 @@ Per-artifact detail
 
 [descriptive]  (models/descriptive)
   artifact_version:        1.0.0
-  upstream_name:           merkmal (first-party)
-  upstream_release:        (n/a)
-  upstream_url:            https://github.com/tresoldi/merkmal
-  upstream_commit_or_doi:  (n/a)
-  retrieved:               (n/a)
-  license_spdx:            MIT
-  citation:                Tresoldi, Tiago. merkmal.
-  transformation:          Hand-authored grapheme/sound-name inventory. The IPA-style sound names follow standard IPA descriptive terminology; whether any specific CLTS release was used as a source is UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
-  redistribution_notes:    Same terms as the merkmal source code.
+  upstream_name:           CLTS (Cross-Linguistic Transcription Systems)
+  upstream_release:        v1.4.1
+  upstream_url:            https://github.com/cldf-clts/clts
+  upstream_commit_or_doi:  d0dbd4bd5c1c0745db15d113745c685cdd95e9d9
+  retrieved:               2026-08-13
+  license_spdx:            CC-BY-4.0
+  citation:                List, Johann-Mattis, Cormac Anderson, Tiago Tresoldi, Christoph Rzymski, and Robert Forkel. Cross-Linguistic Transcription Systems (CLTS), version 1.4.1. Max Planck Institute for the Science of Human History. https://github.com/cldf-clts/clts (author list per the CLTS Zenodo record, concept DOI 10.5281/zenodo.3515744).
+  transformation:          Derived from CLTS v1.4.1 data/sounds.tsv (GRAPHEME, NAME columns). Established empirically on 2026-08-13 by diffing this inventory against every tagged CLTS release: v1.4.1 matches 768 of 769 graphemes and 766 of 769 byte-identical NAME strings, against 689 and 680 respectively for v2.0.0 and later, so v1.4.1 is the source. Three rows diverge and are kept as they are: z̻ is not a CLTS v1.4.1 sound; ʈʂː is named 'long voiceless retroflex sibilant affricate consonant' here where v1.4.1 says 'voiced', which was an upstream inconsistency with its own ʈʂ entry and was corrected upstream in v2.0.0; ⁿgǃ is named with 'click' where v1.4.1 says 'nasal-click'. Feature sets are computed from the NAME tokens by tools/generate_c_data.py; no CLTS feature values, sound classes, or grapheme mappings are used.
+  redistribution_notes:    CC-BY-4.0 requires attribution: redistributing these inventories, or any adaptation of them, obliges you to credit CLTS and indicate that changes were made. This is narrower than the MIT terms covering the merkmal source code and wider than the share-alike terms on phoible. The v1.4.1 tag carries no in-repo license file; CC-BY-4.0 is the license the CLTS project declares for the catalog (dc:license in its CLDF metadata, and the Zenodo record).
   sha256(classes.tsv):     0e89f4bfbc3d2479ab06bbef2546fac5ec38ba6b0391b05837e0e2b581ba4dca
   sha256(features.tsv):    6b6a59227720e3f28790b0fbb4242819bfaaf05a9a8310aeceb20a1a404102a7
   sha256(inventory.tsv):   f519520eeaf4922ebdc92da19ba209344c63d53eca6b698914032c8f07560a56
-  sha256(model.json):      ac24144e08e061db7e1483eba022030818aecff167a50d7bb24962c38c9d7968
+  sha256(model.json):      2afeb64c8ebd3054166e7693a780b7b919d35d87ee72f7ff83293bf91800ee55
 
 [distinctive]  (models/distinctive)
   artifact_version:        1.0.0
-  upstream_name:           merkmal (first-party)
-  upstream_release:        (n/a)
-  upstream_url:            https://github.com/tresoldi/merkmal
-  upstream_commit_or_doi:  (n/a)
-  retrieved:               (n/a)
-  license_spdx:            MIT
-  citation:                Tresoldi, Tiago. merkmal.
-  transformation:          Hand-authored grapheme/sound-name inventory. The IPA-style sound names follow standard IPA descriptive terminology; whether any specific CLTS release was used as a source is UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
-  redistribution_notes:    Same terms as the merkmal source code.
+  upstream_name:           CLTS (Cross-Linguistic Transcription Systems)
+  upstream_release:        v1.4.1
+  upstream_url:            https://github.com/cldf-clts/clts
+  upstream_commit_or_doi:  d0dbd4bd5c1c0745db15d113745c685cdd95e9d9
+  retrieved:               2026-08-13
+  license_spdx:            CC-BY-4.0
+  citation:                List, Johann-Mattis, Cormac Anderson, Tiago Tresoldi, Christoph Rzymski, and Robert Forkel. Cross-Linguistic Transcription Systems (CLTS), version 1.4.1. Max Planck Institute for the Science of Human History. https://github.com/cldf-clts/clts (author list per the CLTS Zenodo record, concept DOI 10.5281/zenodo.3515744).
+  transformation:          Derived from CLTS v1.4.1 data/sounds.tsv (GRAPHEME, NAME columns). Established empirically on 2026-08-13 by diffing this inventory against every tagged CLTS release: v1.4.1 matches 768 of 769 graphemes and 766 of 769 byte-identical NAME strings, against 689 and 680 respectively for v2.0.0 and later, so v1.4.1 is the source. Three rows diverge and are kept as they are: z̻ is not a CLTS v1.4.1 sound; ʈʂː is named 'long voiceless retroflex sibilant affricate consonant' here where v1.4.1 says 'voiced', which was an upstream inconsistency with its own ʈʂ entry and was corrected upstream in v2.0.0; ⁿgǃ is named with 'click' where v1.4.1 says 'nasal-click'. Feature sets are computed from the NAME tokens by tools/generate_c_data.py; no CLTS feature values, sound classes, or grapheme mappings are used.
+  redistribution_notes:    CC-BY-4.0 requires attribution: redistributing these inventories, or any adaptation of them, obliges you to credit CLTS and indicate that changes were made. This is narrower than the MIT terms covering the merkmal source code and wider than the share-alike terms on phoible. The v1.4.1 tag carries no in-repo license file; CC-BY-4.0 is the license the CLTS project declares for the catalog (dc:license in its CLDF metadata, and the Zenodo record).
   sha256(classes.tsv):     0e89f4bfbc3d2479ab06bbef2546fac5ec38ba6b0391b05837e0e2b581ba4dca
   sha256(features.tsv):    6b6a59227720e3f28790b0fbb4242819bfaaf05a9a8310aeceb20a1a404102a7
   sha256(inventory.tsv):   f519520eeaf4922ebdc92da19ba209344c63d53eca6b698914032c8f07560a56
-  sha256(model.json):      6cf15ed9664dd31f49414a70af0f0167a2da7424097273f21875c633a97067b7
+  sha256(model.json):      0710e9b9df3604ee7c961a8a7f71c5769d2e00ab1eb225e7a2a027e7fc8b54b6
 
 [pbase-hc]  (models/pbase-hc)
   artifact_version:        1.0.0
@@ -161,14 +163,14 @@ Per-artifact detail
 
 [phoible]  (models/phoible)
   artifact_version:        1.0.0
-  upstream_name:           PHOIBLE 2.0
-  upstream_release:        UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
-  upstream_url:            https://phoible.org/
-  upstream_commit_or_doi:  UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
-  retrieved:               UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release
+  upstream_name:           PHOIBLE 2.0 (CLDF packaging, cldf-datasets/phoible v2.0.1)
+  upstream_release:        v2.0.1
+  upstream_url:            https://phoible.org/ (CLDF packaging: https://github.com/cldf-datasets/phoible, cldf/parameters.csv)
+  upstream_commit_or_doi:  f36deac7f80b39483038af1a6134f27139e5417f
+  retrieved:               UNVERIFIED: the retrieval date was not recorded when this artifact was produced. The release itself is no longer unverified (see upstream_release).
   license_spdx:            CC-BY-SA-3.0
-  citation:                Moran, Steven & McCloy, Daniel (eds.) 2019. PHOIBLE 2.0. Jena: Max Planck Institute for the Science of Human History.
-  transformation:          Segment-indexed binary feature table extracted from the PHOIBLE feature set; unspecified cells written as '.'.
-  redistribution_notes:    Share-alike. Redistributing this table obliges downstream users to license their adaptation of it under the same terms. This is not the same as the MIT terms covering the merkmal source code.
+  citation:                Moran, Steven & McCloy, Daniel (eds.) 2019. PHOIBLE 2.0. Jena: Max Planck Institute for the Science of Human History. https://phoible.org/
+  transformation:          Segment-indexed feature table extracted from cldf/parameters.csv of the PHOIBLE CLDF StructureDataset at tag v2.0.1. The release is established from the maintainer's direct knowledge of having produced it, and corroborated by diff on 2026-08-13: 3,125 of 3,142 graphemes match after NFD normalization and U+0261 -> U+0067 folding. Of 115,625 comparable feature cells, 95.43% are accounted for by the intended transformation: 82,260 agree exactly, 24,289 map upstream '0' (not applicable) to '.', and 3,788 collapse upstream contour values such as '+,-' to '.'. The remaining 5,187 cells are extraction inconsistencies, recorded here because they are real and NOT yet fixed: 3,729 cells where upstream says '0' were written '-' instead of '.', 761 where upstream specifies '+' or '-' were written '.', and 697 where upstream gives a contour were resolved to a single '+' or '-'.
+  redistribution_notes:    Share-alike. Redistributing this table obliges downstream users to license their adaptation of it under the same terms. This is not the same as the MIT terms covering the merkmal source code. The license was checked against the pinned release rather than assumed: the CLDF packaging at v2.0.1 declares no dc:license of its own (CC-BY-4.0 appears only from the later 3.0 revision), so PHOIBLE 2.0's own terms govern, and phoible.org publishes PHOIBLE 2.0 under the Creative Commons Attribution-ShareAlike 3.0 Unported License.
   sha256(inventory.tsv):   891f464c00e186a85a96c97487060726b0e0fcc3d7e62317f403b67220af4d41
   sha256(model.json):      6ed42e6495a5beb481afdbf8e6a02c2f5ced3255aded4d9a812e3cb7716738de

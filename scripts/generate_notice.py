@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Generate NOTICE from the per-artifact provenance manifests.
 
-The repository root is MIT, but bundled data is not: PHOIBLE is share-alike and
+The repository root is MIT, but bundled data is not: the categorical
+inventories are CLTS-derived and attribution-bound, PHOIBLE is share-alike, and
 P-base is non-commercial share-alike. Describing a distribution that contains
 them as simply "MIT" is wrong, so the bill of materials is generated from the
 manifests rather than maintained by hand.

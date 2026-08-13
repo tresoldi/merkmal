@@ -2,20 +2,20 @@
   "schema_version": 1,
   "artifact_id": "distinctive",
   "artifact_version": "1.0.0",
-  "upstream_name": "merkmal (first-party)",
-  "upstream_release": null,
-  "upstream_url": "https://github.com/tresoldi/merkmal",
-  "upstream_commit_or_doi": null,
-  "retrieved": null,
-  "transformation": "Hand-authored grapheme/sound-name inventory. The IPA-style sound names follow standard IPA descriptive terminology; whether any specific CLTS release was used as a source is UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
-  "citation": "Tresoldi, Tiago. merkmal.",
-  "license_spdx": "MIT",
-  "redistribution_notes": "Same terms as the merkmal source code.",
+  "upstream_name": "CLTS (Cross-Linguistic Transcription Systems)",
+  "upstream_release": "v1.4.1",
+  "upstream_url": "https://github.com/cldf-clts/clts",
+  "upstream_commit_or_doi": "d0dbd4bd5c1c0745db15d113745c685cdd95e9d9",
+  "retrieved": "2026-08-13",
+  "transformation": "Derived from CLTS v1.4.1 data/sounds.tsv (GRAPHEME, NAME columns). Established empirically on 2026-08-13 by diffing this inventory against every tagged CLTS release: v1.4.1 matches 768 of 769 graphemes and 766 of 769 byte-identical NAME strings, against 689 and 680 respectively for v2.0.0 and later, so v1.4.1 is the source. Three rows diverge and are kept as they are: z̻ is not a CLTS v1.4.1 sound; ʈʂː is named 'long voiceless retroflex sibilant affricate consonant' here where v1.4.1 says 'voiced', which was an upstream inconsistency with its own ʈʂ entry and was corrected upstream in v2.0.0; ⁿgǃ is named with 'click' where v1.4.1 says 'nasal-click'. Feature sets are computed from the NAME tokens by tools/generate_c_data.py; no CLTS feature values, sound classes, or grapheme mappings are used.",
+  "citation": "List, Johann-Mattis, Cormac Anderson, Tiago Tresoldi, Christoph Rzymski, and Robert Forkel. Cross-Linguistic Transcription Systems (CLTS), version 1.4.1. Max Planck Institute for the Science of Human History. https://github.com/cldf-clts/clts (author list per the CLTS Zenodo record, concept DOI 10.5281/zenodo.3515744).",
+  "license_spdx": "CC-BY-4.0",
+  "redistribution_notes": "CC-BY-4.0 requires attribution: redistributing these inventories, or any adaptation of them, obliges you to credit CLTS and indicate that changes were made. This is narrower than the MIT terms covering the merkmal source code and wider than the share-alike terms on phoible. The v1.4.1 tag carries no in-repo license file; CC-BY-4.0 is the license the CLTS project declares for the catalog (dc:license in its CLDF metadata, and the Zenodo record).",
   "input_sha256": {
     "classes.tsv": "0e89f4bfbc3d2479ab06bbef2546fac5ec38ba6b0391b05837e0e2b581ba4dca",
     "features.tsv": "6b6a59227720e3f28790b0fbb4242819bfaaf05a9a8310aeceb20a1a404102a7",
     "inventory.tsv": "f519520eeaf4922ebdc92da19ba209344c63d53eca6b698914032c8f07560a56",
-    "model.json": "6cf15ed9664dd31f49414a70af0f0167a2da7424097273f21875c633a97067b7"
+    "model.json": "0710e9b9df3604ee7c961a8a7f71c5769d2e00ab1eb225e7a2a027e7fc8b54b6"
   },
   "generator": "tools/generate_c_data.py"
 }

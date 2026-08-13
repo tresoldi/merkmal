@@ -5,7 +5,7 @@
   "type": "categorical",
   "description": "Articulatory feature system based on IPA descriptions",
   "author": "Tiago Tresoldi",
-  "license": "MIT",
+  "license": "CC-BY-4.0",
   "default_geometry": "clements-hume",
   "feature_extraction": "filtered",
   "partitions": {

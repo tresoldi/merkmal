@@ -5,7 +5,7 @@
   "type": "categorical",
   "description": "Simplified categorical system keeping all name tokens",
   "author": "Tiago Tresoldi",
-  "license": "MIT",
+  "license": "CC-BY-4.0",
   "default_geometry": "clements-hume",
   "feature_extraction": "unfiltered",
   "partitions": {

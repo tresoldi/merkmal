@@ -83,7 +83,8 @@ numbers even when no code changed.
   are the library's contract.
 - Re-stamp `models/*/provenance.json` (the input hashes are checked) and
   regenerate `NOTICE`.
-- Never describe a distribution bundling PHOIBLE or P-base data as MIT-only.
-  The current expression is `MIT AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`.
+- Never describe a distribution bundling the CLTS-derived categorical
+  inventories, PHOIBLE, or P-base data as MIT-only. The current expression is
+  `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`.
 - Fields marked `UNVERIFIED` in a provenance manifest must be established
   before the next data release, not guessed from filenames.

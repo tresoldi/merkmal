@@ -1,5 +1,47 @@
 # Changelog
 
+## Unreleased
+
+### The data's provenance, established rather than asserted
+
+No behavior changes: no feature set, distance, or golden fixture moves. What
+changes is what the distribution says about where its data came from, and one
+of those statements was wrong.
+
+- **Corrected licensing.** `broad`, `descriptive` and `distinctive` declared
+  `MIT`. They are derived from CLTS, so that was a misdeclaration in a shipped
+  artifact. They now declare `CC-BY-4.0`, and the distribution declares
+  `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`. Using these
+  inventories obliges you to credit CLTS and indicate that changes were made.
+- **The source is CLTS v1.4.1** (`d0dbd4bd`), established by diffing the
+  inventory against every tagged CLTS release rather than from recollection:
+  v1.4.1 matches 768 of 769 graphemes and 766 of 769 byte-identical NAME
+  strings, against 689 and 680 for v2.0.0 and later. The three divergences are
+  recorded in the manifests instead of being reconciled away. One of them is
+  upstream's: v1.4.1 named `ʈʂː` "voiced", contradicting its own `ʈʂ` entry,
+  and corrected it in v2.0.0.
+- `classfeat` is **not** CLTS-derived — its inventory is `GRAPHEME`/`CLASS`,
+  a sound-class alphabet with hand-assigned classes. It stays MIT.
+- **PHOIBLE pinned to CLDF `cldf-datasets/phoible` v2.0.1** (`f36deac7f80b`).
+  Content alone could not have settled this — v2.0, v2.0.1 and 3.0 match at
+  98.9%, 99.5% and 99.7% of graphemes — so it stayed `UNVERIFIED` until
+  answered from maintainer records rather than inferred. Its `CC-BY-SA-3.0`
+  declaration was then checked against the pinned release and is correct:
+  v2.0.1 declares no `dc:license` of its own, so PHOIBLE 2.0's own terms
+  govern.
+- **Recorded, not yet fixed:** the PHOIBLE extraction is not self-consistent.
+  Against v2.0.1, 3,729 cells where upstream says `0` (not applicable) were
+  written `-` rather than `.`, 761 where upstream specifies a value were
+  written `.`, and 697 where upstream gives a contour were resolved to a single
+  `+`/`-`. 95.43% of cells are accounted for by the intended transformation.
+- Still `UNVERIFIED`: the four `pbase-*` models' release, commit and retrieval
+  date, and PHOIBLE's retrieval date. P-base is distributed from a website
+  rather than a versioned repository, so the diff method used above does not
+  apply to it.
+- Note for anyone auditing published artifacts: merkmal 0.1.0, 0.1.1 and 0.2.0
+  on PyPI declare `MIT` and ship CLTS-derived data. Those releases are being
+  left in place; the correction is to be disclosed on the project page.
+
 ## 1.0.0
 
 The public C API is stable from here. Three breaking changes are batched into

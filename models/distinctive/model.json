@@ -5,7 +5,7 @@
   "type": "categorical",
   "description": "Clements & Hume distinctive features with scalar dimensions",
   "author": "Tiago Tresoldi",
-  "license": "MIT",
+  "license": "CC-BY-4.0",
   "default_geometry": "clements-hume",
   "feature_extraction": "filtered",
   "scalar_dimensions": [
