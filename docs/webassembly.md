@@ -18,14 +18,15 @@ With Emscripten activated:
 emcmake cmake -S . -B build/wasm \
   -DCMAKE_BUILD_TYPE=Release \
   -DMERKMAL_BUILD_TESTS=OFF \
-  -DMERKMAL_REQUIRE_UTF8PROC=OFF
+  -DMERKMAL_USE_UTF8PROC=OFF
 cmake --build build/wasm
 ```
 
 The fallback Unicode path is used for this first spike. Native distribution
 builds require system `utf8proc`, but the WebAssembly path keeps
-`MERKMAL_REQUIRE_UTF8PROC=OFF` until the Emscripten packaging story is worth
-formalizing. A later WebAssembly release can either vendor/build `utf8proc`
+`MERKMAL_USE_UTF8PROC=OFF` until the Emscripten packaging story is worth
+formalizing. The `c-fallback` CI job runs the full C suite against that same
+profile, so it is tested rather than merely built. A later WebAssembly release can either vendor/build `utf8proc`
 inside the Emscripten toolchain or document the fallback as the supported
 browser profile.
 

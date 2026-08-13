@@ -18,14 +18,8 @@ emcc \
     -DMK_HAVE_UTF8PROC=0 \
     -Iinclude \
     -Isrc \
-    src/generated/builtin_data.c \
-    src/geometry.c \
-    src/registry.c \
-    src/resolver.c \
-    src/status.c \
-    src/string_list.c \
-    src/system.c \
-    src/unicode.c \
+    src/*.c \
+    src/generated/*.c \
     tests/wasm/smoke.c \
     -sENVIRONMENT=node \
     -sEXIT_RUNTIME=1 \

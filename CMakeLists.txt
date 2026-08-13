@@ -12,7 +12,12 @@ include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
 option(MERKMAL_BUILD_TESTS "Build merkmal C tests" ON)
-option(MERKMAL_REQUIRE_UTF8PROC "Require system utf8proc" OFF)
+option(MERKMAL_REQUIRE_UTF8PROC "Fail configuration if system utf8proc is missing" OFF)
+# REQUIRE only decides what happens when utf8proc is absent. USE decides whether
+# to look for it at all, so that the fallback profile -- the one WebAssembly
+# ships -- can be selected and tested on a machine that has utf8proc installed.
+option(MERKMAL_USE_UTF8PROC "Use system utf8proc when available" ON)
+option(MERKMAL_WERROR "Treat compiler warnings as errors (intended for CI)" OFF)
 set(MERKMAL_ENABLE_SANITIZER "" CACHE STRING "Enable sanitizer: address or undefined")
 set_property(CACHE MERKMAL_ENABLE_SANITIZER PROPERTY STRINGS "" address undefined)
 
@@ -20,9 +25,17 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
-find_package(PkgConfig QUIET)
-if(PkgConfig_FOUND)
-    pkg_check_modules(UTF8PROC QUIET IMPORTED_TARGET libutf8proc)
+if(MERKMAL_USE_UTF8PROC)
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(UTF8PROC QUIET IMPORTED_TARGET libutf8proc)
+    endif()
+else()
+    set(UTF8PROC_FOUND FALSE)
+endif()
+
+if(MERKMAL_REQUIRE_UTF8PROC AND NOT MERKMAL_USE_UTF8PROC)
+    message(FATAL_ERROR "MERKMAL_REQUIRE_UTF8PROC and MERKMAL_USE_UTF8PROC=OFF contradict each other.")
 endif()
 
 if(MERKMAL_REQUIRE_UTF8PROC AND NOT UTF8PROC_FOUND)
@@ -73,11 +86,30 @@ else()
     target_compile_definitions(merkmal PRIVATE MK_HAVE_UTF8PROC=0)
 endif()
 
+# The first-party sources are clean at this set; it is enforced rather than
+# aspirational. -Werror is opt-in so that CI can gate on it without imposing it
+# on downstream consumers building from source.
 if(MSVC)
-    target_compile_options(merkmal PRIVATE /W4)
+    set(MERKMAL_C_WARNINGS /W4)
+    if(MERKMAL_WERROR)
+        list(APPEND MERKMAL_C_WARNINGS /WX)
+    endif()
 else()
-    target_compile_options(merkmal PRIVATE -Wall -Wextra -Wpedantic)
+    set(MERKMAL_C_WARNINGS
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Wshadow
+        -Wconversion
+        -Wstrict-prototypes
+        -Wmissing-prototypes
+    )
+    if(MERKMAL_WERROR)
+        list(APPEND MERKMAL_C_WARNINGS -Werror)
+    endif()
 endif()
+
+target_compile_options(merkmal PRIVATE ${MERKMAL_C_WARNINGS})
 
 if(MERKMAL_ENABLE_SANITIZER)
     if(MSVC)
@@ -130,6 +162,7 @@ if(MERKMAL_BUILD_TESTS)
             ${CMAKE_CURRENT_SOURCE_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
+    target_compile_options(test_resolution PRIVATE ${MERKMAL_C_WARNINGS})
     if(UTF8PROC_FOUND)
         target_compile_definitions(test_resolution PRIVATE MK_HAVE_UTF8PROC=1)
         target_link_libraries(test_resolution PRIVATE PkgConfig::UTF8PROC)

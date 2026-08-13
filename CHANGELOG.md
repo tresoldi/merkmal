@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+### Enforced warning baseline, a testable fallback profile, and footprint measurement
+
+- Fixed: the WebAssembly smoke test had been failing, so the `wasm` CI job was
+  red. Both of its assertions were pinned to pre-C Python values — 5 features
+  for `pʰ` where the descriptive inventory now gives 9, and a `p`/`b` distance
+  of 0.375, which is the figure preserved in the archived `_full` fixtures
+  against the C library's 0.125. It now asserts feature membership and scoring
+  invariants; exact values belong to the golden fixtures, which are regenerated
+  deliberately.
+- Added: `MERKMAL_USE_UTF8PROC` (default `ON`). `OFF` selects the IPA-focused
+  fallback even where `libutf8proc` is installed. `MERKMAL_REQUIRE_UTF8PROC=OFF`
+  only ever permitted the fallback rather than selecting it, so the profile
+  WebAssembly ships could not be reproduced on a developer machine that had the
+  library — and was therefore covered by nothing but a 90-line smoke program.
+  A new `c-fallback` CI job runs the whole C suite against it.
+- Added: `MERKMAL_WERROR` (default `OFF`, enabled in CI). The compiler warning
+  set is now `-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wstrict-prototypes
+  -Wmissing-prototypes`; the first-party sources were already clean at it, so
+  this enforces existing discipline rather than requiring new work. Downstream
+  consumers building from source are unaffected.
+- Added: `bench/bench_footprint.sh` and a committed `bench/baseline.txt`
+  recording section sizes, relocation counts, `.wasm` bytes, and module compile
+  time. The generated data is 2.49 MB of `.rodata` over 35 KB of actual string
+  content, carrying 281,322 relocations; the baseline exists so that work
+  against that number can be argued from measurements.
+
 ### Internal structure, and two tokenization defects
 
 Restructuring of the C library and its Python wrapper. No distance, feature

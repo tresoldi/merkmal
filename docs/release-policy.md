@@ -17,8 +17,13 @@ The built-in IPA-focused Unicode fallback remains available for local
 development, bootstrap builds, and early WebAssembly experiments:
 
 ```sh
-cmake -S . -B build/dev -DMERKMAL_REQUIRE_UTF8PROC=OFF
+cmake -S . -B build/dev -DMERKMAL_USE_UTF8PROC=OFF
 ```
+
+`MERKMAL_USE_UTF8PROC=OFF` selects the fallback outright.
+`MERKMAL_REQUIRE_UTF8PROC=OFF` only tolerates it when `libutf8proc` is absent,
+so it does not reproduce the fallback on a developer machine that has the
+library installed.
 
 The project does not vendor `utf8proc` in the native C distribution. For
 WebAssembly, vendoring or `FetchContent` can be reconsidered if the Emscripten

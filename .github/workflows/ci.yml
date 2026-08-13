@@ -15,7 +15,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake pkg-config libutf8proc-dev
       - name: Configure
-        run: cmake -S . -B build/c-debug -DCMAKE_BUILD_TYPE=Debug -DMERKMAL_REQUIRE_UTF8PROC=ON
+        run: >
+          cmake -S . -B build/c-debug
+          -DCMAKE_BUILD_TYPE=Debug
+          -DMERKMAL_REQUIRE_UTF8PROC=ON
+          -DMERKMAL_WERROR=ON
       - name: Build
         run: cmake --build build/c-debug
       - name: Test
@@ -37,6 +41,45 @@ jobs:
           cc tests/c/install_consumer/main.c $(pkg-config --static --cflags --libs merkmal) -o build/pkg-config-consumer
           build/pkg-config-consumer
 
+  c-fallback:
+    name: C fallback Unicode path
+    # MK_HAVE_UTF8PROC=0 is the profile WebAssembly ships. It was previously
+    # built only by the wasm job and exercised by a single smoke program; this
+    # runs the whole suite against it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake
+      - name: Configure
+        run: >
+          cmake -S . -B build/c-fallback
+          -DCMAKE_BUILD_TYPE=Debug
+          -DMERKMAL_USE_UTF8PROC=OFF
+          -DMERKMAL_WERROR=ON
+      - name: Build
+        run: cmake --build build/c-fallback
+      - name: Test
+        run: ctest --test-dir build/c-fallback --output-on-failure
+
+  c-footprint:
+    name: Compiled footprint
+    # Reports only. The numbers exist so that data-representation changes can
+    # be argued from measurements rather than from intent.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Measure
+        run: bench/bench_footprint.sh build/footprint
+      - name: Show the committed baseline
+        run: cat bench/baseline.txt
+
   c-sanitizers:
     name: C sanitizers
     runs-on: ubuntu-latest
@@ -55,6 +98,7 @@ jobs:
           cmake -S . -B build/c-sanitizer
           -DCMAKE_BUILD_TYPE=Debug
           -DMERKMAL_REQUIRE_UTF8PROC=ON
+          -DMERKMAL_WERROR=ON
           -DMERKMAL_ENABLE_SANITIZER=${{ matrix.sanitizer }}
       - name: Build
         run: cmake --build build/c-sanitizer
@@ -76,6 +120,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release
           -DBUILD_SHARED_LIBS=ON
           -DMERKMAL_REQUIRE_UTF8PROC=ON
+          -DMERKMAL_WERROR=ON
       - name: Build
         run: cmake --build build/c-shared
       - name: Test

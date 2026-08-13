@@ -1,0 +1,35 @@
+# Committed footprint baseline.
+#
+# Recorded before the generated-data compaction work. Regenerate with
+#     bench/bench_footprint.sh
+# and update this file only alongside a change that is meant to move the
+# numbers, so that a diff here is always an argued change.
+#
+# Recorded on: 2026-08-13 at 60523c4
+
+# merkmal footprint report
+# compiler: cc (GCC) 15.2.1 20260123 (Red Hat 15.2.1-7)
+# flags: -std=c99 -O2 -DNDEBUG -DMK_HAVE_UTF8PROC=0
+
+## native objects (-O2 -DNDEBUG)
+
+object                             text     rodata     relocs
+geometry.c                         6486         54        114
+registry.c                         3927        774        117
+resolver.c                        13608       1143        436
+status.c                             21        167         10
+string_list.c                       773          0         26
+system.c                           3094        107         90
+unicode.c                         10522        467        397
+builtin_data.c                        0    2485500     281322
+TOTAL                             38431    2488212     282512
+
+generated string content: 35300 bytes
+
+## WebAssembly (emcc, fallback Unicode path)
+
+footprint.wasm: 1286045 bytes
+footprint.js:   9555 bytes
+(wasm-objdump not available; section breakdown skipped)
+
+compile time (best of 10): 0.4 ms

@@ -45,9 +45,18 @@ need to define anything manually when they use the installed CMake target.
 
 `utf8proc` is discovered with pkg-config.
 
-- `MERKMAL_REQUIRE_UTF8PROC=ON` fails configuration if `libutf8proc` is missing.
-- `MERKMAL_REQUIRE_UTF8PROC=OFF` allows the IPA-focused fallback used for
-  development builds.
+Two options, and they answer different questions.
+
+- `MERKMAL_USE_UTF8PROC` (default `ON`) decides whether to look for it at all.
+  `OFF` selects the IPA-focused fallback even on a machine that has
+  `libutf8proc` installed, which is the only way to build and test the profile
+  WebAssembly ships.
+- `MERKMAL_REQUIRE_UTF8PROC` (default `OFF`) decides what happens when it is
+  not found. `ON` fails configuration; `OFF` falls back silently.
+
+`MERKMAL_REQUIRE_UTF8PROC=OFF` on its own does not select the fallback — it
+only permits it, and a machine with `libutf8proc` installed still gets
+`utf8proc`. Use `MERKMAL_USE_UTF8PROC=OFF` to select it.
 
 Distribution builds should use `MERKMAL_REQUIRE_UTF8PROC=ON`.
 See [release-policy.md](release-policy.md) for the current release dependency
