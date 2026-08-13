@@ -1993,6 +1993,28 @@ mk_status mk_resolve(
         return MK_ERR_SOURCE_MARKER;
     }
 
+    /* The written form first. A source convention rewrites one spelling into
+     * another on the grounds that the system does not have the first -- so if
+     * the system does have it, the rewrite is wrong, and applying the table
+     * unconditionally is how U+026B came to overwrite a PHOIBLE row. */
+    {
+        char *literal = NULL;
+
+        if (mk_normalize_input_grapheme_literal(utf8_grapheme, &literal) == MK_OK) {
+            mk_entry_view found;
+
+            if (mk_lookup_normalized(
+                    system, literal, out->inline_features, &found, &out->path) == MK_OK) {
+                out->grapheme = found.grapheme;
+                out->features = found.features;
+                out->feature_count = found.feature_count;
+                mk_string_free(literal);
+                return MK_OK;
+            }
+            mk_string_free(literal);
+        }
+    }
+
     status = mk_normalize_input_grapheme(utf8_grapheme, &normalized);
     if (status != MK_OK) {
         return status;

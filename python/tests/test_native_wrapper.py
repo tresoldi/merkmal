@@ -448,7 +448,9 @@ def test_diagnose_says_where_a_grapheme_went_wrong() -> None:
     assert malformed["status"] == "parse error"
     assert malformed["valid_prefix"] == "¹²³"  # a run of three is a contour
     assert malformed["offending"] == "⁴"       # the fourth digit is the problem
-    unknown = merkmal.diagnose("ɫ")
+    # U+02AD, the bidental percussive: a real IPA symbol no bundled inventory
+    # lists, which is what "unknown grapheme" is for.
+    unknown = merkmal.diagnose("ʭ")
     assert unknown["status"] == "unknown grapheme"
     assert unknown["valid_prefix"] == ""       # nothing of it resolves
 
@@ -609,11 +611,13 @@ def test_source_conventions_cover_clts_lookalikes() -> None:
     assert merkmal.normalize("ǝ") == "ə"
     assert merkmal.distance("ǝ", "ə") == 0.0
 
-    # U+026B is deliberately NOT mapped to "lˠ", though CLTS names them the
-    # same thing. PHOIBLE carries `ɫ` as its own row with different feature
-    # values, and this table is applied before lookup and unconditionally, so
-    # the mapping destroyed a contrast rather than adding a spelling. Nothing
-    # goes in that table which any model lists as a row.
+    # U+026B maps to "lˠ" for systems that lack it, and does not shadow the
+    # row PHOIBLE has. Both at once is the point: the resolver tries the written
+    # form against the inventory before applying any convention, so a rule can
+    # no longer replace a segment a system actually distinguishes.
+    assert merkmal.normalize("ɫ") == "lˠ"
+    assert merkmal.is_segment("ɫ", system="descriptive")
+    assert merkmal.distance("ɫ", "lˠ", system="descriptive") == 0.0
     assert merkmal.distance("ɫ", "lˠ", system="phoible") > 0.0
 
 

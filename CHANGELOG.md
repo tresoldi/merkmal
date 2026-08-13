@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### A source convention can no longer shadow a real segment
+
+The resolver applied the source-conventions table before looking anything up,
+so a rule saying "a source writing X means the segment written Y" fired even
+when the system had X as its own inventory row. That is only ever a safe rewrite
+when the system *lacks* X, and the table had no way to know.
+
+It bit once, on U+026B: mapping `ɫ` to `lˠ` merged two segments PHOIBLE
+distinguishes, and the contrast audit caught it as one new zero-distance pair.
+The mapping was removed with the underlying defect left standing — latent for
+every other entry, and harmless only because no bundled model happens to list
+`ʧ` or `ʣ` as a row.
+
+`mk_resolve` now tries the written form against the inventory first and falls
+back to the rewritten one. Which makes `ɫ` safe to restore, so it is: it
+resolves to `lˠ` in the systems that lack it and remains its own segment in
+PHOIBLE, which has it. Both at once, with a test asserting each half.
+
+No golden fixture moves — the extra lookup changes which spelling wins, not what
+any segment scores.
+
 ### One license for the data, and what it rests on
 
 **No bundled table now carries a non-commercial or share-alike restriction.**

@@ -76,17 +76,19 @@ static const mk_decomposition mk_source_conventions[] = {
      * no bundled model carries it as a row of its own. A lookalike an author
      * reached for, not a distinct sound.
      *
-     * U+026B L WITH MIDDLE TILDE was added here too, mapped to "lˠ" on the same
-     * CLTS reading, and taken out again. PHOIBLE carries `ɫ` as its own
-     * inventory row with feature values that differ from `lˠ`, and every rule in
-     * this table is applied before lookup and unconditionally -- so the mapping
-     * did not add a spelling, it destroyed a contrast PHOIBLE draws. The
-     * contrast audit caught it as one new zero-distance pair.
+     * U+026B L WITH MIDDLE TILDE is BIPA's grapheme for the velarized lateral,
+     * which CLTS v1.4.1 names exactly what "lˠ" resolves to here. It was added,
+     * removed, and added back. The removal was right at the time: PHOIBLE
+     * carries `ɫ` as its own inventory row with different feature values, and
+     * this table used to be applied before lookup and unconditionally, so the
+     * mapping did not add a spelling -- it destroyed a contrast PHOIBLE draws,
+     * and the contrast audit caught it as one new zero-distance pair.
      *
-     * The general form of the bug is that a source convention must not override
-     * a grapheme the system actually has, which needs the resolver to try the
-     * written form before the rewritten one. Until that exists, nothing goes in
-     * this table that any model lists as a row. */
+     * The resolver now tries the written form against the inventory before
+     * applying anything here, so a convention can no longer shadow a grapheme a
+     * system actually has. `ɫ` resolves for the categorical systems, which lack
+     * it, and stays its own segment in PHOIBLE, which has it. */
+    { "ɫ", "lˠ" },
     { "ǝ", "ə" }
 };
 
@@ -170,6 +172,22 @@ mk_status mk_normalize_input_grapheme(
     return mk_decompose(
         mk_strip_leading_stress(mk_resolve_slash(utf8_in)),
         1,
+        utf8_out
+    );
+}
+
+mk_status mk_normalize_input_grapheme_literal(
+    const char *utf8_in,
+    char **utf8_out
+)
+{
+    if (utf8_in == NULL || utf8_out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *utf8_out = NULL;
+    return mk_decompose(
+        mk_strip_leading_stress(mk_resolve_slash(utf8_in)),
+        0,
         utf8_out
     );
 }

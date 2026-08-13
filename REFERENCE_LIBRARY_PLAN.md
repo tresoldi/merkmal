@@ -507,6 +507,36 @@ Non-negotiable design constraints, all learned from `corecog-derived.json`:
 
 ---
 
+## Defects found and closed outside the phases
+
+Things the work turned up that were nobody's phase and needed doing anyway.
+
+**A source convention could shadow a real segment — fixed 2026-08-13.** The
+source-conventions table was applied before lookup, so a rule saying "a source
+writing X means the segment written Y" fired even when the system had X as its
+own inventory row. Safe only when the system lacks X, which the table could not
+know. It bit on U+026B: mapping `ɫ` to `lˠ` merged two segments PHOIBLE
+distinguishes, and the contrast audit caught it as one new zero-distance pair.
+The mapping came out; the defect stayed, latent for every other entry and
+harmless only because no bundled model happens to list `ʧ` or `ʣ` as a row.
+`mk_resolve` now tries the written form against the inventory first, which makes
+`ɫ` safe to restore — it resolves for the systems that lack it and stays its own
+row in PHOIBLE.
+
+**PHOIBLE's cells did not match the release its manifest pinned.** 5,272 cells
+across 2,002 rows, dominated by 3,729 where upstream's `0` (does not apply) had
+been written `-` (applies, absent). Rebuilt by `scripts/rebuild_phoible_inventory.py`,
+whose `--check` re-verifies. Reading `0` as `-` had manufactured agreement, so
+distances were systematically too small.
+
+**The alignment benchmark counted BDPA's annotation rows as languages.** 8.1% of
+pairs were sequences of `*` and `.`. Fixing it retracted a parity claim that had
+already been published in `docs/reference-library-review.md`.
+
+**Still open:** PHOIBLE's row *set* differs from v2.0.1 by 17 graphemes here and
+58 there. That is a decision about which release's segment list to carry, not a
+defect, and it has not been made.
+
 ## Out of scope, stated so it stays decided
 
 - **An aligner** (D2). Component, not framework.

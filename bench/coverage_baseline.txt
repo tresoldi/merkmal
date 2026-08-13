@@ -13,21 +13,20 @@ DATASET                           FORMS   %FORMS  %TOKENS
 williamsonbenuecongo              12271     0.0%    62.4%
 starostinhmongmien                 1827    74.4%    94.2%
 hillburmish                        4032    85.7%    97.1%
-mcd                               20689    91.6%    96.9%
+mcd                               20689    92.2%    97.0%
 peirosst                          13798    93.1%    98.2%
 oliveiraprotopanoan                7305    93.3%    98.4%
 houchinese                         2789    97.5%    99.6%
 blumpanotacana                    10226    97.9%    99.6%
 yuchinese                          1423    98.7%    99.8%
-bdpa                              50095    99.0%    99.8%
 pila                               5776    99.0%    99.8%
 schuesslerhanchinese              11353    99.1%    99.7%
 savelyevturkic                     8360    99.3%    99.8%
-kesslersignificance                1600    99.4%    99.8%
 oskolskayatungusic                 6095    99.5%    99.9%
 ratcliffearabic                    1340    99.6%    99.9%
 smithborneo                       50997    99.6%    99.9%
 iecor                             18801    99.6%    99.9%
+bdpa                              50095    99.6%    99.9%
 hattorijaponic                     1986    99.6%    99.9%
 walkerarawakan                     5894    99.7%    99.9%
 starostinpie                       2172    99.8%    99.9%
@@ -35,7 +34,6 @@ lsi                               60533    99.8%   100.0%
 chaconarawakan                      711    99.9%   100.0%
 northperulex                       4986    99.9%   100.0%
 peirosaustroasiatic               10706    99.9%   100.0%
-dunnielex                          4393    99.9%   100.0%
 backstromnorthernpakistan         11343    99.9%   100.0%
 simsrma                            1055    99.9%   100.0%
 sidwellvietic                      3217    99.9%   100.0%
@@ -85,6 +83,7 @@ davletshinaztecan                   854   100.0%   100.0%
 deepadungpalaung                   1584   100.0%   100.0%
 dravlex                            2127   100.0%   100.0%
 dunnaslian                         4560   100.0%   100.0%
+dunnielex                          4393   100.0%   100.0%
 duonglachi                          412   100.0%   100.0%
 felekesemitic                      3120   100.0%   100.0%
 galuciotupi                        2258   100.0%   100.0%
@@ -102,6 +101,7 @@ huntergatherer                    64607   100.0%   100.0%
 idssegmented                     360553   100.0%   100.0%
 ivanisuansu                         250   100.0%   100.0%
 kahd                               5935   100.0%   100.0%
+kesslersignificance                1600   100.0%   100.0%
 kitchensemitic                     2396   100.0%   100.0%
 kleinewillinghoeferbikwinjen       1804   100.0%   100.0%
 kochtukanoan                       2299   100.0%   100.0%
