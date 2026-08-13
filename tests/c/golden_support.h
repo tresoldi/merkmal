@@ -1,6 +1,8 @@
 #ifndef MK_GOLDEN_SUPPORT_H
 #define MK_GOLDEN_SUPPORT_H
 
+#include "merkmal.h"
+
 #include <stddef.h>
 
 /* Shared by every fixture-replaying test. The TSV reader was copied verbatim
@@ -37,5 +39,9 @@ int mk_golden_cases_load(mk_golden_cases *out, const char *path);
 void mk_golden_cases_free(mk_golden_cases *cases);
 
 const mk_golden_case *mk_golden_cases_find(const mk_golden_cases *cases, const char *name);
+
+/* The case as the scoring API takes it. Borrows the case, which must outlive
+ * the view. */
+mk_feature_view mk_golden_case_view(const mk_golden_case *item);
 
 #endif

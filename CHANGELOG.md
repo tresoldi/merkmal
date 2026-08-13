@@ -1,6 +1,31 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
+
+The public C API is stable from here. Three breaking changes are batched into
+this release and nothing else changes behavior; see the migration table in
+[docs/c-api.md](docs/c-api.md).
+
+- **Breaking (C):** `mk_free_string` is now `mk_string_free`. A rename only. It
+  reads the way the other destructors already did — `mk_string_list_free`,
+  `mk_registry_free` — type first, verb last. It was the one that read the
+  other way round.
+- **Breaking (C/ABI):** `mk_system_is_segment` reports through `bool *` rather
+  than `int *`, and `merkmal.h` now includes `<stdbool.h>`. This is an ABI
+  change wherever `_Bool` and `int` differ in size, which is most places, so it
+  rides the SOVERSION bump: recompile rather than relink.
+- **Breaking (C):** `mk_sound_distance` takes two `mk_feature_view` values in
+  place of four arguments. `mk_feature_view` is now public — a value type
+  holding a `const char *const *` and a `size_t`, borrowed for the call. It was
+  already the internal scoring type; the public function was the one place a
+  caller had to spell out both pairs and keep them aligned by hand.
+- Added: `ctest` compiles `merkmal.h` on its own, and CI additionally compiles
+  it as C++. A header that needs the caller to have included `<stddef.h>` first
+  passes everywhere inside this project and fails for the first consumer who
+  includes it before anything else.
+- The exported surface is still 26 symbols. The Python API is unaffected.
+
+The rest of 1.0.0, in the order it was done:
 
 ### Fuzzing, static analysis, and a heap overread on malformed UTF-8
 

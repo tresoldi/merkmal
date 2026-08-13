@@ -43,7 +43,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         mk_string_list *features = NULL;
         mk_string_list *tokens = NULL;
         double distance = 0.0;
-        int is_segment = 0;
+        bool is_segment = false;
 
         if (mk_registry_get_system(registry, mk_string_list_get(names, i), &system) != MK_OK) {
             continue;

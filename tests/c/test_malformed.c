@@ -12,6 +12,7 @@
 
 #include "merkmal.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -83,12 +84,12 @@ static int run_case(mk_registry *registry, const malformed_case *test)
         list = NULL;
     }
     if (mk_normalize_grapheme(text, &owned) == MK_OK) {
-        mk_free_string(owned);
+        mk_string_free(owned);
         owned = NULL;
     }
     if (mk_split_tone(text, &owned, &second) == MK_OK) {
-        mk_free_string(owned);
-        mk_free_string(second);
+        mk_string_free(owned);
+        mk_string_free(second);
         owned = NULL;
         second = NULL;
     }
@@ -96,7 +97,7 @@ static int run_case(mk_registry *registry, const malformed_case *test)
     if (mk_registry_list_systems(registry, &names) == MK_OK) {
         for (i = 0; i < mk_string_list_size(names); i++) {
             const mk_system *system = NULL;
-            int is_segment = 0;
+            bool is_segment = false;
             double distance = 0.0;
 
             if (mk_registry_get_system(registry, mk_string_list_get(names, i), &system) != MK_OK) {
@@ -163,7 +164,7 @@ static int check_long_feature_name_is_rejected(void)
             mk_string_list_free(features);
         }
     }
-    mk_free_string(diagnostic);
+    mk_string_free(diagnostic);
     mk_registry_free(registry);
     return failed;
 }

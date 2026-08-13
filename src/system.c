@@ -3,6 +3,7 @@
 #include "string_list.h"
 #include "strings.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,7 +44,7 @@ mk_status mk_system_kind(const mk_system *system, const char **out)
 mk_status mk_system_is_segment(
     const mk_system *system,
     const char *utf8_grapheme,
-    int *out
+    bool *out
 )
 {
     mk_resolution entry;
@@ -52,11 +53,11 @@ mk_status mk_system_is_segment(
     if (out == NULL) {
         return MK_ERR_INVALID_ARGUMENT;
     }
-    *out = 0;
+    *out = false;
     status = mk_resolve(system, utf8_grapheme, &entry);
     if (status == MK_OK) {
         mk_resolution_clear(&entry);
-        *out = 1;
+        *out = true;
         return MK_OK;
     }
     if (status == MK_ERR_UNKNOWN_GRAPHEME) {
@@ -399,7 +400,7 @@ mk_status mk_system_segment_ipa(
             char *joined = NULL;
             size_t joined_len = 0;
             size_t joined_cap = 0;
-            int is_segment = 0;
+            bool is_segment = false;
 
             for (i = 0; i < span; i++) {
                 status = mk_append_text(

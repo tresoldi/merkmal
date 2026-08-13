@@ -98,7 +98,7 @@ int main(void)
         failed = 1;
         goto cleanup;
     }
-    mk_free_string(normalized);
+    mk_string_free(normalized);
     normalized = NULL;
 
     status = mk_segment_ipa_merged("tʰoŋ⁵⁵", &segments);
@@ -114,7 +114,7 @@ int main(void)
     }
 
 cleanup:
-    mk_free_string(normalized);
+    mk_string_free(normalized);
     mk_string_list_free(features);
     mk_string_list_free(segments);
     mk_registry_free(registry);

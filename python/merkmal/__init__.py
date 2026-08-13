@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import cast
 
-__version__ = "0.7.0"
+__version__ = "1.0.0"
 
 try:
     from merkmal import _native as _native  # type: ignore[attr-defined]

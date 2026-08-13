@@ -40,12 +40,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
 
     if (mk_normalize_grapheme(text, &normalized) == MK_OK) {
-        mk_free_string(normalized);
+        mk_string_free(normalized);
     }
 
     if (mk_split_tone(text, &base, &tone) == MK_OK) {
-        mk_free_string(base);
-        mk_free_string(tone);
+        mk_string_free(base);
+        mk_string_free(tone);
     }
 
     free(text);

@@ -1745,7 +1745,7 @@ mk_status mk_resolve(
         out->grapheme = entry.grapheme;
         out->features = entry.features;
         out->feature_count = entry.feature_count;
-        mk_free_string(normalized);
+        mk_string_free(normalized);
         return MK_OK;
     }
     if (status == MK_ERR_UNKNOWN_GRAPHEME) {
@@ -1760,6 +1760,6 @@ mk_status mk_resolve(
             status = mk_synthesize_cluster(system, &mk_consonant_cluster_grammar, normalized, out);
         }
     }
-    mk_free_string(normalized);
+    mk_string_free(normalized);
     return status;
 }

@@ -14,14 +14,11 @@
 
 #include <stddef.h>
 
-/* What a scorer actually compares. Scoring reads feature sets and nothing else:
- * it has no use for a grapheme, an inventory row, or a resolved entry. Taking
- * mk_builtin_entry made five call sites fabricate one on the stack, two of them
- * inventing a grapheme string that the scorer then read to decide identity. */
-typedef struct mk_feature_view {
-    const char *const *features;
-    size_t count;
-} mk_feature_view;
+/* mk_feature_view is public, in merkmal.h. Scoring reads feature sets and
+ * nothing else: it has no use for a grapheme, an inventory row, or a resolved
+ * entry. Taking mk_builtin_entry made five call sites fabricate one on the
+ * stack, two of them inventing a grapheme string that the scorer then read to
+ * decide identity. */
 
 /* Whether the compiled geometry has anywhere to put this feature. A feature it
  * does not know contributes nothing to any distance, so a model built from such

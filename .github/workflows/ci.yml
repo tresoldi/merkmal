@@ -26,6 +26,12 @@ jobs:
         run: ctest --test-dir build/c-debug --output-on-failure
       - name: Check generated data
         run: cmake --build build/c-debug --target check-generated-data
+      - name: Header compiles standalone, in C99 and in C++
+        # The ctest case covers C. This adds C++, which is what the header's
+        # extern "C" block exists for and which nothing else here compiles.
+        run: |
+          g++ -std=c++11 -Wall -Wextra -Wpedantic -Werror \
+            -Iinclude -c tests/c/header/header_only.cpp -o /dev/null
       - name: Install
         run: cmake --install build/c-debug --prefix "$GITHUB_WORKSPACE/build/install"
       - name: Test installed CMake package

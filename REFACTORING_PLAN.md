@@ -748,8 +748,19 @@ most; it must ride a SOVERSION bump.
 - CHANGELOG carries migration notes for each break.
 - Python wrapper and WASM smoke updated; full matrix green.
 
-**Depends on.** Milestones B, C, E — break the API once, after the internals
-have stopped moving.
+**Outcome.** Three breaks, all made at once, and the version is 1.0.0:
+`mk_free_string` → `mk_string_free`, `bool *` for `mk_system_is_segment`, and
+two `mk_feature_view` values for `mk_sound_distance`. The exported surface is
+still 26 symbols and the only symbol-table difference is the rename. The Python
+API is unaffected.
+
+The proposed compatibility wrapper for the old `mk_sound_distance` was not
+kept. The plan allowed "one release" for it; since this *is* the 1.0 release
+and the shape was never published as stable, a wrapper would have shipped a
+deprecated symbol on the day the API froze.
+
+`mk_feature_distance` keeps `int *out` — it reports a number of steps through
+the geometry, not a truth value, so `bool` would be wrong.
 
 ---
 

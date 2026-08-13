@@ -144,3 +144,12 @@ const mk_golden_case *mk_golden_cases_find(const mk_golden_cases *cases, const c
     }
     return NULL;
 }
+
+mk_feature_view mk_golden_case_view(const mk_golden_case *item)
+{
+    mk_feature_view view;
+
+    view.features = item->feature_view;
+    view.count = item->feature_count;
+    return view;
+}

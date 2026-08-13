@@ -1,6 +1,7 @@
 #ifndef MERKMAL_H
 #define MERKMAL_H
 
+#include <stdbool.h>
 #include <stddef.h>
 
 #if defined(_WIN32) && defined(MERKMAL_SHARED)
@@ -18,6 +19,18 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* A borrowed feature set: the pointers and the strings both belong to the
+ * caller and must outlive the call. Feature order carries no meaning.
+ *
+ * This is a value type on purpose. It is not opaque because there is nothing to
+ * hide -- it is exactly a pointer and a count -- and making it public lets a
+ * caller hand the same two fields to every function that scores features
+ * instead of spelling out four arguments. */
+typedef struct mk_feature_view {
+    const char *const *features;
+    size_t count;
+} mk_feature_view;
 
 typedef struct mk_registry mk_registry;
 typedef struct mk_system mk_system;
@@ -67,7 +80,7 @@ MK_API mk_status mk_registry_add_model_text(
 );
 
 /* As above, but on failure *diagnostic_out receives an owned message naming the
- * offending line and token. Free it with mk_free_string. It is NULL on success
+ * offending line and token. Free it with mk_string_free. It is NULL on success
  * and may be NULL on entry if the caller does not want the detail. */
 MK_API mk_status mk_registry_add_model_text_ex(
     mk_registry *registry,
@@ -80,11 +93,16 @@ MK_API mk_status mk_system_name(const mk_system *system, const char **out);
 /** Returns the system kind as borrowed static storage. */
 MK_API mk_status mk_system_kind(const mk_system *system, const char **out);
 
-/** Tests a grapheme without allocating a feature result. */
+/* Whether the system recognizes this grapheme, without allocating a feature
+ * result.
+ *
+ * Total: input the system does not recognize sets *out to false and returns
+ * MK_OK, as does input it recognizes and rejects, such as an over-long Chao
+ * run. Use mk_system_grapheme_features when the reason matters. */
 MK_API mk_status mk_system_is_segment(
     const mk_system *system,
     const char *utf8_grapheme,
-    int *out
+    bool *out
 );
 
 /** Returns the features of one grapheme, in no meaningful order. */
@@ -118,12 +136,14 @@ MK_API mk_status mk_feature_distance(
     int *out
 );
 
-/** Computes distance between two caller-provided feature lists. */
+/* Distance between two caller-provided feature sets, scored against the
+ * compiled geometry with no system, registry, or grapheme involved.
+ *
+ * `node_weights` names a weight preset, or is NULL for the default. An unknown
+ * preset returns MK_ERR_INVALID_ARGUMENT rather than a score. */
 MK_API mk_status mk_sound_distance(
-    const char *const *features_a,
-    size_t feature_a_count,
-    const char *const *features_b,
-    size_t feature_b_count,
+    mk_feature_view a,
+    mk_feature_view b,
     const char *node_weights,
     double *out
 );
@@ -180,7 +200,7 @@ MK_API mk_status mk_segment_ipa_merged(
  * that models tone as its own dimension has to reimplement Chao digit parsing
  * to undo what mk_merge_tone_digits did.
  *
- * On MK_OK both outputs are caller-owned and freed with mk_free_string.
+ * On MK_OK both outputs are caller-owned and freed with mk_string_free.
  * *tone_out is NULL when the segment carries no tone, which is not an error.
  * A token consisting only of tone digits returns MK_ERR_UNKNOWN_GRAPHEME,
  * matching the policy that standalone tone clusters are not segments. */
@@ -203,8 +223,11 @@ MK_API const char *mk_string_list_get(const mk_string_list *list, size_t index);
 /** Frees a string list and all copied strings. */
 MK_API void mk_string_list_free(mk_string_list *list);
 
-/** Frees a string returned by a library allocation. */
-MK_API void mk_free_string(char *s);
+/* Frees a string the library allocated. Tolerates NULL.
+ *
+ * Named for the thing it frees, like mk_string_list_free and mk_registry_free.
+ * It was mk_free_string, the one destructor that read the other way round. */
+MK_API void mk_string_free(char *s);
 
 #ifdef __cplusplus
 }

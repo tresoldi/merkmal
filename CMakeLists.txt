@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(merkmal
-    VERSION 0.7.0
+    VERSION 1.0.0
     DESCRIPTION "C99 phonological feature library"
     LANGUAGES C
 )
@@ -136,6 +136,14 @@ if(MERKMAL_BUILD_TESTS)
     add_executable(test_smoke tests/c/test_smoke.c)
     target_link_libraries(test_smoke PRIVATE merkmal)
     add_test(NAME smoke COMMAND test_smoke)
+
+    # Compiling the header alone is the test: one that needs the caller to
+    # have included <stddef.h> first passes everywhere inside this project and
+    # fails for the first consumer who includes it before anything else.
+    add_executable(test_header tests/c/header/header_only.c)
+    target_link_libraries(test_header PRIVATE merkmal)
+    target_compile_options(test_header PRIVATE ${MERKMAL_C_WARNINGS})
+    add_test(NAME header COMMAND test_header)
 
     add_executable(test_malformed tests/c/test_malformed.c)
     target_link_libraries(test_malformed PRIVATE merkmal)

@@ -629,26 +629,16 @@ mk_status mk_score_valued(
 }
 
 mk_status mk_sound_distance(
-    const char *const *features_a,
-    size_t feature_a_count,
-    const char *const *features_b,
-    size_t feature_b_count,
+    mk_feature_view a,
+    mk_feature_view b,
     const char *node_weights,
     double *out
 )
 {
-    mk_feature_view a;
-    mk_feature_view b;
-
     if (out == NULL ||
-        (feature_a_count > 0 && features_a == NULL) ||
-        (feature_b_count > 0 && features_b == NULL)) {
+        (a.count > 0 && a.features == NULL) ||
+        (b.count > 0 && b.features == NULL)) {
         return MK_ERR_INVALID_ARGUMENT;
     }
-
-    a.features = features_a;
-    a.count = feature_a_count;
-    b.features = features_b;
-    b.count = feature_b_count;
     return mk_score_categorical(NULL, a, b, node_weights, out);
 }

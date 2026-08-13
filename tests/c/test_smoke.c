@@ -1,6 +1,7 @@
 #include "merkmal.h"
 
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -42,7 +43,7 @@ static int expect_segment(
     const char *label
 )
 {
-    int is_segment = 0;
+    bool is_segment = false;
     int failed = 0;
 
     failed |= expect_status(mk_system_is_segment(system, grapheme, &is_segment), MK_OK, label);
@@ -77,7 +78,7 @@ int main(void)
     mk_string_list *features = NULL;
     char *normalized = NULL;
     double distance = 0.0;
-    int is_segment = 0;
+    bool is_segment = false;
     int failed = 0;
 
     failed |= expect_string(mk_status_string(MK_OK), "ok", "status ok");
@@ -713,52 +714,52 @@ int main(void)
 
     failed |= expect_status(mk_normalize_grapheme("g", &normalized), MK_OK, "normalize g");
     failed |= expect_string(normalized, "ɡ", "normalize g");
-    mk_free_string(normalized);
+    mk_string_free(normalized);
     normalized = NULL;
 
     failed |= expect_status(mk_normalize_grapheme("sh/ʃ", &normalized), MK_OK, "normalize slash");
     failed |= expect_string(normalized, "ʃ", "normalize slash");
-    mk_free_string(normalized);
+    mk_string_free(normalized);
     normalized = NULL;
 
     failed |= expect_status(mk_normalize_grapheme("ã", &normalized), MK_OK, "normalize nfd nasal");
     failed |= expect_string(normalized, "ã", "normalize nfd nasal");
-    mk_free_string(normalized);
+    mk_string_free(normalized);
     normalized = NULL;
 
     failed |= expect_status(mk_normalize_grapheme("ü", &normalized), MK_OK, "normalize u diaeresis");
     failed |= expect_string(normalized, "ü", "normalize u diaeresis");
-    mk_free_string(normalized);
+    mk_string_free(normalized);
     normalized = NULL;
 
     failed |= expect_status(mk_normalize_grapheme("ï", &normalized), MK_OK, "normalize i diaeresis");
     failed |= expect_string(normalized, "ï", "normalize i diaeresis");
-    mk_free_string(normalized);
+    mk_string_free(normalized);
     normalized = NULL;
 
     failed |= expect_status(mk_normalize_grapheme("ḭ", &normalized), MK_OK, "normalize i creaky");
     failed |= expect_string(normalized, "ḭ", "normalize i creaky");
-    mk_free_string(normalized);
+    mk_string_free(normalized);
     normalized = NULL;
 
     failed |= expect_status(mk_normalize_grapheme("ṳ", &normalized), MK_OK, "normalize u breathy");
     failed |= expect_string(normalized, "ṳ", "normalize u breathy");
-    mk_free_string(normalized);
+    mk_string_free(normalized);
     normalized = NULL;
 
     failed |= expect_status(mk_normalize_grapheme("ṵ", &normalized), MK_OK, "normalize u creaky");
     failed |= expect_string(normalized, "ṵ", "normalize u creaky");
-    mk_free_string(normalized);
+    mk_string_free(normalized);
     normalized = NULL;
 
     failed |= expect_status(mk_normalize_grapheme("ṽ", &normalized), MK_OK, "normalize v nasalized");
     failed |= expect_string(normalized, "ṽ", "normalize v nasalized");
-    mk_free_string(normalized);
+    mk_string_free(normalized);
     normalized = NULL;
 
     failed |= expect_status(mk_normalize_grapheme("ˈ", &normalized), MK_OK, "normalize bare stress");
     failed |= expect_string(normalized, "", "normalize bare stress");
-    mk_free_string(normalized);
+    mk_string_free(normalized);
     normalized = NULL;
 
     {
@@ -873,8 +874,8 @@ int main(void)
             fprintf(stderr, "split tone: expected tone \"¹³\", got \"%s\"\n", tone ? tone : "(null)");
             failed = 1;
         }
-        mk_free_string(base);
-        mk_free_string(tone);
+        mk_string_free(base);
+        mk_string_free(tone);
         base = NULL;
         tone = NULL;
 
@@ -888,7 +889,7 @@ int main(void)
             fprintf(stderr, "split untoned: expected no tone, got \"%s\"\n", tone);
             failed = 1;
         }
-        mk_free_string(base);
+        mk_string_free(base);
         base = NULL;
 
         /* Splitting every merged segment round-trips the whole word. */
@@ -898,8 +899,8 @@ int main(void)
                 base ? base : "(null)", tone ? tone : "(null)");
             failed = 1;
         }
-        mk_free_string(base);
-        mk_free_string(tone);
+        mk_string_free(base);
+        mk_string_free(tone);
         base = NULL;
         tone = NULL;
 

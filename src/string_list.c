@@ -103,7 +103,7 @@ void mk_string_list_free(mk_string_list *list)
     free(list);
 }
 
-void mk_free_string(char *s)
+void mk_string_free(char *s)
 {
     free(s);
 }

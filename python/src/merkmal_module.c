@@ -385,7 +385,7 @@ static PyObject *py_is_segment(PyObject *self, PyObject *args, PyObject *kwargs)
     const char *system_name = default_system_name;
     mk_registry *registry;
     const mk_system *system;
-    int is_segment = 0;
+    bool is_segment = false;
     PyObject *result = NULL;
     mk_status status;
 
@@ -414,7 +414,7 @@ static PyObject *py_is_segment(PyObject *self, PyObject *args, PyObject *kwargs)
         status_error(status, "is_segment");
         goto done;
     }
-    result = PyBool_FromLong(is_segment);
+    result = PyBool_FromLong(is_segment ? 1 : 0);
 
 done:
     py_utf8_args_clear(&bag);
@@ -543,12 +543,16 @@ static PyObject *py_sound_distance(PyObject *self, PyObject *args, PyObject *kwa
         py_str_array_init(&b, b_obj, "features_b") < 0) {
         goto done;
     }
-    status = mk_sound_distance(
-        a.items, (size_t)a.count,
-        b.items, (size_t)b.count,
-        node_weights,
-        &distance
-    );
+    {
+        mk_feature_view a_view;
+        mk_feature_view b_view;
+
+        a_view.features = a.items;
+        a_view.count = (size_t)a.count;
+        b_view.features = b.items;
+        b_view.count = (size_t)b.count;
+        status = mk_sound_distance(a_view, b_view, node_weights, &distance);
+    }
     if (status != MK_OK) {
         status_error(status, "sound_distance");
         goto done;
@@ -585,7 +589,7 @@ static PyObject *py_normalize(PyObject *self, PyObject *args)
         goto done;
     }
     result = PyUnicode_FromString(normalized);
-    mk_free_string(normalized);
+    mk_string_free(normalized);
 
 done:
     py_utf8_args_clear(&bag);
@@ -712,8 +716,8 @@ static PyObject *py_split_tone(PyObject *self, PyObject *args)
     /* An untoned segment yields None for the tone, not an empty string, so
      * "has no tone" and "has an empty tone" cannot be confused. */
     result = Py_BuildValue("(sz)", base, tone);
-    mk_free_string(base);
-    mk_free_string(tone);
+    mk_string_free(base);
+    mk_string_free(tone);
 
 done:
     py_utf8_args_clear(&bag);
@@ -814,13 +818,13 @@ static PyObject *py_add_model_text(PyObject *self, PyObject *args, PyObject *kwa
          * caller only learns that something in the model was wrong. */
         if (diagnostic != NULL) {
             PyErr_Format(mk_py_error, "add_model_text: %s", diagnostic);
-            mk_free_string(diagnostic);
+            mk_string_free(diagnostic);
         } else {
             status_error(status, "add_model_text");
         }
         goto done;
     }
-    mk_free_string(diagnostic);
+    mk_string_free(diagnostic);
     result = Py_NewRef(Py_None);
 
 done:

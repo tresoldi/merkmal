@@ -5,6 +5,40 @@ It is C99-compatible and uses explicit status codes instead of exceptions.
 Public functions are annotated with `MK_API` so shared-library builds export
 only the supported ABI surface.
 
+## Migrating to 1.0
+
+Three breaking changes, all of them mechanical. They are batched into this one
+release; the surface is stable from here.
+
+| before | after |
+|---|---|
+| `mk_free_string(s)` | `mk_string_free(s)` |
+| `mk_system_is_segment(sys, g, int *out)` | `mk_system_is_segment(sys, g, bool *out)` |
+| `mk_sound_distance(fa, na, fb, nb, w, out)` | `mk_sound_distance(view_a, view_b, w, out)` |
+
+`mk_string_free` is a rename only. It reads the way the other destructors
+already did — `mk_string_list_free`, `mk_registry_free` — where the type comes
+first and the verb last.
+
+`bool` comes from `<stdbool.h>`, which the header now includes. This is an ABI
+change as well as an API one on any platform where `_Bool` and `int` differ in
+size, so it rides the SOVERSION bump; recompile rather than relink.
+
+`mk_sound_distance` takes two `mk_feature_view` values instead of four
+arguments. The view is a public value type, a `const char *const *` and a
+`size_t`, and it borrows: both the array and the strings must outlive the call.
+
+```c
+mk_feature_view a;
+mk_feature_view b;
+
+a.features = features_a;
+a.count = feature_a_count;
+b.features = features_b;
+b.count = feature_b_count;
+mk_sound_distance(a, b, NULL, &distance);
+```
+
 ## Ownership
 
 Objects returned through output parameters are owned by the caller unless
@@ -12,7 +46,7 @@ documented otherwise.
 
 - Free registries with `mk_registry_free`.
 - Free string lists with `mk_string_list_free`.
-- Free returned strings with `mk_free_string`.
+- Free returned strings with `mk_string_free`.
 - Strings returned by `mk_string_list_get` and `mk_system_name` are borrowed
   and remain valid only while the owning object is alive.
 
@@ -63,7 +97,7 @@ whose features the geometry does not know registers successfully and then
 answers `0.0` for every comparison, which is indistinguishable from "these
 segments are identical". Use `mk_registry_add_model_text_ex` to receive an
 owned diagnostic naming the offending line and token; free it with
-`mk_free_string`.
+`mk_string_free`.
 
 System pointers returned by `mk_registry_get_system` remain valid until the
 registry is freed. Adding a model does not invalidate an existing system
@@ -74,7 +108,7 @@ pointer.
 ```c
 mk_status mk_system_name(const mk_system *system, const char **out);
 mk_status mk_system_kind(const mk_system *system, const char **out);
-mk_status mk_system_is_segment(const mk_system *system, const char *utf8_grapheme, int *out);
+mk_status mk_system_is_segment(const mk_system *system, const char *utf8_grapheme, bool *out);
 mk_status mk_system_grapheme_features(const mk_system *system, const char *utf8_grapheme, mk_string_list **out);
 mk_status mk_system_segment_distance(const mk_system *system, const char *utf8_a, const char *utf8_b, double *out);
 mk_status mk_system_segment_distance_with_weights(const mk_system *system, const char *utf8_a, const char *utf8_b, const char *node_weights, double *out);
@@ -118,7 +152,7 @@ earlier two-item blocklist rejected `mb` and `nd` while accepting `mp` and
 
 ```c
 mk_status mk_feature_distance(const char *feature_a, const char *feature_b, int *out);
-mk_status mk_sound_distance(const char *const *features_a, size_t feature_a_count, const char *const *features_b, size_t feature_b_count, const char *node_weights, double *out);
+mk_status mk_sound_distance(mk_feature_view a, mk_feature_view b, const char *node_weights, double *out);
 mk_status mk_normalize_grapheme(const char *utf8_in, char **utf8_out);
 mk_status mk_segment_ipa(const char *utf8_in, mk_string_list **out);
 mk_status mk_system_segment_ipa(const mk_system *system, const char *utf8_in, mk_string_list **out);
@@ -146,7 +180,7 @@ that model tone as a dimension of its own need it, because the merged form
 fuses the nucleus and its tone into one string. `*tone_out` is `NULL` for an
 untoned segment, which is not an error; a token that is nothing but tone
 digits returns `MK_ERR_UNKNOWN_GRAPHEME`, matching the standalone-tone policy
-above. Both outputs are caller-owned and freed with `mk_free_string`.
+above. Both outputs are caller-owned and freed with `mk_string_free`.
 
 ### Chao digits are pitch, not tone-category numbers
 
@@ -198,7 +232,7 @@ and reinterpreting the run in pieces produced contradictory features: `a¹²³�
 used to be accepted carrying two different onset levels at once. `mk_segment_ipa`
 keeps a run in a single token and the recognizer rejects that token whole, so
 tokenization, `mk_system_is_segment`, and feature lookup share one tone grammar.
-`mk_system_is_segment` reports `0`; `mk_system_grapheme_features` returns
+`mk_system_is_segment` reports `false`; `mk_system_grapheme_features` returns
 `MK_ERR_PARSE` so the caller can tell malformed tone from an unknown grapheme.
 
 #### Systems without tone support

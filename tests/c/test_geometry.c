@@ -146,10 +146,8 @@ static int check_sound_distances(
 
         expected = strtod(expected_text, NULL);
         status = mk_sound_distance(
-            features_a->feature_view,
-            features_a->feature_count,
-            features_b->feature_view,
-            features_b->feature_count,
+            mk_golden_case_view(features_a),
+            mk_golden_case_view(features_b),
             node_weights,
             &actual
         );
@@ -186,14 +184,22 @@ static int check_invalid_preset(void)
     double value = -1.0;
     mk_status status;
 
-    status = mk_sound_distance(features_a, 3, features_b, 3, "no-such-preset", &value);
+    mk_feature_view a;
+    mk_feature_view b;
+
+    a.features = features_a;
+    a.count = 3;
+    b.features = features_b;
+    b.count = 3;
+
+    status = mk_sound_distance(a, b, "no-such-preset", &value);
     if (status != MK_ERR_INVALID_ARGUMENT) {
         fprintf(stderr, "sound_distance unknown preset: expected %d, got %d\n",
             MK_ERR_INVALID_ARGUMENT, status);
         return 1;
     }
 
-    status = mk_sound_distance(features_a, 3, features_b, 3, "flat", &value);
+    status = mk_sound_distance(a, b, "flat", &value);
     if (status != MK_OK || !(value > 0.0 && value <= 1.0)) {
         fprintf(stderr, "sound_distance flat: expected a normalized value, got %d %.10f\n",
             status, value);
