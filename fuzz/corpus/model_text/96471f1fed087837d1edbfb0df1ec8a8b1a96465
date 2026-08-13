@@ -1,0 +1,4 @@
+# a# a comment
+@model loose
+@type categorical
+@validation permiss commen

@@ -1,0 +1,3 @@
+@model tiny
+@type categorical
+grapheme grapheme nt

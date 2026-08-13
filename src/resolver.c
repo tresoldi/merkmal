@@ -32,7 +32,7 @@ static char *mk_remove_tie_bars(const char *text)
             p += strlen("͜");
             continue;
         }
-        n = mk_utf8_char_len((unsigned char)*p);
+        n = mk_utf8_step(p);
         memcpy(one, p, n);
         one[n] = '\0';
         if (mk_append_text(&out, &len, &cap, one) != MK_OK) {
@@ -359,11 +359,19 @@ static mk_status mk_add_prefixed_feature(
 )
 {
     char label[96];
+    int written;
 
     if (feature == NULL || feature[0] == '\0') {
         return MK_OK;
     }
-    snprintf(label, sizeof(label), "%s-%s", prefix, feature);
+    written = snprintf(label, sizeof(label), "%s-%s", prefix, feature);
+    /* A runtime model may name features of any length, and a truncated label
+     * is not a shorter name for the same thing -- it is a different feature
+     * that the geometry does not know and that therefore scores against
+     * nothing. Refusing is the honest answer. */
+    if (written < 0 || (size_t)written >= sizeof(label)) {
+        return MK_ERR_PARSE;
+    }
     return mk_add_owned_feature(items, count, cap, label);
 }
 
@@ -377,11 +385,15 @@ static mk_status mk_add_movement_feature(
 )
 {
     char label[128];
+    int written;
 
     if (dimension == NULL || from == NULL || to == NULL) {
         return MK_OK;
     }
-    snprintf(label, sizeof(label), "move-%s-%s-%s", dimension, from, to);
+    written = snprintf(label, sizeof(label), "move-%s-%s-%s", dimension, from, to);
+    if (written < 0 || (size_t)written >= sizeof(label)) {
+        return MK_ERR_PARSE;
+    }
     return mk_add_owned_feature(items, count, cap, label);
 }
 
@@ -465,6 +477,8 @@ static mk_status mk_add_chao_level_features(
     /* One ordered label per position. The previous encoding was a register bit
      * plus a height bit, which is not monotone in the Chao digit: level 2 and
      * level 4 differ in both bits and so scored as far apart as 1 and 5. */
+    /* Cannot truncate: `position` is one of two compiled-in words and `level`
+     * is 1-5, checked above, so the longest result is well inside 32. */
     snprintf(feature, sizeof(feature), "tone-%s-%d", position, level);
     return mk_add_owned_feature(modifiers, modifier_count, modifier_cap, feature);
 }
@@ -577,7 +591,7 @@ static mk_status mk_match_chao_tone_sequence(
             levels[count] = value;
         }
         count++;
-        p += mk_utf8_char_len((unsigned char)*p);
+        p += mk_utf8_step(p);
     }
 
     if (count == 0) {
@@ -806,7 +820,7 @@ static mk_status mk_decompose_diacritics(
             continue;
         }
 
-        n = mk_utf8_char_len((unsigned char)*p);
+        n = mk_utf8_step(p);
         memcpy(one, p, n);
         one[n] = '\0';
         status = mk_append_text(&base, &base_len, &base_cap, one);
@@ -987,8 +1001,12 @@ static mk_status mk_add_position_features(
 {
     size_t i;
     char prefix[8];
+    int written;
 
-    snprintf(prefix, sizeof(prefix), "n%zu", position + 1);
+    written = snprintf(prefix, sizeof(prefix), "n%zu", position + 1);
+    if (written < 0 || (size_t)written >= sizeof(prefix)) {
+        return MK_ERR_PARSE;
+    }
     for (i = 0; i < component->feature_count; i++) {
         const char *feature = component->features[i];
         if (mk_streq(feature, "vowel") || mk_has_prefix(feature, "tone-")) {
@@ -1113,7 +1131,7 @@ static mk_status mk_parse_component_at(
     }
     {
         char one[5];
-        size_t n = mk_utf8_char_len((unsigned char)*p);
+        size_t n = mk_utf8_step(p);
         memcpy(one, p, n);
         one[n] = '\0';
         status = mk_append_text(&component, &len, &cap, one);

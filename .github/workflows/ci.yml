@@ -80,6 +80,54 @@ jobs:
       - name: Show the committed baseline
         run: cat bench/baseline.txt
 
+  c-analysis:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
+      - name: Analyze
+        run: scripts/run_static_analysis.sh | tee analysis.txt
+      - name: Fail on a new finding
+        # The script filters the accepted findings it documents, so anything
+        # left is new.
+        run: |
+          if grep -E 'warning:|error:' analysis.txt; then
+            echo "static analysis reported a new finding" >&2
+            exit 1
+          fi
+
+  c-fuzz:
+    name: Fuzz smoke
+    # Time-boxed, so this is a check that the harnesses still build and that the
+    # seed corpora survive a short run -- not a campaign. Longer runs are a
+    # manual job.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake clang
+      - name: Configure
+        run: >
+          CC=clang cmake -S . -B build/fuzz
+          -DCMAKE_BUILD_TYPE=Debug
+          -DMERKMAL_USE_UTF8PROC=OFF
+          -DMERKMAL_BUILD_TESTS=OFF
+          -DMERKMAL_BUILD_FUZZERS=ON
+      - name: Build
+        run: cmake --build build/fuzz
+      - name: Fuzz each entry point
+        run: |
+          for target in model_text segment resolve; do
+            ./build/fuzz/fuzz_$target fuzz/corpus/$target \
+              -max_total_time=60 -max_len=4096 -print_final_stats=1
+          done
+
   c-sanitizers:
     name: C sanitizers
     runs-on: ubuntu-latest

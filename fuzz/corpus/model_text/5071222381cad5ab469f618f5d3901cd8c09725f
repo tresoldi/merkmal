@@ -1,0 +1,3 @@
+@model tiny
+@type categorical
+grapheme p voiceless bilabial stop consb vnt

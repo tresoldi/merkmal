@@ -17,6 +17,30 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Push an owned token onto the array, growing it as needed.
+ *
+ * This replaced five copies of the same realloc block, one of which ran ahead
+ * of the branch that used it so that two later `items[count++]` writes had no
+ * visible bound. Those were safe -- the pre-grow covered them -- but only by an
+ * argument spanning forty lines, and Clang's analyzer reported them as null
+ * dereferences because it could not make that argument either. */
+static mk_status mk_push_token(char ***items, size_t *count, size_t *cap, char *token)
+{
+    if (*count + 1 > *cap) {
+        char **next;
+        size_t new_cap = *cap == 0 ? 8 : *cap * 2;
+
+        next = (char **)realloc(*items, new_cap * sizeof(**items));
+        if (next == NULL) {
+            return MK_ERR_OOM;
+        }
+        *items = next;
+        *cap = new_cap;
+    }
+    (*items)[(*count)++] = token;
+    return MK_OK;
+}
+
 static int mk_is_suffix_modifier(const char *p)
 {
     return mk_is_modifier_letter_or_symbol(p);
@@ -64,20 +88,12 @@ mk_status mk_segment_ipa(
 
         if (*p == ' ') {
             if (current_len > 0) {
-                if (count + 1 > cap) {
-                    char **next;
-                    size_t new_cap = cap == 0 ? 8 : cap * 2;
-                    next = (char **)realloc(items, new_cap * sizeof(*items));
-                    if (next == NULL) {
-                        free(current);
-                        free(normalized);
-                        mk_free_items(items, count);
-                        return MK_ERR_OOM;
-                    }
-                    items = next;
-                    cap = new_cap;
+                if (mk_push_token(&items, &count, &cap, current) != MK_OK) {
+                    free(current);
+                    free(normalized);
+                    mk_free_items(items, count);
+                    return MK_ERR_OOM;
                 }
-                items[count++] = current;
                 current = NULL;
                 current_len = 0;
                 current_cap = 0;
@@ -90,20 +106,12 @@ mk_status mk_segment_ipa(
 
         if (mk_is_chao_digit(p) || mk_is_boundary(p)) {
             if (current_len > 0) {
-                if (count + 1 > cap) {
-                    char **next;
-                    size_t new_cap = cap == 0 ? 8 : cap * 2;
-                    next = (char **)realloc(items, new_cap * sizeof(*items));
-                    if (next == NULL) {
-                        free(current);
-                        free(normalized);
-                        mk_free_items(items, count);
-                        return MK_ERR_OOM;
-                    }
-                    items = next;
-                    cap = new_cap;
+                if (mk_push_token(&items, &count, &cap, current) != MK_OK) {
+                    free(current);
+                    free(normalized);
+                    mk_free_items(items, count);
+                    return MK_ERR_OOM;
                 }
-                items[count++] = current;
                 current = NULL;
                 current_len = 0;
                 current_cap = 0;
@@ -112,25 +120,11 @@ mk_status mk_segment_ipa(
             after_tie = 0;
         }
 
-        if (count + 1 > cap && (mk_is_chao_digit(p) || mk_is_boundary(p))) {
-            char **next;
-            size_t new_cap = cap == 0 ? 8 : cap * 2;
-            next = (char **)realloc(items, new_cap * sizeof(*items));
-            if (next == NULL) {
-                free(current);
-                free(normalized);
-                mk_free_items(items, count);
-                return MK_ERR_OOM;
-            }
-            items = next;
-            cap = new_cap;
-        }
-
         if (mk_is_chao_digit(p)) {
             const char *start = p;
             char *token;
             while (mk_is_chao_digit(p)) {
-                p += mk_utf8_char_len((unsigned char)*p);
+                p += mk_utf8_step(p);
             }
             n = (size_t)(p - start);
             token = (char *)malloc(n + 1);
@@ -141,12 +135,17 @@ mk_status mk_segment_ipa(
             }
             memcpy(token, start, n);
             token[n] = '\0';
-            items[count++] = token;
+            if (mk_push_token(&items, &count, &cap, token) != MK_OK) {
+                free(token);
+                free(current);
+                free(normalized);
+                mk_free_items(items, count);
+                return MK_ERR_OOM;
+            }
             continue;
         } else if (mk_is_boundary(p)) {
-            char one[5];
             char *token;
-            n = mk_utf8_char_len((unsigned char)*p);
+            n = mk_utf8_step(p);
             token = (char *)malloc(n + 1);
             if (token == NULL) {
                 free(normalized);
@@ -155,13 +154,17 @@ mk_status mk_segment_ipa(
             }
             memcpy(token, p, n);
             token[n] = '\0';
-            memcpy(one, p, n);
             p += n;
-            items[count++] = token;
-            (void)one;
+            if (mk_push_token(&items, &count, &cap, token) != MK_OK) {
+                free(token);
+                free(current);
+                free(normalized);
+                mk_free_items(items, count);
+                return MK_ERR_OOM;
+            }
             continue;
         } else if (mk_has_prefix(p, "͡") || mk_has_prefix(p, "͜")) {
-            n = mk_utf8_char_len((unsigned char)*p);
+            n = mk_utf8_step(p);
             status = mk_append_text(&current, &current_len, &current_cap, mk_has_prefix(p, "͡") ? "͡" : "͜");
             if (status != MK_OK) {
                 free(current);
@@ -174,7 +177,7 @@ mk_status mk_segment_ipa(
             continue;
         } else if (mk_is_combining_mark(p)) {
             char one[5];
-            n = mk_utf8_char_len((unsigned char)*p);
+            n = mk_utf8_step(p);
             memcpy(one, p, n);
             one[n] = '\0';
             status = mk_append_text(&current, &current_len, &current_cap, one);
@@ -188,7 +191,7 @@ mk_status mk_segment_ipa(
             continue;
         } else if (mk_is_suffix_modifier(p)) {
             char one[5];
-            n = mk_utf8_char_len((unsigned char)*p);
+            n = mk_utf8_step(p);
             memcpy(one, p, n);
             one[n] = '\0';
             status = mk_append_text(&current, &current_len, &current_cap, one);
@@ -203,25 +206,17 @@ mk_status mk_segment_ipa(
         } else {
             char one[5];
             if (has_base && !after_tie && current_len > 0) {
-                if (count + 1 > cap) {
-                    char **next;
-                    size_t new_cap = cap == 0 ? 8 : cap * 2;
-                    next = (char **)realloc(items, new_cap * sizeof(*items));
-                    if (next == NULL) {
-                        free(current);
-                        free(normalized);
-                        mk_free_items(items, count);
-                        return MK_ERR_OOM;
-                    }
-                    items = next;
-                    cap = new_cap;
+                if (mk_push_token(&items, &count, &cap, current) != MK_OK) {
+                    free(current);
+                    free(normalized);
+                    mk_free_items(items, count);
+                    return MK_ERR_OOM;
                 }
-                items[count++] = current;
                 current = NULL;
                 current_len = 0;
                 current_cap = 0;
             }
-            n = mk_utf8_char_len((unsigned char)*p);
+            n = mk_utf8_step(p);
             memcpy(one, p, n);
             one[n] = '\0';
             status = mk_append_text(&current, &current_len, &current_cap, one);
@@ -239,20 +234,12 @@ mk_status mk_segment_ipa(
     }
 
     if (current_len > 0) {
-        if (count + 1 > cap) {
-            char **next;
-            size_t new_cap = cap == 0 ? 8 : cap * 2;
-            next = (char **)realloc(items, new_cap * sizeof(*items));
-            if (next == NULL) {
-                free(current);
-                free(normalized);
-                mk_free_items(items, count);
-                return MK_ERR_OOM;
-            }
-            items = next;
-            cap = new_cap;
+        if (mk_push_token(&items, &count, &cap, current) != MK_OK) {
+            free(current);
+            free(normalized);
+            mk_free_items(items, count);
+            return MK_ERR_OOM;
         }
-        items[count++] = current;
         current = NULL;
     }
     free(normalized);

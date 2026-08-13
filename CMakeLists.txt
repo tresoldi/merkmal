@@ -18,6 +18,7 @@ option(MERKMAL_REQUIRE_UTF8PROC "Fail configuration if system utf8proc is missin
 # ships -- can be selected and tested on a machine that has utf8proc installed.
 option(MERKMAL_USE_UTF8PROC "Use system utf8proc when available" ON)
 option(MERKMAL_WERROR "Treat compiler warnings as errors (intended for CI)" OFF)
+option(MERKMAL_BUILD_FUZZERS "Build the libFuzzer harnesses (Clang only)" OFF)
 set(MERKMAL_ENABLE_SANITIZER "" CACHE STRING "Enable sanitizer: address or undefined")
 set_property(CACHE MERKMAL_ENABLE_SANITIZER PROPERTY STRINGS "" address undefined)
 
@@ -136,6 +137,10 @@ if(MERKMAL_BUILD_TESTS)
     target_link_libraries(test_smoke PRIVATE merkmal)
     add_test(NAME smoke COMMAND test_smoke)
 
+    add_executable(test_malformed tests/c/test_malformed.c)
+    target_link_libraries(test_malformed PRIVATE merkmal)
+    add_test(NAME malformed COMMAND test_malformed)
+
     add_executable(test_golden_distances tests/c/test_golden_distances.c tests/c/golden_support.c)
     target_compile_definitions(test_golden_distances
         PRIVATE MERKMAL_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
@@ -183,6 +188,35 @@ if(MERKMAL_BUILD_TESTS)
         target_link_options(test_resolution PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
     endif()
     add_test(NAME resolution COMMAND test_resolution)
+endif()
+
+# libFuzzer, so Clang only. Off by default: the harnesses are a development and
+# CI tool, not something a downstream build should have to have a fuzzing
+# runtime for.
+if(MERKMAL_BUILD_FUZZERS)
+    if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "MERKMAL_BUILD_FUZZERS needs Clang for libFuzzer")
+    endif()
+    foreach(target model_text segment resolve)
+        add_executable(fuzz_${target} fuzz/fuzz_${target}.c ${MERKMAL_SOURCES})
+        target_include_directories(fuzz_${target}
+            PRIVATE
+                ${CMAKE_CURRENT_SOURCE_DIR}/include
+                ${CMAKE_CURRENT_SOURCE_DIR}/src
+        )
+        # The harnesses call the core directly, including the internal parser
+        # seam, so they compile the sources rather than link the library.
+        target_compile_options(fuzz_${target}
+            PRIVATE -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer -g
+        )
+        target_link_options(fuzz_${target} PRIVATE -fsanitize=fuzzer,address,undefined)
+        if(UTF8PROC_FOUND)
+            target_compile_definitions(fuzz_${target} PRIVATE MK_HAVE_UTF8PROC=1)
+            target_link_libraries(fuzz_${target} PRIVATE PkgConfig::UTF8PROC)
+        else()
+            target_compile_definitions(fuzz_${target} PRIVATE MK_HAVE_UTF8PROC=0)
+        endif()
+    endforeach()
 endif()
 
 if(Python3_Interpreter_FOUND)

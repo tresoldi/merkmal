@@ -2,6 +2,45 @@
 
 ## Unreleased
 
+### Fuzzing, static analysis, and a heap overread on malformed UTF-8
+
+- **Fixed: a heap buffer overread on truncated UTF-8 input.**
+  `mk_utf8_char_len` returned the length a lead byte *claims*, and nineteen
+  call sites copied or skipped that many bytes without checking the string had
+  them. `mk_segment_ipa("a\xF0")` read four bytes out of a two-byte
+  allocation. Every public entry point that takes transcription text was
+  affected: `mk_segment_ipa`, `mk_segment_ipa_merged`, `mk_normalize_grapheme`,
+  `mk_split_tone`, and everything in the resolver reached through
+  `mk_system_*`. It is now `mk_utf8_step(const char *)`, which never returns
+  more than the bytes present, so a scan can neither read nor step past the
+  terminator.
+- Fixed: a synthesized feature label built from an over-long feature name was
+  silently truncated into a different feature — one the geometry does not know,
+  which therefore contributes nothing to any distance. Reachable through a
+  runtime model, whose feature names are caller-supplied and unbounded.
+  `mk_add_prefixed_feature`, `mk_add_movement_feature` and
+  `mk_add_position_features` now return `MK_ERR_PARSE` rather than truncate.
+  The two `snprintf` calls that build *diagnostics* still truncate, which is
+  correct and now says so.
+- Added: `fuzz/` with three libFuzzer harnesses covering the runtime-model
+  parser, tokenization and normalization, and resolution against every built-in
+  system. Built with `-fsanitize=fuzzer,address,undefined` behind
+  `MERKMAL_BUILD_FUZZERS` (Clang only, off by default), seeded from the golden
+  fixtures, and run for 60 seconds per entry point in CI.
+- Added: `tests/c/test_malformed.c`, a `ctest` case replaying twenty malformed
+  inputs — truncated sequences, bare continuations, invalid leads, and the
+  shapes the synthesizers reach for — each in a heap buffer sized exactly to
+  its bytes so an overread is visible to AddressSanitizer.
+- Added: `scripts/run_static_analysis.sh` runs `gcc -fanalyzer` and
+  `clang --analyze`, with the accepted findings documented in the script. CI
+  fails on anything else.
+- Internal: the tokenizer's five duplicated `realloc` blocks are one
+  `mk_push_token`. One of them ran ahead of the branch that used it, leaving
+  two `items[count++]` writes whose bound was only provable by an argument
+  spanning forty lines — which Clang's analyzer reported as a null dereference,
+  and which was the reason to leave the structure alone until the malformed
+  cases and the fuzzers were in place to cover the change.
+
 ### Inventory lookup is a binary search: tokenization twice as fast
 
 No public API, ABI, or behavior change; golden fixtures are byte-identical.

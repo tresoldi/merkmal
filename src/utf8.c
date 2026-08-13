@@ -3,7 +3,7 @@
 #include "generated/builtin_data.h"
 #include "strings.h"
 
-size_t mk_utf8_char_len(unsigned char c)
+static size_t mk_utf8_claimed_len(unsigned char c)
 {
     if (c < 0x80) {
         return 1;
@@ -20,10 +20,28 @@ size_t mk_utf8_char_len(unsigned char c)
     return 1;
 }
 
+size_t mk_utf8_step(const char *p)
+{
+    size_t claimed = mk_utf8_claimed_len((unsigned char)*p);
+    size_t i;
+
+    for (i = 1; i < claimed; i++) {
+        if (p[i] == '\0') {
+            return i;
+        }
+    }
+    return claimed;
+}
+
 unsigned int mk_utf8_codepoint(const char *p)
 {
     unsigned char c = (unsigned char)p[0];
 
+    /* Decode only what is there. A sequence cut short by the terminator falls
+     * through to the lead byte below. */
+    if (mk_utf8_step(p) != mk_utf8_claimed_len(c)) {
+        return c;
+    }
     if (c < 0x80) {
         return c;
     }

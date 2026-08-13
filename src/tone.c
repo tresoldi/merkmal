@@ -67,7 +67,7 @@ static int mk_is_chao_digit_token(const char *s)
         if (!mk_is_chao_digit(p)) {
             return 0;
         }
-        p += mk_utf8_char_len((unsigned char)*p);
+        p += mk_utf8_step(p);
     }
     return 1;
 }
@@ -80,7 +80,7 @@ static int mk_chao_token_has_nonzero(const char *s)
         if (mk_chao_level(p) > 0) {
             return 1;
         }
-        p += mk_utf8_char_len((unsigned char)*p);
+        p += mk_utf8_step(p);
     }
     return 0;
 }
@@ -94,13 +94,13 @@ static int mk_segment_is_syllabic(const char *segment)
             return 1;
         }
         if (mk_is_combining_mark(p)) {
-            p += mk_utf8_char_len((unsigned char)*p);
+            p += mk_utf8_step(p);
             continue;
         }
         if (mk_is_vowel_letter(p)) {
             return 1;
         }
-        p += mk_utf8_char_len((unsigned char)*p);
+        p += mk_utf8_step(p);
     }
     return 0;
 }
@@ -222,7 +222,7 @@ mk_status mk_split_tone(
             tone_start = p;
             break;
         }
-        p += mk_utf8_char_len((unsigned char)*p);
+        p += mk_utf8_step(p);
     }
     if (tone_start == NULL) {
         *base_out = mk_strdup_internal(segment);

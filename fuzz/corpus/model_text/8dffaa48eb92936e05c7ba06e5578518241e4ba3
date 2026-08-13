@@ -1,0 +1,6 @@
+# a comment
+@model loose
+@type categorical
+@validation permissive
+@geometry e
+grapheme a vowel low

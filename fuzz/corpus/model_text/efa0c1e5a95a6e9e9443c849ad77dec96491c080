@@ -1,0 +1,4 @@
+@model tiny
+@type categorical
+grapheme grapheme p vs bilabial stop @m$consonant
+grdelt voit

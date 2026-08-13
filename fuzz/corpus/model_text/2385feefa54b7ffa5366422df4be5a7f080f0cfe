@@ -1,0 +1,4 @@
+@model tiny
+@type categorical
+grapheme grap stop @m$conSonant
+grdelt voit

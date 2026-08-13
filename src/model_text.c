@@ -162,6 +162,10 @@ static void mk_set_diagnostic(char **out, int line_no, const char *message, cons
     if (out == NULL || *out != NULL) {
         return;
     }
+    /* Truncation is acceptable here and only here: this builds a message for a
+     * human, not a value the library acts on. A 600-character feature name
+     * still produces a diagnostic naming the line and most of the token, which
+     * is better than refusing to report the problem at all. */
     if (line_no > 0) {
         snprintf(buffer, sizeof(buffer), "line %d: %s: %s", line_no, message, detail);
     } else {
@@ -325,6 +329,7 @@ mk_status mk_parse_model_text(
                 /* Remembered rather than rejected here: @validation may appear
                  * further down the file. */
                 unknown_directive_line = line_no;
+                /* Diagnostic text again, so truncation is acceptable. */
                 snprintf(unknown_directive, sizeof(unknown_directive), "%s", trimmed);
             }
         }

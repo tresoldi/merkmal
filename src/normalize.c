@@ -119,7 +119,7 @@ static mk_status mk_decompose(
             p += strlen(rule->composed);
         } else {
             char one[5];
-            size_t n = mk_utf8_char_len((unsigned char)*p);
+            size_t n = mk_utf8_step(p);
             memcpy(one, p, n);
             one[n] = '\0';
             status = mk_append_text(&tmp, &len, &cap, one);
@@ -312,11 +312,11 @@ mk_status mk_normalize_grapheme(
     cap = 0;
     p = tmp;
     while (*p != '\0') {
-        size_t base_len = mk_utf8_char_len((unsigned char)*p);
+        size_t base_len = mk_utf8_step(p);
         if (p[base_len] != '\0') {
             char base[5];
             char mark[5];
-            size_t mark_len = mk_utf8_char_len((unsigned char)*(p + base_len));
+            size_t mark_len = mk_utf8_step(p + base_len);
             const char *composed;
 
             memcpy(base, p, base_len);
@@ -332,7 +332,7 @@ mk_status mk_normalize_grapheme(
                 p++;
             } else {
                 char one[5];
-                size_t n = mk_utf8_char_len((unsigned char)*p);
+                size_t n = mk_utf8_step(p);
                 memcpy(one, p, n);
                 one[n] = '\0';
                 status = mk_append_text(&out, &len, &cap, one);

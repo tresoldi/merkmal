@@ -667,6 +667,33 @@ as one.
   suppressions.
 - Fuzz-found crashes exist as `ctest` regressions.
 
+**Outcome.** Three harnesses rather than four: normalization is reached through
+`fuzz_segment` rather than given its own, because `mk_normalize_grapheme` takes
+the same bytes from the same place and a separate harness would fuzz the same
+code with a different name.
+
+The milestone's first finding came from reading the buffer audit rather than
+from the fuzzers: **`mk_utf8_char_len` returned the length a lead byte claims**,
+and nineteen call sites copied or skipped that many bytes without checking the
+string had them, so `mk_segment_ipa("a\xF0")` read four bytes out of a
+two-byte allocation. Every public entry point taking transcription text was
+affected. The fix is one contract change — `mk_utf8_step` never returns more
+than the bytes present — which fixed all nineteen at once.
+
+That bug is why `tests/c/test_malformed.c` copies each input into a heap buffer
+sized exactly to its bytes: the same cases as string literals read into
+adjacent rodata and pass. The test was checked against the pre-fix code and
+does fail there.
+
+Roughly 200,000 executions across the three harnesses under ASan+UBSan found no
+further crashes.
+
+Static analysis found the tokenizer's pre-grown `realloc`, reported as a null
+dereference. It was a false positive, but only provable by an argument spanning
+forty lines; with the malformed cases and fuzzers in place to cover the change,
+the five duplicated blocks became one `mk_push_token`. Two `deadcode.DeadStores`
+findings in `resolver.c` are accepted and documented in the script.
+
 **Depends on.** Milestone B (harnesses target module seams, not a monolith).
 
 ---

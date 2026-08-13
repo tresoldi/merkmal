@@ -1,0 +1,6 @@
+# a comment
+@model loose
+@type categorical
+@validation permissive
+@geometry clements-humeice
+grapheme a vowel low
