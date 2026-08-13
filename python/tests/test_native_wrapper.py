@@ -317,6 +317,70 @@ def test_native_registry_runtime_model() -> None:
     )
 
 
+def test_registry_and_module_share_one_implementation() -> None:
+    """A Registry method is the module-level call pointed at that registry.
+
+    The two used to be separate C functions differing only in which registry
+    pointer they read, which is how the default system name came to be written
+    out four times.
+    """
+    registry = merkmal.Registry()
+
+    # Omitting the system uses the same default on both paths.
+    assert registry.get_features("p") == merkmal.get_features("p")
+    assert registry.is_segment("a") == merkmal.is_segment("a")
+    assert registry.distance("p", "b") == merkmal.distance("p", "b")
+    assert registry.list_systems() == merkmal.list_systems()
+    assert registry.system_segment_ipa("tʃa") == merkmal.system_segment_ipa("tʃa")
+
+    # Naming it explicitly agrees with the default.
+    assert registry.get_features("p", system="descriptive") == registry.get_features("p")
+    assert merkmal.distance("p", "b", node_weights="flat") == registry.distance(
+        "p", "b", node_weights="flat"
+    )
+
+
+def test_runtime_model_stays_inside_its_registry() -> None:
+    registry = merkmal.Registry()
+    registry.add_model_text(
+        "@model private\n@type categorical\n@validation permissive\ngrapheme Q consonant stop\n"
+    )
+
+    assert "private" in registry.list_systems()
+    # The default registry is shared, so nothing may leak into it.
+    assert "private" not in merkmal.list_systems()
+    with pytest.raises(KeyError):
+        merkmal.get_features("Q", system="private")
+
+
+def test_add_model_text_refuses_the_default_registry() -> None:
+    """Adding a model mutates a registry, and the default one is process-wide."""
+    with pytest.raises(ValueError, match="explicit registry"):
+        merkmal._native.add_model_text("@model x\n@type categorical\ngrapheme Z consonant\n")
+
+
+def test_feature_distance_takes_no_system() -> None:
+    """It is a property of the compiled geometry, which every system shares.
+
+    The argument used to be accepted, validated, and then ignored, so a caller
+    asking for phoible silently received clements-hume numbers.
+    """
+    with pytest.raises(TypeError):
+        merkmal.feature_distance("voiced", "voiceless", system="phoible")  # type: ignore[call-arg]
+
+
+def test_error_messages_come_from_the_c_library() -> None:
+    """The wrapper used to restate mk_status_string's text in its own words."""
+    with pytest.raises(KeyError, match="unknown system"):
+        merkmal.get_features("p", system="no-such-system")
+    with pytest.raises(ValueError, match="unknown grapheme"):
+        merkmal.get_features("<?>")
+    with pytest.raises(ValueError, match="invalid argument"):
+        merkmal.distance("p", "b", node_weights="no-such-preset")
+    with pytest.raises(NotImplementedError, match="unsupported model"):
+        merkmal.get_features("a⁵⁵", system="phoible")
+
+
 def test_cli_uses_native_wrapper(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["systems"]) == 0
     output = capsys.readouterr().out.splitlines()

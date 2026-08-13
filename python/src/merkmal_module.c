@@ -3,9 +3,21 @@
 
 #include "merkmal.h"
 
+/* The registry every module-level call uses when the caller names none. It is
+ * built once and never mutated, which is what makes sharing it safe: adding a
+ * model requires an explicit Registry, so no call can change what another
+ * caller sees.
+ *
+ * It is a file static, and the module declares m_size = -1 accordingly. The
+ * wheel is built abi3, which is about binary compatibility across CPython
+ * versions and not about subinterpreters; this module does not support those. */
 static mk_registry *default_registry = NULL;
 static PyObject *mk_py_error = NULL;
 static const char *registry_capsule_name = "merkmal.registry";
+
+/* The system used when a call names none. One definition: this string used to
+ * be written out four times, three in this file and once in __init__.py. */
+static const char *const default_system_name = "descriptive";
 
 typedef struct py_utf8 {
     PyObject *bytes;
@@ -39,43 +51,77 @@ static int py_utf8_from_unicode(PyObject *obj, const char *name, py_utf8 *out)
     return 0;
 }
 
-static int ensure_registry(void)
+/* Holds the PyBytes behind every borrowed UTF-8 pointer a call takes, so one
+ * clear at the end releases them all. Each function used to unwind its own
+ * ladder of py_utf8_clear calls at every early return -- four of them in
+ * distance alone, each an independent chance to leak one. */
+#define PY_UTF8_SLOTS 4
+
+typedef struct py_utf8_args {
+    py_utf8 slots[PY_UTF8_SLOTS];
+    size_t count;
+} py_utf8_args;
+
+static void py_utf8_args_clear(py_utf8_args *bag)
 {
-    if (default_registry != NULL) {
-        return 0;
+    size_t i;
+
+    for (i = 0; i < bag->count; i++) {
+        py_utf8_clear(&bag->slots[i]);
     }
-    if (mk_registry_new_builtin(&default_registry) != MK_OK) {
-        PyErr_SetString(PyExc_MemoryError, "failed to create merkmal registry");
+    bag->count = 0;
+}
+
+static int py_utf8_take(py_utf8_args *bag, PyObject *obj, const char *name, const char **out)
+{
+    if (bag->count >= PY_UTF8_SLOTS) {
+        PyErr_SetString(PyExc_SystemError, "merkmal: too many string arguments");
         return -1;
     }
+    if (py_utf8_from_unicode(obj, name, &bag->slots[bag->count]) < 0) {
+        return -1;
+    }
+    *out = bag->slots[bag->count].value;
+    bag->count++;
     return 0;
 }
 
+/* An absent or None argument leaves *out at the default the caller seeded. */
+static int py_utf8_take_optional(py_utf8_args *bag, PyObject *obj, const char *name, const char **out)
+{
+    if (obj == NULL || obj == Py_None) {
+        return 0;
+    }
+    return py_utf8_take(bag, obj, name, out);
+}
+
+/* Always returns NULL, with a Python exception set, so callers can `return
+ * status_error(...)` directly. The exception type is this binding's contract;
+ * the message comes from the C library, so the two cannot drift. */
 static PyObject *status_error(mk_status status, const char *context)
 {
+    const char *message = mk_status_string(status);
+
     switch (status) {
     case MK_ERR_UNKNOWN_SYSTEM:
-        PyErr_Format(PyExc_KeyError, "%s: unknown system", context);
+        PyErr_Format(PyExc_KeyError, "%s: %s", context, message);
         break;
     case MK_ERR_UNKNOWN_GRAPHEME:
-        PyErr_Format(PyExc_ValueError, "%s: unknown grapheme", context);
-        break;
     case MK_ERR_INVALID_ARGUMENT:
-        PyErr_Format(PyExc_ValueError, "%s: invalid argument", context);
+        PyErr_Format(PyExc_ValueError, "%s: %s", context, message);
         break;
     case MK_ERR_UNSUPPORTED_MODEL:
-        PyErr_Format(PyExc_NotImplementedError, "%s: unsupported model", context);
-        break;
-    case MK_ERR_PARSE:
-        PyErr_Format(mk_py_error, "%s: parse error", context);
+        PyErr_Format(PyExc_NotImplementedError, "%s: %s", context, message);
         break;
     case MK_ERR_OOM:
         PyErr_NoMemory();
         break;
     case MK_OK:
-        Py_RETURN_NONE;
+        /* A bug in this file: nothing should report success as a failure. */
+        PyErr_Format(mk_py_error, "%s: reported success as an error", context);
+        break;
     default:
-        PyErr_Format(mk_py_error, "%s: merkmal error %d", context, (int)status);
+        PyErr_Format(mk_py_error, "%s: %s", context, message);
         break;
     }
     return NULL;
@@ -84,59 +130,43 @@ static PyObject *status_error(mk_status status, const char *context)
 static void registry_capsule_destructor(PyObject *capsule)
 {
     mk_registry *registry = PyCapsule_GetPointer(capsule, registry_capsule_name);
+
     if (registry != NULL) {
         mk_registry_free(registry);
     }
 }
 
-static mk_registry *registry_from_capsule(PyObject *obj, const char *context)
+/* The registry a call should use: the capsule the caller passed, or the
+ * process default, built on first use. */
+static mk_registry *resolve_registry(PyObject *registry_obj, const char *context)
 {
-    mk_registry *registry = PyCapsule_GetPointer(obj, registry_capsule_name);
-    if (registry == NULL) {
-        PyErr_Format(PyExc_TypeError, "%s: invalid registry handle", context);
-        return NULL;
-    }
-    return registry;
-}
+    if (registry_obj != NULL && registry_obj != Py_None) {
+        mk_registry *registry = PyCapsule_GetPointer(registry_obj, registry_capsule_name);
 
-static int parse_system_kw(PyObject *system_obj, py_utf8 *system_arg, const char **system)
-{
-    system_arg->bytes = NULL;
-    system_arg->value = NULL;
-    *system = "descriptive";
-    if (system_obj != NULL && system_obj != Py_None) {
-        if (py_utf8_from_unicode(system_obj, "system", system_arg) < 0) {
-            return -1;
+        if (registry == NULL) {
+            PyErr_Format(PyExc_TypeError, "%s: invalid registry handle", context);
+            return NULL;
         }
-        *system = system_arg->value;
+        return registry;
     }
-    return 0;
+    if (default_registry == NULL) {
+        if (mk_registry_new_builtin(&default_registry) != MK_OK) {
+            PyErr_SetString(PyExc_MemoryError, "failed to create merkmal registry");
+            return NULL;
+        }
+    }
+    return default_registry;
 }
 
-static const mk_system *get_system_or_error(const char *name)
-{
-    const mk_system *system = NULL;
-    mk_status status;
-
-    if (ensure_registry() < 0) {
-        return NULL;
-    }
-    status = mk_registry_get_system(default_registry, name == NULL ? "descriptive" : name, &system);
-    if (status != MK_OK) {
-        status_error(status, "get_system");
-        return NULL;
-    }
-    return system;
-}
-
-static const mk_system *get_system_from_registry_or_error(
+static const mk_system *resolve_system(
     mk_registry *registry,
     const char *name,
     const char *context
 )
 {
     const mk_system *system = NULL;
-    mk_status status = mk_registry_get_system(registry, name == NULL ? "descriptive" : name, &system);
+    mk_status status = mk_registry_get_system(registry, name, &system);
+
     if (status != MK_OK) {
         status_error(status, context);
         return NULL;
@@ -197,23 +227,28 @@ static PyObject *py_feature_set_to_frozenset(const mk_feature_set *features)
     return result;
 }
 
-static PyObject *py_list_systems(PyObject *self, PyObject *args)
+static PyObject *py_list_systems(PyObject *self, PyObject *args, PyObject *kwargs)
 {
+    static char *keywords[] = {"registry", NULL};
+    PyObject *registry_obj = Py_None;
+    mk_registry *registry;
     mk_string_list *systems = NULL;
     PyObject *result;
     mk_status status;
 
     (void)self;
-    (void)args;
 
-    if (ensure_registry() < 0) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O:list_systems", keywords, &registry_obj)) {
         return NULL;
     }
-    status = mk_registry_list_systems(default_registry, &systems);
+    registry = resolve_registry(registry_obj, "list_systems");
+    if (registry == NULL) {
+        return NULL;
+    }
+    status = mk_registry_list_systems(registry, &systems);
     if (status != MK_OK) {
         return status_error(status, "list_systems");
     }
-
     result = py_string_list_to_list(systems);
     mk_string_list_free(systems);
     return result;
@@ -221,202 +256,195 @@ static PyObject *py_list_systems(PyObject *self, PyObject *args)
 
 static PyObject *py_get_features(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-    static char *keywords[] = {"grapheme", "system", NULL};
+    static char *keywords[] = {"grapheme", "system", "registry", NULL};
     PyObject *grapheme_obj;
     PyObject *system_obj = Py_None;
-    py_utf8 grapheme_arg = {NULL, NULL};
-    py_utf8 system_arg = {NULL, NULL};
-    const char *system_name;
+    PyObject *registry_obj = Py_None;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *grapheme = NULL;
+    const char *system_name = default_system_name;
+    mk_registry *registry;
     const mk_system *system;
     mk_feature_set *features = NULL;
-    PyObject *result;
-    mk_status status;
-
-    (void)self;
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O:get_features", keywords, &grapheme_obj, &system_obj)) {
-        return NULL;
-    }
-    if (py_utf8_from_unicode(grapheme_obj, "grapheme", &grapheme_arg) < 0 ||
-        parse_system_kw(system_obj, &system_arg, &system_name) < 0) {
-        py_utf8_clear(&grapheme_arg);
-        return NULL;
-    }
-    system = get_system_or_error(system_name);
-    if (system == NULL) {
-        py_utf8_clear(&grapheme_arg);
-        py_utf8_clear(&system_arg);
-        return NULL;
-    }
-
-    status = mk_system_grapheme_features(system, grapheme_arg.value, &features);
-    py_utf8_clear(&grapheme_arg);
-    py_utf8_clear(&system_arg);
-    if (status != MK_OK) {
-        return status_error(status, "get_features");
-    }
-
-    result = py_feature_set_to_frozenset(features);
-    mk_feature_set_free(features);
-    return result;
-}
-
-static PyObject *py_is_segment(PyObject *self, PyObject *args, PyObject *kwargs)
-{
-    static char *keywords[] = {"grapheme", "system", NULL};
-    PyObject *grapheme_obj;
-    PyObject *system_obj = Py_None;
-    py_utf8 grapheme_arg = {NULL, NULL};
-    py_utf8 system_arg = {NULL, NULL};
-    const char *system_name;
-    const mk_system *system;
-    int is_segment = 0;
-    mk_status status;
-
-    (void)self;
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O:is_segment", keywords, &grapheme_obj, &system_obj)) {
-        return NULL;
-    }
-    if (py_utf8_from_unicode(grapheme_obj, "grapheme", &grapheme_arg) < 0 ||
-        parse_system_kw(system_obj, &system_arg, &system_name) < 0) {
-        py_utf8_clear(&grapheme_arg);
-        return NULL;
-    }
-    system = get_system_or_error(system_name);
-    if (system == NULL) {
-        py_utf8_clear(&grapheme_arg);
-        py_utf8_clear(&system_arg);
-        return NULL;
-    }
-
-    status = mk_system_is_segment(system, grapheme_arg.value, &is_segment);
-    py_utf8_clear(&grapheme_arg);
-    py_utf8_clear(&system_arg);
-    if (status != MK_OK) {
-        return status_error(status, "is_segment");
-    }
-    if (is_segment) {
-        Py_RETURN_TRUE;
-    }
-    Py_RETURN_FALSE;
-}
-
-static PyObject *py_distance(PyObject *self, PyObject *args, PyObject *kwargs)
-{
-    static char *keywords[] = {"a", "b", "system", "node_weights", NULL};
-    PyObject *a_obj;
-    PyObject *b_obj;
-    PyObject *system_obj = Py_None;
-    PyObject *node_weights_obj = Py_None;
-    py_utf8 a_arg = {NULL, NULL};
-    py_utf8 b_arg = {NULL, NULL};
-    py_utf8 system_arg = {NULL, NULL};
-    py_utf8 node_weights_arg = {NULL, NULL};
-    const char *system_name;
-    const char *node_weights = NULL;
-    const mk_system *system;
-    double distance = 0.0;
+    PyObject *result = NULL;
     mk_status status;
 
     (void)self;
 
     if (!PyArg_ParseTupleAndKeywords(
-            args, kwargs, "OO|OO:distance", keywords,
-            &a_obj, &b_obj, &system_obj, &node_weights_obj
+            args, kwargs, "O|OO:get_features", keywords,
+            &grapheme_obj, &system_obj, &registry_obj
         )) {
         return NULL;
     }
-    if (py_utf8_from_unicode(a_obj, "a", &a_arg) < 0 ||
-        py_utf8_from_unicode(b_obj, "b", &b_arg) < 0 ||
-        parse_system_kw(system_obj, &system_arg, &system_name) < 0) {
-        py_utf8_clear(&a_arg);
-        py_utf8_clear(&b_arg);
-        return NULL;
+    if (py_utf8_take(&bag, grapheme_obj, "grapheme", &grapheme) < 0 ||
+        py_utf8_take_optional(&bag, system_obj, "system", &system_name) < 0) {
+        goto done;
     }
-    if (node_weights_obj != NULL && node_weights_obj != Py_None) {
-        if (py_utf8_from_unicode(node_weights_obj, "node_weights", &node_weights_arg) < 0) {
-            py_utf8_clear(&a_arg);
-            py_utf8_clear(&b_arg);
-            py_utf8_clear(&system_arg);
-            return NULL;
-        }
-        node_weights = node_weights_arg.value;
+    registry = resolve_registry(registry_obj, "get_features");
+    if (registry == NULL) {
+        goto done;
     }
-    system = get_system_or_error(system_name);
+    system = resolve_system(registry, system_name, "get_features");
     if (system == NULL) {
-        py_utf8_clear(&a_arg);
-        py_utf8_clear(&b_arg);
-        py_utf8_clear(&system_arg);
-        py_utf8_clear(&node_weights_arg);
-        return NULL;
+        goto done;
     }
-
-    status = mk_system_segment_distance_with_weights(
-        system,
-        a_arg.value,
-        b_arg.value,
-        node_weights,
-        &distance
-    );
-    py_utf8_clear(&a_arg);
-    py_utf8_clear(&b_arg);
-    py_utf8_clear(&system_arg);
-    py_utf8_clear(&node_weights_arg);
+    status = mk_system_grapheme_features(system, grapheme, &features);
     if (status != MK_OK) {
-        return status_error(status, "distance");
+        status_error(status, "get_features");
+        goto done;
     }
-    return PyFloat_FromDouble(distance);
+    result = py_feature_set_to_frozenset(features);
+    mk_feature_set_free(features);
+
+done:
+    py_utf8_args_clear(&bag);
+    return result;
 }
 
-static PyObject *py_feature_distance(PyObject *self, PyObject *args, PyObject *kwargs)
+static PyObject *py_is_segment(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-    static char *keywords[] = {"feat_a", "feat_b", "system", NULL};
-    PyObject *a_obj;
-    PyObject *b_obj;
+    static char *keywords[] = {"grapheme", "system", "registry", NULL};
+    PyObject *grapheme_obj;
     PyObject *system_obj = Py_None;
-    py_utf8 a_arg = {NULL, NULL};
-    py_utf8 b_arg = {NULL, NULL};
-    py_utf8 system_arg = {NULL, NULL};
-    const char *system_name;
-    int distance = 0;
+    PyObject *registry_obj = Py_None;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *grapheme = NULL;
+    const char *system_name = default_system_name;
+    mk_registry *registry;
+    const mk_system *system;
+    int is_segment = 0;
+    PyObject *result = NULL;
     mk_status status;
 
     (void)self;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|O:feature_distance", keywords, &a_obj, &b_obj, &system_obj)) {
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs, "O|OO:is_segment", keywords,
+            &grapheme_obj, &system_obj, &registry_obj
+        )) {
         return NULL;
     }
-    if (py_utf8_from_unicode(a_obj, "feat_a", &a_arg) < 0 ||
-        py_utf8_from_unicode(b_obj, "feat_b", &b_arg) < 0 ||
-        parse_system_kw(system_obj, &system_arg, &system_name) < 0) {
-        py_utf8_clear(&a_arg);
-        py_utf8_clear(&b_arg);
-        return NULL;
+    if (py_utf8_take(&bag, grapheme_obj, "grapheme", &grapheme) < 0 ||
+        py_utf8_take_optional(&bag, system_obj, "system", &system_name) < 0) {
+        goto done;
     }
-    if (get_system_or_error(system_name) == NULL) {
-        py_utf8_clear(&a_arg);
-        py_utf8_clear(&b_arg);
-        py_utf8_clear(&system_arg);
-        return NULL;
+    registry = resolve_registry(registry_obj, "is_segment");
+    if (registry == NULL) {
+        goto done;
     }
-
-    status = mk_feature_distance(a_arg.value, b_arg.value, &distance);
-    py_utf8_clear(&a_arg);
-    py_utf8_clear(&b_arg);
-    py_utf8_clear(&system_arg);
+    system = resolve_system(registry, system_name, "is_segment");
+    if (system == NULL) {
+        goto done;
+    }
+    status = mk_system_is_segment(system, grapheme, &is_segment);
     if (status != MK_OK) {
-        return status_error(status, "feature_distance");
+        status_error(status, "is_segment");
+        goto done;
     }
-    return PyLong_FromLong(distance);
+    result = PyBool_FromLong(is_segment);
+
+done:
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
+static PyObject *py_distance(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *keywords[] = {"a", "b", "system", "node_weights", "registry", NULL};
+    PyObject *a_obj;
+    PyObject *b_obj;
+    PyObject *system_obj = Py_None;
+    PyObject *node_weights_obj = Py_None;
+    PyObject *registry_obj = Py_None;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *a = NULL;
+    const char *b = NULL;
+    const char *system_name = default_system_name;
+    const char *node_weights = NULL;
+    mk_registry *registry;
+    const mk_system *system;
+    double distance = 0.0;
+    PyObject *result = NULL;
+    mk_status status;
+
+    (void)self;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs, "OO|OOO:distance", keywords,
+            &a_obj, &b_obj, &system_obj, &node_weights_obj, &registry_obj
+        )) {
+        return NULL;
+    }
+    if (py_utf8_take(&bag, a_obj, "a", &a) < 0 ||
+        py_utf8_take(&bag, b_obj, "b", &b) < 0 ||
+        py_utf8_take_optional(&bag, system_obj, "system", &system_name) < 0 ||
+        py_utf8_take_optional(&bag, node_weights_obj, "node_weights", &node_weights) < 0) {
+        goto done;
+    }
+    registry = resolve_registry(registry_obj, "distance");
+    if (registry == NULL) {
+        goto done;
+    }
+    system = resolve_system(registry, system_name, "distance");
+    if (system == NULL) {
+        goto done;
+    }
+    status = mk_system_segment_distance_with_weights(system, a, b, node_weights, &distance);
+    if (status != MK_OK) {
+        status_error(status, "distance");
+        goto done;
+    }
+    result = PyFloat_FromDouble(distance);
+
+done:
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
+/* Feature distance is a property of the compiled geometry, which every system
+ * shares. It takes no system: the argument it used to accept was validated and
+ * then discarded, so a caller passing system="phoible" was told nothing about
+ * having been given clements-hume numbers. */
+static PyObject *py_feature_distance(PyObject *self, PyObject *args)
+{
+    PyObject *a_obj;
+    PyObject *b_obj;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *a = NULL;
+    const char *b = NULL;
+    int distance = 0;
+    PyObject *result = NULL;
+    mk_status status;
+
+    (void)self;
+
+    if (!PyArg_ParseTuple(args, "OO:feature_distance", &a_obj, &b_obj)) {
+        return NULL;
+    }
+    if (py_utf8_take(&bag, a_obj, "feat_a", &a) < 0 ||
+        py_utf8_take(&bag, b_obj, "feat_b", &b) < 0) {
+        goto done;
+    }
+    status = mk_feature_distance(a, b, &distance);
+    if (status != MK_OK) {
+        status_error(status, "feature_distance");
+        goto done;
+    }
+    result = PyLong_FromLong(distance);
+
+done:
+    py_utf8_args_clear(&bag);
+    return result;
 }
 
 static PyObject *py_normalize(PyObject *self, PyObject *args)
 {
     PyObject *grapheme_obj;
-    py_utf8 grapheme_arg = {NULL, NULL};
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *grapheme = NULL;
     char *normalized = NULL;
-    PyObject *result;
+    PyObject *result = NULL;
     mk_status status;
 
     (void)self;
@@ -424,122 +452,124 @@ static PyObject *py_normalize(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "O:normalize", &grapheme_obj)) {
         return NULL;
     }
-    if (py_utf8_from_unicode(grapheme_obj, "grapheme", &grapheme_arg) < 0) {
-        return NULL;
+    if (py_utf8_take(&bag, grapheme_obj, "grapheme", &grapheme) < 0) {
+        goto done;
     }
-    status = mk_normalize_grapheme(grapheme_arg.value, &normalized);
-    py_utf8_clear(&grapheme_arg);
+    status = mk_normalize_grapheme(grapheme, &normalized);
     if (status != MK_OK) {
-        return status_error(status, "normalize");
+        status_error(status, "normalize");
+        goto done;
     }
     result = PyUnicode_FromString(normalized);
     mk_free_string(normalized);
+
+done:
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
+/* mk_segment_ipa and mk_segment_ipa_merged have the same shape, so one body
+ * serves both; which one runs is the caller's choice. */
+static PyObject *py_segment_with(
+    PyObject *args,
+    mk_status (*segment)(const char *, mk_string_list **),
+    const char *context
+)
+{
+    PyObject *ipa_obj;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *ipa = NULL;
+    mk_string_list *segments = NULL;
+    PyObject *result = NULL;
+    mk_status status;
+
+    if (!PyArg_ParseTuple(args, "O", &ipa_obj)) {
+        return NULL;
+    }
+    if (py_utf8_take(&bag, ipa_obj, "ipa", &ipa) < 0) {
+        goto done;
+    }
+    status = segment(ipa, &segments);
+    if (status != MK_OK) {
+        status_error(status, context);
+        goto done;
+    }
+    result = py_string_list_to_list(segments);
+    mk_string_list_free(segments);
+
+done:
+    py_utf8_args_clear(&bag);
     return result;
 }
 
 static PyObject *py_segment_ipa(PyObject *self, PyObject *args)
 {
-    PyObject *ipa_obj;
-    py_utf8 ipa_arg = {NULL, NULL};
-    mk_string_list *segments = NULL;
-    PyObject *result;
-    mk_status status;
-
     (void)self;
-
-    if (!PyArg_ParseTuple(args, "O:segment_ipa", &ipa_obj)) {
-        return NULL;
-    }
-    if (py_utf8_from_unicode(ipa_obj, "ipa", &ipa_arg) < 0) {
-        return NULL;
-    }
-    status = mk_segment_ipa(ipa_arg.value, &segments);
-    py_utf8_clear(&ipa_arg);
-    if (status != MK_OK) {
-        return status_error(status, "segment_ipa");
-    }
-
-    result = py_string_list_to_list(segments);
-    mk_string_list_free(segments);
-    return result;
+    return py_segment_with(args, mk_segment_ipa, "segment_ipa");
 }
 
 static PyObject *py_segment_ipa_merged(PyObject *self, PyObject *args)
 {
-    PyObject *ipa_obj;
-    py_utf8 ipa_arg = {NULL, NULL};
-    mk_string_list *segments = NULL;
-    PyObject *result;
-    mk_status status;
-
     (void)self;
-
-    if (!PyArg_ParseTuple(args, "O:segment_ipa_merged", &ipa_obj)) {
-        return NULL;
-    }
-    if (py_utf8_from_unicode(ipa_obj, "ipa", &ipa_arg) < 0) {
-        return NULL;
-    }
-    status = mk_segment_ipa_merged(ipa_arg.value, &segments);
-    py_utf8_clear(&ipa_arg);
-    if (status != MK_OK) {
-        return status_error(status, "segment_ipa_merged");
-    }
-
-    result = py_string_list_to_list(segments);
-    mk_string_list_free(segments);
-    return result;
+    return py_segment_with(args, mk_segment_ipa_merged, "segment_ipa_merged");
 }
 
 static PyObject *py_system_segment_ipa(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-    static char *keywords[] = {"ipa", "system", NULL};
+    static char *keywords[] = {"ipa", "system", "registry", NULL};
     PyObject *ipa_obj;
     PyObject *system_obj = Py_None;
-    py_utf8 ipa_arg = {NULL, NULL};
-    py_utf8 system_arg = {NULL, NULL};
-    const char *system_name;
+    PyObject *registry_obj = Py_None;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *ipa = NULL;
+    const char *system_name = default_system_name;
+    mk_registry *registry;
     const mk_system *system;
     mk_string_list *segments = NULL;
-    PyObject *result;
+    PyObject *result = NULL;
     mk_status status;
 
     (void)self;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O:system_segment_ipa", keywords, &ipa_obj, &system_obj)) {
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs, "O|OO:system_segment_ipa", keywords,
+            &ipa_obj, &system_obj, &registry_obj
+        )) {
         return NULL;
     }
-    if (py_utf8_from_unicode(ipa_obj, "ipa", &ipa_arg) < 0 ||
-        parse_system_kw(system_obj, &system_arg, &system_name) < 0) {
-        py_utf8_clear(&ipa_arg);
-        return NULL;
+    if (py_utf8_take(&bag, ipa_obj, "ipa", &ipa) < 0 ||
+        py_utf8_take_optional(&bag, system_obj, "system", &system_name) < 0) {
+        goto done;
     }
-    system = get_system_or_error(system_name);
+    registry = resolve_registry(registry_obj, "system_segment_ipa");
+    if (registry == NULL) {
+        goto done;
+    }
+    system = resolve_system(registry, system_name, "system_segment_ipa");
     if (system == NULL) {
-        py_utf8_clear(&ipa_arg);
-        py_utf8_clear(&system_arg);
-        return NULL;
+        goto done;
     }
-
-    status = mk_system_segment_ipa(system, ipa_arg.value, &segments);
-    py_utf8_clear(&ipa_arg);
-    py_utf8_clear(&system_arg);
+    status = mk_system_segment_ipa(system, ipa, &segments);
     if (status != MK_OK) {
-        return status_error(status, "system_segment_ipa");
+        status_error(status, "system_segment_ipa");
+        goto done;
     }
-
     result = py_string_list_to_list(segments);
     mk_string_list_free(segments);
+
+done:
+    py_utf8_args_clear(&bag);
     return result;
 }
 
 static PyObject *py_split_tone(PyObject *self, PyObject *args)
 {
     PyObject *segment_obj;
-    py_utf8 segment_arg = {NULL, NULL};
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *segment = NULL;
     char *base = NULL;
     char *tone = NULL;
-    PyObject *result;
+    PyObject *result = NULL;
     mk_status status;
 
     (void)self;
@@ -547,19 +577,22 @@ static PyObject *py_split_tone(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "O:split_tone", &segment_obj)) {
         return NULL;
     }
-    if (py_utf8_from_unicode(segment_obj, "segment", &segment_arg) < 0) {
-        return NULL;
+    if (py_utf8_take(&bag, segment_obj, "segment", &segment) < 0) {
+        goto done;
     }
-    status = mk_split_tone(segment_arg.value, &base, &tone);
-    py_utf8_clear(&segment_arg);
+    status = mk_split_tone(segment, &base, &tone);
     if (status != MK_OK) {
-        return status_error(status, "split_tone");
+        status_error(status, "split_tone");
+        goto done;
     }
     /* An untoned segment yields None for the tone, not an empty string, so
      * "has no tone" and "has an empty tone" cannot be confused. */
     result = Py_BuildValue("(sz)", base, tone);
     mk_free_string(base);
     mk_free_string(tone);
+
+done:
+    py_utf8_args_clear(&bag);
     return result;
 }
 
@@ -653,239 +686,87 @@ static PyObject *py_registry_new(PyObject *self, PyObject *args)
     return PyCapsule_New(registry, registry_capsule_name, registry_capsule_destructor);
 }
 
-static PyObject *py_registry_add_model_text(PyObject *self, PyObject *args)
+static PyObject *py_add_model_text(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-    PyObject *capsule;
+    static char *keywords[] = {"model_text", "registry", NULL};
     PyObject *text_obj;
+    PyObject *registry_obj = Py_None;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *text = NULL;
     mk_registry *registry;
-    py_utf8 text_arg = {NULL, NULL};
+    char *diagnostic = NULL;
+    PyObject *result = NULL;
     mk_status status;
 
     (void)self;
 
-    if (!PyArg_ParseTuple(args, "OO:registry_add_model_text", &capsule, &text_obj)) {
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs, "O|O:add_model_text", keywords, &text_obj, &registry_obj
+        )) {
         return NULL;
     }
-    registry = registry_from_capsule(capsule, "registry_add_model_text");
+    /* Deliberately no default. Every other call may fall back to the shared
+     * registry because none of them change it; this one would, and every other
+     * caller in the process would see the new system appear. */
+    if (registry_obj == Py_None) {
+        PyErr_SetString(
+            PyExc_ValueError,
+            "add_model_text requires an explicit registry, because the default one is "
+            "shared process-wide; construct a merkmal.Registry()"
+        );
+        return NULL;
+    }
+    if (py_utf8_take(&bag, text_obj, "model_text", &text) < 0) {
+        goto done;
+    }
+    registry = resolve_registry(registry_obj, "add_model_text");
     if (registry == NULL) {
-        return NULL;
+        goto done;
     }
-    if (py_utf8_from_unicode(text_obj, "model_text", &text_arg) < 0) {
-        return NULL;
-    }
-    {
-        char *diagnostic = NULL;
-
-        status = mk_registry_add_model_text_ex(registry, text_arg.value, &diagnostic);
-        py_utf8_clear(&text_arg);
-        if (status != MK_OK) {
-            /* The diagnostic names the offending line and token; without it the
-             * caller only learns that something in the model was wrong. */
-            if (diagnostic != NULL) {
-                PyErr_Format(mk_py_error, "registry_add_model_text: %s", diagnostic);
-                mk_free_string(diagnostic);
-                return NULL;
-            }
-            return status_error(status, "registry_add_model_text");
+    status = mk_registry_add_model_text_ex(registry, text, &diagnostic);
+    if (status != MK_OK) {
+        /* The diagnostic names the offending line and token; without it the
+         * caller only learns that something in the model was wrong. */
+        if (diagnostic != NULL) {
+            PyErr_Format(mk_py_error, "add_model_text: %s", diagnostic);
+            mk_free_string(diagnostic);
+        } else {
+            status_error(status, "add_model_text");
         }
-        mk_free_string(diagnostic);
+        goto done;
     }
-    Py_RETURN_NONE;
-}
+    mk_free_string(diagnostic);
+    result = Py_NewRef(Py_None);
 
-static PyObject *py_registry_list_systems(PyObject *self, PyObject *args)
-{
-    PyObject *capsule;
-    mk_registry *registry;
-    mk_string_list *systems = NULL;
-    PyObject *result;
-    mk_status status;
-
-    (void)self;
-
-    if (!PyArg_ParseTuple(args, "O:registry_list_systems", &capsule)) {
-        return NULL;
-    }
-    registry = registry_from_capsule(capsule, "registry_list_systems");
-    if (registry == NULL) {
-        return NULL;
-    }
-    status = mk_registry_list_systems(registry, &systems);
-    if (status != MK_OK) {
-        return status_error(status, "registry_list_systems");
-    }
-    result = py_string_list_to_list(systems);
-    mk_string_list_free(systems);
+done:
+    py_utf8_args_clear(&bag);
     return result;
-}
-
-static PyObject *py_registry_get_features(PyObject *self, PyObject *args)
-{
-    PyObject *capsule;
-    PyObject *system_obj;
-    PyObject *grapheme_obj;
-    mk_registry *registry;
-    py_utf8 system_arg = {NULL, NULL};
-    py_utf8 grapheme_arg = {NULL, NULL};
-    const mk_system *system;
-    mk_feature_set *features = NULL;
-    PyObject *result;
-    mk_status status;
-
-    (void)self;
-
-    if (!PyArg_ParseTuple(args, "OOO:registry_get_features", &capsule, &system_obj, &grapheme_obj)) {
-        return NULL;
-    }
-    registry = registry_from_capsule(capsule, "registry_get_features");
-    if (registry == NULL) {
-        return NULL;
-    }
-    if (py_utf8_from_unicode(system_obj, "system", &system_arg) < 0 ||
-        py_utf8_from_unicode(grapheme_obj, "grapheme", &grapheme_arg) < 0) {
-        py_utf8_clear(&system_arg);
-        return NULL;
-    }
-    system = get_system_from_registry_or_error(registry, system_arg.value, "registry_get_features");
-    if (system == NULL) {
-        py_utf8_clear(&system_arg);
-        py_utf8_clear(&grapheme_arg);
-        return NULL;
-    }
-    status = mk_system_grapheme_features(system, grapheme_arg.value, &features);
-    py_utf8_clear(&system_arg);
-    py_utf8_clear(&grapheme_arg);
-    if (status != MK_OK) {
-        return status_error(status, "registry_get_features");
-    }
-    result = py_feature_set_to_frozenset(features);
-    mk_feature_set_free(features);
-    return result;
-}
-
-static PyObject *py_registry_is_segment(PyObject *self, PyObject *args)
-{
-    PyObject *capsule;
-    PyObject *system_obj;
-    PyObject *grapheme_obj;
-    mk_registry *registry;
-    py_utf8 system_arg = {NULL, NULL};
-    py_utf8 grapheme_arg = {NULL, NULL};
-    const mk_system *system;
-    int is_segment = 0;
-    mk_status status;
-
-    (void)self;
-
-    if (!PyArg_ParseTuple(args, "OOO:registry_is_segment", &capsule, &system_obj, &grapheme_obj)) {
-        return NULL;
-    }
-    registry = registry_from_capsule(capsule, "registry_is_segment");
-    if (registry == NULL) {
-        return NULL;
-    }
-    if (py_utf8_from_unicode(system_obj, "system", &system_arg) < 0 ||
-        py_utf8_from_unicode(grapheme_obj, "grapheme", &grapheme_arg) < 0) {
-        py_utf8_clear(&system_arg);
-        return NULL;
-    }
-    system = get_system_from_registry_or_error(registry, system_arg.value, "registry_is_segment");
-    if (system == NULL) {
-        py_utf8_clear(&system_arg);
-        py_utf8_clear(&grapheme_arg);
-        return NULL;
-    }
-    status = mk_system_is_segment(system, grapheme_arg.value, &is_segment);
-    py_utf8_clear(&system_arg);
-    py_utf8_clear(&grapheme_arg);
-    if (status != MK_OK) {
-        return status_error(status, "registry_is_segment");
-    }
-    if (is_segment) {
-        Py_RETURN_TRUE;
-    }
-    Py_RETURN_FALSE;
-}
-
-static PyObject *py_registry_distance(PyObject *self, PyObject *args)
-{
-    PyObject *capsule;
-    PyObject *system_obj;
-    PyObject *a_obj;
-    PyObject *b_obj;
-    PyObject *node_weights_obj = Py_None;
-    mk_registry *registry;
-    py_utf8 system_arg = {NULL, NULL};
-    py_utf8 a_arg = {NULL, NULL};
-    py_utf8 b_arg = {NULL, NULL};
-    py_utf8 node_weights_arg = {NULL, NULL};
-    const char *node_weights = NULL;
-    const mk_system *system;
-    double distance = 0.0;
-    mk_status status;
-
-    (void)self;
-
-    if (!PyArg_ParseTuple(args, "OOOO|O:registry_distance", &capsule, &system_obj, &a_obj, &b_obj, &node_weights_obj)) {
-        return NULL;
-    }
-    registry = registry_from_capsule(capsule, "registry_distance");
-    if (registry == NULL) {
-        return NULL;
-    }
-    if (py_utf8_from_unicode(system_obj, "system", &system_arg) < 0 ||
-        py_utf8_from_unicode(a_obj, "a", &a_arg) < 0 ||
-        py_utf8_from_unicode(b_obj, "b", &b_arg) < 0) {
-        py_utf8_clear(&system_arg);
-        py_utf8_clear(&a_arg);
-        return NULL;
-    }
-    if (node_weights_obj != NULL && node_weights_obj != Py_None) {
-        if (py_utf8_from_unicode(node_weights_obj, "node_weights", &node_weights_arg) < 0) {
-            py_utf8_clear(&system_arg);
-            py_utf8_clear(&a_arg);
-            py_utf8_clear(&b_arg);
-            return NULL;
-        }
-        node_weights = node_weights_arg.value;
-    }
-    system = get_system_from_registry_or_error(registry, system_arg.value, "registry_distance");
-    if (system == NULL) {
-        py_utf8_clear(&system_arg);
-        py_utf8_clear(&a_arg);
-        py_utf8_clear(&b_arg);
-        py_utf8_clear(&node_weights_arg);
-        return NULL;
-    }
-    status = mk_system_segment_distance_with_weights(system, a_arg.value, b_arg.value, node_weights, &distance);
-    py_utf8_clear(&system_arg);
-    py_utf8_clear(&a_arg);
-    py_utf8_clear(&b_arg);
-    py_utf8_clear(&node_weights_arg);
-    if (status != MK_OK) {
-        return status_error(status, "registry_distance");
-    }
-    return PyFloat_FromDouble(distance);
 }
 
 static PyMethodDef methods[] = {
-    {"list_systems", py_list_systems, METH_NOARGS, "List built-in feature systems."},
-    {"get_features", (PyCFunction)py_get_features, METH_VARARGS | METH_KEYWORDS, "Return features for a grapheme."},
-    {"is_segment", (PyCFunction)py_is_segment, METH_VARARGS | METH_KEYWORDS, "Return whether a grapheme is known."},
-    {"distance", (PyCFunction)py_distance, METH_VARARGS | METH_KEYWORDS, "Return segment distance."},
-    {"feature_distance", (PyCFunction)py_feature_distance, METH_VARARGS | METH_KEYWORDS, "Return geometry feature distance."},
+    {"list_systems", (PyCFunction)py_list_systems, METH_VARARGS | METH_KEYWORDS,
+     "List the systems in a registry."},
+    {"get_features", (PyCFunction)py_get_features, METH_VARARGS | METH_KEYWORDS,
+     "Return features for a grapheme."},
+    {"is_segment", (PyCFunction)py_is_segment, METH_VARARGS | METH_KEYWORDS,
+     "Return whether a grapheme is known."},
+    {"distance", (PyCFunction)py_distance, METH_VARARGS | METH_KEYWORDS,
+     "Return segment distance."},
+    {"feature_distance", py_feature_distance, METH_VARARGS,
+     "Return geometry feature distance."},
     {"normalize", py_normalize, METH_VARARGS, "Normalize an IPA grapheme."},
     {"segment_ipa", py_segment_ipa, METH_VARARGS, "Segment an IPA string orthographically."},
-    {"system_segment_ipa", (PyCFunction)py_system_segment_ipa, METH_VARARGS | METH_KEYWORDS, "Segment an IPA string by longest match against a system's inventory."},
-    {"merge_tone_digits", py_merge_tone_digits, METH_VARARGS, "Attach Chao tone digit segments to nuclei."},
-    {"split_tone", py_split_tone, METH_VARARGS, "Split a merged segment into (base, tone); tone is None when absent."},
-    {"segment_ipa_merged", py_segment_ipa_merged, METH_VARARGS, "Segment IPA and attach Chao tone digits to nuclei."},
-    {"_registry_new", py_registry_new, METH_NOARGS, "Create a native registry capsule."},
-    {"_registry_add_model_text", py_registry_add_model_text, METH_VARARGS, "Add runtime model text to a native registry."},
-    {"_registry_list_systems", py_registry_list_systems, METH_VARARGS, "List systems in a native registry."},
-    {"_registry_get_features", py_registry_get_features, METH_VARARGS, "Return features from a native registry."},
-    {"_registry_is_segment", py_registry_is_segment, METH_VARARGS, "Return segment validity from a native registry."},
-    {"_registry_distance", py_registry_distance, METH_VARARGS, "Return segment distance from a native registry."},
+    {"system_segment_ipa", (PyCFunction)py_system_segment_ipa, METH_VARARGS | METH_KEYWORDS,
+     "Segment an IPA string by longest match against a system's inventory."},
+    {"merge_tone_digits", py_merge_tone_digits, METH_VARARGS,
+     "Attach Chao tone digit segments to nuclei."},
+    {"split_tone", py_split_tone, METH_VARARGS,
+     "Split a merged segment into (base, tone); tone is None when absent."},
+    {"segment_ipa_merged", py_segment_ipa_merged, METH_VARARGS,
+     "Segment IPA and attach Chao tone digits to nuclei."},
+    {"registry_new", py_registry_new, METH_NOARGS, "Create a native registry capsule."},
+    {"add_model_text", (PyCFunction)py_add_model_text, METH_VARARGS | METH_KEYWORDS,
+     "Add runtime model text to a registry."},
     {NULL, NULL, 0, NULL}
 };
 
@@ -911,6 +792,7 @@ static struct PyModuleDef moduledef = {
 PyMODINIT_FUNC PyInit__native(void)
 {
     PyObject *module = PyModule_Create(&moduledef);
+
     if (module == NULL) {
         return NULL;
     }

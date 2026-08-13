@@ -70,8 +70,14 @@ grapheme X consonant voiceless bilabial stop
 print(registry.get_features("X", system="toy"))
 ```
 
-`Registry` owns its C registry handle. Top-level functions use the compiled-in
-built-in registry.
+`Registry` owns its C registry handle, and each of its methods is the
+top-level function of the same name pointed at that registry. Top-level calls
+use a shared default registry holding the built-in systems; a model added to a
+`Registry` is visible only through it, and `add_model_text` refuses to touch
+the shared one.
+
+`feature_distance` takes no `system`: it measures a distance in the compiled
+geometry, which every system shares.
 
 ## Development
 

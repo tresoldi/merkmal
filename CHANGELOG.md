@@ -2,6 +2,46 @@
 
 ## Unreleased
 
+### Internal structure, and two tokenization defects
+
+Restructuring of the C library and its Python wrapper. No distance, feature
+set, or tokenization result changes except where noted as a fix.
+
+- Fixed: IPA tone letters were dropped by tone merging. The tokenizer grouped
+  `˥˦˧˨˩` into a tone run, but the merge step decoded superscripts only, judged
+  the run all-zero, and discarded it — `segment_ipa_merged("a˥")` returned a
+  toneless `"a"`. The library had three Chao decoders accepting three different
+  alphabets; it now has one.
+- Fixed: graphemes in a caller-supplied runtime model were stored as written
+  while queries were normalized, so a `grapheme` row spelled with a precomposed
+  `ã` could not be matched under either spelling. Runtime and built-in models
+  now share one normalization, and the source conventions apply too, so a row
+  written `ʧ` is reachable as `tʃ`.
+- Fixed: an unknown `node_weights` preset on a cluster segment such as `ai`
+  returned `MK_OK` with a composed value near 0.8 instead of
+  `MK_ERR_INVALID_ARGUMENT`. The scorers no longer signal failure with `NAN`.
+- **Breaking (Python):** `feature_distance` no longer accepts `system`. It
+  measures a distance in the compiled geometry, which every system shares; the
+  argument was validated and then ignored, so a caller naming `phoible` was
+  silently given clements-hume numbers.
+- **Breaking (Python):** `merkmal._native._registry_*` are gone. Each operation
+  is now one function taking an optional `registry`, and `Registry` methods
+  call it. `merkmal.Registry` itself is unchanged apart from `system` now
+  defaulting to `None` (the same default system) rather than to the literal
+  `"descriptive"`.
+- Added: `merkmal.Registry.system_segment_ipa`.
+- Changed: adding a model to the shared default registry now raises
+  `ValueError` rather than mutating what every other caller in the process
+  sees. Construct a `merkmal.Registry`.
+- Changed: bare `mb`, `nd`, `mp`, `nt` and `ŋg` are recognized as prenasalized
+  consonant clusters; `docs/c-api.md` still described the older two-item
+  blocklist.
+- Internal: segment resolution moved into `src/resolver.{c,h}` behind
+  `mk_resolve`, which reports which path resolved a grapheme; `src/system.c`
+  went from 2298 to 473 lines. The two component parsers and the two cluster
+  synthesizers became one of each, taking a grammar. Hand-written C dropped
+  from 5466 to 5084 lines and the Python binding from 929 to 811.
+
 ### Second review pass: ordered scales, derived class features, tone
 
 An independent linguistic review ([docs/independent-linguistic-review.md](docs/independent-linguistic-review.md))

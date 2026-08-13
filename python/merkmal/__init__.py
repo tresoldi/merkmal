@@ -34,43 +34,59 @@ class Registry:
     The registry keeps the native handle alive for the lifetime of this
     object. Methods raise ``KeyError`` for unknown systems and ``ValueError``
     for invalid or unknown graphemes.
+
+    Each method is the module-level function of the same name, pointed at this
+    registry instead of the shared default one. Passing ``system=None`` uses
+    the default system, which the native module defines.
     """
 
     def __init__(self) -> None:
         """Create a registry containing the built-in systems."""
-        self._handle = _native._registry_new()
+        self._handle = _native.registry_new()
 
     def add_model_text(self, model_text: str) -> None:
         """Add a categorical model using the documented text format."""
-        _native._registry_add_model_text(self._handle, model_text)
+        _native.add_model_text(model_text, registry=self._handle)
 
     def list_systems(self) -> list[str]:
         """Return the names of built-in and registered systems."""
-        return cast("list[str]", _native._registry_list_systems(self._handle))
+        return cast("list[str]", _native.list_systems(registry=self._handle))
 
-    def get_features(self, grapheme: str, *, system: str = "descriptive") -> frozenset[str]:
+    def get_features(self, grapheme: str, *, system: str | None = None) -> frozenset[str]:
         """Return the feature set for ``grapheme`` in ``system``."""
         return cast(
             "frozenset[str]",
-            _native._registry_get_features(self._handle, system, grapheme),
+            _native.get_features(grapheme, system=system, registry=self._handle),
         )
 
-    def is_segment(self, grapheme: str, *, system: str = "descriptive") -> bool:
+    def is_segment(self, grapheme: str, *, system: str | None = None) -> bool:
         """Return whether ``grapheme`` is a valid segment in ``system``."""
-        return cast("bool", _native._registry_is_segment(self._handle, system, grapheme))
+        return cast(
+            "bool",
+            _native.is_segment(grapheme, system=system, registry=self._handle),
+        )
 
     def distance(
         self,
         a: str,
         b: str,
         *,
-        system: str = "descriptive",
+        system: str | None = None,
         node_weights: str | None = None,
     ) -> float:
         """Return the geometry-weighted distance between two graphemes."""
         return cast(
             "float",
-            _native._registry_distance(self._handle, system, a, b, node_weights),
+            _native.distance(
+                a, b, system=system, node_weights=node_weights, registry=self._handle
+            ),
+        )
+
+    def system_segment_ipa(self, ipa: str, *, system: str | None = None) -> list[str]:
+        """Segment ``ipa`` by longest match against ``system``'s inventory."""
+        return cast(
+            "list[str]",
+            _native.system_segment_ipa(ipa, system=system, registry=self._handle),
         )
 
 __all__ = [
