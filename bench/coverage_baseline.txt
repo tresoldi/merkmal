@@ -11,7 +11,7 @@
 
 DATASET                           FORMS   %FORMS  %TOKENS
 williamsonbenuecongo              12271     0.0%    62.4%
-starostinhmongmien                 1827    71.8%    93.0%
+starostinhmongmien                 1827    74.4%    94.2%
 hillburmish                        4032    85.7%    97.1%
 mcd                               20689    91.6%    96.9%
 peirosst                          13798    93.1%    98.2%
@@ -19,7 +19,7 @@ oliveiraprotopanoan                7305    93.3%    98.4%
 houchinese                         2789    97.5%    99.6%
 blumpanotacana                    10226    97.9%    99.6%
 yuchinese                          1423    98.7%    99.8%
-bdpa                              50095    98.9%    99.7%
+bdpa                              50095    99.0%    99.8%
 pila                               5776    99.0%    99.8%
 schuesslerhanchinese              11353    99.1%    99.7%
 savelyevturkic                     8360    99.3%    99.8%
@@ -32,7 +32,6 @@ hattorijaponic                     1986    99.6%    99.9%
 walkerarawakan                     5894    99.7%    99.9%
 starostinpie                       2172    99.8%    99.9%
 lsi                               60533    99.8%   100.0%
-robinsonap                         4841    99.8%   100.0%
 chaconarawakan                      711    99.9%   100.0%
 northperulex                       4986    99.9%   100.0%
 peirosaustroasiatic               10706    99.9%   100.0%
@@ -40,9 +39,9 @@ dunnielex                          4393    99.9%   100.0%
 backstromnorthernpakistan         11343    99.9%   100.0%
 simsrma                            1055    99.9%   100.0%
 sidwellvietic                      3217    99.9%   100.0%
-tuled                             25004    99.9%   100.0%
 dhakalsouthwesttibetic             2903    99.9%   100.0%
 sidwellbahnaric                    4546    99.9%   100.0%
+tuled                             25004   100.0%   100.0%
 sagartst                          12179   100.0%   100.0%
 johanssonsoundsymbolic            69963   100.0%   100.0%
 vanuatuvoices                     45255   100.0%   100.0%
@@ -135,6 +134,7 @@ papuanvoices                       2761   100.0%   100.0%
 pharaocoracholaztecan               799   100.0%   100.0%
 polyglottaafricana                57593   100.0%   100.0%
 robbeetstriangulation             26224   100.0%   100.0%
+robinsonap                         4841   100.0%   100.0%
 saenkoromance                      4853   100.0%   100.0%
 sawkatokaleya                      2166   100.0%   100.0%
 seifartecheverriboran              1364   100.0%   100.0%

@@ -63,10 +63,11 @@ mk_status mk_system_is_segment(
     if (status == MK_ERR_UNKNOWN_GRAPHEME) {
         return MK_OK;
     }
-    if (status == MK_ERR_PARSE) {
-        /* Malformed input (an over-long Chao run, say) is not a segment. The
-         * predicate stays total; callers who want the reason use
-         * mk_system_grapheme_features, which reports MK_ERR_PARSE. */
+    if (status == MK_ERR_PARSE || status == MK_ERR_SOURCE_MARKER) {
+        /* Malformed input (an over-long Chao run, say) and source markup
+         * (`<?>`, a boundary marker) are both "not a segment". The predicate
+         * stays total; callers who want the reason use
+         * mk_system_grapheme_features, which reports which it was. */
         return MK_OK;
     }
     return status;

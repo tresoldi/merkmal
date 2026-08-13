@@ -52,7 +52,7 @@ def test_native_features_and_validity() -> None:
     assert merkmal.is_segment("t͡ʃ")
     assert not merkmal.is_segment("not-ipa")
     assert not merkmal.is_segment("<?>", system="descriptive")
-    with pytest.raises(ValueError):
+    with pytest.raises(merkmal.SourceMarkerError):
         merkmal.get_features("<?>", system="descriptive")
 
 
@@ -390,6 +390,42 @@ def test_feature_distance_takes_no_system() -> None:
         merkmal.feature_distance("voiced", "voiceless", system="phoible")  # type: ignore[call-arg]
 
 
+def test_source_markup_is_distinguishable_from_an_unsupported_sound() -> None:
+    """`<?>` means the source has a gap, not that merkmal lacks the segment.
+
+    Both used to be MK_ERR_UNKNOWN_GRAPHEME, which made a transcription-QC pass
+    report other people's known gaps as its own failures -- 33,275 tokens' worth
+    in Lexibank.
+    """
+    for token in ["<?>", "<<->>", "<<ú>>", "+", "_", "#"]:
+        assert not merkmal.is_segment(token), token
+        with pytest.raises(merkmal.SourceMarkerError):
+            merkmal.get_features(token)
+
+    # Still a ValueError, so callers catching that are unaffected.
+    assert issubclass(merkmal.SourceMarkerError, ValueError)
+
+    # Deliberately narrow. Dataset-specific noise is not swept in on a guess
+    # about what its author meant; it stays an unknown grapheme.
+    for token in ["→", "∼", "not-ipa"]:
+        with pytest.raises(ValueError) as caught:
+            merkmal.get_features(token)
+        assert not isinstance(caught.value, merkmal.SourceMarkerError), token
+
+
+def test_source_conventions_cover_clts_lookalikes() -> None:
+    """U+01DD TURNED E is a source spelling of schwa, and now resolves."""
+    assert merkmal.normalize("ǝ") == "ə"
+    assert merkmal.distance("ǝ", "ə") == 0.0
+
+    # U+026B is deliberately NOT mapped to "lˠ", though CLTS names them the
+    # same thing. PHOIBLE carries `ɫ` as its own row with different feature
+    # values, and this table is applied before lookup and unconditionally, so
+    # the mapping destroyed a contrast rather than adding a spelling. Nothing
+    # goes in that table which any model lists as a row.
+    assert merkmal.distance("ɫ", "lˠ", system="phoible") > 0.0
+
+
 def test_sound_distance_scores_bare_feature_sets() -> None:
     """The one scorer reachable without a system, a registry, or a grapheme.
 
@@ -468,6 +504,8 @@ def test_error_messages_come_from_the_c_library() -> None:
     with pytest.raises(KeyError, match="unknown system"):
         merkmal.get_features("p", system="no-such-system")
     with pytest.raises(ValueError, match="unknown grapheme"):
+        merkmal.get_features("not-ipa")
+    with pytest.raises(merkmal.SourceMarkerError, match="source markup"):
         merkmal.get_features("<?>")
     with pytest.raises(ValueError, match="invalid argument"):
         merkmal.distance("p", "b", node_weights="no-such-preset")

@@ -17,6 +17,8 @@ const char *mk_status_string(mk_status status)
         return "parse error";
     case MK_ERR_OOM:
         return "out of memory";
+    case MK_ERR_SOURCE_MARKER:
+        return "source markup, not a sound";
     default:
         return "unknown status";
     }

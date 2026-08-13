@@ -473,10 +473,14 @@ int main(void)
     mk_string_list_free(features);
     features = NULL;
 
+    /* `<?>` is CLTS markup for a grapheme the source could not convert, not a
+     * sound this library is missing. It reports as such, so a caller checking
+     * transcriptions can skip the source's own gaps without also skipping
+     * segments merkmal genuinely lacks. */
     failed |= expect_status(
         mk_system_grapheme_features(descriptive, "<?>", &features),
-        MK_ERR_UNKNOWN_GRAPHEME,
-        "features unknown still raises status"
+        MK_ERR_SOURCE_MARKER,
+        "features source markup reports its own status"
     );
     failed |= expect_status(
         mk_system_is_segment(descriptive, "p³¹", &is_segment),

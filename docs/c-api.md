@@ -64,6 +64,23 @@ string lists whose order carries no meaning.
 - `MK_ERR_UNSUPPORTED_MODEL`
 - `MK_ERR_PARSE`
 - `MK_ERR_OOM`
+- `MK_ERR_SOURCE_MARKER`
+
+Three of these mean "not a segment" and are worth telling apart, because a
+caller checking transcriptions wants to act differently on each:
+
+| status | meaning |
+| --- | --- |
+| `MK_ERR_UNKNOWN_GRAPHEME` | no path recognized this; the library may lack the segment, or the spelling may be wrong |
+| `MK_ERR_PARSE` | a path recognized the *shape* and rejected the content — an over-long Chao run is tone, spelled wrong |
+| `MK_ERR_SOURCE_MARKER` | not a transcription at all: CLTS's `<?>`, CLDF's `<<...>>`, or a `+`/`_`/`#` boundary marker. The **source** has a gap here; merkmal is not missing anything |
+
+`mk_system_is_segment` reports `false` for all three and returns `MK_OK`: the
+predicate is total, and the reason comes from `mk_system_grapheme_features`.
+
+`MK_ERR_SOURCE_MARKER` was appended to the enum, so the other values keep their
+numbers. A `switch` with a `default` is unaffected; one that enumerates every
+value will warn until it handles the new one.
 
 Use `mk_status_string(status)` for a stable English diagnostic label suitable
 for logs and error messages. The returned string is static storage owned by

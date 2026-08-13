@@ -13,6 +13,7 @@
  * versions and not about subinterpreters; this module does not support those. */
 static mk_registry *default_registry = NULL;
 static PyObject *mk_py_error = NULL;
+static PyObject *mk_py_source_marker = NULL;
 static const char *registry_capsule_name = "merkmal.registry";
 
 /* The system used when a call names none. One definition: this string used to
@@ -196,6 +197,12 @@ static PyObject *status_error(mk_status status, const char *context)
         break;
     case MK_ERR_UNSUPPORTED_MODEL:
         PyErr_Format(PyExc_NotImplementedError, "%s: %s", context, message);
+        break;
+    case MK_ERR_SOURCE_MARKER:
+        /* A subclass of ValueError, so callers that already catch ValueError
+         * keep working, and callers that want to skip the source's own gaps
+         * without swallowing real failures can catch this instead. */
+        PyErr_Format(mk_py_source_marker, "%s: %s", context, message);
         break;
     case MK_ERR_OOM:
         PyErr_NoMemory();
@@ -900,6 +907,19 @@ PyMODINIT_FUNC PyInit__native(void)
     if (module == NULL) {
         return NULL;
     }
+    mk_py_source_marker = PyErr_NewException(
+        "merkmal.SourceMarkerError", PyExc_ValueError, NULL);
+    if (mk_py_source_marker == NULL) {
+        Py_DECREF(module);
+        return NULL;
+    }
+    Py_INCREF(mk_py_source_marker);
+    if (PyModule_AddObject(module, "SourceMarkerError", mk_py_source_marker) < 0) {
+        Py_DECREF(mk_py_source_marker);
+        Py_DECREF(module);
+        return NULL;
+    }
+
     mk_py_error = PyErr_NewException("merkmal.NativeError", NULL, NULL);
     if (mk_py_error == NULL) {
         Py_DECREF(module);

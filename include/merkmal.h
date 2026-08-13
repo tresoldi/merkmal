@@ -43,7 +43,20 @@ typedef enum mk_status {
     MK_ERR_UNKNOWN_GRAPHEME,
     MK_ERR_UNSUPPORTED_MODEL,
     MK_ERR_PARSE,
-    MK_ERR_OOM
+    MK_ERR_OOM,
+    /** The token is CLDF/CLTS markup, not a transcription of a sound.
+     *
+     * `<?>` is CLTS's mark for a grapheme it could not convert, `<<...>>` is
+     * CLDF's escape for source material left unparsed, and `+`, `_` and `#` are
+     * boundary markers. Rejecting them is correct -- they are not sounds -- but
+     * a caller checking transcriptions needs to tell "your data has a known gap
+     * here" apart from "this library does not support this sound", and
+     * MK_ERR_UNKNOWN_GRAPHEME said only the second. In Lexibank these account
+     * for 33,275 tokens.
+     *
+     * Appended to the enum rather than inserted, so existing values keep their
+     * numbers. */
+    MK_ERR_SOURCE_MARKER
 } mk_status;
 
 /** Returns the stable English label for a status code. */

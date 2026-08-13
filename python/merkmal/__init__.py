@@ -15,6 +15,11 @@ except ImportError as exc:  # pragma: no cover - exercised before extension buil
     ) from exc
 
 NativeError = _native.NativeError
+# Raised for CLDF/CLTS markup -- `<?>`, `<<...>>`, boundary markers -- which is
+# not a sound and must not resolve. A ValueError subclass, so code that already
+# catches ValueError is unaffected; catch this one to skip the source's own
+# known gaps without also swallowing segments the library genuinely lacks.
+SourceMarkerError = _native.SourceMarkerError
 distance = _native.distance
 feature_distance = _native.feature_distance
 get_features = _native.get_features
@@ -92,6 +97,7 @@ class Registry:
 
 __all__ = [
     "NativeError",
+    "SourceMarkerError",
     "Registry",
     "__version__",
     "distance",

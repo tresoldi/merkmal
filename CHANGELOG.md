@@ -2,6 +2,43 @@
 
 ## Unreleased
 
+### Source markup says so, and two CLTS spellings resolve
+
+- **New status `MK_ERR_SOURCE_MARKER`**, and `merkmal.SourceMarkerError` in
+  Python. `<?>` is CLTS's mark for a grapheme *the source* could not convert,
+  `<<...>>` is CLDF's escape for unparsed source material, and `+`, `_`, `#` are
+  boundary markers. All of them are correctly refused — they are not sounds —
+  but refusing them as `MK_ERR_UNKNOWN_GRAPHEME` told a caller the wrong thing:
+  that merkmal lacked the segment. In Lexibank they are 33,275 tokens, so a
+  transcription-QC pass could not tell its own gaps from other people's without
+  string-matching the input itself.
+
+  The Python exception subclasses `ValueError`, so code already catching that is
+  unaffected; catch `SourceMarkerError` to skip the source's known gaps without
+  swallowing segments the library genuinely lacks. `is_segment` stays total and
+  still returns `False`. The status is **appended** to `mk_status`, so existing
+  values keep their numbers.
+
+  Deliberately narrow: the documented CLDF/CLTS conventions only. Dataset-local
+  noise such as `→` and `∼` stays an unknown grapheme rather than being swept in
+  on a guess about what its author meant.
+
+- **`ǝ` resolves.** U+01DD TURNED E is a source convention for schwa, named
+  "unrounded mid central vowel" in CLTS v1.4.1 — the name this inventory already
+  gives U+0259 — and no bundled model carries it as a row of its own.
+
+  **`ɫ` deliberately does not.** It was mapped to `lˠ` on the same CLTS reading
+  and then taken out: PHOIBLE carries `ɫ` as its own inventory row with feature
+  values that differ from `lˠ`, and the source-conventions table is applied
+  before lookup and unconditionally, so the mapping destroyed a contrast PHOIBLE
+  draws rather than adding a spelling merkmal lacked. `scripts/contrast_baseline.py`
+  caught it as a single new zero-distance pair in `phoible`.
+
+  The general defect this exposed — a source convention can override a grapheme
+  the system actually has — is unfixed. It needs the resolver to try the written
+  form before the rewritten one. Until then the rule is that nothing enters that
+  table which any model lists as a row.
+
 ### The default is `distinctive`, and `broad` is deprecated
 
 **Breaking, for anyone who calls without naming a system.** The default moves

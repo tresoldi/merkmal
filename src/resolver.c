@@ -564,6 +564,41 @@ static mk_status mk_add_chao_tone_features(
     );
 }
 
+/* CLDF and CLTS markup that a Segments column carries alongside transcription.
+ *
+ * These are not sounds and must not resolve. But refusing them as unknown
+ * graphemes told a caller doing transcription QC the wrong thing: `<?>` means
+ * the *source* has a gap CLTS could not convert, not that merkmal lacks the
+ * segment. In Lexibank the two commonest, `<?>` and `<<->>`, are 33,275 tokens
+ * between them, so a QC pass that cannot separate them is reporting mostly
+ * other people's known gaps as its own failures.
+ *
+ * Deliberately narrow: the documented conventions only. Dataset-specific noise
+ * such as arrows stays MK_ERR_UNKNOWN_GRAPHEME rather than being swept in here
+ * on a guess about what its author meant. */
+static int mk_is_source_marker(const char *text)
+{
+    if (text == NULL || text[0] == '\0') {
+        return 0;
+    }
+    /* CLDF boundary markers. */
+    if (mk_streq(text, "+") || mk_streq(text, "_") || mk_streq(text, "#")) {
+        return 1;
+    }
+    /* CLTS: a grapheme the conversion could not resolve. */
+    if (mk_streq(text, "<?>")) {
+        return 1;
+    }
+    /* CLDF: source material left unparsed, escaped as <<...>>. */
+    if (mk_has_prefix(text, "<<")) {
+        size_t len = strlen(text);
+        if (len >= 4 && strcmp(text + len - 2, ">>") == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static void mk_free_owned_feature_array(char **features, size_t count);
 static mk_status mk_set_synthesized_entry(
     mk_resolution *out,
@@ -1850,6 +1885,10 @@ mk_status mk_resolve(
         return MK_ERR_INVALID_ARGUMENT;
     }
     memset(out, 0, sizeof(*out));
+
+    if (mk_is_source_marker(utf8_grapheme)) {
+        return MK_ERR_SOURCE_MARKER;
+    }
 
     status = mk_normalize_input_grapheme(utf8_grapheme, &normalized);
     if (status != MK_OK) {

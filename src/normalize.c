@@ -70,7 +70,24 @@ static const mk_decomposition mk_source_conventions[] = {
     { "ç", "ç" },
     { "’", "ʼ" },
     { "'", "ʼ" },
-    { ":", "ː" }
+    { ":", "ː" },
+    /* U+01DD TURNED E is a source convention for schwa: CLTS v1.4.1 names it
+     * "unrounded mid central vowel", the name this inventory gives U+0259, and
+     * no bundled model carries it as a row of its own. A lookalike an author
+     * reached for, not a distinct sound.
+     *
+     * U+026B L WITH MIDDLE TILDE was added here too, mapped to "lˠ" on the same
+     * CLTS reading, and taken out again. PHOIBLE carries `ɫ` as its own
+     * inventory row with feature values that differ from `lˠ`, and every rule in
+     * this table is applied before lookup and unconditionally -- so the mapping
+     * did not add a spelling, it destroyed a contrast PHOIBLE draws. The
+     * contrast audit caught it as one new zero-distance pair.
+     *
+     * The general form of the bug is that a source convention must not override
+     * a grapheme the system actually has, which needs the resolver to try the
+     * written form before the rewritten one. Until that exists, nothing goes in
+     * this table that any model lists as a row. */
+    { "ǝ", "ə" }
 };
 
 /* Decompose a token using the compiled table.
