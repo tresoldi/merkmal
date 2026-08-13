@@ -67,6 +67,23 @@ defect in any of them — SPE, JFH and PHOIBLE disagree about what a segment *is
 — but it means a result resting on one of them is partly a result about that
 theory. Run it twice and say which you used.
 
+### `fit_pair_costs.py` — would a fitted table do better?
+
+```sh
+bench/fit_pair_costs.py --bdpa ~/lexibank_clone/bdpa
+```
+
+Leave-one-family-out over BDPA's human alignments, with segment-pair costs from
+pointwise mutual information shrunk toward the geometry. The answer on this data
+is **no detectable difference**: mean −0.28 points, 95% interval [−0.92, +0.35],
+1 of 5 folds improved.
+
+Nothing ships from it. BDPA is five families and 65% Indo-European — enough to
+find a large effect, not to resolve a small one — and tuning the smoothing until
+a fold turns positive would be fitting the protocol rather than the data. That
+is how the quarantined CoreCog prior went wrong, and the constraints here exist
+to prevent a repeat.
+
 ### `bench_alignment.py` — the substitution cost, against the incumbent
 
 ```sh

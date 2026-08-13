@@ -2,6 +2,44 @@
 
 ## Unreleased
 
+### The fitted scorer, run and not shipped
+
+Both earlier reviews concluded a fitted pair-cost table is the only real answer
+to the scorer's disagreement with the frequency of sound change.
+`bench/fit_pair_costs.py` runs that experiment under D7's constraints, and the
+answer on the data available is **no detectable difference**.
+
+Leave-one-family-out over BDPA's human-annotated alignments — human-annotated
+because fitting to alignments merkmal produced would calibrate it against
+itself, which is point 6 of the CoreCog quarantine and easy to reintroduce
+without noticing. Segment-pair costs from pointwise mutual information, shrunk
+toward the geometry by observation count, gap tuned on training folds only:
+
+| held out | geometry | fitted | delta |
+| --- | ---: | ---: | ---: |
+| Indo-European | 96.17% | 96.03% | −0.14 |
+| Japonic | 86.89% | 87.38% | +0.49 |
+| Quechuan | 100.00% | 100.00% | 0.00 |
+| Sino-Tibetan | 90.83% | 89.36% | −1.47 |
+| Uralic | 93.12% | 92.81% | −0.31 |
+
+Mean −0.28 points, 95% interval [−0.92, +0.35], 1 of 5 folds improved. Not a
+win for either side.
+
+**Nothing ships from this run**, and the reason is the protocol rather than the
+result. BDPA is five families and 65% Indo-European: enough to find a large
+effect, not enough to resolve a small one. Tuning the smoothing until a fold
+turns positive would be fitting the protocol instead of the data — the exact
+failure D7's constraints exist to prevent, and the one that produced the
+quarantined CoreCog prior.
+
+Calibration is reported beside accuracy and moves independently of it: on
+Japonic the fitted costs are better *scaled* (0.079 → 0.038) while barely better
+ranked. A scorer can order pairs well and still mean nothing by its numbers.
+
+What would settle it: alignments over many more families — Lexibank's cognate
+sets, aligned by something that is not merkmal.
+
 ### A typology layer, deliberately outside the library
 
 `typology/` is a companion package, `merkmal_typology`, carrying PHOIBLE's

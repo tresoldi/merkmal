@@ -463,7 +463,24 @@ lets the typology data carry its own licensing.
 
 ---
 
-## Phase 4 — The fitted scorer (D7)
+## Phase 4 — The fitted scorer (D7) — **run 2026-08-13, nothing shipped**
+
+The experiment exists (`bench/fit_pair_costs.py`) and the answer on available
+data is no detectable difference: mean −0.28 points across leave-one-family-out
+folds, 95% interval [−0.92, +0.35], 1 of 5 folds improved.
+
+Every D7 constraint held. Split by family, not word pair. Fitted on BDPA's
+human alignments so merkmal is not calibrated against itself. Gap tuned on
+training folds only. Calibration reported beside accuracy — and it moves
+independently, which is worth knowing on its own.
+
+The binding limit is the corpus: BDPA is five families, 65% Indo-European.
+Tuning the smoothing until a fold turns positive would be fitting the protocol,
+which is how the CoreCog prior went wrong. The next move is not a better fit on
+this data but more data: Lexibank cognate sets, aligned by something that is not
+merkmal.
+
+### Original scope
 
 Both prior reviews concluded a fitted pair-cost table is the only real answer to
 the change-frequency problem. The 170 local Lexibank clones with cognate
