@@ -80,13 +80,20 @@ for the first native slice:
 
 Built-in C systems currently include:
 
-- `broad` — **operationally identical to `descriptive`** at this revision:
-  their inventory files are byte-identical, and all 778 feature sets and all
-  302,253 pairwise distances agree. Two public names imply a choice that does
-  not currently exist. Either define and test a real broadening transform or
-  deprecate the name; do not read anything into picking one over the other.
-- `descriptive`
-- `distinctive`
+- `distinctive` — **the default.** It recognizes the same graphemes as
+  `descriptive` (0 disagreements over 7,396 Lexibank segment types) and scores
+  better: on BDPA gold alignments it is not statistically distinguishable from
+  LingPy's SCA, where `descriptive` is measurably behind it. Reach for this one
+  unless you have a reason not to.
+- `descriptive` — same recognition, scores through the geometry tree rather than
+  its own dimensions. Use it when you want the geometry's numbers, or when you
+  want `sound_distance` on a feature set to agree with `distance` on a grapheme,
+  which only holds for the geometry-scored systems.
+- `broad` — **deprecated, and now a pure duplicate of `descriptive`.** Not
+  merely "operationally identical": 0 differences in feature sets, 0 in
+  distances, and 0 in recognition across the whole corpus. Two public names for
+  one thing. It still resolves so nothing breaks; it will be removed in the next
+  major version. Do not start anything new on it.
 - `pbase-hc`
 - `pbase-jfh` — an *acoustic* feature set (Jakobson–Fant–Halle) mapped onto an
   articulatory tree for weighting; the mapping is a convenience, not a claim

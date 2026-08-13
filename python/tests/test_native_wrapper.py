@@ -248,7 +248,13 @@ def test_native_descriptive_broadened_source_tokens() -> None:
 
 
 def test_native_distance_matches_golden_probe() -> None:
-    assert math.isclose(merkmal.distance("p", "b"), 0.125, abs_tol=1e-10)
+    # The default is `distinctive`, which scores through its own
+    # scalar_dimensions rather than the geometry tree. Naming the system keeps
+    # this probe pinned to a value rather than to whatever the default is.
+    assert math.isclose(merkmal.distance("p", "b"), 0.1492537313, abs_tol=1e-10)
+    assert math.isclose(
+        merkmal.distance("p", "b", system="descriptive"), 0.125, abs_tol=1e-10
+    )
     assert math.isclose(
         merkmal.distance("p", "b", system="phoible"),
         0.0365853659,
@@ -396,11 +402,26 @@ def test_sound_distance_scores_bare_feature_sets() -> None:
 
     assert merkmal.sound_distance(p, p) == 0.0
     assert 0.0 < merkmal.sound_distance(p, b) < merkmal.sound_distance(p, a)
-    # Fed a segment's own features, it agrees with the segment scorer. The
-    # named sets above are deliberately minimal and do not carry the features
-    # the generator derives, so they score differently -- which is the point of
-    # keeping them as data rather than as inventory rows.
+    # Fed a segment's own features, it agrees with the segment scorer -- for a
+    # system that scores through the geometry. The named sets above are
+    # deliberately minimal and do not carry the features the generator derives,
+    # so they score differently, which is the point of keeping them as data
+    # rather than as inventory rows.
     assert math.isclose(
+        merkmal.sound_distance(
+            sorted(merkmal.get_features("p", system="descriptive")),
+            sorted(merkmal.get_features("b", system="descriptive")),
+        ),
+        merkmal.distance("p", "b", system="descriptive"),
+        abs_tol=1e-12,
+    )
+    # It does *not* agree with the default. `sound_distance` is the geometry
+    # scorer and takes no system, while `distinctive` -- the default since 1.1 --
+    # scores through its own scalar_dimensions. Two scorers, two answers, and a
+    # caller feeding default features into sound_distance gets the geometry's
+    # number rather than the one `distance` would give. Asserted so that the
+    # divergence is a stated property rather than a surprise.
+    assert not math.isclose(
         merkmal.sound_distance(
             sorted(merkmal.get_features("p")), sorted(merkmal.get_features("b"))
         ),

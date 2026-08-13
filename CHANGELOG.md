@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+### The default is `distinctive`, and `broad` is deprecated
+
+**Breaking, for anyone who calls without naming a system.** The default moves
+from `descriptive` to `distinctive`, so `merkmal.distance("p", "b")` returns
+0.1493 where it returned 0.125. Stored results computed against the old default
+must be recomputed or pinned with `system="descriptive"`.
+
+The choice is now purely about which scores better, because after the cluster
+work the two recognize exactly the same graphemes — 0 disagreements over 7,396
+Lexibank segment types. On BDPA gold alignments `distinctive` is not
+statistically distinguishable from LingPy's SCA (−0.39%, CI crossing zero) where
+the geometry-scored systems are measurably behind it (−0.79%).
+
+**`broad` is deprecated** and will be removed in the next major version. It is
+not merely "operationally identical" to `descriptive` as the README used to say:
+it is now a pure duplicate, with 0 differences in feature sets, distances, or
+recognition across the corpus. It still resolves, so nothing breaks today.
+
+**A consequence worth stating, because the switch surfaced it.**
+`mk_sound_distance` / `merkmal.sound_distance` is the *geometry* scorer and takes
+no system. `distinctive` scores through its own `scalar_dimensions`. So feeding a
+segment's default features into `sound_distance` no longer reproduces what
+`distance` returns for that segment — 0.125 against 0.1493 for `p`~`b`. The two
+agree only for the geometry-scored systems (`descriptive`, `broad`). There is now
+a test asserting the divergence in both directions, so it is a stated property
+rather than something a user discovers.
+
 ### Every categorical system reads what `descriptive` reads
 
 Diphthongs, consonant clusters and complex segments such as `kp` were

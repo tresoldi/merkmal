@@ -16,8 +16,15 @@ static PyObject *mk_py_error = NULL;
 static const char *registry_capsule_name = "merkmal.registry";
 
 /* The system used when a call names none. One definition: this string used to
- * be written out four times, three in this file and once in __init__.py. */
-static const char *const default_system_name = "descriptive";
+ * be written out four times, three in this file and once in __init__.py.
+ *
+ * `distinctive` rather than `descriptive` since 1.1. They now recognize the
+ * same graphemes -- 0 disagreements over 7,396 Lexibank segment types -- so the
+ * choice is purely about which scores better, and on BDPA gold alignments
+ * `distinctive` is not distinguishable from LingPy's SCA (-0.39%, CI crossing
+ * zero) where `descriptive` is measurably behind it (-0.79%). This changes the
+ * numbers any caller gets who does not name a system. */
+static const char *const default_system_name = "distinctive";
 
 typedef struct py_utf8 {
     PyObject *bytes;
