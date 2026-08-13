@@ -339,24 +339,21 @@ departure from CLTS v1.4.1, which reads `kp` as a cluster — recorded in
 used, so PHOIBLE's tone letters scoring `0.0` against everything is now visible
 as `(0.0, 0.0)` rather than indistinguishable from a real identity.
 
-**Two left, both deliberately.**
+**All four done.** The two below were left open earlier in the day and then
+closed; the notes are kept because the reasoning shaped the fixes.
 
-**Affricates inside clusters.** `features("ntʃ")` still parses as *n + t + ʃ*
-rather than *n + tʃ*. The contradiction the review named is gone —
-`system_segment_ipa("ntʃa")` and the recognizer now agree that `ntʃ` is one
-token — but the cluster component parser still splits by letter instead of by
-longest match. The fix is to route components through the tokenizer, which is
-where the affricate knowledge already lives.
+**Affricates inside clusters — fixed.** The component parser looks one unit
+ahead and prefers a two-letter segment the inventory or the complex synthesizer
+recognizes. `ntʃ` is *n + tʃ*. The lookahead deliberately does not consult the
+cluster grammars, so `mb` and `nd` stay two components.
 
-**Doubled spelling and length.** `d(aa, aː) = 0.2651` against
-`d(a, aː) = 0.0564`, so a doubled vowel is scored further from the long vowel
-than a single short one is. The tempting fix — read `aa` as `aː` — is exactly
-the move that broke `ɫ`: it asserts a transcription convention as an identity,
-and doubled vowels are a genuine sequence in some sources and a length spelling
-in others. Nothing in the data says which, per form. The real problem is that
-the cluster-to-segment scorer's length penalty pushes a geminate away from its
-length-marked equivalent, and that is a scoring question rather than a
-normalization one. Left alone rather than fixed the fast way.
+**Doubled spelling and length — fixed, as a scoring question.** The tempting
+route was reading `aa` as `aː`, which asserts a transcription convention as an
+identity: the move that cost a PHOIBLE contrast on `ɫ`. The actual defect was
+that the cluster scorer charged a per-component length penalty against a segment
+already marked long, double-counting the same difference. Waiving it there puts
+`d(aa, aː)` at 0.113, below `d(aa, a)` at 0.159, while `aa` stays no closer to
+`aː` than `a` is — nothing claims the doubling means length.
 
 ### 1c. Residual defects from the review
 

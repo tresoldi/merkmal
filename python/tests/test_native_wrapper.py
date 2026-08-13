@@ -418,6 +418,49 @@ def test_coverage_separates_identical_from_incomparable() -> None:
     assert math.isclose(score, merkmal.distance("p", "b", system="descriptive"))
 
 
+def test_affricates_survive_inside_a_cluster() -> None:
+    """`ntʃ` is n + tʃ, not n + t + ʃ.
+
+    The tokenizer and the recognizer both read `tʃ` as one segment; the cluster
+    component parser was the one path still splitting by letter.
+    """
+    components = {
+        f.split("-", 1)[0]
+        for f in merkmal.get_features("ntʃ")
+        if len(f) > 1 and f[0] == "n" and f[1].isdigit()
+    }
+    assert components == {"n1", "n2"}
+    assert {"n2-affricate", "n2-post-alveolar"} <= merkmal.get_features("ntʃ")
+
+    # The lookahead is one unit deep and consults only the inventory and the
+    # complex synthesizer, so a pair that is genuinely two segments stays two.
+    for token in ["mb", "nd"]:
+        parts = {
+            f.split("-", 1)[0]
+            for f in merkmal.get_features(token)
+            if len(f) > 1 and f[0] == "n" and f[1].isdigit()
+        }
+        assert parts == {"n1", "n2"}, token
+
+
+def test_doubled_spelling_is_not_charged_for_its_own_length() -> None:
+    """A geminate against a length-marked segment is not a length mismatch.
+
+    The per-component penalty made `aa` further from `aː` (0.233) than a plain
+    `a` was (0.064), while doubling is how Uralic, Austronesian and much African
+    data write length.
+    """
+    assert merkmal.distance("aa", "aː") < merkmal.distance("aa", "a")
+    assert merkmal.distance("pp", "pː") < merkmal.distance("pp", "p")
+
+    # Waived, not reversed: nothing here claims a doubled vowel *means* length,
+    # because whether it does is a property of the source.
+    assert merkmal.distance("a", "aː") < merkmal.distance("aa", "aː")
+
+    # A cluster that is not a geminate still pays the penalty.
+    assert merkmal.distance("ai", "aː") > merkmal.distance("aa", "aː")
+
+
 def test_labial_velars_are_one_series() -> None:
     """`ŋm` is the nasal member of the `kp`/`gb` series, not a cluster.
 

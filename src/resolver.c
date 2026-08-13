@@ -600,6 +600,11 @@ static int mk_is_source_marker(const char *text)
 }
 
 static void mk_free_owned_feature_array(char **features, size_t count);
+static mk_status mk_synthesize_descriptive_complex(
+    const mk_system *system,
+    const char *normalized,
+    mk_resolution *out
+);
 static mk_status mk_set_synthesized_entry(
     mk_resolution *out,
     mk_resolution_path path,
@@ -1259,7 +1264,7 @@ static const mk_component_grammar mk_consonant_component_grammar = {
 };
 
 
-static mk_status mk_parse_component_at(
+static mk_status mk_parse_component_once(
     const mk_system *system,
     const mk_component_grammar *grammar,
     const char *start,
@@ -1373,6 +1378,87 @@ static mk_status mk_parse_component_at(
     }
     *end_out = p;
     free(component);
+    return MK_OK;
+}
+
+/* One component, preferring a two-letter segment over two one-letter ones.
+ *
+ * A component used to be exactly one base letter plus its diacritics, so `ntʃ`
+ * parsed as n + t + ʃ: the affricate came apart inside the cluster even though
+ * the tokenizer and the recognizer both read `tʃ` as one segment everywhere
+ * else. The knowledge was already in the library and this path was not asking
+ * for it.
+ *
+ * The lookahead is one unit deep, which is all the two-letter segments need --
+ * the affricates, and the doubly-articulated kp/gb/ŋm. It is tried against the
+ * inventory and the complex synthesizer only, never against the cluster
+ * grammars, so `nd` and `mb` stay the clusters they are rather than being
+ * merged by a rule that would swallow any adjacent pair. */
+static mk_status mk_parse_component_at(
+    const mk_system *system,
+    const mk_component_grammar *grammar,
+    const char *start,
+    const char **end_out,
+    mk_resolution *component_out
+)
+{
+    const char *first_end = NULL;
+    mk_status status = mk_parse_component_once(
+        system, grammar, start, &first_end, component_out);
+
+    if (status != MK_OK) {
+        return status;
+    }
+    if (*first_end != '\0') {
+        mk_resolution second;
+        const char *second_end = NULL;
+
+        memset(&second, 0, sizeof(second));
+        if (mk_parse_component_once(system, grammar, first_end, &second_end, &second) == MK_OK) {
+            char *joined = NULL;
+            size_t len = 0;
+            size_t cap = 0;
+            size_t span = (size_t)(second_end - start);
+            char *text = (char *)malloc(span + 1);
+
+            mk_resolution_clear(&second);
+            if (text == NULL) {
+                return MK_ERR_OOM;
+            }
+            memcpy(text, start, span);
+            text[span] = '\0';
+            if (mk_append_text(&joined, &len, &cap, text) == MK_OK) {
+                mk_resolution merged;
+                mk_entry_view entry;
+                mk_status merged_status;
+
+                memset(&merged, 0, sizeof(merged));
+                merged_status = mk_lookup_normalized(
+                    system, joined, merged.inline_features, &entry, NULL);
+                if (merged_status == MK_OK) {
+                    merged.grapheme = entry.grapheme;
+                    merged.features = entry.features;
+                    merged.feature_count = entry.feature_count;
+                } else {
+                    merged_status = mk_synthesize_descriptive_complex(system, joined, &merged);
+                }
+                if (merged_status == MK_OK && grammar->accepts(&merged)) {
+                    mk_resolution_clear(component_out);
+                    *component_out = merged;
+                    *end_out = second_end;
+                    free(joined);
+                    free(text);
+                    return MK_OK;
+                }
+                mk_resolution_clear(&merged);
+            }
+            free(joined);
+            free(text);
+        } else {
+            mk_resolution_clear(&second);
+        }
+    }
+    *end_out = first_end;
     return MK_OK;
 }
 

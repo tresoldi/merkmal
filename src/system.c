@@ -176,6 +176,27 @@ static mk_status mk_cluster_component_distance(
     return status;
 }
 
+static int mk_view_has(mk_feature_view view, const char *feature)
+{
+    size_t i;
+
+    for (i = 0; i < view.count; i++) {
+        if (mk_streq(view.features[i], feature)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Whether a segment is explicitly marked for length, in any of the degrees the
+ * geometry's duration scale carries. */
+static int mk_segment_carries_length(mk_feature_view view)
+{
+    return mk_view_has(view, "long") ||
+        mk_view_has(view, "mid-long") ||
+        mk_view_has(view, "ultra-long");
+}
+
 static mk_status mk_distance_cluster_to_segment(
     const mk_system *system,
     const mk_resolution *cluster,
@@ -212,7 +233,23 @@ static mk_status mk_distance_cluster_to_segment(
         rest /= (double)(cluster->cluster_component_count - 1);
         score += MK_CLUSTER_OFFGLIDE_SHARE * rest;
     }
-    score += MK_CLUSTER_LENGTH_PENALTY * (double)(cluster->cluster_component_count - 1);
+    /* The extra-component penalty says a two-part spelling is further from a
+     * one-part segment than a one-part spelling is. That is right for `ai`
+     * against `a`, and double-counting for `aa` against `aː`: the length the
+     * penalty charges for is the very thing the other side spells out. It made
+     * a doubled vowel further from the long vowel (0.233) than a plain short
+     * one was (0.064), and doubling is how Uralic, Austronesian and much
+     * African data write length.
+     *
+     * Waived, not reversed. `aa` lands where `a` does rather than closer,
+     * because whether a doubled vowel means length or a genuine sequence is a
+     * property of the source that nothing here can read per form. Claiming it
+     * means length is the move that cost a PHOIBLE contrast when it was applied
+     * to `ɫ`. */
+    if (!(mk_view_has(mk_view_of(cluster), "geminate") &&
+          mk_segment_carries_length(mk_view_of(segment)))) {
+        score += MK_CLUSTER_LENGTH_PENALTY * (double)(cluster->cluster_component_count - 1);
+    }
     *out = mk_min_double(score, 1.0);
     return MK_OK;
 }

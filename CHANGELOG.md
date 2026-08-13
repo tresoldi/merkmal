@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+### The last two cluster defects
+
+- **Affricates survive inside a cluster.** `features("ntʃ")` parsed as
+  *n + t + ʃ*, even though the tokenizer and the recognizer both read `tʃ` as one
+  segment everywhere else — the component parser was the one path still
+  splitting by letter. It now looks one unit ahead and prefers a two-letter
+  segment when the inventory or the complex synthesizer knows one, which is all
+  the affricates and the doubly-articulated `kp`/`gb`/`ŋm` need.
+
+  The lookahead consults the inventory and the complex synthesizer only, never
+  the cluster grammars, so `mb` and `nd` stay the two-component clusters they
+  are rather than being merged by a rule that would swallow any adjacent pair.
+
+- **A doubled spelling is no longer charged for its own length.** The
+  per-component penalty put `aa` at 0.233 from `aː` while a plain `a` sat at
+  0.064 — so a doubled vowel was further from the long vowel than a short one
+  was, and doubling is how Uralic, Austronesian and much African data write
+  length. The penalty is waived when a geminate cluster meets a length-marked
+  segment, because there the length it charges for is exactly what the other
+  side spells out. `d(aa, aː)` is 0.113 now, below `d(aa, a)` at 0.159.
+
+  **Waived, not reversed.** `aa` lands where `a` does rather than closer,
+  because whether a doubled vowel means length or a genuine sequence is a
+  property of the source that nothing here can read per form. Asserting it means
+  length is the move that cost a PHOIBLE contrast when it was applied to `ɫ`
+  earlier in this release. A non-geminate cluster such as `ai` still pays the
+  penalty in full.
+
 ### Coverage alongside the score, and one segment series made whole
 
 - **`mk_system_segment_distance_ex` / `merkmal.distance_with_coverage`.** A
