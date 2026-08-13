@@ -21,6 +21,8 @@ NativeError = _native.NativeError
 # known gaps without also swallowing segments the library genuinely lacks.
 SourceMarkerError = _native.SourceMarkerError
 distance = _native.distance
+feature_vector = _native.feature_vector
+vector_labels = _native.vector_labels
 feature_distance = _native.feature_distance
 get_features = _native.get_features
 is_segment = _native.is_segment
@@ -102,6 +104,7 @@ __all__ = [
     "__version__",
     "distance",
     "feature_distance",
+    "feature_vector",
     "get_features",
     "is_segment",
     "list_systems",
@@ -112,4 +115,5 @@ __all__ = [
     "sound_distance",
     "split_tone",
     "system_segment_ipa",
+    "vector_labels",
 ]

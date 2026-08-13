@@ -390,6 +390,52 @@ def test_feature_distance_takes_no_system() -> None:
         merkmal.feature_distance("voiced", "voiceless", system="phoible")  # type: ignore[call-arg]
 
 
+def test_feature_vectors_are_fixed_width_and_labelled() -> None:
+    """Numbers for the models that want numbers, with the columns named.
+
+    Everything else here returns labels. Writing the label-to-number mapping by
+    hand is easy to get wrong where it matters least visibly: a valued system
+    writes `anterior=.` for "no value" and `anterior=-` for "absent", and a
+    naive reader turns both into 0 or both into -1.
+    """
+    for system in ["distinctive", "descriptive", "phoible", "pbase-hc"]:
+        labels = merkmal.vector_labels(system=system)
+        vector = merkmal.feature_vector("p", system=system)
+        assert isinstance(labels, tuple) and isinstance(vector, tuple)
+        assert len(labels) == len(vector) > 0
+        assert len(set(labels)) == len(labels), system  # columns are addressable
+        # Fixed width: every segment in a system gives the same shape.
+        assert len(merkmal.feature_vector("a", system=system)) == len(vector)
+
+    # The three-valued convention, checked where it actually bites. PHOIBLE
+    # writes `.` for cells that do not apply; those must be 0, not -1.
+    phoible = dict(zip(
+        merkmal.vector_labels(system="phoible"),
+        merkmal.feature_vector("p", system="phoible"),
+        strict=True,
+    ))
+    assert phoible["consonantal"] == 1.0
+    assert phoible["periodicGlottalSource"] == -1.0
+    assert phoible["tone"] == 0.0  # `.` in the table: not applicable, not absent
+
+    # Ordered scales cannot use 0 for a middle level, because 0 already means
+    # "no value on this scale". They live in (0, 1] and stay monotone.
+    labels = merkmal.vector_labels(system="descriptive")
+    height = {
+        g: dict(zip(labels, merkmal.feature_vector(g, system="descriptive"), strict=True))[
+            "vowel_height"
+        ]
+        for g in ["i", "e", "ɛ", "a"]
+    }
+    assert 0.0 < height["i"] < height["e"] < height["ɛ"] < height["a"] <= 1.0
+    consonant = dict(zip(labels, merkmal.feature_vector("p", system="descriptive"), strict=True))
+    assert consonant["vowel_height"] == 0.0  # the scale does not apply at all
+    assert consonant["vocoid"] == -1.0
+
+    with pytest.raises(ValueError):
+        merkmal.feature_vector("not-ipa")
+
+
 def test_source_markup_is_distinguishable_from_an_unsupported_sound() -> None:
     """`<?>` means the source has a gap, not that merkmal lacks the segment.
 

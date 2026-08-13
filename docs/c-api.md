@@ -53,6 +53,47 @@ documented otherwise.
 `mk_string_list` is the library's only collection type. Feature sets are
 string lists whose order carries no meaning.
 
+## Feature vectors
+
+```c
+mk_status mk_system_vector_width(const mk_system *system, size_t *out);
+mk_status mk_system_vector_labels(const mk_system *system, mk_string_list **out);
+mk_status mk_system_feature_vector(const mk_system *system, const char *utf8_grapheme,
+                                   double *values, size_t capacity, size_t *written);
+```
+
+Everything else here returns feature *labels*, which is the right shape for
+reasoning about a segment and the wrong one for a model that wants numbers.
+
+The encoding follows `soundvectors` (Rubehn, Nieder, Forkel & List 2024), so the
+numbers mean what the rest of the ecosystem means by them:
+
+| value | meaning |
+| ---: | --- |
+| `+1` | the feature is present |
+| `-1` | it applies to this kind of segment and is absent |
+| `0` | it does not apply, or the source does not say |
+
+That last row is why this is worth having in the library rather than in each
+caller: a valued system writes `anterior=.` for "no value" and `anterior=-` for
+"absent", and a hand-written mapping tends to collapse them.
+
+**Ordered scales** cannot use `0` for a middle level, since `0` already means "no
+value". A scale of *n* levels maps level *i* to *i/n*, so scale columns land in
+`(0, 1]` and `0` still means the scale does not apply. `vowel_height` is 0.14 for
+`/i/`, 0.43 for `/e/`, 1.0 for `/a/`, and 0 for `/p/`.
+
+**The basis differs by system**, because the systems differ: a valued system's
+columns are its own inventory columns, a system declaring `scalar_dimensions`
+uses those, and the rest use the geometry they score through. Widths today are
+54 for `distinctive`, 62 for `descriptive`, 38 for `phoible`, 23 for `pbase-hc`.
+Call `mk_system_vector_labels` rather than assuming either width or order; the
+labels are unique within a system, so a column is addressable by name.
+
+There is no call that vectorizes a token list. It is a loop over
+`mk_system_feature_vector`, and the library does not own sequence-level
+operations (see `REFERENCE_LIBRARY_PLAN.md`, D2).
+
 ## Status Codes
 
 `mk_status` values are:

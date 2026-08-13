@@ -394,6 +394,137 @@ done:
     return result;
 }
 
+static PyObject *py_vector_labels(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *keywords[] = {"system", "registry", NULL};
+    PyObject *system_obj = Py_None;
+    PyObject *registry_obj = Py_None;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *system_name = default_system_name;
+    mk_registry *registry;
+    const mk_system *system;
+    mk_string_list *labels = NULL;
+    PyObject *result = NULL;
+    mk_status status;
+
+    (void)self;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs, "|OO:vector_labels", keywords, &system_obj, &registry_obj
+        )) {
+        return NULL;
+    }
+    if (py_utf8_take_optional(&bag, system_obj, "system", &system_name) < 0) {
+        goto done;
+    }
+    registry = resolve_registry(registry_obj, "vector_labels");
+    if (registry == NULL) {
+        goto done;
+    }
+    system = resolve_system(registry, system_name, "vector_labels");
+    if (system == NULL) {
+        goto done;
+    }
+    status = mk_system_vector_labels(system, &labels);
+    if (status != MK_OK) {
+        status_error(status, "vector_labels");
+        goto done;
+    }
+    {
+        /* A tuple, because the column order is part of the contract and a
+         * mutable sequence invites a caller to reorder it. */
+        PyObject *as_list = py_string_list_to_list(labels);
+
+        if (as_list != NULL) {
+            result = PyList_AsTuple(as_list);
+            Py_DECREF(as_list);
+        }
+    }
+    mk_string_list_free(labels);
+
+done:
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
+static PyObject *py_feature_vector(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *keywords[] = {"grapheme", "system", "registry", NULL};
+    PyObject *grapheme_obj;
+    PyObject *system_obj = Py_None;
+    PyObject *registry_obj = Py_None;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *grapheme = NULL;
+    const char *system_name = default_system_name;
+    mk_registry *registry;
+    const mk_system *system;
+    double *values = NULL;
+    size_t width = 0;
+    size_t written = 0;
+    PyObject *result = NULL;
+    mk_status status;
+    size_t i;
+
+    (void)self;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs, "O|OO:feature_vector", keywords,
+            &grapheme_obj, &system_obj, &registry_obj
+        )) {
+        return NULL;
+    }
+    if (py_utf8_take(&bag, grapheme_obj, "grapheme", &grapheme) < 0 ||
+        py_utf8_take_optional(&bag, system_obj, "system", &system_name) < 0) {
+        goto done;
+    }
+    registry = resolve_registry(registry_obj, "feature_vector");
+    if (registry == NULL) {
+        goto done;
+    }
+    system = resolve_system(registry, system_name, "feature_vector");
+    if (system == NULL) {
+        goto done;
+    }
+    status = mk_system_vector_width(system, &width);
+    if (status != MK_OK) {
+        status_error(status, "feature_vector");
+        goto done;
+    }
+    values = (double *)PyMem_Calloc(width + 1, sizeof(*values));
+    if (values == NULL) {
+        PyErr_NoMemory();
+        goto done;
+    }
+    status = mk_system_feature_vector(system, grapheme, values, width, &written);
+    if (status != MK_OK) {
+        status_error(status, "feature_vector");
+        goto done;
+    }
+    result = PyTuple_New((Py_ssize_t)written);
+    if (result == NULL) {
+        goto done;
+    }
+    for (i = 0; i < written; i++) {
+        PyObject *item = PyFloat_FromDouble(values[i]);
+
+        if (item == NULL) {
+            Py_CLEAR(result);
+            goto done;
+        }
+        /* The macro form is not in the limited API this wheel builds against.
+         * PyTuple_SetItem steals the reference just as the macro does. */
+        if (PyTuple_SetItem(result, (Py_ssize_t)i, item) != 0) {
+            Py_CLEAR(result);
+            goto done;
+        }
+    }
+
+done:
+    PyMem_Free(values);
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
 static PyObject *py_is_segment(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     static char *keywords[] = {"grapheme", "system", "registry", NULL};
@@ -855,6 +986,10 @@ done:
 static PyMethodDef methods[] = {
     {"list_systems", (PyCFunction)py_list_systems, METH_VARARGS | METH_KEYWORDS,
      "List the systems in a registry."},
+    {"feature_vector", (PyCFunction)py_feature_vector, METH_VARARGS | METH_KEYWORDS,
+     "feature_vector(grapheme, system=None, registry=None) -> tuple[float, ...]"},
+    {"vector_labels", (PyCFunction)py_vector_labels, METH_VARARGS | METH_KEYWORDS,
+     "vector_labels(system=None, registry=None) -> tuple[str, ...]"},
     {"get_features", (PyCFunction)py_get_features, METH_VARARGS | METH_KEYWORDS,
      "Return features for a grapheme."},
     {"is_segment", (PyCFunction)py_is_segment, METH_VARARGS | METH_KEYWORDS,

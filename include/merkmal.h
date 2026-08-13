@@ -223,6 +223,43 @@ MK_API mk_status mk_split_tone(
     char **tone_out
 );
 
+/** Number of columns a system's feature vectors have. Fixed per system. */
+MK_API mk_status mk_system_vector_width(const mk_system *system, size_t *out);
+
+/** Column names for a system's feature vectors, in order.
+ *
+ * The basis differs by system, because the systems do: a valued system's
+ * columns are its own inventory columns, a system declaring scalar_dimensions
+ * uses those, and the rest use the geometry they score through. Ask rather than
+ * assume. Free with mk_string_list_free.
+ */
+MK_API mk_status mk_system_vector_labels(const mk_system *system, mk_string_list **out);
+
+/** Writes a fixed-width numeric vector for a grapheme.
+ *
+ * `values` must have room for mk_system_vector_width entries; on
+ * MK_ERR_INVALID_ARGUMENT from too small a buffer, `*written` reports the width
+ * needed, so one failed call is enough to size it.
+ *
+ * Encoding, following `soundvectors` (Rubehn, Nieder, Forkel & List 2024) so
+ * that the numbers mean what the rest of the ecosystem means by them:
+ *
+ * - `+1` the feature is present
+ * - `-1` it applies to this kind of segment and is absent
+ * - `0` it does not apply, or the source does not say
+ *
+ * Ordered scales cannot use `0` for a middle level, since `0` already means "no
+ * value". A scale of n levels maps level i to i/n, so scale columns land in
+ * (0, 1] and `0` still means the scale does not apply.
+ */
+MK_API mk_status mk_system_feature_vector(
+    const mk_system *system,
+    const char *utf8_grapheme,
+    double *values,
+    size_t capacity,
+    size_t *written
+);
+
 /** Creates an owned copy of a caller-provided string list. */
 MK_API mk_status mk_string_list_new(
     const char *const *items,

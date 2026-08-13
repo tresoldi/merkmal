@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+### Numeric feature vectors
+
+`mk_system_feature_vector`, `mk_system_vector_labels`, `mk_system_vector_width`,
+and `merkmal.feature_vector` / `merkmal.vector_labels` in Python. Everything
+else in this library returns feature *labels* — the right shape for reasoning
+about a segment, the wrong one for a model that wants numbers, which is why the
+neural-phonology audience has used PanPhon instead.
+
+The encoding follows `soundvectors` (Rubehn, Nieder, Forkel & List 2024), so the
+numbers mean what the ecosystem already means by them: `+1` present, `-1`
+applies and is absent, `0` does not apply or the source does not say.
+
+That third value is the reason this belongs in the library rather than in each
+caller. A valued system writes `anterior=.` for "no value" and `anterior=-` for
+"absent", and a hand-written mapping tends to collapse them — silently, and in
+the direction that makes a model confident about data it does not have.
+
+**Ordered scales** cannot use `0` for a middle level, because `0` already means
+"no value". A scale of *n* levels maps level *i* to *i/n*, so scale columns land
+in `(0, 1]`. `vowel_height` is 0.14 for `/i/`, 0.43 for `/e/`, 1.0 for `/a/`, and
+0 for `/p/`, where the scale does not apply at all.
+
+**The basis differs by system**, because the systems differ: a valued system's
+columns are its own inventory columns, a system declaring `scalar_dimensions`
+uses those, and the rest use the geometry they score through. Widths are 54
+(`distinctive`), 62 (`descriptive`), 38 (`phoible`), 23 (`pbase-hc`). Ask
+`vector_labels` rather than assuming width or order; labels are unique within a
+system, so a column is addressable by name.
+
+No call vectorizes a token list. That is a loop, and sequence-level operations
+are not this library's (`REFERENCE_LIBRARY_PLAN.md`, D2).
+
 ### Source markup says so, and two CLTS spellings resolve
 
 - **New status `MK_ERR_SOURCE_MARKER`**, and `merkmal.SourceMarkerError` in

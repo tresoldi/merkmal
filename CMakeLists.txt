@@ -55,6 +55,7 @@ set(MERKMAL_SOURCES
     src/string_list.c
     src/strings.c
     src/system.c
+    src/vector.c
     src/tokenize.c
     src/tone.c
     src/utf8.c
