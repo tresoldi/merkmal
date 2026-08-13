@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "artifact_id": "phoible-inventories",
+  "artifact_version": "1.0.0",
+  "upstream_name": "PHOIBLE 2.0 (CLDF packaging, cldf-datasets/phoible v2.0.1)",
+  "upstream_release": "v2.0.1",
+  "upstream_url": "https://phoible.org/ (CLDF: https://github.com/cldf-datasets/phoible)",
+  "upstream_commit_or_doi": "f36deac7f80b39483038af1a6134f27139e5417f",
+  "retrieved": "2026-08-13",
+  "transformation": "Language-indexed inventories from cldf/values.csv, cldf/languages.csv and cldf/contributions.csv at the pinned commit. 3020 inventories over 2186 languages, reshaped from 105,466 one-row-per-segment values into one row per inventory with the segments space-separated, which is the same information at a seventeenth of the size. Language rows keep Glottocode, name, family, macroarea and coordinates; nothing is added, dropped or renamed beyond that reshape.",
+  "citation": "Moran, Steven & McCloy, Daniel (eds.) 2019. PHOIBLE 2.0. Jena: Max Planck Institute for the Science of Human History. https://phoible.org/",
+  "license_spdx": "CC-BY-SA-3.0",
+  "redistribution_notes": "Share-alike, the same terms as models/phoible: redistributing this table or an adaptation of it obliges you to license the adaptation identically. This is why the typology layer is a companion package -- the core library's distribution terms do not have to grow to carry it.",
+  "sampling_note": "Not a balanced sample of the world's languages and never claimed to be. 3020 inventories over 2186 languages, so 834 are additional doculects of a language already present. 176 families, of which Atlantic-Congo 19.4%, Pama-Nyungan 11.6%, Indo-European 6.8% of languages. Any cross-language aggregate computed here is an aggregate over this composition; merkmal_typology attaches it to every such result rather than letting a bare number travel on its own.",
+  "input_sha256": {
+    "inventories.tsv": "d813df2cd0a8759c7c147f3a1e085b4ba2e0861c958b204bd7acfc36c4ecfc59",
+    "languages.tsv": "2807710471ce84c79449fc94ae5f1900b65f880f65aa050b7c239adef85fcf24"
+  },
+  "generator": "derived from the CLDF release; see transformation"
+}

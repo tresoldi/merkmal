@@ -198,6 +198,8 @@ jobs:
         run: python -m pytest python/tests -q
       - name: Test the data generator
         run: python -m pytest tools/tests -q
+      - name: Test the typology companion package
+        run: python -m pytest typology/tests -q
       - name: Validate model data, geometry, and provenance
         run: python scripts/validate_models.py
       - name: Check the contrast baseline
@@ -223,7 +225,7 @@ jobs:
       - name: Test source distribution
         run: python -m pytest python/tests -q
       - name: Lint maintained Python code
-        run: python -m ruff check python/merkmal python/tests scripts tools bench setup.py
+        run: python -m ruff check python/merkmal python/tests scripts tools bench typology setup.py
       - name: Type-check maintained Python code
         run: python -m mypy python/merkmal
 

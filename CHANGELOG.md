@@ -2,6 +2,46 @@
 
 ## Unreleased
 
+### A typology layer, deliberately outside the library
+
+`typology/` is a companion package, `merkmal_typology`, carrying PHOIBLE's
+language-indexed inventories: 3,020 doculects over 2,186 languages with family,
+macroarea and coordinates, pinned to the same v2.0.1 the segment table is.
+
+**A companion rather than part of the core, and the size argument is the lesser
+reason.** The core has spent its life refusing to have opinions about sampling
+weight, genealogy and areal membership — the README's disclaimer about segment
+*types* rather than languages is load-bearing. Adding a language column to the
+C core would have quietly ended that. Keeping it here means the discipline
+survives the addition, and 500 KB of share-alike data stays out of a library
+whose distribution terms would otherwise have to grow.
+
+Four analyses, split by whether the sampling question touches them:
+
+- `segment_frequency()` — **cross-language, so it never travels alone.** It
+  returns a `Frequency` carrying its own `SampleComposition`, and printing it
+  prints both. That /m/ is in 96% of PHOIBLE's inventories is a real fact; it is
+  not the claim "/m/ is in 96% of the world's languages", and the difference is
+  not a technicality when Atlantic-Congo and Pama-Nyungan are 28% of the sample
+  and 531 languages carry more than one doculect. No weighting scheme ships:
+  choosing one is a research decision, not something a library should do
+  silently.
+- `inventory_distance()` — symmetric, sample-independent, built on the segment
+  distance. **An explicit size penalty was tried first and was wrong**: charging
+  for the difference in inventory size made English closer to Yue Chinese than
+  to French, because those differ by one segment and six, while French was twice
+  as close by content. A similarity measure that is mostly a size measure is
+  worse than useless. Replaced by the mean nearest-neighbour distance in both
+  directions, which behaves — Mandarin and Yue are the closest pair tested, and
+  the inventories furthest from English in a random 120 are all Australian.
+- `feature_economy()` — Clements' ratio, inventory size over features used.
+  Counted per *feature*, not per (feature, value) pair; the first version
+  counted pairs, which roughly halves it and is not what Clements defines. It
+  reproduces the expected pattern: Hawaiian at 13 segments is the least
+  economical, Hindi at 94 the most.
+- `inventories()` / `languages()` — per-inventory shape and size, where the
+  sampling question does not arise.
+
 ### Diagnosis, scope, and a cross-theory check
 
 - **`mk_system_diagnose` / `merkmal.diagnose`.** Rejection was a status and

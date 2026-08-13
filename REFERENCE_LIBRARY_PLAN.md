@@ -430,7 +430,22 @@ one line in a list of eight system names.
 
 ---
 
-## Phase 3 — The typology layer (D6)
+## Phase 3 — The typology layer (D6) — **done 2026-08-13**
+
+Settled as a **companion package**, `typology/`, for the reason the plan
+anticipated: sampling weight and genealogy are what the core refuses to have
+opinions about, and a language column in the C core would have ended that
+quietly. The 16x data-size argument agreed but was the lesser reason.
+
+All four analyses shipped. Cross-language results carry their sample and refuse
+to be printed without it; per-inventory ones do not need to. No weighting scheme
+is provided, per the decision to report unweighted and refuse to hide it.
+
+Two things caught in the building: an explicit inventory-size penalty made
+English closer to Yue Chinese than to French and had to go, and feature economy
+was counting (feature, value) pairs rather than features.
+
+### Original scope
 
 Nothing in the current API takes a language, so the library cannot do typology
 at all today. The join is PHOIBLE's language-to-segment mapping, which the repo
