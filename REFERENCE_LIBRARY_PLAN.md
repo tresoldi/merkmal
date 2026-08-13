@@ -157,12 +157,20 @@ Fixed-width per system, documented width and column order, explicit
 missing-value convention for the valued systems' `.` cells. One call for a
 segment, one for a token list.
 
-**Acceptance.** A checked-in regression metric — Lexibank coverage over a pinned
-dataset sample — with a floor that CI enforces. The review recommends this
-specifically: it is the number that decides whether the library is usable on the
-field's data, and it should not be recoverable by accident or lost by accident.
-Target: ≥99% of segment types and 100% of the 26 currently-blocked datasets
-parsing end to end.
+**Acceptance — the harness is built, the target is not yet met.**
+`bench/bench_coverage.py --check` runs in CI against a committed aggregate
+segment table and fails below recorded per-system floors; `bench/bench_alignment.py`
+reproduces the SCA comparison. Both baselines are committed, so the review's
+numbers are now reproducible from the repository rather than from a scratch
+directory.
+
+Floors as recorded today (`bench/corpus/coverage-floors.json`): `descriptive`
+89.45% of types, the rest 73.4–79.2%. `bench/coverage_baseline.txt` records 26
+of 152 datasets below 3% of forms parsed.
+
+Target for this phase: ≥99% of segment types, and all 26 currently-blocked
+datasets parsing end to end. Raise the floors as the work lands, so a gain
+cannot be silently lost.
 
 ---
 

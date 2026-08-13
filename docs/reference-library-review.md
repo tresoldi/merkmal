@@ -398,14 +398,17 @@ Items 1–3 and 5 are additive and break nothing. Item 4 is a scope decision. It
 
 ## What was measured, and how to reproduce
 
-| measurement | source |
+Every number here is reproducible from the repository. The throwaway scripts
+that produced them have been replaced by two committed benchmarks; see
+[`bench/README.md`](../bench/README.md).
+
+| measurement | reproduce with |
 | --- | --- |
-| Lexibank coverage, per-dataset parse rates | `~/lexibank_clone/*/cldf/forms.csv`, `Segments` column |
-| BDPA alignment benchmark | `~/lexibank_clone/bdpa/raw/msa/*.msa`, 3 pairs sampled per MSA, seed 1 |
+| Lexibank coverage, per-dataset parse rates | `bench/bench_coverage.py` (CI-checked against recorded floors) |
+| BDPA alignment benchmark and bootstrap CIs | `bench/bench_alignment.py --bdpa <checkout>` |
 | SCA baseline | `lingpy` 2.6.13, `rcParams['sca']`, `token2class` |
 | significance | 400-sample bootstrap over per-pair column accuracy differences, seed 7 |
 
-Scripts are in the session scratchpad and should be moved into `bench/` or
-`scripts/` if any of these numbers are to be tracked over time. I recommend the
-Lexibank coverage figure in particular become a checked-in regression metric:
-it is the number that decides whether this library is usable on the field's data.
+The coverage figure is now a CI floor rather than a one-off measurement, because
+it is the number that decides whether this library is usable on the field's
+data, and a silent regression in it would be worse than the original defect.

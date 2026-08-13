@@ -1,0 +1,31 @@
+# BDPA alignment benchmark, recorded from a deliberate run.
+#
+# merkmal supplies a substitution cost, not an aligner. This measures that
+# cost against LingPy's SCA classes through an identical Needleman-Wunsch.
+# Read the two blocks together: parity on readable pairs and a loss overall
+# is a coverage result, not a modelling one.
+#
+# Regenerate with: bench/bench_alignment.py --bdpa <bdpa-checkout> --record
+
+BDPA phonetic alignment benchmark  (2250 gold pairwise alignments,
+seed 1, 3 pairs per MSA, gap tuned on a held-out half)
+
+ALL PAIRS
+  scorer                   gap  column acc   perfect
+  identity                0.80      82.89%    73.51%
+  lingpy-SCA              0.40      91.66%    88.18%
+  merkmal:broad           0.60      88.96%    84.36%
+  merkmal:distinctive     0.50      89.60%    85.07%
+  bootstrap 95% CI on column-accuracy difference from SCA:
+    merkmal:broad           -2.36%  [-3.22, -1.47]  significant
+    merkmal:distinctive     -1.98%  [-2.78, -1.13]  significant
+
+READABLE UNDER DISTINCTIVE (1448 of 2250, 64.4%)
+  scorer                   gap  column acc   perfect
+  identity                0.80      87.35%    78.87%
+  lingpy-SCA              0.40      96.87%    93.65%
+  merkmal:broad           0.40      95.67%    92.27%
+  merkmal:distinctive     0.30      96.35%    93.37%
+  bootstrap 95% CI on column-accuracy difference from SCA:
+    merkmal:broad           -0.93%  [-1.69, -0.14]  significant
+    merkmal:distinctive     -0.25%  [-0.87, +0.39]  not significant

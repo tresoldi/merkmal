@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+### Two benchmarks that measure the library against the outside
+
+Every existing guard measures merkmal against itself — golden fixtures, the
+contrast baseline, the generated-data check — and all of them pass on a library
+that is internally consistent and unusable in practice. These two do not.
+
+- Added `bench/bench_coverage.py`, which measures what fraction of real CLDF
+  wordlist data the library can read, and **runs in CI with per-system floors**
+  so a regression fails the build. Against 152 Lexibank datasets (14,193,616
+  tokens, 7,396 segment types) the current state is: `descriptive` 89.5% of
+  types, `phoible` 79.2%, everything else 73.4–73.7%; token rates cluster around
+  95.6%. The token rate flatters it. A form only parses if every one of its
+  tokens does, and `bench/coverage_baseline.txt` records the consequence:
+  **26 of 152 datasets have under 3% of their forms fully parseable**, and they
+  are the tonal ones — Sinitic, Hmong-Mien, Bai, Tai-Kadai, Lolo-Burmese, Karen,
+  Benue-Congo. The cause is that CLTS/BIPA writes tone as its own segment while
+  merkmal accepts it only bound to a vowel.
+- Added `bench/bench_alignment.py`, which scores the segment distance as an
+  alignment substitution cost against LingPy's SCA classes on BDPA gold
+  alignments, through an identical Needleman-Wunsch with the gap tuned per
+  scorer on a held-out half. On pairs merkmal can fully read, `distinctive` is
+  **statistically indistinguishable from SCA** (96.35% vs 96.87% column
+  accuracy; bootstrap 95% CI on the difference [-0.87, +0.39]). Over the whole
+  benchmark it loses significantly (89.60% vs 91.66%), entirely because it
+  cannot read 36% of the pairs. The phonology is competitive; the coverage is
+  not.
+- Added `bench/corpus/`, an aggregate segment-frequency table with its own
+  provenance manifest. It carries segment types and counts only — no forms,
+  glosses, or language identifiers — so it does not redistribute the wordlists
+  and does not inherit their licenses.
+
+No library behavior changes.
+
 ### The data's provenance, established rather than asserted
 
 No behavior changes: no feature set, distance, or golden fixture moves. What
