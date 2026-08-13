@@ -27,40 +27,51 @@ what either previous review was looking at.
 
 ## Executive summary
 
-**The phonology is good enough. The coverage is not, and the coverage problem
-is concentrated in exactly the languages where the field's open problems are.**
+> **Correction, 2026-08-13.** The alignment figures first published here were
+> measured with a defect in the harness: BDPA appends annotation rows (`LOCAL`,
+> `SWAPS`) shaped exactly like language rows, and `read_msa` read them as
+> doculects. That put 8.1% of pairs — sequences of `*` and `.` — into the
+> benchmark and inflated every figure by roughly four points. The numbers below
+> are the corrected ones. **The parity claim did not survive the fix:**
+> `distinctive` is now measurably behind SCA on readable data, though by a
+> small margin. An adversarial review found the defect; the harness now excludes
+> annotation rows and `bench/alignment_baseline.txt` records the corrected run.
+
+**The phonology is close to the incumbent but not equal to it. The coverage is
+the larger problem, and it is concentrated in exactly the languages where the
+field's open questions are.**
 
 Two headline measurements.
 
-**1. On alignment data `merkmal` can fully read, it is statistically
-indistinguishable from LingPy's SCA** — the field's incumbent, a 28-symbol
-sound-class alphabet from 2012. Same Needleman–Wunsch harness, gap cost tuned
-per scorer on a dev half, evaluated on a held-out half:
+**1. On alignment data `merkmal` can fully read, it comes close to LingPy's
+SCA** — the field's incumbent, a sound-class alphabet — but stays measurably
+behind. Same Needleman–Wunsch harness, gap cost tuned per scorer on a dev half,
+evaluated on a held-out half:
 
 | scorer | column accuracy | perfect alignments |
 | --- | ---: | ---: |
-| LingPy SCA | 96.87% | 93.65% |
-| `merkmal:distinctive` | **96.35%** | **93.37%** |
-| `merkmal:broad` | 95.67% | 92.27% |
-| identity baseline | 87.35% | 78.87% |
+| LingPy SCA | 97.74% | 95.80% |
+| `merkmal:distinctive` | **96.90%** | **94.39%** |
+| `merkmal:broad` | 96.47% | 93.76% |
+| identity baseline | 88.82% | 81.66% |
 
-Bootstrap 95% CI on the difference from SCA: `distinctive` −0.25%
-[−0.87, +0.39], **not significant**. (`broad` −0.93% [−1.69, −0.14] *is*
-significant — see §4.) A feature geometry reaching parity with SCA is a real
-result and the project should claim it.
+Bootstrap 95% CI on the difference from SCA: `distinctive` −0.65%
+[−1.18, −0.14], `broad` −1.04% [−1.77, −0.35]. Both significant. A feature
+geometry landing within a point of SCA is still a real result — but it is
+"competitive", not "at parity", and the earlier wording overstated it.
 
-**2. Over the whole benchmark, `merkmal` loses, and loses only because it
-cannot read 36% of the pairs.**
+**2. Over the whole benchmark `merkmal` falls well behind, and most of that gap
+is coverage rather than modelling.**
 
 | scorer | column accuracy | perfect |
 | --- | ---: | ---: |
-| LingPy SCA | 91.66% | 88.18% |
-| `merkmal:distinctive` | 89.60% | 85.07% |
+| LingPy SCA | 96.35% | 94.49% |
+| `merkmal:distinctive` | 92.91% | 88.80% |
 
-−1.98% [−2.78, −1.13], significant. Every point of that gap is coverage. On the
-802 pairs containing at least one token `merkmal` rejects, it degrades toward
-the identity baseline (78.82%) while SCA holds at 83.53%, because SCA's
-converter maps *everything* — including the tokens `merkmal` refuses.
+−3.09% [−3.88, −2.18], significant. `merkmal` cannot read 30.2% of the pairs;
+SCA's converter maps *everything*, including the tokens `merkmal` refuses.
+Closing the coverage gap is worth several times more than closing the remaining
+0.65-point modelling gap.
 
 **3. Across Lexibank, 28 of 152 datasets have effectively zero forms that
 `merkmal` can parse end to end**, and they are, without exception, the tonal
@@ -175,12 +186,15 @@ diacritic property of a vowel, is a *representational* choice that is
 incompatible with how the field's data is encoded. The already-good ordinal
 Chao scale is the right *metric*; it is attached to the wrong *object*.
 
-I tested the value of fixing this. A crude shim outside the library — parse
-standalone tone tokens, score them on the ordinal Chao scale, treat tone-vs-
-segment as maximally distant — moves full-benchmark column accuracy from 89.60%
-to 90.06%. That is a modest gain *on BDPA*, which under-represents tonal data
-relative to Lexibank; the Lexibank measurement above is the one that shows the
-real size of the prize (26 datasets from unusable to usable).
+I tested the value of fixing this with a shim outside the library, and the
+result needs a caveat that only emerged later: **BDPA contains no tonal-versus-
+toneless language pair at all.** Every apparently toneless row in a tone-bearing
+alignment is one of BDPA's `LOCAL`/`SWAPS` annotation rows. So BDPA can measure
+tone-against-tone comparison and cannot measure tone-against-nothing, which is
+the case the Lexibank corpora are full of. The Lexibank coverage measurement
+above is the one that shows the real size of the prize (26 datasets from
+unusable to usable), and it does not depend on any tone-to-segment cost — only
+on recognition.
 
 **(b) The slash convention is half-handled, which is worse than not at all.**
 `normalize()` correctly resolves `a/b → b`, but `is_segment()` does not document
@@ -214,39 +228,34 @@ mapped linearly to `[0,1]` distances.
 
 | scorer | gap* | column acc | perfect |
 | --- | ---: | ---: | ---: |
-| LingPy SCA | 0.40 | **91.66%** | **88.18%** |
-| `merkmal:distinctive` | 0.50 | 89.60% | 85.07% |
-| `merkmal:distinctive` + tone shim | 0.50 | 90.06% | 85.69% |
-| `merkmal:broad` | 0.60 | 88.96% | 84.36% |
-| `merkmal:phoible` | 0.50 | 88.10% | 82.93% |
-| `merkmal:pbase-hc` | 0.70 | 88.06% | 83.29% |
-| identity | 0.80 | 82.89% | 73.51% |
+| LingPy SCA | 0.30 | **96.35%** | **94.49%** |
+| `merkmal:distinctive` | 0.80 | 92.91% | 88.80% |
+| `merkmal:broad` | 0.80 | 92.66% | 88.18% |
+| identity | 0.80 | 85.85% | 77.51% |
 
-**Fully parseable subset (1,448 pairs, 64.4%):**
+**Fully parseable subset (1,570 pairs, 69.8%):**
 
 | scorer | gap* | column acc | perfect |
 | --- | ---: | ---: | ---: |
-| LingPy SCA | 0.40 | 96.87% | 93.65% |
-| `merkmal:distinctive` | 0.30 | 96.35% | 93.37% |
-| `merkmal:broad` | 0.40 | 95.67% | 92.27% |
-| identity | 0.80 | 87.35% | 78.87% |
-
-**Unparseable subset (802 pairs):** SCA 83.53%, `broad` 79.42%, `distinctive`
-78.82%, identity 74.76%.
+| LingPy SCA | 0.30 | 97.74% | 95.80% |
+| `merkmal:distinctive` | 0.30 | 96.90% | 94.39% |
+| `merkmal:broad` | 0.40 | 96.47% | 93.76% |
+| identity | 0.80 | 88.82% | 81.66% |
 
 **Caveats, stated plainly.** This isolates the substitution matrix and nothing
 else. LingPy's production SCA aligner also uses prosodic strings, swap
-detection, and secondary alignment, so this is *not* a claim that `merkmal`
-matches LingPy-the-system — it is the stronger and more useful claim that
-`merkmal`'s *segment distance* is as good a substitution cost as the field's
-standard sound classes. I sampled 3 pairs per MSA; gold pairwise alignments were
-derived by projecting MSA rows and dropping doubly-gapped columns.
+detection, and secondary alignment — and, relevant to tone specifically, a
+non-crossing constraint that makes tone-to-segment alignment structurally
+impossible regardless of cost. So this is *not* a claim about LingPy-the-system;
+it is a narrower claim about the substitution matrix. I sampled 3 pairs per MSA;
+gold pairwise alignments were derived by projecting MSA rows and dropping
+doubly-gapped columns.
 
-**The one system that should worry you.** `broad` is significantly worse than
-SCA on data it can read, while `distinctive` is not. `broad` is the name a new
-user will pick first — it sounds like the safe default, and it is the one listed
-first in the README. `distinctive` is the system that actually performs. That is
-a defaults problem, not a modelling problem.
+**Both categorical systems are now significantly behind SCA** on data they can
+read — `distinctive` by 0.65 points, `broad` by 1.04. The gap is small and the
+ordering between them is unchanged, so the argument for making `distinctive` the
+default stands; what does not stand is the earlier claim that it had caught up
+with the incumbent.
 
 ---
 

@@ -120,6 +120,11 @@ Three distinct pairs were being conflated. Only the third was ever open:
 | `a¹³` ~ `a³³` — two tones on one vowel | exists, 0.0489 |
 | `¹³` ~ `p` — a *bare* tone token vs a segment | does not exist; this is the decision |
 
+> **These three decisions were sent for adversarial review before implementation
+> and did not survive it. See "Review outcome" at the end of this section. They
+> are kept here as the record of what was proposed and why, because the reasons
+> the evidence failed are more useful than the proposal was.**
+
 **D8 — a bare tone segment is separated from segmental units by a Root-level
 tier leaf carried by every segment.** Autosegmentally motivated: tone occupies
 its own tier, and a tier mismatch is a real phonological statement rather than a
@@ -175,6 +180,68 @@ vowel usually means tone was not transcribed rather than that it is level 3, so
 this reads missing data as a phonological value. Mitigation: the `ignore-tone`
 weight preset already exists for callers working with untranscribed-tone data,
 and the docs for this behaviour should point at it.
+
+### Review outcome — D8, D9 and D10 rejected, 2026-08-13
+
+An independent adversarial review reproduced the evidence and then re-ran it
+with two defects removed. What follows is verified, not taken on report.
+
+**The claim that carried D8 was false.** "105 of 110 tone-bearing alignments
+have at least one toneless row" counted BDPA's `LOCAL` and `SWAPS` annotation
+rows as languages. Filtering them: **0 of 110**. BDPA contains no tonal-versus-
+toneless language pair at all, so it cannot measure the situation D8 exists to
+price. The co-occurrence counts themselves reproduce exactly (tone 2,295, gap
+879, segment 0) but are partly definitional — BDPA's annotators tokenised tone
+separately — and come from 110 alignments that are 90 Bai and 20 Sinitic.
+
+**The harness had that same defect, and it cost a headline.** `read_msa` read
+annotation rows as doculects: 8.1% of all pairs were sequences of `*` and `.`.
+Corrected, `distinctive` is **−0.65% [−1.18, −0.14] against SCA on readable
+pairs — significant**, where the contaminated run showed −0.25% [−0.87, +0.39],
+not significant. The parity claim is withdrawn. Fixed in `bench_alignment.py`;
+`bench/alignment_baseline.txt` re-recorded.
+
+**The sweep leaked and, once fixed, saturates.** It split pairs rather than
+alignments, so up to three pairs from one wordlist straddled dev and test —
+the leak D7 declares non-negotiable. Split at alignment boundaries, every value
+from T = 0.70 to T = 2.00 gives *byte-identical* results, and T = 0.70 versus
+the geometry's own 0.50 is +0.71% [−0.20, +1.54], **not significant**. The
+benchmark identifies a rule — never match tone to a segment — not a weight, and
+cannot distinguish any cost in the saturated region from declaring the two
+incomparable.
+
+**D9's premise was wrong about scope.** A geometry leaf reaches `broad` and
+`descriptive` only. `distinctive` scores through its own `scalar_dimensions` and
+never reads geometry leaves; the five valued systems reject tone-bearing
+graphemes outright. "All eight systems" was wrong in both directions. The review
+further measured the leaf as *costing* −0.33% [−0.64, −0.03] column accuracy,
+and as reordering rather than rescaling — 1.67% of pairwise closer-than
+comparisons flip, which no published rescale factor can repair.
+
+**D10 was a third, unrecorded compression.** Implemented as an ordinal
+`default_level`, the three tone scales fire on every pair, adding 1.2 to every
+denominator: mean distance −17.5%, `d(p,b)` −24.8%. It also weakens what it
+claims to fix, moving `d(a, a³³)` from 0.1079 to 0.0857. And the corpora already
+have the notation it wants to model — Chao neutral tone `⁰`, which is 8.3% of
+tone tokens in `beidasinitic` (its single largest blocking token) and which
+merkmal rejects outright. `ignore-tone` does not mitigate it either: zeroing
+`Tonal` leaves a bare tone as a featureless segment still costing 0.554 against
+`p`, because deleting a token is a sequence operation the library does not own.
+
+**What replaces them.** Tier becomes a property of the segment record rather
+than a scoring dimension — alongside the existing unscored `metadata_features` —
+and cross-tier comparison is answered through the comparability channel item 1c
+already commits to building for `total_weight == 0`. The cost policy becomes
+versioned data in the geometry file rather than a tree edit, which is what makes
+it swappable for the later evidence-derived and preference-derived weighting
+schemes. No existing distance moves, no fixtures regenerate, no thresholds are
+invalidated.
+
+**And the coverage case never needed any of this.** Recognition alone — bare
+tone tokens, `⁰`, the boundary markers, the slash convention, and the item 1b
+diphthong parity — takes the 26 blocked datasets from 0.1% to ~93% of forms
+parsed under `descriptive`. Not one point of that requires a tone-to-segment
+number.
 
 ### 1a. Tone (D1)
 

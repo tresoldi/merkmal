@@ -15,19 +15,22 @@ that is internally consistent and unusable in practice. These two do not.
   types, `phoible` 79.2%, everything else 73.4–73.7%; token rates cluster around
   95.6%. The token rate flatters it. A form only parses if every one of its
   tokens does, and `bench/coverage_baseline.txt` records the consequence:
-  **26 of 152 datasets have under 3% of their forms fully parseable**, and they
-  are the tonal ones — Sinitic, Hmong-Mien, Bai, Tai-Kadai, Lolo-Burmese, Karen,
-  Benue-Congo. The cause is that CLTS/BIPA writes tone as its own segment while
-  merkmal accepts it only bound to a vowel.
+  **26 of 152 datasets have under 3% of their forms fully parseable**. Twenty-
+  five of the 26 are blocked by tone — Sinitic, Hmong-Mien, Bai, Tai-Kadai,
+  Lolo-Burmese, Karen — because CLTS/BIPA writes tone as its own segment while
+  merkmal accepts it only bound to a vowel, and several of those datasets write
+  it through the `source/BIPA` slash convention on top of that. The twenty-sixth,
+  `williamsonbenuecongo`, has no tone tokens at all and is blocked by CLTS's
+  `<?>` and `<<->>` markers.
 - Added `bench/bench_alignment.py`, which scores the segment distance as an
   alignment substitution cost against LingPy's SCA classes on BDPA gold
   alignments, through an identical Needleman-Wunsch with the gap tuned per
-  scorer on a held-out half. On pairs merkmal can fully read, `distinctive` is
-  **statistically indistinguishable from SCA** (96.35% vs 96.87% column
-  accuracy; bootstrap 95% CI on the difference [-0.87, +0.39]). Over the whole
-  benchmark it loses significantly (89.60% vs 91.66%), entirely because it
-  cannot read 36% of the pairs. The phonology is competitive; the coverage is
-  not.
+  scorer on a held-out half. On pairs merkmal can fully read, `distinctive`
+  reaches 96.90% column accuracy against SCA's 97.74% — close, but behind by a
+  margin that is statistically significant (bootstrap 95% CI on the difference
+  [-1.18, -0.14]). Over the whole benchmark it falls further behind (92.91% vs
+  96.35%) because it cannot read 30% of the pairs. Coverage is worth several
+  times more than the remaining modelling gap.
 - Added `bench/corpus/`, an aggregate segment-frequency table with its own
   provenance manifest. It carries segment types and counts only — no forms,
   glosses, or language identifiers — so it does not redistribute the wordlists

@@ -20,9 +20,15 @@ BDPA checkout:
 
 Results are compared against bench/alignment_baseline.txt and written back with
 --record. Coverage is reported alongside accuracy and that pairing is the point:
-on BDPA pairs merkmal can fully read it reaches SCA parity, and over the whole
-benchmark it does not, because it cannot read a third of them. Reporting the
-second number without the first would be as misleading as the reverse.
+on pairs merkmal can fully read it comes close to SCA, and over the whole
+benchmark it falls well behind, because it cannot read 30% of them. Reporting
+the second number without the first would be as misleading as the reverse.
+
+A warning paid for in retracted results: BDPA appends annotation rows (`LOCAL`,
+`SWAPS`) that are shaped exactly like language rows. The first version of this
+file read them as doculects, which put 8% of pairs -- sequences of `*` and `.`
+-- into a phonological benchmark, and inflated every reported figure by roughly
+four points. Anything that reads these files by shape must exclude them.
 """
 
 from __future__ import annotations
@@ -46,7 +52,16 @@ BOOTSTRAP = 400
 # --------------------------------------------------------------- gold data
 
 
+# BDPA appends annotation rows to an alignment block. They are named, tab-
+# separated and the same width as a language row, so anything that reads by
+# shape picks them up as doculects. Their cells are BDPA's own markup (`*`
+# local-identity, `.` unmarked), not transcription.
+MSA_ANNOTATION_ROWS = {"LOCAL", "SWAPS", "CROSSED", "MERGE"}
+MSA_MARKUP_CELLS = {"*", ".", "-", ""}
+
+
 def read_msa(path: Path) -> list[list[str]]:
+    """Language rows of a BDPA alignment block, annotation rows excluded."""
     rows = []
     for line in path.read_text(encoding="utf-8").split("\n")[2:]:
         if not line.strip():
@@ -54,16 +69,30 @@ def read_msa(path: Path) -> list[list[str]]:
         parts = line.split("\t")
         if len(parts) < 2:
             continue
-        rows.append([c.strip() for c in parts[1:]])
+        name = parts[0].strip(". ").upper()
+        cells = [c.strip() for c in parts[1:]]
+        if name in MSA_ANNOTATION_ROWS:
+            continue
+        # Belt and braces: a row made only of markup is not a transcription,
+        # whatever it is called.
+        if all(c in MSA_MARKUP_CELLS for c in cells):
+            continue
+        rows.append(cells)
     return rows
 
 
-def gold_pairs(bdpa: Path) -> list[tuple[list[str], list[str], list[tuple[str, str]]]]:
+def gold_pairs_grouped(bdpa: Path, rng: random.Random | None = None) -> dict[str, list]:
+    """Gold pairwise alignments keyed by the alignment they came from.
+
+    Needed because up to PAIRS_PER_MSA pairs share a wordlist and a set of
+    doculects, so any evaluation split has to cut between alignments and not
+    between pairs.
+    """
     files = sorted((bdpa / "raw" / "msa").glob("*.msa"))
     if not files:
         sys.exit(f"no .msa files under {bdpa / 'raw' / 'msa'}")
-    rng = random.Random(SEED)
-    out = []
+    rng = rng if rng is not None else random.Random(SEED)
+    groups: dict[str, list] = {}
     for path in files:
         rows = read_msa(path)
         if len(rows) < 2:
@@ -77,8 +106,16 @@ def gold_pairs(bdpa: Path) -> list[tuple[list[str], list[str], list[tuple[str, s
             s1 = [a for a, _ in gold if a != "-"]
             s2 = [b for _, b in gold if b != "-"]
             if s1 and s2:
-                out.append((s1, s2, gold))
-    rng.shuffle(out)
+                groups.setdefault(path.name, []).append((s1, s2, gold))
+    return groups
+
+
+def gold_pairs(bdpa: Path) -> list[tuple[list[str], list[str], list[tuple[str, str]]]]:
+    """Flat, shuffled view of the above. Ordering is part of the baseline."""
+    rng = random.Random(SEED)
+    groups = gold_pairs_grouped(bdpa, rng)
+    out = [pair for name in groups for pair in groups[name]]
+    rng.shuffle(out)  # same rng instance and state as before grouping existed
     return out
 
 

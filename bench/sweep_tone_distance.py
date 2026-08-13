@@ -54,12 +54,23 @@ def make_sub(target, system="distinctive"):
     return f
 
 bdpa = Path(sys.argv[1] if len(sys.argv) > 1 else "~/lexibank_clone/bdpa").expanduser()
-pairs = bench.gold_pairs(bdpa)
-tone_pairs = [p for p in pairs if any(levels(t) is not None for t in p[0] + p[1])]
-print(f"BDPA pairs total {len(pairs)}; involving at least one tone token: {len(tone_pairs)}")
-half = len(tone_pairs) // 2
-dev, test = tone_pairs[:half], tone_pairs[half:]
-print(f"dev {len(dev)} / test {len(test)}\n")
+
+# Split at alignment boundaries, not at pair boundaries. Up to three pairs come
+# from the same alignment -- same wordlist, same doculects -- so a pair-level
+# split puts them on both sides. That is the leak D7 declares non-negotiable,
+# and the first version of this script had it.
+groups = bench.gold_pairs_grouped(bdpa)
+tone_groups = {
+    name: prs for name, prs in groups.items()
+    if any(levels(t) is not None for pr in prs for t in pr[0] + pr[1])
+}
+keys = sorted(tone_groups)
+half = len(keys) // 2
+dev = [pr for k in keys[:half] for pr in tone_groups[k]]
+test = [pr for k in keys[half:] for pr in tone_groups[k]]
+n_pairs = sum(len(v) for v in tone_groups.values())
+print(f"alignments containing tone: {len(keys)}; pairs from them: {n_pairs}")
+print(f"dev {len(dev)} / test {len(test)}  (split between alignments)\n")
 
 print(f"{'T':>6} {'gap':>9} {'dev col':>9} {'test col':>9} {'test perf':>13}")
 rows=[]
@@ -71,13 +82,25 @@ for target in [0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.2,1.5,2.0]:
     rows.append((target, gap, dacc, tacc, tperf))
     print(f"{target:6.2f} {gap:9.2f} {100*dacc:8.2f}% {100*tacc:8.2f}% {100*tperf:12.2f}%")
 
-best = max(rows, key=lambda r: r[2])  # choose on dev, report on test
-print(f"\nchosen on dev: T={best[0]:.2f} gap={best[1]:.2f}"
-      f" -> test {100 * best[3]:.2f}% col, {100 * best[4]:.2f}% perfect")
-print("\nBootstrap against the geometry's own value and against a flat ceiling:")
-for other, ogap, label in [(0.5, 0.80, "0.50 (the geometry's natural value)"),
-                           (1.0, 0.50, "1.00 (flat ceiling)")]:
-    d, lo, hi = bench.bootstrap_delta(test, make_sub(best[0]), best[1], make_sub(other), ogap)
-    verdict = "not significant" if lo < 0 < hi else "SIGNIFICANT"
-    print(f"  T={best[0]:.2f} vs {label:34} {100 * d:+6.2f}%"
-          f"  [{100 * lo:+.2f}, {100 * hi:+.2f}]  {verdict}")
+# Report the saturation point, not an argmax. Above some value the aligner
+# stops matching tone to a segment at all, and every larger cost -- including an
+# infinite one -- produces identical alignments. An argmax over a flat region is
+# spurious precision: it reports a number the data cannot distinguish from any
+# other number in that region, or from a rule.
+top = max(r[3] for r in rows)
+saturated = [r for r in rows if abs(r[3] - top) < 1e-12]
+floor_t = min(r[0] for r in saturated)
+print(f"\nsaturation: every T >= {floor_t:.2f} gives identical results "
+      f"({100 * top:.2f}% test column accuracy).")
+print(f"  values in the saturated region: {[f'{r[0]:.2f}' for r in saturated]}")
+if len(saturated) > 1:
+    print("  The benchmark therefore cannot pick a cost inside this region, and")
+    print("  cannot distinguish any of them from declaring tone and segments")
+    print("  incomparable. It identifies a rule, not a weight.")
+
+low = min(rows, key=lambda r: abs(r[0] - 0.5))
+best = min(saturated, key=lambda r: r[0])
+d, lo, hi = bench.bootstrap_delta(test, make_sub(best[0]), best[1], make_sub(low[0]), low[1])
+verdict = "not significant" if lo < 0 < hi else "SIGNIFICANT"
+print(f"\nT={best[0]:.2f} (saturation floor) vs T={low[0]:.2f} (the geometry's own value):"
+      f" {100 * d:+.2f}%  [{100 * lo:+.2f}, {100 * hi:+.2f}]  {verdict}")
