@@ -1,0 +1,12 @@
+NAME	FEATURES
+p	consonant|voiceless|bilabial|stop
+p-feats	consonant|voiceless|bilabial|stop
+b	consonant|voiced|bilabial|stop
+b-feats	consonant|voiced|bilabial|stop
+t-feats	consonant|voiceless|alveolar|stop
+k-feats	consonant|voiceless|velar|stop
+s-feats	consonant|voiceless|alveolar|fricative
+a	vowel|open|front|unrounded
+a-feats	vowel|open|front|unrounded
+i-feats	vowel|close|front|unrounded
+u-feats	vowel|close|back|rounded

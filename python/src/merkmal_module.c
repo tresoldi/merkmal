@@ -95,6 +95,77 @@ static int py_utf8_take_optional(py_utf8_args *bag, PyObject *obj, const char *n
     return py_utf8_take(bag, obj, name, out);
 }
 
+/* A Python sequence of str as the borrowed `const char **` the C library
+ * takes, with the backing bytes objects kept alive until clear. */
+typedef struct py_str_array {
+    PyObject *sequence;
+    py_utf8 *slots;
+    const char **items;
+    Py_ssize_t count;
+} py_str_array;
+
+static void py_str_array_clear(py_str_array *arr)
+{
+    Py_ssize_t i;
+
+    for (i = 0; i < arr->count; i++) {
+        py_utf8_clear(&arr->slots[i]);
+    }
+    PyMem_Free(arr->slots);
+    PyMem_Free(arr->items);
+    Py_XDECREF(arr->sequence);
+    arr->slots = NULL;
+    arr->items = NULL;
+    arr->sequence = NULL;
+    arr->count = 0;
+}
+
+static int py_str_array_init(py_str_array *arr, PyObject *obj, const char *name)
+{
+    Py_ssize_t i;
+
+    arr->sequence = NULL;
+    arr->slots = NULL;
+    arr->items = NULL;
+    arr->count = 0;
+
+    arr->sequence = PySequence_List(obj);
+    if (arr->sequence == NULL) {
+        PyErr_Format(PyExc_TypeError, "%s must be an iterable of str", name);
+        return -1;
+    }
+    arr->count = PySequence_Size(arr->sequence);
+    if (arr->count < 0) {
+        py_str_array_clear(arr);
+        return -1;
+    }
+    /* PyMem_Calloc(0, ...) may return NULL without an error, which would be
+     * indistinguishable from failure; an empty sequence is legitimate here. */
+    arr->slots = (py_utf8 *)PyMem_Calloc((size_t)arr->count + 1, sizeof(*arr->slots));
+    arr->items = (const char **)PyMem_Calloc((size_t)arr->count + 1, sizeof(*arr->items));
+    if (arr->slots == NULL || arr->items == NULL) {
+        py_str_array_clear(arr);
+        PyErr_NoMemory();
+        return -1;
+    }
+    for (i = 0; i < arr->count; i++) {
+        PyObject *item = PySequence_GetItem(arr->sequence, i);
+
+        if (item == NULL) {
+            py_str_array_clear(arr);
+            return -1;
+        }
+        if (py_utf8_from_unicode(item, name, &arr->slots[i]) < 0) {
+            Py_DECREF(item);
+            py_str_array_clear(arr);
+            return -1;
+        }
+        Py_DECREF(item);
+        arr->items[i] = arr->slots[i].value;
+    }
+    return 0;
+}
+
 /* Always returns NULL, with a Python exception set, so callers can `return
  * status_error(...)` directly. The exception type is this binding's contract;
  * the message comes from the C library, so the two cannot drift. */
@@ -438,6 +509,58 @@ done:
     return result;
 }
 
+/* Scores two caller-supplied feature sets against the compiled geometry,
+ * without a system, a registry, or a grapheme that has to resolve. It is the
+ * only way to exercise a scoring rule in isolation, which is why the geometry
+ * fixtures are keyed by feature sets rather than by segments. */
+static PyObject *py_sound_distance(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *keywords[] = {"features_a", "features_b", "node_weights", NULL};
+    PyObject *a_obj;
+    PyObject *b_obj;
+    PyObject *node_weights_obj = Py_None;
+    py_str_array a = {NULL, NULL, NULL, 0};
+    py_str_array b = {NULL, NULL, NULL, 0};
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *node_weights = NULL;
+    double distance = 0.0;
+    PyObject *result = NULL;
+    mk_status status;
+
+    (void)self;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs, "OO|O:sound_distance", keywords,
+            &a_obj, &b_obj, &node_weights_obj
+        )) {
+        return NULL;
+    }
+    if (py_utf8_take_optional(&bag, node_weights_obj, "node_weights", &node_weights) < 0) {
+        goto done;
+    }
+    if (py_str_array_init(&a, a_obj, "features_a") < 0 ||
+        py_str_array_init(&b, b_obj, "features_b") < 0) {
+        goto done;
+    }
+    status = mk_sound_distance(
+        a.items, (size_t)a.count,
+        b.items, (size_t)b.count,
+        node_weights,
+        &distance
+    );
+    if (status != MK_OK) {
+        status_error(status, "sound_distance");
+        goto done;
+    }
+    result = PyFloat_FromDouble(distance);
+
+done:
+    py_str_array_clear(&a);
+    py_str_array_clear(&b);
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
 static PyObject *py_normalize(PyObject *self, PyObject *args)
 {
     PyObject *grapheme_obj;
@@ -599,14 +722,10 @@ done:
 static PyObject *py_merge_tone_digits(PyObject *self, PyObject *args)
 {
     PyObject *segments_obj;
-    PyObject *sequence = NULL;
-    Py_ssize_t count;
-    py_utf8 *segment_args;
-    const char **items;
+    py_str_array input = {NULL, NULL, NULL, 0};
     mk_string_list *segments = NULL;
     mk_string_list *merged = NULL;
     PyObject *result = NULL;
-    Py_ssize_t i;
     mk_status status;
 
     (void)self;
@@ -614,60 +733,25 @@ static PyObject *py_merge_tone_digits(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "O:merge_tone_digits", &segments_obj)) {
         return NULL;
     }
-    sequence = PySequence_List(segments_obj);
-    if (sequence == NULL) {
-        PyErr_SetString(PyExc_TypeError, "segments must be an iterable of str");
+    if (py_str_array_init(&input, segments_obj, "segments") < 0) {
         return NULL;
     }
-    count = PySequence_Size(sequence);
-    if (count < 0) {
-        Py_DECREF(sequence);
-        return NULL;
-    }
-    segment_args = (py_utf8 *)PyMem_Calloc((size_t)count, sizeof(*segment_args));
-    items = (const char **)PyMem_Calloc((size_t)count, sizeof(*items));
-    if (segment_args == NULL || items == NULL) {
-        PyMem_Free(segment_args);
-        PyMem_Free(items);
-        Py_DECREF(sequence);
-        return PyErr_NoMemory();
-    }
-
-    for (i = 0; i < count; i++) {
-        PyObject *item = PySequence_GetItem(sequence, i);
-        if (item == NULL) {
-            goto cleanup;
-        }
-        if (py_utf8_from_unicode(item, "segment", &segment_args[i]) < 0) {
-            Py_DECREF(item);
-            goto cleanup;
-        }
-        Py_DECREF(item);
-        items[i] = segment_args[i].value;
-    }
-
-    status = mk_string_list_new(items, (size_t)count, &segments);
+    status = mk_string_list_new(input.items, (size_t)input.count, &segments);
     if (status != MK_OK) {
         status_error(status, "merge_tone_digits");
-        goto cleanup;
+        goto done;
     }
     status = mk_merge_tone_digits(segments, &merged);
     if (status != MK_OK) {
         status_error(status, "merge_tone_digits");
-        goto cleanup;
+        goto done;
     }
-
     result = py_string_list_to_list(merged);
 
-cleanup:
-    for (i = 0; i < count; i++) {
-        py_utf8_clear(&segment_args[i]);
-    }
+done:
     mk_string_list_free(segments);
     mk_string_list_free(merged);
-    PyMem_Free(segment_args);
-    PyMem_Free(items);
-    Py_DECREF(sequence);
+    py_str_array_clear(&input);
     return result;
 }
 
@@ -754,6 +838,8 @@ static PyMethodDef methods[] = {
      "Return segment distance."},
     {"feature_distance", py_feature_distance, METH_VARARGS,
      "Return geometry feature distance."},
+    {"sound_distance", (PyCFunction)py_sound_distance, METH_VARARGS | METH_KEYWORDS,
+     "Return the geometry distance between two feature sets."},
     {"normalize", py_normalize, METH_VARARGS, "Normalize an IPA grapheme."},
     {"segment_ipa", py_segment_ipa, METH_VARARGS, "Segment an IPA string orthographically."},
     {"system_segment_ipa", (PyCFunction)py_system_segment_ipa, METH_VARARGS | METH_KEYWORDS,

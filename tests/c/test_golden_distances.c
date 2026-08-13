@@ -1,5 +1,7 @@
 #include "merkmal.h"
 
+#include "golden_support.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,25 +10,6 @@
 #ifndef MERKMAL_SOURCE_DIR
 #define MERKMAL_SOURCE_DIR "."
 #endif
-
-static int read_field(char **cursor, char *out, size_t out_size)
-{
-    size_t len = 0;
-    char *p = *cursor;
-
-    while (*p != '\0' && *p != '\t' && *p != '\n' && *p != '\r') {
-        if (len + 1 < out_size) {
-            out[len++] = *p;
-        }
-        p++;
-    }
-    out[len] = '\0';
-    if (*p == '\t') {
-        p++;
-    }
-    *cursor = p;
-    return len > 0;
-}
 
 static int check_file(
     mk_registry *registry,
@@ -67,9 +50,9 @@ static int check_file(
         if (line_no == 1) {
             continue;
         }
-        if (!read_field(&cursor, a, sizeof(a)) ||
-            !read_field(&cursor, b, sizeof(b)) ||
-            !read_field(&cursor, expected_text, sizeof(expected_text))) {
+        if (!mk_read_field(&cursor, a, sizeof(a)) ||
+            !mk_read_field(&cursor, b, sizeof(b)) ||
+            !mk_read_field(&cursor, expected_text, sizeof(expected_text))) {
             fprintf(stderr, "%s:%d: malformed row\n", relative_path, line_no);
             failed = 1;
             continue;

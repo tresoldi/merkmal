@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
 
 import merkmal
 import pytest
@@ -367,6 +368,64 @@ def test_feature_distance_takes_no_system() -> None:
     """
     with pytest.raises(TypeError):
         merkmal.feature_distance("voiced", "voiceless", system="phoible")  # type: ignore[call-arg]
+
+
+def test_sound_distance_scores_bare_feature_sets() -> None:
+    """The one scorer reachable without a system, a registry, or a grapheme.
+
+    It is what produces the geometry fixtures, so it has to be callable from
+    here; it was public C API that the wrapper did not expose.
+    """
+    p = ["consonant", "voiceless", "bilabial", "stop"]
+    b = ["consonant", "voiced", "bilabial", "stop"]
+    a = ["vowel", "open", "front", "unrounded"]
+
+    assert merkmal.sound_distance(p, p) == 0.0
+    assert 0.0 < merkmal.sound_distance(p, b) < merkmal.sound_distance(p, a)
+    # Fed a segment's own features, it agrees with the segment scorer. The
+    # named sets above are deliberately minimal and do not carry the features
+    # the generator derives, so they score differently -- which is the point of
+    # keeping them as data rather than as inventory rows.
+    assert math.isclose(
+        merkmal.sound_distance(
+            sorted(merkmal.get_features("p")), sorted(merkmal.get_features("b"))
+        ),
+        merkmal.distance("p", "b"),
+        abs_tol=1e-12,
+    )
+    assert merkmal.sound_distance(p, b, node_weights="flat") != merkmal.sound_distance(p, b)
+    with pytest.raises(ValueError, match="invalid argument"):
+        merkmal.sound_distance(p, b, node_weights="no-such-preset")
+    with pytest.raises(TypeError):
+        merkmal.sound_distance([1], b)  # type: ignore[list-item]
+
+
+def test_geometry_cases_cover_every_fixture_row() -> None:
+    """The fixtures name feature sets; the case file has to define them all.
+
+    Producer and consumer read the same file, so a row naming a set nobody
+    defines is a broken fixture, not a silent skip.
+    """
+    golden = Path(__file__).resolve().parents[2] / "tests" / "golden"
+    cases = {
+        line.split("\t")[0]
+        for line in (golden / "geometry_cases.tsv").read_text(encoding="utf-8").splitlines()[1:]
+        if line
+    }
+    assert cases
+
+    for name, weighted in (
+        ("geometry_sound_distances.tsv", False),
+        ("geometry_weighted_distances.tsv", True),
+    ):
+        rows = (golden / name).read_text(encoding="utf-8").splitlines()[1:]
+        for row in rows:
+            if not row:
+                continue
+            fields = row.split("\t")
+            a, b = (fields[1], fields[2]) if weighted else (fields[0], fields[1])
+            assert a in cases, f"{name}: {a} is not in geometry_cases.tsv"
+            assert b in cases, f"{name}: {b} is not in geometry_cases.tsv"
 
 
 def test_error_messages_come_from_the_c_library() -> None:

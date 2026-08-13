@@ -1,5 +1,7 @@
 #include "merkmal.h"
 
+#include "golden_support.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,25 +9,6 @@
 #ifndef MERKMAL_SOURCE_DIR
 #define MERKMAL_SOURCE_DIR "."
 #endif
-
-static int read_field(char **cursor, char *out, size_t out_size)
-{
-    size_t len = 0;
-    char *p = *cursor;
-
-    while (*p != '\0' && *p != '\t' && *p != '\n' && *p != '\r') {
-        if (len + 1 < out_size) {
-            out[len++] = *p;
-        }
-        p++;
-    }
-    out[len] = '\0';
-    if (*p == '\t') {
-        p++;
-    }
-    *cursor = p;
-    return len > 0;
-}
 
 static int feature_set_contains(const mk_feature_set *features, const char *feature)
 {
@@ -128,8 +111,8 @@ static int check_file(
         if (line_no == 1) {
             continue;
         }
-        if (!read_field(&cursor, grapheme, sizeof(grapheme)) ||
-            !read_field(&cursor, expected, sizeof(expected))) {
+        if (!mk_read_field(&cursor, grapheme, sizeof(grapheme)) ||
+            !mk_read_field(&cursor, expected, sizeof(expected))) {
             fprintf(stderr, "%s:%d: malformed row\n", relative_path, line_no);
             failed = 1;
             continue;

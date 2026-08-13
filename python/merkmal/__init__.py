@@ -24,6 +24,7 @@ merge_tone_digits = _native.merge_tone_digits
 normalize = _native.normalize
 segment_ipa = _native.segment_ipa
 segment_ipa_merged = _native.segment_ipa_merged
+sound_distance = _native.sound_distance
 system_segment_ipa = _native.system_segment_ipa
 split_tone = _native.split_tone
 
@@ -102,6 +103,7 @@ __all__ = [
     "normalize",
     "segment_ipa",
     "segment_ipa_merged",
+    "sound_distance",
     "split_tone",
     "system_segment_ipa",
 ]

@@ -98,24 +98,27 @@ if(MERKMAL_BUILD_TESTS)
     target_link_libraries(test_smoke PRIVATE merkmal)
     add_test(NAME smoke COMMAND test_smoke)
 
-    add_executable(test_golden_distances tests/c/test_golden_distances.c)
+    add_executable(test_golden_distances tests/c/test_golden_distances.c tests/c/golden_support.c)
     target_compile_definitions(test_golden_distances
         PRIVATE MERKMAL_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
     )
+    target_include_directories(test_golden_distances PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/c)
     target_link_libraries(test_golden_distances PRIVATE merkmal)
     add_test(NAME golden_distances COMMAND test_golden_distances)
 
-    add_executable(test_golden_features tests/c/test_golden_features.c)
+    add_executable(test_golden_features tests/c/test_golden_features.c tests/c/golden_support.c)
     target_compile_definitions(test_golden_features
         PRIVATE MERKMAL_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
     )
+    target_include_directories(test_golden_features PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/c)
     target_link_libraries(test_golden_features PRIVATE merkmal)
     add_test(NAME golden_features COMMAND test_golden_features)
 
-    add_executable(test_geometry tests/c/test_geometry.c)
+    add_executable(test_geometry tests/c/test_geometry.c tests/c/golden_support.c)
     target_compile_definitions(test_geometry
         PRIVATE MERKMAL_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
     )
+    target_include_directories(test_geometry PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/c)
     target_link_libraries(test_geometry PRIVATE merkmal)
     add_test(NAME geometry COMMAND test_geometry)
 

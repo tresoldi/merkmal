@@ -10,6 +10,10 @@ as data, not as noise:
     python scripts/regenerate_golden.py --check      # report drift, change nothing
     python scripts/regenerate_golden.py              # rewrite the fixtures
 
+Everything is produced here, through the installed native build. The C tests
+are consumers only, so no test can rewrite the values it is checked against,
+and this needs no CMake build.
+
 The grapheme and pair lists are taken from the existing files, so this rewrites
 values without silently changing what is covered. A row whose grapheme or pair
 no longer resolves is reported and dropped; that is a contract change and
@@ -25,7 +29,6 @@ that record currently shows.
 from __future__ import annotations
 
 import argparse
-import subprocess
 import sys
 from pathlib import Path
 
@@ -97,50 +100,59 @@ def regenerate_distances(system: str, path: Path, dropped: list[str]) -> list[li
     return out
 
 
-GEOMETRY_FIXTURES = [
-    "geometry_distances.tsv",
-    "geometry_sound_distances.tsv",
-    "geometry_weighted_distances.tsv",
-]
+GEOMETRY_CASES = GOLDEN / "geometry_cases.tsv"
 
 
-def find_geometry_binary(build_dir: Path | None) -> Path | None:
-    """The geometry fixtures are keyed by feature sets defined inside
-    tests/c/test_geometry.c, so that binary regenerates them itself.
+def read_geometry_cases() -> dict[str, list[str]]:
+    """The named feature sets the geometry fixtures are keyed by.
 
-    Picking the most recently built one matters: an older build directory
-    regenerates the fixtures with stale library code and reports no drift,
-    which reads as "nothing changed" when in fact nothing was checked.
+    These live in a versioned file rather than inside the test binary, so this
+    script can produce the fixtures that tests/c/test_geometry.c replays. The
+    test used to write them itself, from feature sets defined as C literals in
+    its own source, which meant the program that graded the answers was the
+    program that had written them.
     """
-    if build_dir is not None:
-        binary = (build_dir / "test_geometry").resolve()
-        return binary if binary.exists() else None
-    candidates = sorted(
-        (ROOT / "build").glob("*/test_geometry"),
-        key=lambda path: path.stat().st_mtime,
-        reverse=True,
-    )
-    return candidates[0] if candidates else None
+    header, rows = read_rows(GEOMETRY_CASES)
+    return {row[0]: row[1].split("|") for row in rows}
 
 
-def regenerate_geometry(build_dir: Path | None, check: bool, changed: list[str]) -> None:
-    binary = find_geometry_binary(build_dir)
-    before = {name: (GOLDEN / name).read_text(encoding="utf-8") for name in GEOMETRY_FIXTURES}
-    if binary is None:
-        print(
-            "NOTE: no built test_geometry found; geometry fixtures were not checked. "
-            "Configure and build the C tests first, or pass --build-dir.",
-            file=sys.stderr,
-        )
-        return
-    subprocess.run([str(binary), "--regenerate"], check=True, cwd=ROOT)  # noqa: S603
-    for name in GEOMETRY_FIXTURES:
-        path = GOLDEN / name
-        after = path.read_text(encoding="utf-8")
-        if after != before[name]:
-            changed.append(f"{name}: regenerated from {binary.relative_to(ROOT)}")
-            if check:
-                path.write_text(before[name], encoding="utf-8")
+def regenerate_geometry_feature_distances(path: Path, dropped: list[str]) -> list[list[str]]:
+    header, rows = read_rows(path)
+    out: list[list[str]] = []
+    for row in rows:
+        a, b = row[0], row[1]
+        try:
+            value = merkmal.feature_distance(a, b)
+        except Exception as exc:  # noqa: BLE001 - reported, not swallowed
+            dropped.append(f"{path.name}: {a!r}/{b!r} failed ({exc})")
+            continue
+        out.append([a, b, str(value)])
+    return out
+
+
+def regenerate_geometry_sound_distances(
+    path: Path,
+    cases: dict[str, list[str]],
+    weighted: bool,
+    dropped: list[str],
+) -> list[list[str]]:
+    header, rows = read_rows(path)
+    out: list[list[str]] = []
+    for row in rows:
+        preset = row[0] if weighted else "None"
+        a, b = (row[1], row[2]) if weighted else (row[0], row[1])
+        if a not in cases or b not in cases:
+            dropped.append(f"{path.name}: {a!r}/{b!r} is not in geometry_cases.tsv")
+            continue
+        node_weights = None if preset == "None" else preset
+        try:
+            value = merkmal.sound_distance(cases[a], cases[b], node_weights=node_weights)
+        except Exception as exc:  # noqa: BLE001 - reported, not swallowed
+            dropped.append(f"{path.name}: {preset}/{a!r}/{b!r} failed ({exc})")
+            continue
+        formatted = f"{value:.10f}"
+        out.append([preset, a, b, formatted] if weighted else [a, b, formatted])
+    return out
 
 
 def main() -> int:
@@ -150,18 +162,27 @@ def main() -> int:
         action="store_true",
         help="report which fixtures would change and exit non-zero, writing nothing",
     )
-    parser.add_argument(
-        "--build-dir",
-        type=Path,
-        default=None,
-        help="build directory holding test_geometry (default: the newest under build/)",
-    )
     args = parser.parse_args()
 
     dropped: list[str] = []
     changed: list[str] = []
 
-    regenerate_geometry(args.build_dir, args.check, changed)
+    cases = read_geometry_cases()
+    geometry: list[tuple[Path, object]] = [
+        (GOLDEN / "geometry_distances.tsv",
+         lambda path: regenerate_geometry_feature_distances(path, dropped)),
+        (GOLDEN / "geometry_sound_distances.tsv",
+         lambda path: regenerate_geometry_sound_distances(path, cases, False, dropped)),
+        (GOLDEN / "geometry_weighted_distances.tsv",
+         lambda path: regenerate_geometry_sound_distances(path, cases, True, dropped)),
+    ]
+    for path, regenerate in geometry:
+        header, before = read_rows(path)
+        after = regenerate(path)  # type: ignore[operator]
+        if after != before:
+            changed.append(f"{path.name}: {len(before)} -> {len(after)} rows")
+            if not args.check:
+                write_rows(path, header, after)
 
     for system in SYSTEMS:
         for suffix, regenerate in (

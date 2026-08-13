@@ -15,10 +15,31 @@ python scripts/regenerate_golden.py --check    # report drift, write nothing
 python scripts/regenerate_golden.py            # rewrite, then read the diff
 ```
 
+Every fixture is produced by that one script, through the installed Python
+wrapper. The C tests are consumers only, so no test can rewrite the values it
+is graded against, and the check needs no CMake build. `test_geometry` used to
+carry a `--regenerate` mode and write the three `geometry_*.tsv` files itself,
+which meant a stale build reported "no drift" while checking nothing.
+
 The grapheme and pair lists come from the existing files, so values are
 rewritten without silently changing what is covered. A row that no longer
 resolves is reported and dropped, which is a contract change and belongs in the
 changelog.
+
+### Adding coverage
+
+Add the row you want, with any placeholder in the value column, then
+regenerate; the value is filled in and the C tests replay it from then on:
+
+```sh
+echo -e "n-feats\tt-feats\t0" >> tests/golden/geometry_sound_distances.tsv
+python scripts/regenerate_golden.py
+```
+
+A `geometry_*` row names feature sets rather than graphemes. Those sets are
+defined in `geometry_cases.tsv`, so a new one goes there first. They used to be
+C literals inside `tests/c/test_geometry.c`, which is why coverage could only
+ever shrink.
 
 Regenerate `src/generated/builtin_data.c` from the source model data with
 `python tools/generate_c_data.py`; that does not touch these fixtures.
@@ -71,6 +92,16 @@ Distance method varies by engine type:
 - categorical: `segment_distance` (geometry tree on feature sets)
 - valued: `segment_distance` (geometry-weighted valued distance)
 - trained (classfeat): `grapheme_cost` (alpha-blended class + feature)
+
+### `geometry_cases.tsv`
+
+Input, not expectation. Names the feature sets the two `geometry_*sound*` files
+score, so that both the producer and the C consumer read them from one place.
+
+| Column   | Description                                            |
+|----------|--------------------------------------------------------|
+| NAME     | Case name, referenced by SET_A and SET_B               |
+| FEATURES | Pipe-separated feature strings                         |
 
 ### `geometry_distances.tsv`
 

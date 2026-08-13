@@ -105,14 +105,11 @@ jobs:
         run: python scripts/contrast_baseline.py --check
       - name: Check NOTICE matches the provenance manifests
         run: python scripts/generate_notice.py --check
-      - name: Build C tests for the geometry fixture check
-        # The geometry fixtures are keyed by feature sets defined inside
-        # tests/c/test_geometry.c, so that binary regenerates them itself.
-        run: |
-          cmake -S . -B build/c-debug -DCMAKE_BUILD_TYPE=Debug -DMERKMAL_REQUIRE_UTF8PROC=ON
-          cmake --build build/c-debug
       - name: Check golden fixtures match the build
-        run: python scripts/regenerate_golden.py --check --build-dir build/c-debug
+        # Every fixture, geometry included, is produced here through the
+        # installed wrapper; the C tests only replay them. This job needs no
+        # CMake build.
+        run: python scripts/regenerate_golden.py --check
       - name: Build source distribution and wheel
         run: MERKMAL_REQUIRE_UTF8PROC=1 python -m build --sdist --wheel
       - name: Install source distribution
