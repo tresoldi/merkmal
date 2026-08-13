@@ -7,6 +7,7 @@
  * the path, so a change that quietly moves a segment from one construction to
  * another fails here rather than passing unnoticed. */
 
+#include "inventory.h"
 #include "resolver.h"
 
 #include <stdio.h>
@@ -191,6 +192,96 @@ static int check_invalid_arguments(void)
     return failed;
 }
 
+/* Every compiled row, through the interned storage.
+ *
+ * The golden fixtures cover the graphemes they name; this covers all 9,728
+ * rows, which is what makes a bad pool offset or a truncated feature run show
+ * up as a failure rather than as a wrong answer for some segment nobody
+ * sampled. Each row must also resolve back to itself: that exercises
+ * mk_inventory_find against the same data mk_inventory_row reports. */
+static int check_every_compiled_row(void)
+{
+    const char *scratch[MK_MAX_ENTRY_FEATURES];
+    size_t s;
+    size_t i;
+    size_t j;
+    size_t rows = 0;
+    int failed = 0;
+
+    for (s = 0; s < mk_builtin_system_count; s++) {
+        const mk_builtin_system *system = &mk_builtin_systems[s];
+
+        for (i = 0; i < system->entry_count; i++) {
+            mk_entry_view row;
+            mk_entry_view found;
+            const char *found_scratch[MK_MAX_ENTRY_FEATURES];
+
+            mk_inventory_row(system, i, scratch, &row);
+            rows++;
+
+            if (row.grapheme == NULL || row.grapheme[0] == '\0') {
+                fprintf(stderr, "%s row %zu: empty grapheme\n", system->name, i);
+                failed = 1;
+                continue;
+            }
+            if (row.feature_count == 0 || row.feature_count > MK_MAX_ENTRY_FEATURES) {
+                fprintf(stderr, "%s row %zu (%s): feature count %zu out of range\n",
+                        system->name, i, row.grapheme, row.feature_count);
+                failed = 1;
+                continue;
+            }
+            for (j = 0; j < row.feature_count; j++) {
+                if (row.features[j] == NULL || row.features[j][0] == '\0') {
+                    fprintf(stderr, "%s row %zu (%s): empty feature at %zu\n",
+                            system->name, i, row.grapheme, j);
+                    failed = 1;
+                }
+            }
+
+            if (!mk_inventory_find(system, row.grapheme, found_scratch, &found)) {
+                fprintf(stderr, "%s row %zu (%s): does not find itself\n",
+                        system->name, i, row.grapheme);
+                failed = 1;
+                continue;
+            }
+            if (found.feature_count != row.feature_count) {
+                fprintf(stderr, "%s (%s): found %zu features, row has %zu\n",
+                        system->name, row.grapheme, found.feature_count, row.feature_count);
+                failed = 1;
+            }
+        }
+    }
+
+    if (rows == 0) {
+        fprintf(stderr, "no compiled rows were walked\n");
+        failed = 1;
+    }
+    return failed;
+}
+
+/* Every feature id names a distinct, non-empty string. A pool offset that
+ * lands mid-string still yields a plausible-looking C string, so identity is
+ * checked rather than just non-emptiness. */
+static int check_feature_name_table(void)
+{
+    size_t i;
+    int failed = 0;
+
+    for (i = 0; i < mk_feature_name_count; i++) {
+        const char *name = mk_feature_name((unsigned short)i);
+        if (name == NULL || name[0] == '\0') {
+            fprintf(stderr, "feature id %zu has no name\n", i);
+            failed = 1;
+            continue;
+        }
+        if (i > 0 && strcmp(mk_feature_name((unsigned short)(i - 1)), name) >= 0) {
+            fprintf(stderr, "feature ids are not in sorted order at %zu (%s)\n", i, name);
+            failed = 1;
+        }
+    }
+    return failed;
+}
+
 int main(void)
 {
     mk_registry *registry = NULL;
@@ -207,6 +298,8 @@ int main(void)
     }
     failed |= check_clear_is_total();
     failed |= check_invalid_arguments();
+    failed |= check_every_compiled_row();
+    failed |= check_feature_name_table();
 
     mk_registry_free(registry);
     return failed ? 1 : 0;

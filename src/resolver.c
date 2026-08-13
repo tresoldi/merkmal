@@ -13,21 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const mk_builtin_entry *mk_find_entry(
-    const mk_builtin_system *system,
-    const char *key
-)
-{
-    size_t i;
-
-    for (i = 0; i < system->entry_count; i++) {
-        if (mk_streq(system->entries[i].grapheme, key)) {
-            return &system->entries[i];
-        }
-    }
-    return NULL;
-}
-
 static char *mk_remove_tie_bars(const char *text)
 {
     char *out = NULL;
@@ -79,15 +64,15 @@ static char *mk_insert_affricate_retraction(const char *text)
 static mk_status mk_lookup_normalized(
     const mk_system *system,
     const char *normalized,
-    const mk_builtin_entry **out,
+    const char **scratch,
+    mk_entry_view *out,
     mk_resolution_path *path_out
 )
 {
     char *without_tie;
     char *retracted;
 
-    *out = mk_find_entry(system->builtin, normalized);
-    if (*out != NULL) {
+    if (mk_inventory_find(system->builtin, normalized, scratch, out)) {
         if (path_out != NULL) {
             *path_out = MK_RESOLVED_INVENTORY;
         }
@@ -99,8 +84,7 @@ static mk_status mk_lookup_normalized(
         return MK_ERR_OOM;
     }
     if (!mk_streq(without_tie, normalized)) {
-        *out = mk_find_entry(system->builtin, without_tie);
-        if (*out != NULL) {
+        if (mk_inventory_find(system->builtin, without_tie, scratch, out)) {
             free(without_tie);
             if (path_out != NULL) {
                 *path_out = MK_RESOLVED_TIE_STRIPPED;
@@ -114,13 +98,18 @@ static mk_status mk_lookup_normalized(
     if (retracted == NULL) {
         return MK_ERR_OOM;
     }
-    *out = mk_find_entry(system->builtin, retracted);
-    free(retracted);
-    if (*out != NULL) {
-        if (path_out != NULL) {
-            *path_out = MK_RESOLVED_AFFRICATE_RETRACTED;
+    {
+        int hit = mk_inventory_find(system->builtin, retracted, scratch, out);
+
+        /* Freed on both paths. The view borrows the pool, never `retracted`,
+         * so releasing it here does not invalidate anything in *out. */
+        free(retracted);
+        if (hit) {
+            if (path_out != NULL) {
+                *path_out = MK_RESOLVED_AFFRICATE_RETRACTED;
+            }
+            return MK_OK;
         }
-        return MK_OK;
     }
     return MK_ERR_UNKNOWN_GRAPHEME;
 }
@@ -260,7 +249,7 @@ static mk_status mk_replace_existing_valued_feature(
     return MK_ERR_INVALID_ARGUMENT;
 }
 
-static mk_status mk_copy_entry_features(const mk_builtin_entry *entry, char ***items, size_t *count, size_t *cap)
+static mk_status mk_copy_entry_features(const mk_entry_view *entry, char ***items, size_t *count, size_t *cap)
 {
     size_t i;
     mk_status status;
@@ -1189,12 +1178,13 @@ static mk_status mk_parse_component_at(
     }
 
     {
-        const mk_builtin_entry *entry = NULL;
-        status = mk_lookup_normalized(system, component, &entry, NULL);
+        mk_entry_view entry;
+        status = mk_lookup_normalized(
+            system, component, component_out->inline_features, &entry, NULL);
         if (status == MK_OK) {
-            component_out->grapheme = entry->grapheme;
-            component_out->features = entry->features;
-            component_out->feature_count = entry->feature_count;
+            component_out->grapheme = entry.grapheme;
+            component_out->features = entry.features;
+            component_out->feature_count = entry.feature_count;
         } else if (status == MK_ERR_UNKNOWN_GRAPHEME) {
             status = mk_synthesize_from_diacritics(system, component, component_out);
         }
@@ -1604,7 +1594,8 @@ static mk_status mk_synthesize_from_diacritics(
     size_t modifier_count = 0;
     int recognized_modifier = 0;
     int tone_seen = 0;
-    const mk_builtin_entry *base_entry = NULL;
+    mk_entry_view base_entry;
+    const char *base_scratch[MK_MAX_ENTRY_FEATURES];
     mk_resolution base_resolved;
     char **features = NULL;
     size_t count = 0;
@@ -1642,11 +1633,12 @@ static mk_status mk_synthesize_from_diacritics(
             }
         }
     } else {
-        status = mk_lookup_normalized(system, base, &base_entry, NULL);
+        status = mk_lookup_normalized(
+            system, base, base_scratch, &base_entry, NULL);
         if (status != MK_OK) {
             goto finish;
         }
-        status = mk_copy_entry_features(base_entry, &features, &count, &cap);
+        status = mk_copy_entry_features(&base_entry, &features, &count, &cap);
         if (status != MK_OK) {
             goto finish;
         }
@@ -1713,7 +1705,7 @@ mk_status mk_resolve(
 )
 {
     char *normalized;
-    const mk_builtin_entry *entry = NULL;
+    mk_entry_view entry;
     mk_status status;
 
     if (system == NULL || system->builtin == NULL || utf8_grapheme == NULL || out == NULL) {
@@ -1726,12 +1718,15 @@ mk_status mk_resolve(
         return status;
     }
 
-    status = mk_lookup_normalized(system, normalized, &entry, &out->path);
+    status = mk_lookup_normalized(
+        system, normalized, out->inline_features, &entry, &out->path);
     if (status == MK_OK) {
-        /* Borrowed: the owned_* fields stay NULL, per the rule in resolver.h. */
-        out->grapheme = entry->grapheme;
-        out->features = entry->features;
-        out->feature_count = entry->feature_count;
+        /* Borrowed: the owned_* fields stay NULL, per the rule in resolver.h.
+         * For a compiled inventory `features` aliases out->inline_features,
+         * which is why that array lives in the struct and not on this stack. */
+        out->grapheme = entry.grapheme;
+        out->features = entry.features;
+        out->feature_count = entry.feature_count;
         mk_free_string(normalized);
         return MK_OK;
     }

@@ -511,6 +511,35 @@ Binary artifacts change substantially — note it in the CHANGELOG for packagers
 - Every golden fixture byte-identical.
 - Sanitizer jobs green.
 
+**Outcome.**
+
+| | before | after |
+|---|---|---|
+| `builtin_data.o` `.rodata` | 2,485,500 | 546,420 |
+| relocations, whole library | 282,512 | 4,008 |
+| `footprint.wasm` | 1,286,045 | 574,609 |
+
+Golden fixtures are byte-identical, so the change is behaviour-neutral by the
+only measure that covers every system.
+
+Two departures from the plan as written:
+
+- **The pool is chunked, not one array.** C99 only requires support for string
+  literals of 4,095 characters, and adjacent literals concatenate into one, so
+  a single 29 KB pool literal is not strictly conforming — `-Wpedantic` says
+  so. The pool is emitted in 2 KB chunks with a string never straddling one,
+  which keeps the offset arithmetic to a shift and a mask.
+- **The relocation criterion is not met: 2,758 remain, against a target of
+  1,000.** They are all in the geometry tables — leaves, feature paths,
+  diacritic maps, tone marks, scalar dimensions — which were left as pointer
+  tables. Interning them too would remove roughly 22 KB and add a second
+  representation to a second set of tables. The number that mattered, the
+  260,000 feature slots, is gone.
+
+Rows carrying identical feature sets now share one run of ids, which is a
+further 24.6% off the largest array; a quarter of the bundled rows are
+duplicates in that sense.
+
 **Depends on.** Milestone A (baseline numbers), Milestone B (so the change
 lands in storage rather than smearing across a shared `internal.h`).
 

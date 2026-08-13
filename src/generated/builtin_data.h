@@ -18,11 +18,34 @@ typedef enum mk_system_type {
     MK_SYSTEM_TRAINED = 3
 } mk_system_type;
 
+/* One inventory row as pointers. This is how a model parsed at runtime holds
+ * its rows; a compiled-in inventory uses the interned form below. */
 typedef struct mk_builtin_entry {
     const char *grapheme;
     const char *const *features;
     size_t feature_count;
 } mk_builtin_entry;
+
+/* The most feature labels one inventory row may carry.
+ *
+ * Compiled rows store 16-bit feature ids, so handing one out as
+ * `const char *const *` needs an array of pointers to write into. The resolver
+ * carries that array inside mk_resolution rather than allocating per lookup,
+ * which is why this bound exists and why raising it costs stack on every
+ * lookup. tools/generate_c_data.py refuses to emit a row that exceeds it; the
+ * widest row in the bundled inventories carries 44. */
+#define MK_MAX_ENTRY_FEATURES 64
+
+/* The interned string pool. Every distinct grapheme and feature label appears
+ * once; the tables hold byte offsets into it.
+ *
+ * The tables used to hold a `const char *` for each of roughly 260,000 feature
+ * slots -- 2.08 MB of pointers, and one relocation each, to name 35 KB of
+ * text. Offsets need no relocations, which is what made the WebAssembly
+ * payload shrink. */
+const char *mk_pool_string(unsigned int offset);
+const char *mk_feature_name(unsigned short id);
+extern const size_t mk_feature_name_count;
 
 typedef struct mk_geometry_leaf {
     const char *name;
@@ -130,11 +153,23 @@ typedef struct mk_scalar_dimension {
     double weight;
 } mk_scalar_dimension;
 
+/* A system's inventory comes in one of two storages, and `entries` says which.
+ *
+ * Non-NULL `entries` is a runtime model: rows are mk_builtin_entry, owned by
+ * the registry, and the four interned fields are NULL. NULL `entries` is a
+ * compiled-in inventory: rows live in entry_graphemes / entry_feature_at /
+ * entry_feature_n / feature_ids, all of them offsets and ids into the pool.
+ *
+ * Read rows through inventory.h rather than reaching into either form. */
 typedef struct mk_builtin_system {
     const char *name;
     mk_system_type kind;
     const mk_builtin_entry *entries;
     size_t entry_count;
+    const unsigned int *entry_graphemes;
+    const unsigned int *entry_feature_at;
+    const unsigned char *entry_feature_n;
+    const unsigned short *feature_ids;
     const mk_feature_node_map *geometry_map;
     size_t geometry_map_count;
     const double *dimension_weights;

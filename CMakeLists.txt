@@ -44,6 +44,7 @@ endif()
 
 set(MERKMAL_SOURCES
     src/geometry.c
+    src/inventory.c
     src/ipa.c
     src/model_text.c
     src/normalize.c

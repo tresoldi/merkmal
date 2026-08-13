@@ -54,6 +54,11 @@ ASCII_TO_IPA = {
 
 STRESS_MARKS = frozenset({"ˈ", "ˌ"})
 
+# Must match MK_MAX_ENTRY_FEATURES in src/generated/builtin_data.h. The
+# resolver reserves this many pointer slots inside every mk_resolution, so
+# raising it costs stack on every lookup.
+MAX_ENTRY_FEATURES = 64
+
 
 def c_string(value: str) -> str:
     escaped = (
@@ -64,6 +69,91 @@ def c_string(value: str) -> str:
         .replace("\t", "\\t")
     )
     return f'"{escaped}"'
+
+
+# Bytes per pool chunk. C99 only requires a compiler to support string literals
+# of 4095 characters, and adjacent literals concatenate into one, so the pool is
+# cut into chunks below that limit rather than emitted as a single array. A
+# power of two keeps the offset split to a shift and a mask.
+POOL_CHUNK_BITS = 11
+POOL_CHUNK = 1 << POOL_CHUNK_BITS
+
+
+class StringPool:
+    """Every distinct grapheme and feature label, stored once.
+
+    The tables used to hold `const char *` for each of roughly 260,000 feature
+    slots. That is 2.08 MB of pointers on a 64-bit target -- and one relocation
+    each -- to refer to 35 KB of actual text. They now hold offsets into this
+    pool, which needs one relocation per chunk and none per string.
+
+    A string never straddles a chunk: when one will not fit in what is left,
+    the chunk is padded with NULs and the string starts the next. That keeps
+    the offset arithmetic to `chunk[offset >> BITS] + (offset & MASK)`, with no
+    search and no per-string bookkeeping.
+    """
+
+    def __init__(self) -> None:
+        self.offsets: dict[str, int] = {}
+        self.chunks: list[bytearray] = [bytearray()]
+
+    def add(self, value: str) -> int:
+        known = self.offsets.get(value)
+        if known is not None:
+            return known
+        # Byte offsets, because C indexes the array in bytes and these strings
+        # are UTF-8. Character offsets would place every non-ASCII grapheme at
+        # the wrong index.
+        encoded = value.encode("utf-8") + b"\0"
+        if len(encoded) > POOL_CHUNK:
+            raise SystemExit(
+                f"pool entry {value!r} is {len(encoded)} bytes, over the "
+                f"{POOL_CHUNK}-byte chunk size"
+            )
+        if len(self.chunks[-1]) + len(encoded) > POOL_CHUNK:
+            self.chunks[-1].extend(b"\0" * (POOL_CHUNK - len(self.chunks[-1])))
+            self.chunks.append(bytearray())
+        offset = (len(self.chunks) - 1) * POOL_CHUNK + len(self.chunks[-1])
+        self.chunks[-1].extend(encoded)
+        self.offsets[value] = offset
+        return offset
+
+    def emit(self, symbol: str) -> str:
+        by_offset = sorted(self.offsets.items(), key=lambda item: item[1])
+        lines: list[str] = []
+        for index in range(len(self.chunks)):
+            base = index * POOL_CHUNK
+            end = base + POOL_CHUNK
+            lines.append(f"static const char {symbol}_{index}[] =")
+            wrote = False
+            for value, offset in by_offset:
+                if base <= offset < end:
+                    # The terminator is its own literal so that a value ending
+                    # in a digit cannot turn "\0" into a longer octal escape.
+                    lines.append(f'    {c_string(value)} "\\0"')
+                    wrote = True
+            if not wrote:
+                lines.append('    ""')
+            lines.append(";")
+            lines.append("")
+        lines.append(f"static const char *const {symbol}_chunks[] = {{")
+        for index in range(len(self.chunks)):
+            lines.append(f"    {symbol}_{index},")
+        lines.append("};")
+        lines.append("")
+        return "\n".join(lines)
+
+
+def emit_uint_array(symbol: str, ctype: str, values: list[int], per_line: int = 16) -> str:
+    lines = [f"static const {ctype} {symbol}[] = {{"]
+    for start in range(0, len(values), per_line):
+        chunk = ", ".join(str(v) for v in values[start:start + per_line])
+        lines.append(f"    {chunk},")
+    if not values:
+        lines.append("    0,")
+    lines.append("};")
+    lines.append("")
+    return "\n".join(lines)
 
 
 def c_ident(value: str) -> str:
@@ -462,31 +552,53 @@ def emit_scalar_dimensions(symbol: str, dimensions: list[dict[str, object]]) -> 
     return "\n".join(lines)
 
 
-def emit_system(name: str, kind: str, entries: list[tuple[str, list[str]]], geometry_map: list[tuple[str, str]], weights: list[float], scalar_dimensions: list[dict[str, object]]) -> str:
+def emit_system(
+    name: str,
+    kind: str,
+    entries: list[tuple[str, list[str]]],
+    geometry_map: list[tuple[str, str]],
+    weights: list[float],
+    scalar_dimensions: list[dict[str, object]],
+    pool: StringPool,
+    feature_ids: dict[str, int],
+) -> str:
     prefix = c_ident(name)
     lines: list[str] = []
-    entry_names: list[str] = []
 
-    for index, (_, features) in enumerate(entries):
-        symbol = f"{prefix}_{index}_features"
-        entry_names.append(symbol)
-        lines.append(f"static const char *const {symbol}[] = {{")
-        for feature in features:
-            lines.append(f"    {c_string(feature)},")
-        lines.append("};")
-        lines.append("")
+    grapheme_offsets: list[int] = []
+    feature_at: list[int] = []
+    feature_n: list[int] = []
+    ids: list[int] = []
 
-    table_symbol = f"{prefix}_entries"
-    lines.append(f"static const mk_builtin_entry {table_symbol}[] = {{")
-    for index, (grapheme, features) in enumerate(entries):
-        lines.append(
-            f"    {{{c_string(grapheme)}, {entry_names[index]}, {len(features)}}},"
-        )
-    lines.append("};")
-    lines.append("")
+    # Rows with the same feature set share one run of ids. A quarter of the
+    # rows in the bundled inventories are duplicates in this sense -- the same
+    # segment described identically under different graphemes.
+    runs: dict[tuple[int, ...], int] = {}
+
+    for grapheme, features in entries:
+        if len(features) > MAX_ENTRY_FEATURES:
+            raise SystemExit(
+                f"{name}: grapheme {grapheme!r} carries {len(features)} features, "
+                f"over the MK_MAX_ENTRY_FEATURES limit of {MAX_ENTRY_FEATURES}. "
+                f"Raise it in both this generator and src/generated/builtin_data.h."
+            )
+        grapheme_offsets.append(pool.add(grapheme))
+        run = tuple(feature_ids[feature] for feature in features)
+        at = runs.get(run)
+        if at is None:
+            at = len(ids)
+            runs[run] = at
+            ids.extend(run)
+        feature_at.append(at)
+        feature_n.append(len(features))
+
+    lines.append(emit_uint_array(f"{prefix}_entry_graphemes", "unsigned int", grapheme_offsets))
+    lines.append(emit_uint_array(f"{prefix}_entry_feature_at", "unsigned int", feature_at))
+    lines.append(emit_uint_array(f"{prefix}_entry_feature_n", "unsigned char", feature_n, 32))
+    lines.append(emit_uint_array(f"{prefix}_feature_ids", "unsigned short", ids, 24))
     lines.append(
         f"#define {prefix.upper()}_ENTRY_COUNT "
-        f"(sizeof({table_symbol}) / sizeof({table_symbol}[0]))"
+        f"(sizeof({prefix}_entry_graphemes) / sizeof({prefix}_entry_graphemes[0]))"
     )
     lines.append("")
     lines.append(emit_feature_node_map(f"{prefix}_geometry_map", geometry_map))
@@ -802,19 +914,61 @@ def generate(output: Path) -> None:
     for name in VALUED_SYSTEMS:
         systems.append((name, *load_valued(name, geometry)))
 
+    # One id space for feature labels across every system. Sorted so that the
+    # emitted file is a function of the input data and nothing else.
+    labels = sorted({
+        feature
+        for _, _, entries, _, _, _ in systems
+        for _, features in entries
+        for feature in features
+    })
+    feature_ids = {label: index for index, label in enumerate(labels)}
+    if len(labels) > 0xFFFF:
+        raise SystemExit(
+            f"{len(labels)} distinct feature labels exceeds the 16-bit id space; "
+            f"widen mk_feature_ids and the generated arrays to unsigned int."
+        )
+
+    pool = StringPool()
+    label_offsets = [pool.add(label) for label in labels]
+
+    system_chunks = [
+        emit_system(name, kind, entries, geometry_map, weights, scalar_dimensions, pool, feature_ids)
+        for name, kind, entries, geometry_map, weights, scalar_dimensions in systems
+    ]
+
     chunks = [
         "#include \"builtin_data.h\"",
         "",
         "/* This file is generated by tools/generate_c_data.py. */",
         "",
     ]
+    # The pool is emitted before its users but filled while emitting them, so
+    # the system chunks are built first and appended below.
+    chunks.append(pool.emit("mk_pool"))
+    chunks.append(emit_uint_array("mk_feature_offsets", "unsigned int", label_offsets))
+    chunks.append("const char *mk_pool_string(unsigned int offset)")
+    chunks.append("{")
+    chunks.append(f"    return mk_pool_chunks[offset >> {POOL_CHUNK_BITS}] + "
+                  f"(offset & {POOL_CHUNK - 1}u);")
+    chunks.append("}")
+    chunks.append("")
+    chunks.append("const char *mk_feature_name(unsigned short id)")
+    chunks.append("{")
+    chunks.append("    return mk_pool_string(mk_feature_offsets[id]);")
+    chunks.append("}")
+    chunks.append("")
+    chunks.append(
+        "const size_t mk_feature_name_count =\n"
+        "    sizeof(mk_feature_offsets) / sizeof(mk_feature_offsets[0]);"
+    )
+    chunks.append("")
     chunks.append(emit_geometry(geometry))
     chunks.append(emit_ordinal_scales(geometry))
     chunks.append(emit_metadata_features(geometry))
     chunks.append(emit_diacritics(diacritics))
     chunks.append(emit_decompositions(diacritics))
-    for name, kind, entries, geometry_map, weights, scalar_dimensions in systems:
-        chunks.append(emit_system(name, kind, entries, geometry_map, weights, scalar_dimensions))
+    chunks.extend(system_chunks)
 
     chunks.append("const mk_builtin_system mk_builtin_systems[] = {")
     for name, kind, _, geometry_map, weights, scalar_dimensions in systems:
@@ -825,7 +979,9 @@ def generate(output: Path) -> None:
         scalar_expr = f"{prefix}_scalar_dimensions" if scalar_dimensions else "NULL"
         scalar_count = f"{prefix.upper()}_SCALAR_DIMENSIONS_COUNT" if scalar_dimensions else "0"
         chunks.append(
-            f"    {{{c_string(name)}, {kind}, {prefix}_entries, {prefix.upper()}_ENTRY_COUNT, "
+            f"    {{{c_string(name)}, {kind}, NULL, {prefix.upper()}_ENTRY_COUNT, "
+            f"{prefix}_entry_graphemes, {prefix}_entry_feature_at, "
+            f"{prefix}_entry_feature_n, {prefix}_feature_ids, "
             f"{map_expr}, {map_count}, {weights_expr}, {scalar_expr}, {scalar_count}}},"
         )
     chunks.append("};")

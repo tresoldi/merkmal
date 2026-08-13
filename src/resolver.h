@@ -3,6 +3,7 @@
 
 #include "generated/builtin_data.h"
 #include "geometry.h"
+#include "inventory.h"
 #include "system.h"
 
 /* Segment resolution: turning a written grapheme into the feature set of the
@@ -64,6 +65,17 @@ typedef struct mk_resolution {
     char *owned_grapheme;
     char **cluster_components;
     size_t cluster_component_count;
+    /* Scratch for the inventory paths. A compiled-in inventory stores feature
+     * ids, so handing the row out as `const char *const *` needs somewhere to
+     * put the pointers; keeping that array here rather than allocating one per
+     * lookup is what lets the inventory paths stay allocation-free.
+     *
+     * On those paths `features` aliases this array. The strings it points at
+     * are in the compiled pool and outlive everything, so nothing here is
+     * freed and mk_resolution_clear leaves it alone. It does mean an
+     * mk_resolution must not be copied by value and then used after the
+     * original goes out of scope. */
+    const char *inline_features[MK_MAX_ENTRY_FEATURES];
 } mk_resolution;
 
 /* The seam. Normalizes the input, then tries the inventory and each

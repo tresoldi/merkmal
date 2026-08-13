@@ -2,6 +2,42 @@
 
 ## Unreleased
 
+### The compiled data is interned: 55% off the WebAssembly payload
+
+No public API, ABI, or behavior change. The exported symbol list is unchanged
+and every golden fixture is byte-identical; this is a change of representation
+only.
+
+The generated tables held a `const char *` for each of roughly 260,000 feature
+slots — 2.08 MB of pointers on a 64-bit target, one relocation each, to name
+35 KB of text. They now hold 16-bit ids into a single interned string pool.
+
+|                              | before    | after   |
+|------------------------------|-----------|---------|
+| `builtin_data.o` `.rodata`   | 2,485,500 | 546,420 |
+| relocations, whole library   | 282,512   | 4,008   |
+| `footprint.wasm`             | 1,286,045 | 574,609 |
+
+- Internal: `mk_builtin_system` carries either compiled storage (pool offsets
+  and feature ids) or runtime storage (`mk_builtin_entry` pointers, as a model
+  parsed from text produces). `src/inventory.c` hides which, so nothing above
+  it changed shape.
+- Internal: rows with identical feature sets share one run of ids. A quarter of
+  the bundled rows are duplicates in that sense, worth a further 24.6% of the
+  largest array.
+- Internal: the pool is emitted in 2 KB chunks. C99 only requires support for
+  string literals of 4,095 characters and adjacent literals concatenate into
+  one, so a single-array pool was not strictly conforming.
+- Fixed: an affricate-retraction lookup leaked its candidate spelling on a
+  miss. Introduced while rewiring the lookup and caught by AddressSanitizer
+  before it left this branch.
+- Added: `tools/tests/` covers the generator's string pool directly — offset
+  round-trips, byte offsets for non-ASCII, chunk boundaries, and the literal
+  limit. `scripts/check_generated_data.py` compares the emitter against its own
+  output, so it catches drift but not a consistently wrong emission.
+- Added: `test_resolution` walks all 9,728 compiled rows, checking each against
+  the interned storage and that each finds itself by grapheme.
+
 ### Module boundaries: internal.h dissolved, unicode.c split
 
 Internal restructuring. No public API, ABI, or behavior change: the exported

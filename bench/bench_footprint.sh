@@ -60,11 +60,14 @@ done
 printf '%-28s %10s %10s %10s\n' 'TOTAL' "$total_text" "$total_rodata" "$total_relocs"
 printf '\n'
 
-# The string content the pointer tables refer to, for scale: the gap between
-# this and rodata is what the compaction work is aimed at.
-pool=$(size -A "$build_dir/src_generated_builtin_data.c.o" |
+# String literals in the generated data, as distinct from the interned pool.
+# Before interning this was the whole text of the tables -- 35 KB against
+# 2.45 MB of pointers, which is what the compaction was aimed at. The pool is
+# now a plain char array and so counts inside .rodata, leaving only the
+# geometry tables' literals here.
+literals=$(size -A "$build_dir/src_generated_builtin_data.c.o" |
     awk '$1 ~ /^\.rodata\.str/ { sum += $2 } END { print sum + 0 }')
-printf 'generated string content: %s bytes\n' "$pool"
+printf 'generated string literals (outside the interned pool): %s bytes\n' "$literals"
 printf '\n'
 
 # --- WebAssembly ----------------------------------------------------------
