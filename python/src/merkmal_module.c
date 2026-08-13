@@ -55,6 +55,12 @@ static int py_utf8_from_unicode(PyObject *obj, const char *name, py_utf8 *out)
  * clear at the end releases them all. Each function used to unwind its own
  * ladder of py_utf8_clear calls at every early return -- four of them in
  * distance alone, each an independent chance to leak one. */
+/* Four, which is exactly the widest call: distance(a, b, system,
+ * node_weights). py_utf8_take checks the bound and raises SystemError rather
+ * than overflowing, so adding a fifth string argument to a function is a loud
+ * runtime failure rather than a corruption -- and test_native_wrapper.py
+ * exercises the four-argument call, so the widest path is covered. Raise this
+ * if a function ever needs more. */
 #define PY_UTF8_SLOTS 4
 
 typedef struct py_utf8_args {

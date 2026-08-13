@@ -27,6 +27,21 @@ this release and nothing else changes behavior; see the migration table in
 
 The rest of 1.0.0, in the order it was done:
 
+### The Python extension under sanitizers and warnings
+
+- Added: the extension compiles at the library's warning set, minus
+  `-Wcast-function-type` and `-Wmissing-prototypes`, which the CPython API
+  forces on any extension. Not gated with `-Werror`, so a wheel build cannot
+  fail on a warning from a compiler this project has not seen.
+- Added: `MERKMAL_SANITIZE=address` builds the extension for a sanitizer run,
+  and a CI job runs the wrapper suite under it with the interpreter's ASan
+  runtime preloaded. `python/tests/lsan-suppressions.txt` covers the four
+  CPython type allocations that live for the process, suppressed by frame
+  rather than by library so that merkmal's own allocations are not covered too.
+  The file also records what the job does not prove: LeakSanitizer scans the
+  stack conservatively and did not report a deliberately injected leak, so leak
+  coverage for the C core stays with the `ctest` suite under ASan.
+
 ### Fuzzing, static analysis, and a heap overread on malformed UTF-8
 
 - **Fixed: a heap buffer overread on truncated UTF-8 input.**

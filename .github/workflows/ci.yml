@@ -222,6 +222,30 @@ jobs:
       - name: Type-check maintained Python code
         run: python -m mypy python/merkmal
 
+  python-sanitizer:
+    name: Python extension under ASan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install native dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libutf8proc-dev
+      - name: Build the extension with AddressSanitizer
+        run: MERKMAL_SANITIZE=address python -m pip install -e ".[dev]" --no-build-isolation
+      - name: Test
+        # CPython is not built with ASan, so its runtime is preloaded. The
+        # suppression file covers the four interpreter type allocations that
+        # live for the process; see the file for what this does and does not
+        # prove about leaks.
+        run: |
+          LD_PRELOAD=$(gcc -print-file-name=libasan.so.8) \
+          LSAN_OPTIONS=suppressions=python/tests/lsan-suppressions.txt \
+            python -m pytest python/tests -q
+
   wasm:
     name: WebAssembly smoke
     runs-on: ubuntu-latest

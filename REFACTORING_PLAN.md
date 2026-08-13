@@ -803,6 +803,35 @@ suppression file and document it rather than disabling LeakSanitizer wholesale.
 **Acceptance criteria.** Extension is sanitizer-clean under its own suite; the
 generator has direct tests; both build at the library's warning level.
 
+**Outcome.** The extension builds at the library's warning set minus two that
+the CPython API forces on any extension: `-Wcast-function-type`, because
+`PyMethodDef` stores every method as `PyCFunction` and a
+`METH_VARARGS|METH_KEYWORDS` entry must be cast from a three-argument function,
+and `-Wmissing-prototypes`, because `PyMODINIT_FUNC` is not a prototype as far
+as GCC is concerned. Not gated with `-Werror`: a wheel build should not fail on
+a warning from a compiler or CPython version this project has not seen.
+
+`MERKMAL_SANITIZE` builds it for a sanitizer run, and a CI job runs the wrapper
+suite under ASan with the interpreter's runtime preloaded.
+
+Two things did **not** turn out as the plan assumed:
+
+- **`PY_UTF8_SLOTS` was already safe.** `py_utf8_take` checks the bound and
+  raises `SystemError`; it is not a silent overflow. Four is exactly the widest
+  call — `distance(a, b, system, node_weights)` — and the existing wrapper test
+  at `test_native_wrapper.py:249` already passes all four. Nothing to add
+  beyond saying so at the definition.
+- **The ASan job is not a leak check.** LeakSanitizer scans the stack
+  conservatively: a leak deliberately injected into the extension was
+  classified as still reachable and never reported, with or without the
+  suppression file. The suppressions are still narrow — three CPython frames,
+  not `leak:libpython`, which would have covered every merkmal allocation too —
+  but the file now says plainly what the job does and does not prove. Leak
+  coverage for the C core comes from the `ctest` suite under ASan, which does
+  catch real leaks; it caught one in the resolver during Milestone C.
+
+The generator tests landed in Milestone C, where the emission changed.
+
 **Depends on.** Milestone C (the generator tests describe the new emission).
 
 ---

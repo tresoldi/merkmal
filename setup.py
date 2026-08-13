@@ -66,6 +66,35 @@ def utf8proc_build_options() -> tuple[list[tuple[str, str]], list[str], list[str
 
 utf8proc_macros, utf8proc_cflags, utf8proc_ldflags = utf8proc_build_options()
 
+# The same warning set the CMake build enforces, minus two that the CPython API
+# forces on any extension:
+#
+#   -Wcast-function-type   PyMethodDef stores every method as PyCFunction, so
+#                          METH_VARARGS|METH_KEYWORDS entries must be cast from
+#                          a three-argument function. That cast is the
+#                          documented idiom, not a mistake.
+#   -Wmissing-prototypes   PyInit__native is declared by PyMODINIT_FUNC, which
+#                          GCC does not count as a prototype.
+#
+# Not applied via -Werror: a wheel build should not fail on a warning from a
+# compiler or CPython version this project has not seen.
+WARNINGS = [
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    "-Wshadow",
+    "-Wconversion",
+    "-Wstrict-prototypes",
+]
+
+# Set MERKMAL_SANITIZE=address,undefined to build the extension for a sanitizer
+# run. The CI job that does this preloads the ASan runtime, because CPython
+# itself is not built with it.
+SANITIZE = os.environ.get("MERKMAL_SANITIZE", "")
+SANITIZE_FLAGS = (
+    [f"-fsanitize={SANITIZE}", "-fno-omit-frame-pointer", "-g"] if SANITIZE else []
+)
+
 setup(
     options={"bdist_wheel": {"py_limited_api": "cp312"}},
     ext_modules=[
@@ -78,8 +107,13 @@ setup(
                 *utf8proc_macros,
             ],
             py_limited_api=True,
-            extra_compile_args=["-std=c99", *utf8proc_cflags],
-            extra_link_args=utf8proc_ldflags,
+            extra_compile_args=[
+                "-std=c99",
+                *WARNINGS,
+                *SANITIZE_FLAGS,
+                *utf8proc_cflags,
+            ],
+            extra_link_args=[*SANITIZE_FLAGS, *utf8proc_ldflags],
         )
     ],
 )
