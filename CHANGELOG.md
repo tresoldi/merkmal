@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+### Module boundaries: internal.h dissolved, unicode.c split
+
+Internal restructuring. No public API, ABI, or behavior change: the exported
+symbol list is byte-identical to the previous commit, and every golden fixture
+is unchanged.
+
+- Internal: `src/internal.h` is gone. It had become the repository-wide
+  `common.h` — 16 data-table struct definitions, 28 `extern` declarations, and
+  four unrelated families of helper prototypes, included whole by every
+  translation unit. Its contents now live with their owners:
+  `src/generated/builtin_data.h` (table types and tables), `geometry.h`,
+  `system.h`, `registry.h`, `string_list.h`, `strings.h`. Each compiles
+  standalone.
+- Internal: `src/unicode.c` (1,073 lines, four responsibilities) is split into
+  `utf8.c` (encoding and Unicode classification), `ipa.c` (IPA orthographic
+  classification), `normalize.c`, `tone.c`, and `tokenize.c`, with
+  `mk_strdup_internal`, `mk_streq`, `mk_has_prefix`, `mk_append_text`, and
+  `mk_free_items` collected in `strings.c`.
+- Internal: the runtime-model parser moved out of `registry.c` into
+  `model_text.c` behind `mk_parse_model_text`, which produces a model without
+  touching a registry. `registry.c` drops from 555 lines to 209 and no longer
+  contains a line-oriented parser.
+- Internal: `setup.py` globs the core sources instead of listing them. The list
+  existed in three places — `CMakeLists.txt`, `setup.py`, and the WebAssembly
+  smoke script — so splitting a module meant remembering all three, and the one
+  that gets forgotten fails only in whichever build nobody runs locally.
+- `geometry.c` and `resolver.c` were left whole; see `REFACTORING_PLAN.md` for
+  the measurements behind that.
+
 ### Enforced warning baseline, a testable fallback profile, and footprint measurement
 
 - Fixed: the WebAssembly smoke test had been failing, so the `wasm` CI job was

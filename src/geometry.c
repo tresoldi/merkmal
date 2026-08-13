@@ -1,4 +1,6 @@
-#include "internal.h"
+#include "geometry.h"
+
+#include "strings.h"
 
 #include <math.h>
 #include <stddef.h>

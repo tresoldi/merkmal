@@ -1,32 +1,8 @@
-#include "internal.h"
+#include "string_list.h"
+
+#include "strings.h"
 
 #include <stdlib.h>
-#include <string.h>
-
-char *mk_strdup_internal(const char *s)
-{
-    size_t len;
-    char *copy;
-
-    if (s == NULL) {
-        return NULL;
-    }
-    len = strlen(s);
-    copy = (char *)malloc(len + 1);
-    if (copy == NULL) {
-        return NULL;
-    }
-    memcpy(copy, s, len + 1);
-    return copy;
-}
-
-int mk_streq(const char *a, const char *b)
-{
-    if (a == NULL || b == NULL) {
-        return 0;
-    }
-    return strcmp(a, b) == 0;
-}
 
 mk_status mk_string_list_from_borrowed(
     const char *const *items,

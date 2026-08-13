@@ -44,12 +44,18 @@ endif()
 
 set(MERKMAL_SOURCES
     src/geometry.c
+    src/ipa.c
+    src/model_text.c
+    src/normalize.c
     src/registry.c
     src/resolver.c
     src/status.c
     src/string_list.c
+    src/strings.c
     src/system.c
-    src/unicode.c
+    src/tokenize.c
+    src/tone.c
+    src/utf8.c
     src/generated/builtin_data.c
 )
 

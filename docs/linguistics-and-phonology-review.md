@@ -338,7 +338,7 @@ Correcting mid tone changes feature equality, hashes, distance values, and likel
 
 ### Evidence
 
-[`mk_segment_ipa`](../src/unicode.c) starts a new token at each new base code point unless a tie bar connects it to the previous base. It therefore produces:
+[`mk_segment_ipa`](../src/tokenize.c) starts a new token at each new base code point unless a tie bar connects it to the previous base. It therefore produces:
 
 ```text
 segment_ipa("tʃa") == ["t", "ʃ", "a"]
@@ -926,7 +926,7 @@ Exit criterion: historical direction is backed by direction evidence, and typolo
 - Project scope and current feature claims: [`README.md`](../README.md)
 - Categorical and valued scoring implementation: [`src/geometry.c`](../src/geometry.c), especially `mk_process_node_feature`, `mk_categorical_distance_resolved`, `mk_scalar_categorical_distance`, and `mk_valued_distance`
 - Tone parsing and descriptive complex synthesis: [`src/system.c`](../src/system.c), especially `mk_add_chao_level_features`, `mk_match_chao_tone_sequence`, `mk_decompose_diacritics`, and `mk_synthesize_descriptive_complex`
-- Unicode-oriented segmentation: [`src/unicode.c`](../src/unicode.c), especially `mk_segment_ipa`
+- Unicode-oriented segmentation: [`src/tokenize.c`](../src/tokenize.c), especially `mk_segment_ipa`
 - Custom geometry and weight presets: [`geometries/clements-hume.json`](../geometries/clements-hume.json)
 - Geometry code generation and inverse-depth weighting: [`tools/generate_c_data.py`](../tools/generate_c_data.py)
 - Static validator: [`scripts/validate_models.py`](../scripts/validate_models.py)

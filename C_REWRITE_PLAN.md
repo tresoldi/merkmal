@@ -451,7 +451,7 @@ easy to find and easy to revert.
   point at it and need updating in the same commit.
 - [ ] Decide `models/classfeat/`. It is the only `trained` model, no C system
   loads it, `tools/generate_c_data.py` does not compile it in, and
-  `MK_SYSTEM_TRAINED` (`src/internal.h`) is declared, named in
+  `MK_SYSTEM_TRAINED` (`src/generated/builtin_data.h`) is declared, named in
   `mk_kind_name`, and never assigned — the `MK_ERR_UNSUPPORTED_MODEL` arm it
   guards is unreachable. Either implement the engine or delete the model, the
   enum value, and that arm.

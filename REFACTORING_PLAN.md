@@ -254,12 +254,8 @@ src/
   normalize.c / normalize.h NFD/NFC, decomposition, source conventions
   tone.c / tone.h           Chao levels, merge, split
   tokenize.c / tokenize.h   mk_segment_ipa and the cluster grammar
-  resolver.c / resolver.h   the seam (unchanged interface)
-  synth_diacritics.c        \
-  synth_cluster.c            > resolver's synthesizers, one file each
-  synth_complex.c           /
-  geometry.c / geometry.h   geometry tables and predicates
-  score.c / score.h         the two scorers
+  resolver.c / resolver.h   the seam, and every synthesizer behind it
+  geometry.c / geometry.h   geometry tables, predicates, and both scorers
   registry.c / registry.h   registry lifecycle
   model_text.c / model_text.h   the runtime-model parser
   system.c                  public system operations
@@ -418,6 +414,24 @@ byte-identical, still 26 symbols. Do each split as its own commit.
 
 **Depends on.** Milestone A (for the warning ratchet and the fallback job to
 catch mistakes during the moves).
+
+**Outcome, and two splits not made.** `internal.h`, `unicode.c`, and the
+parser half of `registry.c` were split as planned. Two proposed splits were
+measured and rejected:
+
+- **`score.c` out of `geometry.c`.** Every step of scoring reads a geometry
+  table — leaf lookup, node grouping, ordered scales, weight presets. Moving
+  the two scorers out would mean exporting eight lookups that are currently
+  `static`. That relocates coupling rather than removing it, and `geometry.c`
+  is 654 lines, inside the threshold.
+- **`synth_*.c` out of `resolver.c`.** The two large synthesizers call 33
+  distinct helpers, 26 of them file-scope statics defined earlier in the same
+  file. Splitting would convert those into a module-visible internal API — a
+  wider surface than the one it replaced. `resolver.c` stays at 1,752 lines,
+  and the ~700-line criterion is **not met** for it. It keeps a documented
+  seam (`resolver.h`) and is the one file still worth revisiting, but the
+  justification should be a concrete need — the Milestone C lookup change or
+  Milestone E fuzz findings — rather than its line count.
 
 ---
 

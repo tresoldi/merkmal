@@ -3,6 +3,12 @@
 
 #include "resolver.h"
 
+#include "ipa.h"
+#include "normalize.h"
+#include "strings.h"
+#include "tone.h"
+#include "utf8.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

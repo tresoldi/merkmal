@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import glob
 import os
 import subprocess
 
@@ -10,17 +11,17 @@ from setuptools import Extension, setup
 # is why it lives at the repository root rather than under python/: an sdist
 # built from python/ could not reach src/ or include/, and shipped without the
 # C core entirely.
-SOURCES = [
-    "python/src/merkmal_module.c",
-    "src/geometry.c",
-    "src/registry.c",
-    "src/resolver.c",
-    "src/status.c",
-    "src/string_list.c",
-    "src/system.c",
-    "src/unicode.c",
-    "src/generated/builtin_data.c",
-]
+#
+# The core sources are globbed rather than listed. They were listed here, in
+# CMakeLists.txt, and in tests/wasm/run_node_smoke.sh, so splitting a module
+# meant remembering three places; the one that gets forgotten fails at link
+# time in whichever build nobody ran locally. Sorted for reproducible builds.
+HERE = os.path.dirname(os.path.abspath(__file__))
+SOURCES = ["python/src/merkmal_module.c"] + sorted(
+    os.path.relpath(path, HERE)
+    for pattern in ("src/*.c", "src/generated/*.c")
+    for path in glob.glob(os.path.join(HERE, pattern))
+)
 
 # Distribution builds must not silently fall back to the built-in Unicode
 # path. Set this in any environment that produces artifacts for other people

@@ -1,7 +1,9 @@
 #ifndef MK_RESOLVER_H
 #define MK_RESOLVER_H
 
-#include "internal.h"
+#include "generated/builtin_data.h"
+#include "geometry.h"
+#include "system.h"
 
 /* Segment resolution: turning a written grapheme into the feature set of the
  * segment it denotes.
