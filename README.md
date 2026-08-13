@@ -156,7 +156,7 @@ initial Emscripten and Node smoke-test path.
 int main(void) {
     mk_registry *registry = NULL;
     const mk_system *system = NULL;
-    mk_feature_set *features = NULL;
+    mk_string_list *features = NULL;
     double distance = 0.0;
 
     if (mk_registry_new_builtin(&registry) != MK_OK) {
@@ -167,10 +167,10 @@ int main(void) {
         return 1;
     }
     if (mk_system_grapheme_features(system, "pʰ", &features) == MK_OK) {
-        for (size_t i = 0; i < mk_feature_set_size(features); i++) {
-            puts(mk_feature_set_get(features, i));
+        for (size_t i = 0; i < mk_string_list_size(features); i++) {
+            puts(mk_string_list_get(features, i));
         }
-        mk_feature_set_free(features);
+        mk_string_list_free(features);
     }
     if (mk_system_segment_distance(system, "p", "b", &distance) == MK_OK) {
         printf("%f\n", distance);

@@ -22,7 +22,6 @@ extern "C" {
 typedef struct mk_registry mk_registry;
 typedef struct mk_system mk_system;
 typedef struct mk_string_list mk_string_list;
-typedef struct mk_feature_set mk_feature_set;
 
 typedef enum mk_status {
     MK_OK = 0,
@@ -88,11 +87,11 @@ MK_API mk_status mk_system_is_segment(
     int *out
 );
 
-/** Returns an owned feature set for one grapheme. */
+/** Returns the features of one grapheme, in no meaningful order. */
 MK_API mk_status mk_system_grapheme_features(
     const mk_system *system,
     const char *utf8_grapheme,
-    mk_feature_set **out
+    mk_string_list **out
 );
 
 /** Computes the default segment distance for a system. */
@@ -203,13 +202,6 @@ MK_API size_t mk_string_list_size(const mk_string_list *list);
 MK_API const char *mk_string_list_get(const mk_string_list *list, size_t index);
 /** Frees a string list and all copied strings. */
 MK_API void mk_string_list_free(mk_string_list *list);
-
-/** Returns the number of features in a set, or zero for NULL. */
-MK_API size_t mk_feature_set_size(const mk_feature_set *features);
-/** Returns a borrowed feature, or NULL for an invalid index. */
-MK_API const char *mk_feature_set_get(const mk_feature_set *features, size_t index);
-/** Frees a feature set and all copied strings. */
-MK_API void mk_feature_set_free(mk_feature_set *features);
 
 /** Frees a string returned by a library allocation. */
 MK_API void mk_free_string(char *s);

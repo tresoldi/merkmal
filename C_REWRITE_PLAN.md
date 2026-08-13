@@ -99,6 +99,10 @@ Python support is now the native wrapper calling the C library.
 
 The public header should use opaque handles and explicit status codes.
 
+This section records the shape as originally proposed. `mk_feature_set` was
+later removed: it was the same struct as `mk_string_list` exported twice, and
+feature sets are now returned as string lists.
+
 ```c
 typedef struct mk_registry mk_registry;
 typedef struct mk_system mk_system;
@@ -422,3 +426,43 @@ Two generic ideas remain deferred:
 - [x] Verify built-in models work without filesystem access.
 - [x] Decide whether to ship raw C ABI only or a tiny JS wrapper.
 - [x] Add a browser or Node smoke test for normalization, features, and distance.
+
+### Milestone 16: Remove The Retired Implementations Before Publishing
+
+Deliberately deferred until the release is ready. These files are the record of
+what the pre-C implementations produced, and that record is worth keeping while
+the C behaviour is still moving. Once the numbers are published, it stops
+paying for itself: nothing reads it, it cannot be regenerated without reviving
+the old code, and it is the largest thing in the repository.
+
+Do this as one commit, immediately before the release tag, so the deletion is
+easy to find and easy to revert.
+
+- [ ] Delete the archived parity fixtures under `tests/golden/`: the nine
+  `{model}_features_full.tsv` / `{model}_distances_full.tsv` pairs, the four
+  `classfeat_*` files, and `descriptive_partitions.tsv` /
+  `phoible_partitions.tsv`. About 10,900 lines, no consumer. The drift they
+  record is described in `tests/golden/README.md`; move that description into
+  the changelog entry so the finding survives the files.
+- [ ] Delete `docs/legacy_python/` (228K of pre-C tutorials, notebooks and
+  research scripts). `README.md`, `python/README.md`, `docs/custom-models.md`,
+  `docs/review-response.md`, `docs/linguistics-and-phonology-review.md`,
+  `docs/independent-linguistic-review.md` and `tests/golden/README.md` all
+  point at it and need updating in the same commit.
+- [ ] Decide `models/classfeat/`. It is the only `trained` model, no C system
+  loads it, `tools/generate_c_data.py` does not compile it in, and
+  `MK_SYSTEM_TRAINED` (`src/internal.h`) is declared, named in
+  `mk_kind_name`, and never assigned — the `MK_ERR_UNSUPPORTED_MODEL` arm it
+  guards is unreachable. Either implement the engine or delete the model, the
+  enum value, and that arm.
+- [ ] Decide `geometries/deep-clements-hume.json`. Nothing loads it; only
+  `docs/geometry.md` and retired Go/Python scripts mention it. It has not been
+  updated with the coverage leaves, so it is stale as well as unused.
+- [ ] Decide `schemas/`. Four well-formed JSON Schema documents that nothing
+  validates against: there is no `jsonschema` dependency, no import anywhere,
+  and they are not packaged. `scripts/validate_models.py` re-implements a
+  subset of their constraints by hand. Either wire them in or delete them.
+- [ ] Confirm `typologies/` is still wanted. It is not an input to the C build;
+  only documentation and retired scripts reference the JSON files.
+- [ ] Re-run `scripts/generate_notice.py --check` afterwards: `NOTICE` is
+  derived from the provenance manifests and must not name deleted data.

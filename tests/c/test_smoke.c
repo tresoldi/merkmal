@@ -35,19 +35,6 @@ static int list_contains(const mk_string_list *list, const char *value)
     return 0;
 }
 
-static int features_contains(const mk_feature_set *features, const char *value)
-{
-    size_t i;
-
-    for (i = 0; i < mk_feature_set_size(features); i++) {
-        const char *item = mk_feature_set_get(features, i);
-        if (item != NULL && strcmp(item, value) == 0) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static int expect_segment(
     const mk_system *system,
     const char *grapheme,
@@ -87,7 +74,7 @@ int main(void)
     const mk_system *descriptive = NULL;
     const mk_system *phoible = NULL;
     const mk_system *toy = NULL;
-    mk_feature_set *features = NULL;
+    mk_string_list *features = NULL;
     char *normalized = NULL;
     double distance = 0.0;
     int is_segment = 0;
@@ -154,11 +141,11 @@ int main(void)
     /* Four from the inventory name, plus consonantal, obstruent and
      * non-continuant, which the generator derives because no inventory NAME
      * ever states them. */
-    if (mk_feature_set_size(features) != 8) {
-        fprintf(stderr, "features p: expected 8, got %zu\n", mk_feature_set_size(features));
+    if (mk_string_list_size(features) != 8) {
+        fprintf(stderr, "features p: expected 8, got %zu\n", mk_string_list_size(features));
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -166,11 +153,11 @@ int main(void)
         MK_OK,
         "features synthesized pʰ"
     );
-    if (mk_feature_set_size(features) != 9) {
-        fprintf(stderr, "features pʰ: expected 9, got %zu\n", mk_feature_set_size(features));
+    if (mk_string_list_size(features) != 9) {
+        fprintf(stderr, "features pʰ: expected 9, got %zu\n", mk_string_list_size(features));
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -178,11 +165,11 @@ int main(void)
         MK_OK,
         "features synthesized b̥"
     );
-    if (!features_contains(features, "devoiced") || !features_contains(features, "voiced")) {
+    if (!list_contains(features, "devoiced") || !list_contains(features, "voiced")) {
         fprintf(stderr, "features b̥: expected devoiced modifier on voiced base\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -193,11 +180,11 @@ int main(void)
     /* Five from the inventory name, plus the derived class features
      * (consonantal, obstruent, non-continuant, non-anterior, distributed,
      * coronal). */
-    if (mk_feature_set_size(features) != 11) {
-        fprintf(stderr, "features t͡ʃ: expected 11, got %zu\n", mk_feature_set_size(features));
+    if (mk_string_list_size(features) != 11) {
+        fprintf(stderr, "features t͡ʃ: expected 11, got %zu\n", mk_string_list_size(features));
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -205,11 +192,11 @@ int main(void)
         MK_OK,
         "features phoible b"
     );
-    if (mk_feature_set_size(features) != 38) {
-        fprintf(stderr, "features phoible b: expected 38, got %zu\n", mk_feature_set_size(features));
+    if (mk_string_list_size(features) != 38) {
+        fprintf(stderr, "features phoible b: expected 38, got %zu\n", mk_string_list_size(features));
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -217,12 +204,12 @@ int main(void)
         MK_OK,
         "features synthesized phoible bʰ"
     );
-    if (!features_contains(features, "periodicGlottalSource=+") ||
-        !features_contains(features, "spreadGlottis=+")) {
+    if (!list_contains(features, "periodicGlottalSource=+") ||
+        !list_contains(features, "spreadGlottis=+")) {
         fprintf(stderr, "features phoible bʰ: expected preserved voice and applied aspiration\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -280,13 +267,13 @@ int main(void)
         MK_OK,
         "features tone vowel 31"
     );
-    if (!features_contains(features, "vowel") ||
-        !features_contains(features, "tone-onset-3") ||
-        !features_contains(features, "tone-offset-1")) {
+    if (!list_contains(features, "vowel") ||
+        !list_contains(features, "tone-onset-3") ||
+        !list_contains(features, "tone-offset-1")) {
         fprintf(stderr, "features tone vowel 31: expected base vowel and ordered tone levels\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -294,14 +281,14 @@ int main(void)
         MK_OK,
         "features tone vowel 51"
     );
-    if (!features_contains(features, "vowel") ||
-        !features_contains(features, "tone-onset-5") ||
-        !features_contains(features, "tone-mid-3") ||
-        !features_contains(features, "tone-offset-1")) {
+    if (!list_contains(features, "vowel") ||
+        !list_contains(features, "tone-onset-5") ||
+        !list_contains(features, "tone-mid-3") ||
+        !list_contains(features, "tone-offset-1")) {
         fprintf(stderr, "features tone vowel 51: expected base vowel and a 5-3-1 contour\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -309,16 +296,16 @@ int main(void)
         MK_OK,
         "features level tone vowel a33"
     );
-    if (!features_contains(features, "vowel")) {
+    if (!list_contains(features, "vowel")) {
         fprintf(stderr, "features level tone vowel a33: expected base vowel features\n");
         failed = 1;
     }
-    if (features_contains(features, "tone-onset-upper") ||
-        features_contains(features, "tone-offset-lower")) {
+    if (list_contains(features, "tone-onset-upper") ||
+        list_contains(features, "tone-offset-lower")) {
         fprintf(stderr, "features level tone vowel a33: expected neutral level tone to add no tone features\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -326,19 +313,19 @@ int main(void)
         MK_OK,
         "features diphthong ai"
     );
-    if (!features_contains(features, "vowel") ||
-        !features_contains(features, "diphthong") ||
-        !features_contains(features, "n1-open") ||
-        !features_contains(features, "n2-close") ||
-        !features_contains(features, "move-height-open-close")) {
+    if (!list_contains(features, "vowel") ||
+        !list_contains(features, "diphthong") ||
+        !list_contains(features, "n1-open") ||
+        !list_contains(features, "n2-close") ||
+        !list_contains(features, "move-height-open-close")) {
         fprintf(stderr, "features diphthong ai: expected synthetic cluster features\n");
         failed = 1;
     }
-    if (features_contains(features, "open") || features_contains(features, "close")) {
+    if (list_contains(features, "open") || list_contains(features, "close")) {
         fprintf(stderr, "features diphthong ai: expected no unqualified component qualities\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -347,15 +334,15 @@ int main(void)
         "features long level tone diphthong"
     );
     /* A mid level tone is a positive specification, not the absence of one. */
-    if (!features_contains(features, "diphthong") ||
-        !features_contains(features, "n1-long") ||
-        !features_contains(features, "tone-present") ||
-        !features_contains(features, "tone-onset-3") ||
-        !features_contains(features, "tone-offset-3")) {
+    if (!list_contains(features, "diphthong") ||
+        !list_contains(features, "n1-long") ||
+        !list_contains(features, "tone-present") ||
+        !list_contains(features, "tone-onset-3") ||
+        !list_contains(features, "tone-offset-3")) {
         fprintf(stderr, "features long level tone diphthong: expected n1-long and a mid level tone\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -363,14 +350,14 @@ int main(void)
         MK_OK,
         "features tone diphthong"
     );
-    if (!features_contains(features, "diphthong") ||
-        !features_contains(features, "n1-mid") ||
-        !features_contains(features, "tone-onset-3") ||
-        !features_contains(features, "tone-offset-1")) {
+    if (!list_contains(features, "diphthong") ||
+        !list_contains(features, "n1-mid") ||
+        !list_contains(features, "tone-onset-3") ||
+        !list_contains(features, "tone-offset-1")) {
         fprintf(stderr, "features tone diphthong: expected cluster and ordered tone levels\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -378,15 +365,15 @@ int main(void)
         MK_OK,
         "features precomposed tone diphthong"
     );
-    if (!features_contains(features, "vowel") ||
-        !features_contains(features, "diphthong") ||
-        !features_contains(features, "n1-open-mid") ||
-        !features_contains(features, "n2-close") ||
-        !features_contains(features, "n2-centralized")) {
+    if (!list_contains(features, "vowel") ||
+        !list_contains(features, "diphthong") ||
+        !list_contains(features, "n1-open-mid") ||
+        !list_contains(features, "n2-close") ||
+        !list_contains(features, "n2-centralized")) {
         fprintf(stderr, "features precomposed tone diphthong: expected cluster and normalized diaeresis features\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -394,16 +381,16 @@ int main(void)
         MK_OK,
         "features mixed velar affricate"
     );
-    if (!features_contains(features, "consonant") ||
-        !features_contains(features, "affricate") ||
-        !features_contains(features, "velar") ||
-        features_contains(features, "voiceless") ||
-        features_contains(features, "voiced") ||
-        features_contains(features, "sibilant")) {
+    if (!list_contains(features, "consonant") ||
+        !list_contains(features, "affricate") ||
+        !list_contains(features, "velar") ||
+        list_contains(features, "voiceless") ||
+        list_contains(features, "voiced") ||
+        list_contains(features, "sibilant")) {
         fprintf(stderr, "features mixed velar affricate: expected velar affricate without phonation or sibilant\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -411,12 +398,12 @@ int main(void)
         MK_OK,
         "features geminate cluster kk"
     );
-    if (!features_contains(features, "consonant-cluster") ||
-        !features_contains(features, "geminate")) {
+    if (!list_contains(features, "consonant-cluster") ||
+        !list_contains(features, "geminate")) {
         fprintf(stderr, "features geminate cluster kk: expected geminate cluster features\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -424,11 +411,11 @@ int main(void)
         MK_OK,
         "features precomposed i creaky"
     );
-    if (!features_contains(features, "vowel") || !features_contains(features, "creaky")) {
+    if (!list_contains(features, "vowel") || !list_contains(features, "creaky")) {
         fprintf(stderr, "features precomposed i creaky: expected vowel and creaky\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -436,11 +423,11 @@ int main(void)
         MK_OK,
         "features precomposed u breathy"
     );
-    if (!features_contains(features, "vowel") || !features_contains(features, "breathy")) {
+    if (!list_contains(features, "vowel") || !list_contains(features, "breathy")) {
         fprintf(stderr, "features precomposed u breathy: expected vowel and breathy\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -448,13 +435,13 @@ int main(void)
         MK_OK,
         "features precomposed u creaky long"
     );
-    if (!features_contains(features, "vowel") ||
-        !features_contains(features, "creaky") ||
-        !features_contains(features, "long")) {
+    if (!list_contains(features, "vowel") ||
+        !list_contains(features, "creaky") ||
+        !list_contains(features, "long")) {
         fprintf(stderr, "features precomposed u creaky long: expected vowel, creaky, and long\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -462,13 +449,13 @@ int main(void)
         MK_OK,
         "features precomposed nasalized v"
     );
-    if (!features_contains(features, "consonant") ||
-        !features_contains(features, "nasalized") ||
-        features_contains(features, "vowel")) {
+    if (!list_contains(features, "consonant") ||
+        !list_contains(features, "nasalized") ||
+        list_contains(features, "vowel")) {
         fprintf(stderr, "features precomposed nasalized v: expected nasalized consonant, not vowel\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -476,13 +463,13 @@ int main(void)
         MK_OK,
         "features tone syllabic sonorant"
     );
-    if (!features_contains(features, "syllabic") ||
-        !features_contains(features, "tone-onset-2") ||
-        !features_contains(features, "tone-offset-2")) {
+    if (!list_contains(features, "syllabic") ||
+        !list_contains(features, "tone-onset-2") ||
+        !list_contains(features, "tone-offset-2")) {
         fprintf(stderr, "features tone syllabic sonorant: expected syllabic and ordered tone levels\n");
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     failed |= expect_status(
@@ -948,11 +935,11 @@ int main(void)
     /* A system pointer remains valid when the registry grows. */
     failed |= expect_segment(descriptive, "p", 1, "system pointer after registry growth");
     failed |= expect_status(mk_system_grapheme_features(toy, "X", &features), MK_OK, "features runtime X");
-    if (mk_feature_set_size(features) != 4) {
-        fprintf(stderr, "features runtime X: expected 4, got %zu\n", mk_feature_set_size(features));
+    if (mk_string_list_size(features) != 4) {
+        fprintf(stderr, "features runtime X: expected 4, got %zu\n", mk_string_list_size(features));
         failed = 1;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
     failed |= expect_status(mk_system_segment_distance(toy, "X", "Y", &distance), MK_OK, "distance runtime");
     if (!(distance > 0.0 && distance <= 1.0)) {

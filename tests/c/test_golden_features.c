@@ -10,12 +10,12 @@
 #define MERKMAL_SOURCE_DIR "."
 #endif
 
-static int feature_set_contains(const mk_feature_set *features, const char *feature)
+static int feature_set_contains(const mk_string_list *features, const char *feature)
 {
     size_t i;
 
-    for (i = 0; i < mk_feature_set_size(features); i++) {
-        const char *actual = mk_feature_set_get(features, i);
+    for (i = 0; i < mk_string_list_size(features); i++) {
+        const char *actual = mk_string_list_get(features, i);
         if (actual != NULL && strcmp(actual, feature) == 0) {
             return 1;
         }
@@ -40,7 +40,7 @@ static size_t expected_feature_count(const char *features)
 }
 
 static int compare_features(
-    const mk_feature_set *actual,
+    const mk_string_list *actual,
     char *expected_text,
     const char *label
 )
@@ -48,13 +48,13 @@ static int compare_features(
     char *p = expected_text;
     int failed = 0;
 
-    if (mk_feature_set_size(actual) != expected_feature_count(expected_text)) {
+    if (mk_string_list_size(actual) != expected_feature_count(expected_text)) {
         fprintf(
             stderr,
             "%s: expected %zu features, got %zu\n",
             label,
             expected_feature_count(expected_text),
-            mk_feature_set_size(actual)
+            mk_string_list_size(actual)
         );
         failed = 1;
     }
@@ -104,7 +104,7 @@ static int check_file(
         char *cursor = line;
         char grapheme[256];
         char expected[30000];
-        mk_feature_set *actual = NULL;
+        mk_string_list *actual = NULL;
         mk_status status;
 
         line_no++;
@@ -125,7 +125,7 @@ static int check_file(
             continue;
         }
         failed |= compare_features(actual, expected, grapheme);
-        mk_feature_set_free(actual);
+        mk_string_list_free(actual);
     }
 
     fclose(file);

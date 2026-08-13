@@ -12,7 +12,6 @@ from setuptools import Extension, setup
 # C core entirely.
 SOURCES = [
     "python/src/merkmal_module.c",
-    "src/feature_set.c",
     "src/geometry.c",
     "src/registry.c",
     "src/resolver.c",

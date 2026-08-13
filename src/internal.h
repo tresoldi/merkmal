@@ -161,11 +161,6 @@ struct mk_string_list {
     size_t count;
 };
 
-struct mk_feature_set {
-    char **items;
-    size_t count;
-};
-
 extern const mk_builtin_system mk_builtin_systems[];
 extern const size_t mk_builtin_system_count;
 extern const mk_geometry_leaf mk_clements_hume_leaves[];
@@ -203,10 +198,14 @@ mk_status mk_string_list_from_borrowed(
     size_t count,
     mk_string_list **out
 );
-mk_status mk_feature_set_from_borrowed(
-    const char *const *items,
+/* Takes ownership of `items` and of every string in it. Callers that have
+ * already built an owned array hand it over instead of copying it and freeing
+ * the original -- which is what the tokenizer used to do, and why two places
+ * assembled the struct by hand rather than going through a constructor. */
+mk_status mk_string_list_adopt(
+    char **items,
     size_t count,
-    mk_feature_set **out
+    mk_string_list **out
 );
 
 /* Append to a growable NUL-terminated buffer, doubling capacity as needed.

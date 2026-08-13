@@ -14,7 +14,7 @@ int main(void)
 {
     mk_registry *registry = NULL;
     const mk_system *system = NULL;
-    mk_feature_set *features = NULL;
+    mk_string_list *features = NULL;
     mk_string_list *segments = NULL;
     char *normalized = NULL;
     double distance = 0.0;
@@ -37,12 +37,12 @@ int main(void)
         failed = fail_status(status, "features");
         goto cleanup;
     }
-    if (mk_feature_set_size(features) != 5) {
-        fprintf(stderr, "features: expected 5, got %zu\n", mk_feature_set_size(features));
+    if (mk_string_list_size(features) != 5) {
+        fprintf(stderr, "features: expected 5, got %zu\n", mk_string_list_size(features));
         failed = 1;
         goto cleanup;
     }
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     features = NULL;
 
     status = mk_system_segment_distance(system, "p", "b", &distance);
@@ -83,7 +83,7 @@ int main(void)
 
 cleanup:
     mk_free_string(normalized);
-    mk_feature_set_free(features);
+    mk_string_list_free(features);
     mk_string_list_free(segments);
     mk_registry_free(registry);
     return failed;

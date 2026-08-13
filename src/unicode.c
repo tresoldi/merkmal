@@ -921,15 +921,9 @@ mk_status mk_segment_ipa(
     }
     free(normalized);
 
-    {
-        mk_string_list *list = (mk_string_list *)calloc(1, sizeof(*list));
-        if (list == NULL) {
-            mk_free_items(items, count);
-            return MK_ERR_OOM;
-        }
-        list->items = items;
-        list->count = count;
-        *out = list;
+    if (mk_string_list_adopt(items, count, out) != MK_OK) {
+        mk_free_items(items, count);
+        return MK_ERR_OOM;
     }
 
     return MK_OK;
@@ -998,15 +992,9 @@ mk_status mk_merge_tone_digits(
         count++;
     }
 
-    {
-        mk_string_list *list = (mk_string_list *)calloc(1, sizeof(*list));
-        if (list == NULL) {
-            mk_free_items(items, count);
-            return MK_ERR_OOM;
-        }
-        list->items = items;
-        list->count = count;
-        *out = list;
+    if (mk_string_list_adopt(items, count, out) != MK_OK) {
+        mk_free_items(items, count);
+        return MK_ERR_OOM;
     }
     return MK_OK;
 }

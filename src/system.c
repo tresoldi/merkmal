@@ -71,7 +71,7 @@ mk_status mk_system_is_segment(
 mk_status mk_system_grapheme_features(
     const mk_system *system,
     const char *utf8_grapheme,
-    mk_feature_set **out
+    mk_string_list **out
 )
 {
     mk_resolution entry;
@@ -85,7 +85,7 @@ mk_status mk_system_grapheme_features(
     if (status != MK_OK) {
         return status;
     }
-    status = mk_feature_set_from_borrowed(entry.features, entry.feature_count, out);
+    status = mk_string_list_from_borrowed(entry.features, entry.feature_count, out);
     mk_resolution_clear(&entry);
     return status;
 }
@@ -456,12 +456,13 @@ mk_status mk_system_segment_ipa(
     }
 
     mk_string_list_free(orthographic);
-    status = mk_string_list_new((const char *const *)items, count, out);
-    for (i = 0; i < count; i++) {
-        free(items[i]);
+    /* The tokens are already owned; hand them over rather than copying every
+     * one and freeing the original. */
+    status = mk_string_list_adopt(items, count, out);
+    if (status != MK_OK) {
+        goto fail;
     }
-    free(items);
-    return status;
+    return MK_OK;
 
 fail:
     mk_string_list_free(orthographic);

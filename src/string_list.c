@@ -67,6 +67,30 @@ mk_status mk_string_list_from_borrowed(
     return MK_OK;
 }
 
+mk_status mk_string_list_adopt(
+    char **items,
+    size_t count,
+    mk_string_list **out
+)
+{
+    mk_string_list *list;
+
+    if (out == NULL || (items == NULL && count != 0)) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *out = NULL;
+
+    list = (mk_string_list *)calloc(1, sizeof(*list));
+    if (list == NULL) {
+        /* The caller still owns `items` and can free it. */
+        return MK_ERR_OOM;
+    }
+    list->items = items;
+    list->count = count;
+    *out = list;
+    return MK_OK;
+}
+
 mk_status mk_string_list_new(
     const char *const *items,
     size_t count,

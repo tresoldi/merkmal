@@ -18,7 +18,6 @@ emcc \
     -DMK_HAVE_UTF8PROC=0 \
     -Iinclude \
     -Isrc \
-    src/feature_set.c \
     src/generated/builtin_data.c \
     src/geometry.c \
     src/registry.c \

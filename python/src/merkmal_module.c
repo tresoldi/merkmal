@@ -273,8 +273,9 @@ static PyObject *py_string_list_to_list(mk_string_list *strings)
     return result;
 }
 
-/* Converts an owned C feature set into the immutable Python result type. */
-static PyObject *py_feature_set_to_frozenset(const mk_feature_set *features)
+/* Converts an owned C string list into the immutable Python result type
+ * get_features returns. */
+static PyObject *py_string_list_to_frozenset(const mk_string_list *features)
 {
     PyObject *result = PyFrozenSet_New(NULL);
     size_t i;
@@ -282,8 +283,8 @@ static PyObject *py_feature_set_to_frozenset(const mk_feature_set *features)
     if (result == NULL) {
         return NULL;
     }
-    for (i = 0; i < mk_feature_set_size(features); i++) {
-        PyObject *item = PyUnicode_FromString(mk_feature_set_get(features, i));
+    for (i = 0; i < mk_string_list_size(features); i++) {
+        PyObject *item = PyUnicode_FromString(mk_string_list_get(features, i));
         if (item == NULL) {
             Py_DECREF(result);
             return NULL;
@@ -336,7 +337,7 @@ static PyObject *py_get_features(PyObject *self, PyObject *args, PyObject *kwarg
     const char *system_name = default_system_name;
     mk_registry *registry;
     const mk_system *system;
-    mk_feature_set *features = NULL;
+    mk_string_list *features = NULL;
     PyObject *result = NULL;
     mk_status status;
 
@@ -365,8 +366,8 @@ static PyObject *py_get_features(PyObject *self, PyObject *args, PyObject *kwarg
         status_error(status, "get_features");
         goto done;
     }
-    result = py_feature_set_to_frozenset(features);
-    mk_feature_set_free(features);
+    result = py_string_list_to_frozenset(features);
+    mk_string_list_free(features);
 
 done:
     py_utf8_args_clear(&bag);

@@ -12,11 +12,12 @@ documented otherwise.
 
 - Free registries with `mk_registry_free`.
 - Free string lists with `mk_string_list_free`.
-- Free feature sets with `mk_feature_set_free`.
 - Free returned strings with `mk_free_string`.
-- Strings returned by `mk_string_list_get`, `mk_feature_set_get`, and
-  `mk_system_name` are borrowed and remain valid only while the owning
-  object is alive.
+- Strings returned by `mk_string_list_get` and `mk_system_name` are borrowed
+  and remain valid only while the owning object is alive.
+
+`mk_string_list` is the library's only collection type. Feature sets are
+string lists whose order carries no meaning.
 
 ## Status Codes
 
@@ -74,7 +75,7 @@ pointer.
 mk_status mk_system_name(const mk_system *system, const char **out);
 mk_status mk_system_kind(const mk_system *system, const char **out);
 mk_status mk_system_is_segment(const mk_system *system, const char *utf8_grapheme, int *out);
-mk_status mk_system_grapheme_features(const mk_system *system, const char *utf8_grapheme, mk_feature_set **out);
+mk_status mk_system_grapheme_features(const mk_system *system, const char *utf8_grapheme, mk_string_list **out);
 mk_status mk_system_segment_distance(const mk_system *system, const char *utf8_a, const char *utf8_b, double *out);
 mk_status mk_system_segment_distance_with_weights(const mk_system *system, const char *utf8_a, const char *utf8_b, const char *node_weights, double *out);
 ```
@@ -221,10 +222,6 @@ mk_status mk_string_list_new(const char *const *items, size_t count, mk_string_l
 size_t mk_string_list_size(const mk_string_list *list);
 const char *mk_string_list_get(const mk_string_list *list, size_t index);
 void mk_string_list_free(mk_string_list *list);
-
-size_t mk_feature_set_size(const mk_feature_set *features);
-const char *mk_feature_set_get(const mk_feature_set *features, size_t index);
-void mk_feature_set_free(mk_feature_set *features);
 ```
 
 `mk_string_list_new` copies caller-provided UTF-8 strings into an owned list.

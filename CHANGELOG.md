@@ -36,6 +36,16 @@ set, or tokenization result changes except where noted as a fix.
 - Changed: bare `mb`, `nd`, `mp`, `nt` and `ŋg` are recognized as prenasalized
   consonant clusters; `docs/c-api.md` still described the older two-item
   blocklist.
+- **Breaking (C ABI):** `mk_feature_set` is removed. It was the same struct as
+  `mk_string_list` exported under a second name, with its own
+  `_size` / `_get` / `_free` triple and its own translation unit.
+  `mk_system_grapheme_features` now returns an `mk_string_list **`; replace
+  `mk_feature_set_size` / `_get` / `_free` with the `mk_string_list`
+  equivalents. The exported ABI is 26 symbols, down from 29. The Python API is
+  unaffected — `get_features` still returns a `frozenset`.
+- Added: `merkmal.sound_distance`, exposing `mk_sound_distance`, which was
+  public C API the wrapper did not bind. It scores two feature sets against the
+  compiled geometry with no system, registry, or grapheme involved.
 - Internal: segment resolution moved into `src/resolver.{c,h}` behind
   `mk_resolve`, which reports which path resolved a grapheme; `src/system.c`
   went from 2298 to 473 lines. The two component parsers and the two cluster
