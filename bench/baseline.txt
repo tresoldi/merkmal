@@ -1,14 +1,18 @@
-# Committed footprint baseline.
+# Committed footprint and lookup baseline.
 #
-# Regenerate with bench/bench_footprint.sh, and update this file only
-# alongside a change that is meant to move the numbers, so that a diff
-# here is always an argued change.
+# Regenerate with bench/bench_footprint.sh and bench/bench_lookup.sh, and
+# update this file only alongside a change that is meant to move the
+# numbers, so that a diff here is always an argued change.
 #
 # Recorded on: 2026-08-13
 #
 # Before the generated data was interned (60523c4):
 #   builtin_data.c  .rodata 2,485,500   relocations 281,322
 #   footprint.wasm  1,286,045 bytes
+#
+# Before the inventory was sorted, with the linear scan:
+#   miss  769 rows 5.6 us | 1068 rows 8.4 us | 3142 rows 25.9 us
+#   tokenize 96.8 us/token, distance 36.8 us/pair
 
 # merkmal footprint report
 # compiler: cc (GCC) 15.2.1 20260123 (Red Hat 15.2.1-7)
@@ -18,7 +22,7 @@
 
 object                             text     rodata     relocs
 geometry.c                         6486         54        114
-inventory.c                         424          0          8
+inventory.c                         488          0          8
 ipa.c                               587         75         52
 model_text.c                       2884        774         89
 normalize.c                        3430        420        270
@@ -32,14 +36,21 @@ tokenize.c                         1670          6         51
 tone.c                             1259         41         56
 utf8.c                              542          0         12
 builtin_data.c                       61     546420       2758
-TOTAL                             35976     549207       4008
+TOTAL                             36040     549207       4008
 
 generated string literals (outside the interned pool): 6913 bytes
 
 ## WebAssembly (emcc, fallback Unicode path)
 
-footprint.wasm: 574609 bytes
+footprint.wasm: 574632 bytes
 footprint.js:   9555 bytes
 (wasm-objdump not available; section breakdown skipped)
 
 compile time (best of 10): 0.1 ms
+
+corpus: 20 words, system: descriptive, inventory: 769 rows
+
+tokenize         0.662 s for    13600 tokens       48.7 us/token
+distance         0.258 s for     7600 pairs        34.0 us/pair
+scan (miss)      0.001 s for    20000 lookups       0.1 us/lookup
+scan (hit)       0.002 s for    20000 lookups       0.1 us/lookup

@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+### Inventory lookup is a binary search: tokenization twice as fast
+
+No public API, ABI, or behavior change; golden fixtures are byte-identical.
+
+Grapheme lookup walked every row calling `strcmp`. The cost was linear in
+inventory size at roughly 7.3 ns per row, a resolution performs up to three
+lookups, and longest-match tokenization performs several resolutions per token.
+
+| system | rows | miss, before | miss, after |
+|---|---|---|---|
+| descriptive | 769 | 5.6 µs | 0.07 µs |
+| pbase-hc | 1,068 | 8.4 µs | 0.08 µs |
+| phoible | 3,142 | 25.9 µs | 0.08 µs |
+
+End to end, `mk_system_segment_ipa` went from 96.8 to 48.7 µs per token.
+Scoring a pair moved only from 36.8 to 34.0 µs: those lookups are mostly early
+hits, and the remaining time is the scorer's own walk over leaves, node groups
+and ordered scales.
+
+- Internal: compiled inventories are emitted sorted by the grapheme's UTF-8
+  bytes, the order `strcmp` imposes. The generator rejects a duplicate grapheme
+  within a system — a binary search may return either row where the scan always
+  returned the first. There are none in the bundled data.
+- Added: `bench/bench_lookup.sh`, and `bench/baseline.txt` now records lookup
+  timings alongside the footprint numbers.
+- Added: `test_resolution` checks the emitted row order. A disagreement between
+  Python's sort and C's `strcmp` would otherwise be silent — a grapheme that is
+  present would simply stop being a segment.
+
 ### The compiled data is interned: 55% off the WebAssembly payload
 
 No public API, ABI, or behavior change. The exported symbol list is unchanged

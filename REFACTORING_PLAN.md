@@ -584,6 +584,31 @@ in both, and assert it in the generated file.
 **Acceptance criteria.** A recorded measurement, and either a binary search
 with proven-identical results or a written decision not to build one.
 
+**Outcome: measured, and the index was built.** The scan cost was linear in
+inventory size at about 7.3 ns per row:
+
+| system | rows | miss, before | miss, after |
+|---|---|---|---|
+| descriptive | 769 | 5.6 µs | 0.07 µs |
+| pbase-hc | 1,068 | 8.4 µs | 0.08 µs |
+| phoible | 3,142 | 25.9 µs | 0.08 µs |
+
+A single resolution performs up to three lookups, and longest-match
+tokenization performs several resolutions per token, so the cost compounded.
+End to end, tokenization went from 96.8 to 48.7 µs per token.
+
+Scoring a pair barely moved — 36.8 to 34.0 µs — because those lookups are
+mostly early hits, and what remains is the scorer's own walk over leaves, node
+groups, and ordered scales. **That is where the next performance question is,
+if one is ever asked**; it was not asked here, and no work was done on it.
+
+Rows are emitted sorted by the grapheme's UTF-8 bytes, which is the order
+`strcmp` imposes. The generator rejects a duplicate grapheme within a system,
+since a binary search may return either row where the scan always returned the
+first, and `test_resolution` checks the emitted order directly — a Python/C
+sort-order disagreement would otherwise be silent, making a present grapheme
+simply stop being a segment.
+
 **Depends on.** Milestone C.
 
 ---

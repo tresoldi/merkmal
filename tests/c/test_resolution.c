@@ -219,6 +219,22 @@ static int check_every_compiled_row(void)
             mk_inventory_row(system, i, scratch, &row);
             rows++;
 
+            /* The binary search assumes this order. Python sorts the rows by
+             * their UTF-8 bytes and C compares them with strcmp; if those ever
+             * disagree, lookups start missing rows that are present, which is
+             * silent -- the grapheme simply stops being a segment. */
+            if (i > 0) {
+                mk_entry_view previous;
+                const char *previous_scratch[MK_MAX_ENTRY_FEATURES];
+
+                mk_inventory_row(system, i - 1, previous_scratch, &previous);
+                if (strcmp(previous.grapheme, row.grapheme) >= 0) {
+                    fprintf(stderr, "%s rows %zu/%zu: out of order (%s then %s)\n",
+                            system->name, i - 1, i, previous.grapheme, row.grapheme);
+                    failed = 1;
+                }
+            }
+
             if (row.grapheme == NULL || row.grapheme[0] == '\0') {
                 fprintf(stderr, "%s row %zu: empty grapheme\n", system->name, i);
                 failed = 1;

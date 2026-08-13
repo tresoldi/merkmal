@@ -575,7 +575,22 @@ def emit_system(
     # segment described identically under different graphemes.
     runs: dict[tuple[int, ...], int] = {}
 
-    for grapheme, features in entries:
+    # Sorted so that mk_inventory_find can binary-search instead of walking
+    # every row. The key is the UTF-8 bytes, because that is what strcmp
+    # compares; sorting by Python str would order by code point and put a
+    # two-byte grapheme in a place the C search would not look.
+    ordered = sorted(entries, key=lambda entry: entry[0].encode("utf-8"))
+    seen: set[str] = set()
+    for grapheme, _ in ordered:
+        if grapheme in seen:
+            raise SystemExit(
+                f"{name}: grapheme {grapheme!r} appears twice. A binary search "
+                f"would return either row, where the old scan always returned "
+                f"the first; resolve the duplicate in the source data."
+            )
+        seen.add(grapheme)
+
+    for grapheme, features in ordered:
         if len(features) > MAX_ENTRY_FEATURES:
             raise SystemExit(
                 f"{name}: grapheme {grapheme!r} carries {len(features)} features, "
