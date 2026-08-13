@@ -55,10 +55,25 @@ MK_API mk_status mk_registry_get_system(
     const mk_system **out
 );
 
-/** Adds a copied categorical model described by the runtime text format. */
+/* Adds a copied categorical model described by the runtime text format.
+ *
+ * Validation is strict unless the model says '@validation permissive': every
+ * feature must reach a scoring dimension, graphemes must be unique, and
+ * unrecognized lines are rejected. Without that, a model whose features the
+ * geometry does not know registers successfully and then scores every
+ * comparison as zero, which is indistinguishable from "these are identical". */
 MK_API mk_status mk_registry_add_model_text(
     mk_registry *registry,
     const char *model_text
+);
+
+/* As above, but on failure *diagnostic_out receives an owned message naming the
+ * offending line and token. Free it with mk_free_string. It is NULL on success
+ * and may be NULL on entry if the caller does not want the detail. */
+MK_API mk_status mk_registry_add_model_text_ex(
+    mk_registry *registry,
+    const char *model_text,
+    char **diagnostic_out
 );
 
 /** Returns the name of a system as borrowed registry-owned storage. */
@@ -120,8 +135,31 @@ MK_API mk_status mk_normalize_grapheme(
     char **utf8_out
 );
 
-/** Splits UTF-8 input into an owned list of IPA segments. */
+/* Orthographic tokenization: a new token starts at each new base code point
+ * unless a tie bar joins it to the previous one. This is stable and
+ * language-neutral, but it is not phonological segmentation, and it disagrees
+ * with what a system recognizes: "tʃa" splits into t, ʃ, a even though the
+ * descriptive system accepts untied "tʃ" as one segment. Use
+ * mk_system_segment_ipa when tokens must agree with a system's own inventory,
+ * or supply your own boundaries when the analysis is authoritative. */
 MK_API mk_status mk_segment_ipa(
+    const char *utf8_in,
+    mk_string_list **out
+);
+
+/* System-aware tokenization: longest match against the system's inventory and
+ * synthesis grammar, so "tʃa" becomes [tʃ, a] and "kpa" becomes [kp, a] where
+ * those tokens are recognized.
+ *
+ * Longest match is a policy, not a truth: "kp" may be /k.p/ in a language that
+ * has no labial-velar. Results also depend on the selected system and its
+ * inventory version, so record both alongside any stored tokenization.
+ *
+ * Input that the system does not recognize is passed through as its
+ * orthographic token rather than dropped, so the function is total. Check
+ * mk_system_is_segment per token if you need a guarantee. */
+MK_API mk_status mk_system_segment_ipa(
+    const mk_system *system,
     const char *utf8_in,
     mk_string_list **out
 );

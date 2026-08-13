@@ -2,6 +2,7 @@
 # nothing to compile. setuptools does not infer these: they sit outside the
 # package directory, and the extension names them only as build inputs.
 include LICENSE
+include NOTICE
 include README.md
 include python/README.md
 
@@ -15,3 +16,7 @@ include python/src/merkmal_module.c
 # Generated data is committed and shipped so building the C library needs no
 # Python tooling, per docs/release-policy.md.
 recursive-include python/tests *.py
+
+# Provenance manifests travel with the data they describe.
+include models/*/provenance.json
+include typologies/README.md

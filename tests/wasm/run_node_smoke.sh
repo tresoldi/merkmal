@@ -22,6 +22,7 @@ emcc \
     src/generated/builtin_data.c \
     src/geometry.c \
     src/registry.c \
+    src/resolver.c \
     src/status.c \
     src/string_list.c \
     src/system.c \

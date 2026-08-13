@@ -93,59 +93,53 @@
   "tone_levels": {
     "onset": {
       "1": [
-        "tone-onset-lower",
-        "tone-onset-lowered"
+        "tone-onset-1"
       ],
       "2": [
-        "tone-onset-lower",
-        "tone-onset-raised"
+        "tone-onset-2"
       ],
-      "3": [],
+      "3": [
+        "tone-onset-3"
+      ],
       "4": [
-        "tone-onset-lowered",
-        "tone-onset-upper"
+        "tone-onset-4"
       ],
       "5": [
-        "tone-onset-raised",
-        "tone-onset-upper"
+        "tone-onset-5"
       ]
     },
     "mid": {
       "1": [
-        "tone-mid-lower",
-        "tone-mid-lowered"
+        "tone-mid-1"
       ],
       "2": [
-        "tone-mid-lower",
-        "tone-mid-raised"
+        "tone-mid-2"
       ],
-      "3": [],
+      "3": [
+        "tone-mid-3"
+      ],
       "4": [
-        "tone-mid-lowered",
-        "tone-mid-upper"
+        "tone-mid-4"
       ],
       "5": [
-        "tone-mid-raised",
-        "tone-mid-upper"
+        "tone-mid-5"
       ]
     },
     "offset": {
       "1": [
-        "tone-offset-lower",
-        "tone-offset-lowered"
+        "tone-offset-1"
       ],
       "2": [
-        "tone-offset-lower",
-        "tone-offset-raised"
+        "tone-offset-2"
       ],
-      "3": [],
+      "3": [
+        "tone-offset-3"
+      ],
       "4": [
-        "tone-offset-lowered",
-        "tone-offset-upper"
+        "tone-offset-4"
       ],
       "5": [
-        "tone-offset-raised",
-        "tone-offset-upper"
+        "tone-offset-5"
       ]
     }
   },

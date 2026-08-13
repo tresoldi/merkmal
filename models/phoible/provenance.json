@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "artifact_id": "phoible",
+  "artifact_version": "1.0.0",
+  "upstream_name": "PHOIBLE 2.0",
+  "upstream_release": "UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
+  "upstream_url": "https://phoible.org/",
+  "upstream_commit_or_doi": "UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
+  "retrieved": "UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
+  "transformation": "Segment-indexed binary feature table extracted from the PHOIBLE feature set; unspecified cells written as '.'.",
+  "citation": "Moran, Steven & McCloy, Daniel (eds.) 2019. PHOIBLE 2.0. Jena: Max Planck Institute for the Science of Human History.",
+  "license_spdx": "CC-BY-SA-3.0",
+  "redistribution_notes": "Share-alike. Redistributing this table obliges downstream users to license their adaptation of it under the same terms. This is not the same as the MIT terms covering the merkmal source code.",
+  "input_sha256": {
+    "inventory.tsv": "891f464c00e186a85a96c97487060726b0e0fcc3d7e62317f403b67220af4d41",
+    "model.json": "6ed42e6495a5beb481afdbf8e6a02c2f5ced3255aded4d9a812e3cb7716738de"
+  },
+  "generator": "tools/generate_c_data.py"
+}

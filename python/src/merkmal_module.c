@@ -491,6 +491,48 @@ static PyObject *py_segment_ipa_merged(PyObject *self, PyObject *args)
     return result;
 }
 
+static PyObject *py_system_segment_ipa(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *keywords[] = {"ipa", "system", NULL};
+    PyObject *ipa_obj;
+    PyObject *system_obj = Py_None;
+    py_utf8 ipa_arg = {NULL, NULL};
+    py_utf8 system_arg = {NULL, NULL};
+    const char *system_name;
+    const mk_system *system;
+    mk_string_list *segments = NULL;
+    PyObject *result;
+    mk_status status;
+
+    (void)self;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O:system_segment_ipa", keywords, &ipa_obj, &system_obj)) {
+        return NULL;
+    }
+    if (py_utf8_from_unicode(ipa_obj, "ipa", &ipa_arg) < 0 ||
+        parse_system_kw(system_obj, &system_arg, &system_name) < 0) {
+        py_utf8_clear(&ipa_arg);
+        return NULL;
+    }
+    system = get_system_or_error(system_name);
+    if (system == NULL) {
+        py_utf8_clear(&ipa_arg);
+        py_utf8_clear(&system_arg);
+        return NULL;
+    }
+
+    status = mk_system_segment_ipa(system, ipa_arg.value, &segments);
+    py_utf8_clear(&ipa_arg);
+    py_utf8_clear(&system_arg);
+    if (status != MK_OK) {
+        return status_error(status, "system_segment_ipa");
+    }
+
+    result = py_string_list_to_list(segments);
+    mk_string_list_free(segments);
+    return result;
+}
+
 static PyObject *py_split_tone(PyObject *self, PyObject *args)
 {
     PyObject *segment_obj;
@@ -631,10 +673,22 @@ static PyObject *py_registry_add_model_text(PyObject *self, PyObject *args)
     if (py_utf8_from_unicode(text_obj, "model_text", &text_arg) < 0) {
         return NULL;
     }
-    status = mk_registry_add_model_text(registry, text_arg.value);
-    py_utf8_clear(&text_arg);
-    if (status != MK_OK) {
-        return status_error(status, "registry_add_model_text");
+    {
+        char *diagnostic = NULL;
+
+        status = mk_registry_add_model_text_ex(registry, text_arg.value, &diagnostic);
+        py_utf8_clear(&text_arg);
+        if (status != MK_OK) {
+            /* The diagnostic names the offending line and token; without it the
+             * caller only learns that something in the model was wrong. */
+            if (diagnostic != NULL) {
+                PyErr_Format(mk_py_error, "registry_add_model_text: %s", diagnostic);
+                mk_free_string(diagnostic);
+                return NULL;
+            }
+            return status_error(status, "registry_add_model_text");
+        }
+        mk_free_string(diagnostic);
     }
     Py_RETURN_NONE;
 }
@@ -821,7 +875,8 @@ static PyMethodDef methods[] = {
     {"distance", (PyCFunction)py_distance, METH_VARARGS | METH_KEYWORDS, "Return segment distance."},
     {"feature_distance", (PyCFunction)py_feature_distance, METH_VARARGS | METH_KEYWORDS, "Return geometry feature distance."},
     {"normalize", py_normalize, METH_VARARGS, "Normalize an IPA grapheme."},
-    {"segment_ipa", py_segment_ipa, METH_VARARGS, "Segment an IPA string."},
+    {"segment_ipa", py_segment_ipa, METH_VARARGS, "Segment an IPA string orthographically."},
+    {"system_segment_ipa", (PyCFunction)py_system_segment_ipa, METH_VARARGS | METH_KEYWORDS, "Segment an IPA string by longest match against a system's inventory."},
     {"merge_tone_digits", py_merge_tone_digits, METH_VARARGS, "Attach Chao tone digit segments to nuclei."},
     {"split_tone", py_split_tone, METH_VARARGS, "Split a merged segment into (base, tone); tone is None when absent."},
     {"segment_ipa_merged", py_segment_ipa_merged, METH_VARARGS, "Segment IPA and attach Chao tone digits to nuclei."},

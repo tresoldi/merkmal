@@ -9,5 +9,5 @@ stop	nasal	999
 nasal	lateral	4
 vowel	consonant	999
 aspirated	voiceless	4
-tone-onset-upper	tone-onset-lower	2
-tone-onset-upper	tone-offset-upper	6
+tone-onset-upper	tone-onset-lower	999
+tone-onset-upper	tone-offset-upper	999

@@ -57,3 +57,28 @@ Before tagging a release:
 - sanitizer CI passes for the C library
 - Python wrapper tests pass
 - Python wheel builds and contains only the native wrapper package files
+- `python scripts/validate_models.py` passes (schema, exact identifier
+  matching, feature coverage, geometry node resolution, provenance)
+- `python scripts/contrast_baseline.py --check` passes: no undeclared
+  zero-distance pair, no label unable to affect a distance
+- `python scripts/generate_notice.py --check` passes, so `NOTICE` matches the
+  provenance manifests
+- `python scripts/regenerate_golden.py --check` passes
+
+## Data Releases
+
+A data release is separate from a code release, because it changes observable
+numbers even when no code changed.
+
+- Any change to `models/`, `geometries/`, or `diacritics/` that moves a
+  distance or a feature set is a **major** model version, not a patch. Say so
+  in `CHANGELOG.md` with what moved and why.
+- Regenerate golden fixtures with `scripts/regenerate_golden.py` and read the
+  diff. Do not accept a regenerated fixture without reviewing it: those values
+  are the library's contract.
+- Re-stamp `models/*/provenance.json` (the input hashes are checked) and
+  regenerate `NOTICE`.
+- Never describe a distribution bundling PHOIBLE or P-base data as MIT-only.
+  The current expression is `MIT AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`.
+- Fields marked `UNVERIFIED` in a provenance manifest must be established
+  before the next data release, not guessed from filenames.

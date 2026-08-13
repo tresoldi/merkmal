@@ -1,6 +1,7 @@
 #include "internal.h"
 
 #include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -260,14 +261,101 @@ static mk_status mk_add_parsed_entry(
         *cap = new_cap;
     }
 
-    (*entries)[*count].grapheme = mk_strdup_internal(grapheme);
-    if ((*entries)[*count].grapheme == NULL) {
-        mk_free_feature_array(features, feature_count);
-        return MK_ERR_OOM;
+    /* Store the lookup key, not the spelling. Queries are normalized before
+     * they reach an inventory, so a model written with a precomposed "ã" could
+     * never be matched while the same row in a built-in inventory worked --
+     * the generator normalizes those at build time. The two model paths now
+     * share one normalization. */
+    {
+        char *key = NULL;
+        mk_status status = mk_normalize_input_grapheme(grapheme, &key);
+
+        if (status != MK_OK) {
+            mk_free_feature_array(features, feature_count);
+            return status;
+        }
+        (*entries)[*count].grapheme = key;
     }
     (*entries)[*count].features = (const char *const *)features;
     (*entries)[*count].feature_count = feature_count;
     (*count)++;
+    return MK_OK;
+}
+
+/* Keeps the first problem found. A caller-supplied model that fails validation
+ * needs to know which line and which token, not just MK_ERR_PARSE. */
+static void mk_set_diagnostic(char **out, int line_no, const char *message, const char *detail)
+{
+    char buffer[512];
+
+    if (out == NULL || *out != NULL) {
+        return;
+    }
+    if (line_no > 0) {
+        snprintf(buffer, sizeof(buffer), "line %d: %s: %s", line_no, message, detail);
+    } else {
+        snprintf(buffer, sizeof(buffer), "%s: %s", message, detail);
+    }
+    *out = mk_strdup_internal(buffer);
+}
+
+/* Every feature a strict model uses must reach a scoring dimension, and every
+ * grapheme must be unique. Both checks exist because a model that fails them
+ * still registers and still answers every query: it just answers zero. */
+static mk_status mk_validate_strict_entries(
+    const mk_builtin_entry *entries,
+    size_t entry_count,
+    char **diagnostic
+)
+{
+    size_t i;
+    size_t j;
+
+    for (i = 0; i < entry_count; i++) {
+        for (j = 0; j < i; j++) {
+            if (mk_streq(entries[i].grapheme, entries[j].grapheme)) {
+                mk_set_diagnostic(
+                    diagnostic,
+                    0,
+                    "strict validation: grapheme declared more than once",
+                    entries[i].grapheme
+                );
+                return MK_ERR_PARSE;
+            }
+        }
+        for (j = 0; j < entries[i].feature_count; j++) {
+            if (!mk_geometry_knows_feature(entries[i].features[j])) {
+                mk_set_diagnostic(
+                    diagnostic,
+                    0,
+                    "strict validation: feature is unknown to the geometry and so cannot "
+                    "affect any distance; add it to the geometry or use "
+                    "'@validation permissive'",
+                    entries[i].features[j]
+                );
+                return MK_ERR_PARSE;
+            }
+        }
+        {
+            int scorable = 0;
+            for (j = 0; j < entries[i].feature_count; j++) {
+                if (mk_geometry_scores_feature(entries[i].features[j])) {
+                    scorable = 1;
+                    break;
+                }
+            }
+            if (!scorable) {
+                mk_set_diagnostic(
+                    diagnostic,
+                    0,
+                    "strict validation: grapheme has no feature that can affect a "
+                    "distance, so every comparison involving it would score zero",
+                    entries[i].grapheme
+                );
+                return MK_ERR_PARSE;
+            }
+        }
+    }
     return MK_OK;
 }
 
@@ -276,16 +364,35 @@ mk_status mk_registry_add_model_text(
     const char *model_text
 )
 {
+    return mk_registry_add_model_text_ex(registry, model_text, NULL);
+}
+
+mk_status mk_registry_add_model_text_ex(
+    mk_registry *registry,
+    const char *model_text,
+    char **diagnostic_out
+)
+{
     char *copy;
     char *line;
     char *name = NULL;
     int saw_categorical = 0;
+    int strict = 1;
+    int line_no = 0;
+    char unknown_directive[256];
+    int unknown_directive_line = 0;
+    char *diagnostic = NULL;
     mk_builtin_entry *entries = NULL;
     size_t entry_count = 0;
     size_t entry_cap = 0;
     mk_system **next_systems;
     mk_system *slot;
+    mk_status status;
 
+    unknown_directive[0] = '\0';
+    if (diagnostic_out != NULL) {
+        *diagnostic_out = NULL;
+    }
     if (registry == NULL || model_text == NULL) {
         return MK_ERR_INVALID_ARGUMENT;
     }
@@ -304,9 +411,29 @@ mk_status mk_registry_add_model_text(
             *next = '\0';
             next++;
         }
+        line_no++;
         trimmed = mk_trim(line);
         if (trimmed[0] != '\0' && trimmed[0] != '#') {
-            if (strncmp(trimmed, "@model", 6) == 0 && isspace((unsigned char)trimmed[6])) {
+            if (strncmp(trimmed, "@validation", 11) == 0 && isspace((unsigned char)trimmed[11])) {
+                char *cursor = trimmed + 11;
+                char *token = mk_next_token(&cursor);
+                if (token != NULL && strcmp(token, "permissive") == 0) {
+                    strict = 0;
+                } else if (token != NULL && strcmp(token, "strict") == 0) {
+                    strict = 1;
+                } else {
+                    mk_set_diagnostic(
+                        &diagnostic,
+                        line_no,
+                        "@validation must be 'strict' or 'permissive'",
+                        token == NULL ? "(missing)" : token
+                    );
+                    free(copy);
+                    free(name);
+                    mk_free_entries(entries, entry_count);
+                    goto parse_failed;
+                }
+            } else if (strncmp(trimmed, "@model", 6) == 0 && isspace((unsigned char)trimmed[6])) {
                 char *cursor = trimmed + 6;
                 char *token = mk_next_token(&cursor);
                 free(name);
@@ -328,13 +455,30 @@ mk_status mk_registry_add_model_text(
                 }
             } else if (strncmp(trimmed, "grapheme", 8) == 0 && isspace((unsigned char)trimmed[8])) {
                 char *cursor = trimmed + 8;
-                mk_status status = mk_add_parsed_entry(&entries, &entry_count, &entry_cap, cursor);
-                if (status != MK_OK) {
+                mk_status entry_status = mk_add_parsed_entry(&entries, &entry_count, &entry_cap, cursor);
+                if (entry_status != MK_OK) {
+                    mk_set_diagnostic(&diagnostic, line_no, "malformed grapheme row", trimmed);
                     free(copy);
                     free(name);
                     mk_free_entries(entries, entry_count);
-                    return status;
+                    if (diagnostic_out != NULL) {
+                        *diagnostic_out = diagnostic;
+                    } else {
+                        free(diagnostic);
+                    }
+                    return entry_status;
                 }
+            } else if (strncmp(trimmed, "@geometry", 9) == 0 && isspace((unsigned char)trimmed[9])) {
+                /* Accepted for readability. The C implementation has one
+                 * compiled-in geometry, so there is nothing to select yet. */
+            } else if (strncmp(trimmed, "feature", 7) == 0 && isspace((unsigned char)trimmed[7])) {
+                /* Readability rows. They carry no information the scorer uses,
+                 * so they are accepted but never treated as a declaration. */
+            } else if (unknown_directive_line == 0) {
+                /* Remembered rather than rejected here: @validation may appear
+                 * further down the file. */
+                unknown_directive_line = line_no;
+                snprintf(unknown_directive, sizeof(unknown_directive), "%s", trimmed);
             }
         }
         line = next;
@@ -342,9 +486,37 @@ mk_status mk_registry_add_model_text(
     free(copy);
 
     if (name == NULL || !saw_categorical || entry_count == 0) {
+        mk_set_diagnostic(
+            &diagnostic,
+            0,
+            "a model needs @model, '@type categorical', and at least one grapheme row",
+            name == NULL ? "@model is missing" :
+                (!saw_categorical ? "@type categorical is missing" : "no grapheme rows")
+        );
         free(name);
         mk_free_entries(entries, entry_count);
-        return MK_ERR_PARSE;
+        goto parse_failed;
+    }
+
+    if (strict) {
+        if (unknown_directive_line != 0) {
+            mk_set_diagnostic(
+                &diagnostic,
+                unknown_directive_line,
+                "strict validation: unrecognized line; ignoring it would hide a typo, "
+                "so use '@validation permissive' to allow it",
+                unknown_directive
+            );
+            free(name);
+            mk_free_entries(entries, entry_count);
+            goto parse_failed;
+        }
+        status = mk_validate_strict_entries(entries, entry_count, &diagnostic);
+        if (status != MK_OK) {
+            free(name);
+            mk_free_entries(entries, entry_count);
+            goto parse_failed;
+        }
     }
 
     next_systems = (mk_system **)realloc(
@@ -372,4 +544,12 @@ mk_status mk_registry_add_model_text(
     slot->owns = 1;
     registry->system_count++;
     return MK_OK;
+
+parse_failed:
+    if (diagnostic_out != NULL) {
+        *diagnostic_out = diagnostic;
+    } else {
+        free(diagnostic);
+    }
+    return MK_ERR_PARSE;
 }

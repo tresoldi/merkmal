@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "artifact_id": "pbase-hc",
+  "artifact_version": "1.0.0",
+  "upstream_name": "P-base",
+  "upstream_release": "UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
+  "upstream_url": "https://pbase.phon.chass.ncsu.edu/",
+  "upstream_commit_or_doi": "UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
+  "retrieved": "UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
+  "transformation": "Segment-indexed feature table for the HC feature family, extracted from P-base. The exact extraction procedure is UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
+  "citation": "Mielke, Jeff. P-base. North Carolina State University.",
+  "license_spdx": "CC-BY-NC-SA-4.0",
+  "redistribution_notes": "Non-commercial and share-alike. These terms are materially narrower than the MIT terms covering the merkmal source code, and they restrict commercial redistribution of any package that bundles this table.",
+  "input_sha256": {
+    "inventory.tsv": "fdccfdb0fe2e51f1a6ae76f96c5fe2c15bb67775cf32885a581ad7e277e468ab",
+    "model.json": "1d0a3d20d08228b1211be7640415a18a63ec1f4bd4a11bb7ae682724a9ba7850"
+  },
+  "generator": "tools/generate_c_data.py"
+}

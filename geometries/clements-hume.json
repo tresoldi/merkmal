@@ -1,19 +1,25 @@
 {
   "schema_version": 1,
-  "name": "clements-hume",
-  "version": "1.0.0",
-  "description": "Clements & Hume (1995) feature geometry",
-  "reference": "Clements, G.N. & Hume, E.V. (1995). The internal organization of speech sounds.",
+  "name": "merkmal-clements-hume-inspired-v1",
+  "version": "3.0.0",
+  "description": "Merkmal's project-specific articulatory tree, inspired by Clements & Hume (1995) but not an implementation of that theory. See docs/geometry.md.",
   "weight_presets": {
-    "ignore-tone": {
-      "Tonal": 0.0
+    "flat": "__flat__",
+    "ignore-length": {
+      "Length": 0.0
     },
     "ignore-prosodic": {
       "Prosodic": 0.0
     },
+    "ignore-secondary": {
+      "Secondary": 0.0
+    },
+    "ignore-tone": {
+      "Tonal": 0.0
+    },
     "segmental": {
       "Tonal": 0.0,
-      "Prosodic": 0.0
+      "Length": 0.0
     },
     "tone-heavy": {
       "Tonal": 2.0
@@ -24,81 +30,39 @@
       "Place": 0.0,
       "TongueRoot": 0.0,
       "Prosodic": 0.0
-    },
-    "flat": "__flat__"
+    }
   },
   "feature_to_node": {
     "advanced-tongue-root": "TongueRoot",
     "affricate": "Manner",
-    "alveolar": "Coronal",
-    "alveolo-palatal": "Coronal",
     "approximant": "Manner",
     "aspirated": "Laryngeal",
-    "back": "Dorsal",
-    "bilabial": "Labial",
     "breathy": "Laryngeal",
-    "central": "Dorsal",
     "click": "Manner",
-    "close": "Dorsal",
-    "close-mid": "Dorsal",
     "creaky": "Laryngeal",
-    "dental": "Coronal",
     "ejective": "Prosodic",
-    "epiglottal": "Pharyngeal",
     "fricative": "Manner",
-    "front": "Dorsal",
-    "glottal": "Glottal",
     "glottalized": "Laryngeal",
     "implosive": "Manner",
-    "labial": "Labial",
     "labialized": "Prosodic",
-    "labio-dental": "Labial",
     "labio-palatal": "Labial",
     "labio-velar": "Labial",
     "lateral": "Manner",
-    "linguolabial": "Coronal",
-    "long": "Prosodic",
-    "mid": "Dorsal",
     "nasal": "Manner",
     "nasalized": "Prosodic",
-    "near-back": "Dorsal",
-    "near-close": "Dorsal",
-    "near-front": "Dorsal",
-    "near-open": "Dorsal",
     "non-pulmonic": "Manner",
     "non-syllabic": "Manner",
-    "open": "Dorsal",
-    "open-mid": "Dorsal",
-    "palatal": "Dorsal",
-    "palatal-velar": "Dorsal",
     "palatalized": "Prosodic",
-    "pharyngeal": "Pharyngeal",
     "pharyngealized": "Prosodic",
-    "post-alveolar": "Coronal",
-    "primary-stress": "Prosodic",
     "retracted-tongue-root": "TongueRoot",
-    "retroflex": "Coronal",
     "rounded": "Labial",
     "sibilant": "Manner",
     "stop": "Manner",
     "syllabic": "Manner",
     "tap": "Manner",
-    "tone-mid-lower": "TonalMid",
-    "tone-mid-lowered": "TonalMid",
-    "tone-mid-raised": "TonalMid",
-    "tone-mid-upper": "TonalMid",
-    "tone-offset-lower": "TonalOffset",
-    "tone-offset-lowered": "TonalOffset",
-    "tone-offset-raised": "TonalOffset",
-    "tone-offset-upper": "TonalOffset",
-    "tone-onset-lower": "TonalOnset",
-    "tone-onset-lowered": "TonalOnset",
-    "tone-onset-raised": "TonalOnset",
-    "tone-onset-upper": "TonalOnset",
+    "tone-present": "Tonal",
     "trill": "Manner",
     "unrounded": "Labial",
-    "uvular": "Dorsal",
-    "velar": "Dorsal",
     "voiced": "Laryngeal",
     "voiceless": "Laryngeal"
   },
@@ -132,6 +96,31 @@
             "name": "creaky_voice",
             "positive": "creaky",
             "negative": ""
+          },
+          {
+            "name": "voice_shift",
+            "positive": "revoiced",
+            "negative": "devoiced"
+          },
+          {
+            "name": "pre_aspiration",
+            "positive": "pre-aspirated",
+            "negative": ""
+          },
+          {
+            "name": "pre_glottalization",
+            "positive": "pre-glottalized",
+            "negative": ""
+          },
+          {
+            "name": "strength",
+            "positive": "strong",
+            "negative": ""
+          },
+          {
+            "name": "ejective_feature",
+            "positive": "ejective",
+            "negative": ""
           }
         ]
       },
@@ -146,7 +135,7 @@
           {
             "name": "continuant",
             "positive": "continuant",
-            "negative": ""
+            "negative": "non-continuant"
           },
           {
             "name": "nasal",
@@ -182,6 +171,51 @@
             "name": "syllabic",
             "positive": "syllabic",
             "negative": "non-syllabic"
+          },
+          {
+            "name": "pre_nasalization",
+            "positive": "pre-nasalized",
+            "negative": ""
+          },
+          {
+            "name": "nasal_click",
+            "positive": "nasal-click",
+            "negative": ""
+          },
+          {
+            "name": "Release",
+            "children": [
+              {
+                "name": "no_release",
+                "positive": "unreleased",
+                "negative": ""
+              },
+              {
+                "name": "nasal_release",
+                "positive": "with-nasal-release",
+                "negative": ""
+              },
+              {
+                "name": "lateral_release",
+                "positive": "with-lateral-release",
+                "negative": ""
+              },
+              {
+                "name": "fricated_release",
+                "positive": "with-frication",
+                "negative": ""
+              }
+            ]
+          },
+          {
+            "name": "nasalized_feature",
+            "positive": "nasalized",
+            "negative": ""
+          },
+          {
+            "name": "dorsal_closure",
+            "positive": "dorsal-closure",
+            "negative": ""
           }
         ]
       },
@@ -195,6 +229,11 @@
                 "name": "round",
                 "positive": "rounded",
                 "negative": "unrounded"
+              },
+              {
+                "name": "rounding_degree",
+                "positive": "more-rounded",
+                "negative": "less-rounded"
               }
             ]
           },
@@ -204,59 +243,76 @@
               {
                 "name": "anterior",
                 "positive": "anterior",
-                "negative": ""
+                "negative": "non-anterior"
               },
               {
                 "name": "distributed",
                 "positive": "distributed",
-                "negative": ""
+                "negative": "non-distributed"
+              },
+              {
+                "name": "tongue_blade",
+                "positive": "apical",
+                "negative": "laminal"
               }
             ]
           },
           {
             "name": "Dorsal",
-            "children": [
-              {
-                "name": "high",
-                "positive": "close",
-                "negative": "open"
-              },
-              {
-                "name": "low",
-                "positive": "near-open",
-                "negative": "near-close"
-              },
-              {
-                "name": "back",
-                "positive": "back",
-                "negative": "front"
-              }
-            ]
+            "children": []
           },
           {
             "name": "Pharyngeal",
+            "children": []
+          },
+          {
+            "name": "Shift",
             "children": [
               {
-                "name": "pharyngeal_place",
-                "positive": "pharyngeal",
+                "name": "front_back_shift",
+                "positive": "advanced",
+                "negative": "retracted"
+              },
+              {
+                "name": "height_shift",
+                "positive": "raised",
+                "negative": "lowered"
+              },
+              {
+                "name": "centralization",
+                "positive": "centralized",
                 "negative": ""
               },
               {
-                "name": "epiglottal_place",
-                "positive": "epiglottal",
+                "name": "mid_centralization",
+                "positive": "mid-centralized",
                 "negative": ""
               }
             ]
           },
           {
-            "name": "Glottal",
-            "children": [
-              {
-                "name": "glottal_place",
-                "positive": "glottal",
-                "negative": ""
-              }
-            ]
+            "name": "labial_articulator",
+            "positive": "labial",
+            "negative": "",
+            "weight": 0.4
+          },
+          {
+            "name": "coronal_articulator",
+            "positive": "coronal",
+            "negative": "",
+            "weight": 0.4
+          },
+          {
+            "name": "dorsal_articulator",
+            "positive": "dorsal",
+            "negative": "",
+            "weight": 0.4
+          },
+          {
+            "name": "guttural_articulator",
+            "positive": "guttural",
+            "negative": "",
+            "weight": 0.4
           }
         ]
       },
@@ -274,39 +330,53 @@
         "name": "Prosodic",
         "children": [
           {
-            "name": "long_feature",
-            "positive": "long",
-            "negative": ""
+            "name": "Length",
+            "children": []
           },
           {
-            "name": "nasalized_feature",
-            "positive": "nasalized",
-            "negative": ""
-          },
-          {
-            "name": "labialized_feature",
-            "positive": "labialized",
-            "negative": ""
-          },
-          {
-            "name": "palatalized_feature",
-            "positive": "palatalized",
-            "negative": ""
-          },
-          {
-            "name": "pharyngealized_feature",
-            "positive": "pharyngealized",
-            "negative": ""
-          },
-          {
-            "name": "ejective_feature",
-            "positive": "ejective",
-            "negative": ""
-          },
-          {
-            "name": "stress_feature",
-            "positive": "primary-stress",
-            "negative": ""
+            "name": "Secondary",
+            "children": [
+              {
+                "name": "labialized_feature",
+                "positive": "labialized",
+                "negative": ""
+              },
+              {
+                "name": "palatalized_feature",
+                "positive": "palatalized",
+                "negative": ""
+              },
+              {
+                "name": "pharyngealized_feature",
+                "positive": "pharyngealized",
+                "negative": ""
+              },
+              {
+                "name": "velarized_feature",
+                "positive": "velarized",
+                "negative": ""
+              },
+              {
+                "name": "labio_palatalized_feature",
+                "positive": "labio-palatalized",
+                "negative": ""
+              },
+              {
+                "name": "rhotacized_feature",
+                "positive": "rhotacized",
+                "negative": ""
+              },
+              {
+                "name": "pre_labialized_feature",
+                "positive": "pre-labialized",
+                "negative": ""
+              },
+              {
+                "name": "pre_palatalized_feature",
+                "positive": "pre-palatalized",
+                "negative": ""
+              }
+            ]
           }
         ]
       },
@@ -314,52 +384,173 @@
         "name": "Tonal",
         "children": [
           {
+            "name": "tone_presence",
+            "positive": "tone-present",
+            "negative": ""
+          },
+          {
             "name": "TonalOnset",
-            "children": [
-              {
-                "name": "tone_onset_register",
-                "positive": "tone-onset-upper",
-                "negative": "tone-onset-lower"
-              },
-              {
-                "name": "tone_onset_height",
-                "positive": "tone-onset-raised",
-                "negative": "tone-onset-lowered"
-              }
-            ]
+            "children": []
           },
           {
             "name": "TonalMid",
-            "children": [
-              {
-                "name": "tone_mid_register",
-                "positive": "tone-mid-upper",
-                "negative": "tone-mid-lower"
-              },
-              {
-                "name": "tone_mid_height",
-                "positive": "tone-mid-raised",
-                "negative": "tone-mid-lowered"
-              }
-            ]
+            "children": []
           },
           {
             "name": "TonalOffset",
-            "children": [
-              {
-                "name": "tone_offset_register",
-                "positive": "tone-offset-upper",
-                "negative": "tone-offset-lower"
-              },
-              {
-                "name": "tone_offset_height",
-                "positive": "tone-offset-raised",
-                "negative": "tone-offset-lowered"
-              }
-            ]
+            "children": []
           }
         ]
+      },
+      {
+        "name": "vocoid",
+        "positive": "vocoid",
+        "negative": "consonantal",
+        "weight": 0.8
       }
     ]
+  },
+  "compatibility_names": [
+    "clements-hume"
+  ],
+  "inspired_by": "Clements, G.N. & Hume, E.V. (1995). The internal organization of speech sounds.",
+  "theory_fidelity": "inspired-by",
+  "departures": [
+    "Adds a Prosodic node (length, nasalization, secondary articulations, ejectivity, stress) that Clements & Hume do not place in the feature tree.",
+    "Adds a Tonal node with onset/mid/offset subtrees encoding Chao levels; Clements & Hume do not propose this decomposition.",
+    "Treats the tree as a numerical aggregation structure: leaf and node base weights are derived mechanically as 1/depth by tools/generate_c_data.py. Clements & Hume propose no similarity or sound-change cost metric.",
+    "Collapses several theoretical constituency and association distinctions (spreading, multiple association, contour timing) that the source theory represents structurally.",
+    "Adds major-class, release, articulatory-shift, length, and secondary-articulation leaves that the source theory either represents structurally or does not represent at all. These exist so that every label the bundled models can return reaches the score; see docs/geometry.md.",
+    "Scores ordered properties (vowel height and backness, place series, duration, Chao tone level) as ordered scales rather than as independent privative features, so that one step costs less than four. The source theory has no scoring model at all; this is a merkmal decision.",
+    "Separates length, secondary articulation and stress into their own nodes under Prosodic, and moves nasalisation and ejectivity out of it, so that dropping the suprasegmentals does not silently drop segmental contrasts.",
+    "Does not represent stress. mk_normalize_input_grapheme strips a leading stress mark, because stress is a property of the syllable rather than the segment, so a stress leaf could never fire.",
+    "Carries the privative articulator features (labial, coronal, dorsal, guttural) as leaves, because the ordered place scales measure gradience within an articulator and cannot express a difference between two."
+  ],
+  "scoring_rule": "base_weight = 1 / node_depth; see docs/geometry.md",
+  "ordinal_scales": [
+    {
+      "name": "vowel_height",
+      "node": "Dorsal",
+      "levels": [
+        "close",
+        "near-close",
+        "close-mid",
+        "mid",
+        "open-mid",
+        "near-open",
+        "open"
+      ],
+      "weight": 1.0
+    },
+    {
+      "name": "vowel_backness",
+      "node": "Dorsal",
+      "levels": [
+        "front",
+        "near-front",
+        "central",
+        "near-back",
+        "back"
+      ],
+      "weight": 0.8
+    },
+    {
+      "name": "dorsal_place",
+      "node": "Dorsal",
+      "levels": [
+        "palatal",
+        "labio-palatal",
+        "palatal-velar",
+        "velar",
+        "labio-velar",
+        "uvular"
+      ],
+      "weight": 0.5
+    },
+    {
+      "name": "coronal_place",
+      "node": "Coronal",
+      "levels": [
+        "linguolabial",
+        "dental",
+        "alveolar",
+        "post-alveolar",
+        "retroflex",
+        "alveolo-palatal"
+      ],
+      "weight": 0.5
+    },
+    {
+      "name": "labial_place",
+      "node": "Labial",
+      "levels": [
+        "bilabial",
+        "labio-dental"
+      ],
+      "weight": 0.3
+    },
+    {
+      "name": "guttural_place",
+      "node": "Pharyngeal",
+      "levels": [
+        "pharyngeal",
+        "epiglottal",
+        "glottal"
+      ],
+      "weight": 0.4
+    },
+    {
+      "name": "duration",
+      "node": "Length",
+      "levels": [
+        "ultra-short",
+        "short",
+        "mid-long",
+        "long",
+        "ultra-long"
+      ],
+      "weight": 0.5,
+      "default_level": 1
+    },
+    {
+      "name": "tone_onset_level",
+      "node": "TonalOnset",
+      "levels": [
+        "tone-onset-1",
+        "tone-onset-2",
+        "tone-onset-3",
+        "tone-onset-4",
+        "tone-onset-5"
+      ],
+      "weight": 0.4
+    },
+    {
+      "name": "tone_mid_level",
+      "node": "TonalMid",
+      "levels": [
+        "tone-mid-1",
+        "tone-mid-2",
+        "tone-mid-3",
+        "tone-mid-4",
+        "tone-mid-5"
+      ],
+      "weight": 0.4
+    },
+    {
+      "name": "tone_offset_level",
+      "node": "TonalOffset",
+      "levels": [
+        "tone-offset-1",
+        "tone-offset-2",
+        "tone-offset-3",
+        "tone-offset-4",
+        "tone-offset-5"
+      ],
+      "weight": 0.4
+    }
+  ],
+  "metadata_features": {
+    "consonant": "human-readable duplicate of the derived `consonantal`, which is what scores",
+    "vowel": "human-readable duplicate of the derived `vocoid`, which is what scores"
   }
 }

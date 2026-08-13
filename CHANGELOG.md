@@ -2,6 +2,157 @@
 
 ## Unreleased
 
+### Second review pass: ordered scales, derived class features, tone
+
+An independent linguistic review ([docs/independent-linguistic-review.md](docs/independent-linguistic-review.md))
+found that the first pass had corrected the symptoms it measured while leaving
+the underlying defect: ordered properties were encoded as unordered flags, and
+several basic features were unreachable. See
+[docs/review-response.md](docs/review-response.md) for the correction notice.
+
+- **Corrected claim.** "Every consonant-consonant pair scores below every
+  consonant-vowel pair" was false; it generalised from eight hand-picked pairs.
+  Measured across the inventory, `broad` had a max C-C of 0.829 against a min
+  C-V of 0.660. The claim is withdrawn.
+- **Corrected claim.** "Every zero is on the record" covered only the bare
+  inventory of the three categorical systems. It missed composed forms
+  (`d(aː, aːː)` was 0) and all five valued systems (`phoible` scored zero on
+  ~5% of pairs). The audit now covers all eight systems and composed forms.
+- **Corrected claim.** "33 dead labels to 0" checked one direction only.
+  Thirteen scoring leaves were unreachable because no inventory name ever says
+  `sonorant`, `continuant`, `anterior` or `distributed`. Both directions are now
+  checked.
+- **Breaking (numeric): all categorical distances changed again.** Ordered
+  properties are now scored as ordered scales, cost proportional to the
+  difference in level.
+- Fixed: the vowel space was not ordinally correct. `d(i,e)` was 0.214 while
+  `d(i,a)` was 0.167, and `/i/`, `/e/` and `/a/` were all exactly 0.500 from
+  `/ɔ/`. Height and backness are now seven- and five-point ordered scales.
+- Fixed: the Chao tone code was not monotone in the digit. Levels 2 and 4
+  differed on both the register and the height bit, so they scored as far apart
+  as 1 and 5. Each position now carries an ordered level.
+- Fixed: two-digit contours never filled the mid slot, so `a¹` and `a¹¹` — the
+  same level tone spelled two ways — differed.
+- Added: IPA tone letters U+02E5–U+02E9, the primary IPA tone notation, were
+  rejected outright and are now read as pitch levels.
+- Fixed: 19 precomposed tone-marked vowels (including the whole Pinyin
+  third-tone set `ǎ ě ǐ ǒ ǔ`) were rejected while their canonically equivalent
+  NFD spellings were accepted — and `normalize()` returns the precomposed form,
+  so the documented preprocessing step turned working input into failing input.
+  Decomposition is now table-driven and identical with or without utf8proc.
+- Fixed: length was a set of unordered flags. A half-long vowel scored further
+  from a long one than a plain vowel did, `aː` and `aːː` were identical, and
+  breve-plus-length-mark asserted both `ultra-short` and `long`. Duration is now
+  a five-point ordered scale, a repeated length mark means overlong, and
+  contradictory values are rejected.
+- Fixed: every manner distinction cost the same, because `sonorant`,
+  `continuant`, `anterior` and `distributed` were never activated by any
+  grapheme. They are now derived from the manner and place labels.
+- Fixed: `/w/` scored as far from `/u/` as `/ʔ/` does from `/a/`. `vocoid` is
+  derived and covers the cardinal glides, which are [-consonantal].
+- Fixed: clicks carried the rear closure as a second place, so `/ǃ/` was exactly
+  equidistant from `/k/` and `/t/`. The rear closure is now its own feature.
+- Fixed: `segmental` and `ignore-prosodic` silently discarded nasalisation and
+  ejectivity along with length. Both moved out of `Prosodic`; `ignore-length`
+  and `ignore-secondary` presets added.
+- Fixed: `mb` and `nd` were rejected by a two-item blocklist while `mp`, `nt`,
+  `ŋg` and `ndz` were accepted. The blocklist is gone.
+- Fixed: `pre-nasalized` was asserted for any nasal-initial cluster, so the
+  geminates `mm`/`nn` and the labial-velar nasal `ŋm` carried it.
+- Fixed: three inventory errors — a Private-Use-Area codepoint U+F268, a
+  spurious `oz̻`, and `ǃǃ` — and seven rows carrying an undescribed combining
+  circumflex, which consumed the tone mark and produced a plain mid vowel while
+  the same sequence elsewhere synthesised a full falling tone.
+- Fixed: `classes.tsv` defined class `R` "resonant" as `consonant,-stop`, which
+  captured every fricative and affricate; and shipped a leftover `XXX`
+  "development" class.
+- Fixed: `typologies/lenition-bias.json` made devoicing the cheap direction,
+  contradicting its own stated lenition scale.
+- Fixed: two more inventory naming errors that made distinct segments
+  identical — `ʈʂː` was named *voiced* though `ʈʂ` is voiceless, and `ⁿgǃ` (a
+  prenasalized plain click) was named a *nasal-click*, which made it the same
+  as prenasalized `ŋǃ`.
+- Fixed: cross-articulator place had become invisible while the ordered place
+  scales were being introduced — each scale is undefined for the other
+  articulator, so `d(b, g)` was 0. The privative articulator features (labial,
+  coronal, dorsal, guttural) now carry that difference.
+- Result: **no pair of distinct forms scores zero in any categorical system**,
+  over 611,065 pairs including modifier-composed forms; every label can affect
+  a distance and every scoring dimension is reachable.
+- Documented: phonetic distance does not track diachronic probability. Frequent
+  changes score *further* apart than rare ones on average. This is inherent, not
+  a tuning target.
+
+### First review pass
+
+#### Response to the external linguistics and phonology review
+
+See [docs/review-response.md](docs/review-response.md) for the finding-by-finding
+account. Highlights:
+
+- **Breaking (numeric): categorical and `pbase-jfh` distances changed.** Every
+  distance produced by `broad`, `descriptive`, and `distinctive` moved, and
+  every feature set for a tone-bearing grapheme changed. Recompute stored
+  distances, alignments, clusters, and thresholds; do not mix cached scores
+  across this change.
+- Fixed: 33 feature labels reached no scoring dimension and so could not affect
+  any distance, among them `consonant`, `vowel`, `devoiced`, `apical`,
+  `laminal`, `unreleased`, `velarized`, and the whole length series. As a
+  result `p`~`p̥`, `t`~`t̺`, `k`~`k̚`, and `y`~`yːː` all scored exactly zero.
+  Over all 302,253 inventory pairs, zero-distance pairs fell from 802/802/599
+  to 7/7/7, and those 7 are now declared with reasons in
+  `tests/golden/contrast_baseline.tsv`.
+- Fixed: `distinctive` could not separate palatal/velar/uvular consonants,
+  bilabial from labiodental, the guttural places, close-mid from mid from
+  open-mid, lateral fricatives from lateral approximants, or clicks from
+  implosives. Dimensions were added for each.
+- Fixed: Chao level 3 produced no features, so a mid-tone segment was identical
+  to a toneless one (`a` = `a³³` = `ā`). Tone now emits `tone-present` plus an
+  explicit `tone-<position>-mid-level`.
+- Fixed: a Chao run of four or more digits was split into two contradictory
+  tone readings, so `a¹²³⁴` was accepted and carried both `tone-onset-lowered`
+  and `tone-onset-raised`. Over-long runs are now rejected whole.
+- Fixed: `models/pbase-jfh/model.json` mapped `"vocalic "` with a trailing
+  space, so that dimension was absent from every `pbase-jfh` distance. The dead
+  `spread` key was removed from `models/pbase-spe/model.json`.
+- Fixed: `models/phoible/model.json` declared the state symbol `0`, which never
+  occurs in its inventory, while the 30,181 cells written as `.` were
+  undeclared. Its license is corrected from generic `CC-BY` to `CC-BY-SA-3.0`.
+- Breaking: the valued systems (`pbase-*`, `phoible`) now return
+  `MK_ERR_UNSUPPORTED_MODEL` for tone-bearing graphemes. None has a dimension a
+  tone modifier can move, so they previously scored `a¹¹` and `a⁵⁵` as equal.
+- Breaking: runtime model registration validates strictly by default. A model
+  whose features the geometry does not know is rejected with a diagnostic
+  instead of registering and then scoring every comparison as zero. Use
+  `@validation permissive` to opt out.
+- Breaking: the distribution declares
+  `MIT AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`, not MIT alone. The compiled-in
+  tables include PHOIBLE (share-alike) and P-base (non-commercial share-alike)
+  data. See the generated `NOTICE`.
+- Added: `mk_system_segment_ipa` / `merkmal.system_segment_ipa`, longest-match
+  tokenization that agrees with a system's own recognizer, so `tʃa` becomes
+  `[tʃ, a]` and `kpa` becomes `[kp, a]`. `mk_segment_ipa` is unchanged and now
+  documented as orthographic tokenization.
+- Added: `mk_registry_add_model_text_ex`, which reports which line and token a
+  rejected model failed on.
+- Added: per-artifact `models/*/provenance.json`, a generated `NOTICE`, and
+  `scripts/generate_notice.py`. Upstream release, commit, and retrieval date
+  are recorded as `UNVERIFIED` rather than guessed.
+- Added: `scripts/contrast_baseline.py` (exhaustive collapse and dead-label
+  audit) and `scripts/regenerate_golden.py` (reviewable fixture regeneration).
+- Changed: the geometry is identified as `merkmal-clements-hume-inspired-v1`
+  with an explicit `departures` list; `clements-hume` remains a compatibility
+  name. See [docs/geometry.md](docs/geometry.md).
+- Changed: `typologies/corecog-derived.json` is quarantined. It is not a
+  sound-change direction prior: unordered daughter-daughter pairs do not
+  identify direction, its stated pair orientation was wrong, and its cost
+  transform was inverted. See `typologies/README.md`.
+- Documented: the output is an experimental dissimilarity, not a metric, not a
+  sound-change probability, and not a typological statistic. `broad` and
+  `descriptive` are operationally identical at this revision.
+
+### Earlier unreleased work
+
 - Breaking: repository direction changed from parallel Python/Go
   implementations to a C99 core library with a native Python wrapper.
   Go support has been retired.

@@ -26,9 +26,9 @@ static int mk_features_contains(
     return 0;
 }
 
-static int mk_entry_contains(const mk_builtin_entry *entry, const char *feature)
+static int mk_view_contains(mk_feature_view view, const char *feature)
 {
-    return mk_features_contains(entry->features, entry->feature_count, feature);
+    return mk_features_contains(view.features, view.count, feature);
 }
 
 static int mk_is_leaf_feature(const char *feature)
@@ -67,6 +67,93 @@ static const mk_feature_path *mk_find_feature_path(const char *feature)
         }
     }
     return NULL;
+}
+
+static int mk_is_ordinal_level_feature(const char *feature)
+{
+    size_t i;
+    size_t j;
+
+    for (i = 0; i < mk_clements_hume_ordinal_scale_count; i++) {
+        const mk_ordinal_scale *scale = &mk_clements_hume_ordinal_scales[i];
+        for (j = 0; j < scale->level_count; j++) {
+            if (mk_streq(scale->levels[j], feature)) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+/* Reports a feature set that sits at two points on one ordered scale. The
+ * diacritic composer can build one: breve plus length mark yields both
+ * `ultra-short` and `long`, which is not a segment any language contrasts. */
+int mk_ordinal_conflict(
+    const char *const *features,
+    size_t feature_count,
+    const char **scale_out,
+    const char **first_out,
+    const char **second_out
+)
+{
+    size_t i;
+    size_t j;
+
+    for (i = 0; i < mk_clements_hume_ordinal_scale_count; i++) {
+        const mk_ordinal_scale *scale = &mk_clements_hume_ordinal_scales[i];
+        const char *found = NULL;
+
+        for (j = 0; j < scale->level_count; j++) {
+            if (!mk_features_contains(features, feature_count, scale->levels[j])) {
+                continue;
+            }
+            if (found != NULL) {
+                if (scale_out != NULL) {
+                    *scale_out = scale->name;
+                }
+                if (first_out != NULL) {
+                    *first_out = found;
+                }
+                if (second_out != NULL) {
+                    *second_out = scale->levels[j];
+                }
+                return 1;
+            }
+            found = scale->levels[j];
+        }
+    }
+    return 0;
+}
+
+static int mk_is_metadata_feature(const char *feature)
+{
+    size_t i;
+
+    for (i = 0; i < mk_default_metadata_feature_count; i++) {
+        if (mk_streq(mk_default_metadata_features[i], feature)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int mk_geometry_knows_feature(const char *feature)
+{
+    if (feature == NULL || feature[0] == '\0') {
+        return 0;
+    }
+    return mk_is_metadata_feature(feature) || mk_geometry_scores_feature(feature);
+}
+
+int mk_geometry_scores_feature(const char *feature)
+{
+    if (feature == NULL || feature[0] == '\0') {
+        return 0;
+    }
+    return mk_is_leaf_feature(feature) ||
+        mk_is_ordinal_level_feature(feature) ||
+        mk_feature_node(feature) != NULL ||
+        mk_find_feature_path(feature) != NULL;
 }
 
 mk_status mk_feature_distance(
@@ -231,8 +318,8 @@ static mk_node_group *mk_get_group(
 }
 
 static void mk_process_node_feature(
-    const mk_builtin_entry *a,
-    const mk_builtin_entry *b,
+    mk_feature_view a,
+    mk_feature_view b,
     const char *feature,
     mk_node_group *groups,
     size_t *group_count
@@ -243,7 +330,9 @@ static void mk_process_node_feature(
     int in_a;
     int in_b;
 
-    if (mk_is_leaf_feature(feature)) {
+    if (mk_is_leaf_feature(feature) || mk_is_ordinal_level_feature(feature)) {
+        /* Scored by the leaf loop or by an ordered scale. Letting it also fire
+         * the node-group boolean would charge one difference twice. */
         return;
     }
     node = mk_feature_node(feature);
@@ -251,28 +340,83 @@ static void mk_process_node_feature(
         return;
     }
 
-    in_a = mk_entry_contains(a, feature);
-    in_b = mk_entry_contains(b, feature);
+    in_a = mk_view_contains(a, feature);
+    in_b = mk_view_contains(b, feature);
     group = mk_get_group(groups, group_count, node);
     if (in_a != in_b) {
         group->differs = 1;
     }
 }
 
+/* Returns the entry's position on an ordered scale, or MK_ORDINAL_UNDEFINED
+ * when it carries no label from the scale and the scale has no unmarked
+ * default. The first matching level wins; the generator rejects entries
+ * carrying two labels from one scale, so there is no ambiguity to resolve. */
+static int mk_ordinal_level(
+    mk_feature_view view,
+    const mk_ordinal_scale *scale
+)
+{
+    size_t i;
+
+    for (i = 0; i < scale->level_count; i++) {
+        if (mk_view_contains(view, scale->levels[i])) {
+            return (int)i;
+        }
+    }
+    return scale->default_level;
+}
+
+static void mk_accumulate_ordinal_scales(
+    mk_feature_view a,
+    mk_feature_view b,
+    const mk_node_weight_preset *preset,
+    double *total_weight,
+    double *total_diff
+)
+{
+    size_t i;
+
+    for (i = 0; i < mk_clements_hume_ordinal_scale_count; i++) {
+        const mk_ordinal_scale *scale = &mk_clements_hume_ordinal_scales[i];
+        int level_a = mk_ordinal_level(a, scale);
+        int level_b = mk_ordinal_level(b, scale);
+        double weight;
+        double span;
+        int steps;
+
+        /* The property does not apply to at least one of the two segments:
+         * a consonant has no vowel height, a toneless segment no tone level.
+         * Major class and tone presence carry that difference already. */
+        if (level_a == MK_ORDINAL_UNDEFINED || level_b == MK_ORDINAL_UNDEFINED) {
+            continue;
+        }
+        if (scale->level_count < 2) {
+            continue;
+        }
+
+        weight = mk_dimension_weight(preset, scale->node, scale->weight);
+        *total_weight += weight;
+        steps = level_a > level_b ? level_a - level_b : level_b - level_a;
+        span = (double)(scale->level_count - 1);
+        *total_diff += weight * ((double)steps / span);
+    }
+}
+
 static double mk_dimension_value(
-    const mk_builtin_entry *entry,
+    mk_feature_view view,
     const mk_scalar_dimension *dimension
 )
 {
     size_t i;
 
     for (i = 0; i < dimension->positive_count; i++) {
-        if (mk_entry_contains(entry, dimension->positive[i])) {
+        if (mk_view_contains(view, dimension->positive[i])) {
             return 1.0;
         }
     }
     for (i = 0; i < dimension->negative_count; i++) {
-        if (mk_entry_contains(entry, dimension->negative[i])) {
+        if (mk_view_contains(view, dimension->negative[i])) {
             return -1.0;
         }
     }
@@ -281,18 +425,14 @@ static double mk_dimension_value(
 
 static double mk_scalar_categorical_distance(
     const mk_builtin_system *system,
-    const mk_builtin_entry *a,
-    const mk_builtin_entry *b,
+    mk_feature_view a,
+    mk_feature_view b,
     const mk_node_weight_preset *preset
 )
 {
     size_t i;
     double total_weight = 0.0;
     double total_diff = 0.0;
-
-    if (a == b || mk_streq(a->grapheme, b->grapheme)) {
-        return 0.0;
-    }
 
     for (i = 0; i < system->scalar_dimension_count; i++) {
         const mk_scalar_dimension *dimension = &system->scalar_dimensions[i];
@@ -311,13 +451,15 @@ static double mk_scalar_categorical_distance(
         total_diff += weight * fabs(a_val - b_val) / divisor;
     }
 
+    mk_accumulate_ordinal_scales(a, b, preset, &total_weight, &total_diff);
+
     return total_weight > 0.0 ? total_diff / total_weight : 0.0;
 }
 
 static double mk_categorical_distance_resolved(
     const mk_builtin_system *system,
-    const mk_builtin_entry *a,
-    const mk_builtin_entry *b,
+    mk_feature_view a,
+    mk_feature_view b,
     const mk_node_weight_preset *preset
 )
 {
@@ -327,9 +469,6 @@ static double mk_categorical_distance_resolved(
     mk_node_group groups[128];
     size_t group_count;
 
-    if (a == b || mk_streq(a->grapheme, b->grapheme)) {
-        return 0.0;
-    }
     if (system != NULL && system->scalar_dimension_count > 0) {
         return mk_scalar_categorical_distance(system, a, b, preset);
     }
@@ -340,10 +479,10 @@ static double mk_categorical_distance_resolved(
     for (i = 0; i < mk_clements_hume_leaf_count; i++) {
         const mk_geometry_leaf *leaf = &mk_clements_hume_leaves[i];
         double weight = mk_dimension_weight(preset, leaf->parent, 1.0 / leaf->depth);
-        int a_pos = leaf->positive[0] != '\0' && mk_entry_contains(a, leaf->positive);
-        int a_neg = leaf->negative[0] != '\0' && mk_entry_contains(a, leaf->negative);
-        int b_pos = leaf->positive[0] != '\0' && mk_entry_contains(b, leaf->positive);
-        int b_neg = leaf->negative[0] != '\0' && mk_entry_contains(b, leaf->negative);
+        int a_pos = leaf->positive[0] != '\0' && mk_view_contains(a, leaf->positive);
+        int a_neg = leaf->negative[0] != '\0' && mk_view_contains(a, leaf->negative);
+        int b_pos = leaf->positive[0] != '\0' && mk_view_contains(b, leaf->positive);
+        int b_neg = leaf->negative[0] != '\0' && mk_view_contains(b, leaf->negative);
         double a_val;
         double b_val;
         double divisor;
@@ -362,12 +501,12 @@ static double mk_categorical_distance_resolved(
 
     memset(groups, 0, sizeof(groups));
     group_count = 0;
-    for (i = 0; i < a->feature_count; i++) {
-        mk_process_node_feature(a, b, a->features[i], groups, &group_count);
+    for (i = 0; i < a.count; i++) {
+        mk_process_node_feature(a, b, a.features[i], groups, &group_count);
     }
-    for (i = 0; i < b->feature_count; i++) {
-        if (!mk_entry_contains(a, b->features[i])) {
-            mk_process_node_feature(a, b, b->features[i], groups, &group_count);
+    for (i = 0; i < b.count; i++) {
+        if (!mk_view_contains(a, b.features[i])) {
+            mk_process_node_feature(a, b, b.features[i], groups, &group_count);
         }
     }
 
@@ -383,26 +522,36 @@ static double mk_categorical_distance_resolved(
         }
     }
 
+    mk_accumulate_ordinal_scales(a, b, preset, &total_weight, &total_diff);
+
     return total_weight > 0.0 ? total_diff / total_weight : 0.0;
 }
 
-double mk_categorical_distance(
+mk_status mk_score_categorical(
     const mk_builtin_system *system,
-    const mk_builtin_entry *a,
-    const mk_builtin_entry *b,
-    const char *node_weights
+    mk_feature_view a,
+    mk_feature_view b,
+    const char *node_weights,
+    double *out
 )
 {
     const mk_node_weight_preset *preset = NULL;
+    mk_status status;
 
-    if (mk_resolve_weight_preset(node_weights, &preset) != MK_OK) {
-        return NAN;
+    if (out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
     }
-    return mk_categorical_distance_resolved(system, a, b, preset);
+    *out = 0.0;
+    status = mk_resolve_weight_preset(node_weights, &preset);
+    if (status != MK_OK) {
+        return status;
+    }
+    *out = mk_categorical_distance_resolved(system, a, b, preset);
+    return MK_OK;
 }
 
 static int mk_label_value(
-    const mk_builtin_entry *entry,
+    mk_feature_view view,
     const char *feature,
     double *out
 )
@@ -410,8 +559,8 @@ static int mk_label_value(
     size_t i;
     size_t feature_len = strlen(feature);
 
-    for (i = 0; i < entry->feature_count; i++) {
-        const char *label = entry->features[i];
+    for (i = 0; i < view.count; i++) {
+        const char *label = view.features[i];
         if (strncmp(label, feature, feature_len) == 0 && label[feature_len] == '=') {
             char state = label[feature_len + 1];
             if (state == '.') {
@@ -430,24 +579,27 @@ static int mk_label_value(
     return 0;
 }
 
-double mk_valued_distance(
+mk_status mk_score_valued(
     const mk_builtin_system *system,
-    const mk_builtin_entry *a,
-    const mk_builtin_entry *b,
-    const char *node_weights
+    mk_feature_view a,
+    mk_feature_view b,
+    const char *node_weights,
+    double *out
 )
 {
     size_t i;
     double total_weight = 0.0;
     double total_diff = 0.0;
     const mk_node_weight_preset *preset = NULL;
+    mk_status status;
 
-    if (mk_resolve_weight_preset(node_weights, &preset) != MK_OK) {
-        return NAN;
+    if (out == NULL || system == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
     }
-
-    if (a == b || mk_streq(a->grapheme, b->grapheme)) {
-        return 0.0;
+    *out = 0.0;
+    status = mk_resolve_weight_preset(node_weights, &preset);
+    if (status != MK_OK) {
+        return status;
     }
 
     for (i = 0; i < system->geometry_map_count; i++) {
@@ -470,7 +622,8 @@ double mk_valued_distance(
         total_diff += weight * fabs(a_val - b_val) / 2.0;
     }
 
-    return total_weight > 0.0 ? total_diff / total_weight : 0.0;
+    *out = total_weight > 0.0 ? total_diff / total_weight : 0.0;
+    return MK_OK;
 }
 
 mk_status mk_sound_distance(
@@ -482,30 +635,18 @@ mk_status mk_sound_distance(
     double *out
 )
 {
-    mk_builtin_entry a;
-    mk_builtin_entry b;
-    const mk_node_weight_preset *preset = NULL;
-    mk_status status;
+    mk_feature_view a;
+    mk_feature_view b;
 
     if (out == NULL ||
         (feature_a_count > 0 && features_a == NULL) ||
         (feature_b_count > 0 && features_b == NULL)) {
         return MK_ERR_INVALID_ARGUMENT;
     }
-    status = mk_resolve_weight_preset(node_weights, &preset);
-    if (status != MK_OK) {
-        return status;
-    }
 
-    a.grapheme = "__mk_features_a__";
     a.features = features_a;
-    a.feature_count = feature_a_count;
-    b.grapheme = "__mk_features_b__";
+    a.count = feature_a_count;
     b.features = features_b;
-    b.feature_count = feature_b_count;
-    *out = mk_categorical_distance_resolved(NULL, &a, &b, preset);
-    if (isnan(*out)) {
-        return MK_ERR_INVALID_ARGUMENT;
-    }
-    return MK_OK;
+    b.count = feature_b_count;
+    return mk_score_categorical(NULL, a, b, node_weights, out);
 }

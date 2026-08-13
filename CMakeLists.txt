@@ -29,16 +29,19 @@ if(MERKMAL_REQUIRE_UTF8PROC AND NOT UTF8PROC_FOUND)
     message(FATAL_ERROR "libutf8proc was not found. Install it or disable MERKMAL_REQUIRE_UTF8PROC for development builds.")
 endif()
 
-add_library(merkmal
+set(MERKMAL_SOURCES
     src/feature_set.c
     src/geometry.c
     src/registry.c
+    src/resolver.c
     src/status.c
     src/string_list.c
     src/system.c
     src/unicode.c
     src/generated/builtin_data.c
 )
+
+add_library(merkmal ${MERKMAL_SOURCES})
 
 add_library(merkmal::merkmal ALIAS merkmal)
 
@@ -115,6 +118,29 @@ if(MERKMAL_BUILD_TESTS)
     )
     target_link_libraries(test_geometry PRIVATE merkmal)
     add_test(NAME geometry COMMAND test_geometry)
+
+    # The resolution seam is internal and a shared build does not export it, so
+    # this test compiles the library sources rather than linking the target.
+    # That keeps it running in every configuration, including BUILD_SHARED_LIBS.
+    add_executable(test_resolution tests/c/test_resolution.c ${MERKMAL_SOURCES})
+    target_include_directories(test_resolution
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+    if(UTF8PROC_FOUND)
+        target_compile_definitions(test_resolution PRIVATE MK_HAVE_UTF8PROC=1)
+        target_link_libraries(test_resolution PRIVATE PkgConfig::UTF8PROC)
+    else()
+        target_compile_definitions(test_resolution PRIVATE MK_HAVE_UTF8PROC=0)
+    endif()
+    if(MERKMAL_ENABLE_SANITIZER)
+        target_compile_options(test_resolution
+            PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
+        )
+        target_link_options(test_resolution PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
+    endif()
+    add_test(NAME resolution COMMAND test_resolution)
 endif()
 
 if(Python3_Interpreter_FOUND)

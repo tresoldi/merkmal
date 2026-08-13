@@ -9,8 +9,11 @@ description = "Standalone phonological feature systems for historical linguistic
 authors = [
     {name = "Tiago Tresoldi", email = "tiago.tresoldi@lingfil.uu.se"}
 ]
-license = "MIT"
-license-files = ["LICENSE"]
+# The wheel embeds the generated built-in tables, which include PHOIBLE
+# (share-alike) and P-base (non-commercial share-alike) data. Declaring the
+# distribution as MIT alone would misstate what it carries. See NOTICE.
+license = "MIT AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0"
+license-files = ["LICENSE", "NOTICE"]
 readme = "python/README.md"
 requires-python = ">=3.12"
 keywords = [

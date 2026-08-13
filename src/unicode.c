@@ -7,7 +7,7 @@
 #include <utf8proc.h>
 #endif
 
-static int mk_has_prefix(const char *s, const char *prefix)
+int mk_has_prefix(const char *s, const char *prefix)
 {
     size_t n;
 
@@ -18,7 +18,7 @@ static int mk_has_prefix(const char *s, const char *prefix)
     return strncmp(s, prefix, n) == 0;
 }
 
-static mk_status mk_append_bytes(char **buf, size_t *len, size_t *cap, const char *s)
+mk_status mk_append_text(char **buf, size_t *len, size_t *cap, const char *s)
 {
     size_t n;
     char *next;
@@ -42,7 +42,7 @@ static mk_status mk_append_bytes(char **buf, size_t *len, size_t *cap, const cha
     return MK_OK;
 }
 
-static size_t mk_utf8_char_len(unsigned char c)
+size_t mk_utf8_char_len(unsigned char c)
 {
     if (c < 0x80) {
         return 1;
@@ -159,193 +159,91 @@ static const char *mk_strip_leading_stress(const char *s)
     return s;
 }
 
-mk_status mk_normalize_input_grapheme(
+static const mk_decomposition *mk_find_decomposition(const char *p)
+{
+    size_t i;
+
+    for (i = 0; i < mk_default_decomposition_count; i++) {
+        if (mk_has_prefix(p, mk_default_decompositions[i].composed)) {
+            return &mk_default_decompositions[i];
+        }
+    }
+    return NULL;
+}
+
+/* Source spellings that are not canonical decompositions and so cannot come
+ * from the table: the IPA script g, the six affricate ligatures, ASCII stand-ins
+ * for the apostrophe and the length mark, and cedilla-c.
+ *
+ * "ç" is here for a specific reason. The generator emits a decomposition only
+ * when every mark of the letter is one the feature system understands, and
+ * cedilla is not among them, so "ç" is excluded from the table and needs a hand
+ * mapping. Any other precomposed letter carrying an uninterpretable mark is
+ * deliberately left composed, and therefore rejected rather than guessed at. */
+static const mk_decomposition mk_source_conventions[] = {
+    { "ɡ", "g" },
+    { "ʣ", "dz" },
+    { "ʤ", "dʒ" },
+    { "ʥ", "dʑ" },
+    { "ʦ", "ts" },
+    { "ʧ", "tʃ" },
+    { "ʨ", "tɕ" },
+    { "ç", "ç" },
+    { "’", "ʼ" },
+    { "'", "ʼ" },
+    { ":", "ː" }
+};
+
+/* Decompose a token using the compiled table.
+ *
+ * `source_conventions` also applies the mappings above. Lookup wants them --
+ * a source writing "ʧ" means the same segment as one writing "tʃ" -- while the
+ * tokenizer must not, because it reports the token as the caller wrote it.
+ *
+ * Decomposition is driven by the table rather than by utf8proc, so lookup
+ * accepts the same graphemes whether or not utf8proc is installed. The table
+ * covers only letters whose combining marks the feature system can interpret,
+ * so an unsupported source letter is still rejected rather than silently
+ * reinterpreted. */
+static mk_status mk_decompose(
     const char *utf8_in,
+    int source_conventions,
     char **utf8_out
 )
 {
-    const char *p;
-    char *tmp;
-    size_t len;
-    size_t cap;
+    const char *p = utf8_in;
+    char *tmp = NULL;
+    size_t len = 0;
+    size_t cap = 0;
     mk_status status;
 
-    if (utf8_in == NULL || utf8_out == NULL) {
-        return MK_ERR_INVALID_ARGUMENT;
-    }
     *utf8_out = NULL;
-
-    p = mk_strip_leading_stress(mk_resolve_slash(utf8_in));
-    tmp = NULL;
-    len = 0;
-    cap = 0;
-
     while (*p != '\0') {
-        if (mk_has_prefix(p, "ɡ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "g");
-            p += strlen("ɡ");
-        } else if (mk_has_prefix(p, "ʣ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "dz");
-            p += strlen("ʣ");
-        } else if (mk_has_prefix(p, "ʤ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "dʒ");
-            p += strlen("ʤ");
-        } else if (mk_has_prefix(p, "ʥ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "dʑ");
-            p += strlen("ʥ");
-        } else if (mk_has_prefix(p, "ʦ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ts");
-            p += strlen("ʦ");
-        } else if (mk_has_prefix(p, "ʧ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "tʃ");
-            p += strlen("ʧ");
-        } else if (mk_has_prefix(p, "ʨ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "tɕ");
-            p += strlen("ʨ");
-        } else if (mk_has_prefix(p, "ã")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ã");
-            p += strlen("ã");
-        } else if (mk_has_prefix(p, "ẽ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ẽ");
-            p += strlen("ẽ");
-        } else if (mk_has_prefix(p, "ĩ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ĩ");
-            p += strlen("ĩ");
-        } else if (mk_has_prefix(p, "õ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "õ");
-            p += strlen("õ");
-        } else if (mk_has_prefix(p, "ũ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ũ");
-            p += strlen("ũ");
-        } else if (mk_has_prefix(p, "ṽ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ṽ");
-            p += strlen("ṽ");
-        } else if (mk_has_prefix(p, "ñ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ñ");
-            p += strlen("ñ");
-        } else if (mk_has_prefix(p, "ỹ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ỹ");
-            p += strlen("ỹ");
-        } else if (mk_has_prefix(p, "ä")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ä");
-            p += strlen("ä");
-        } else if (mk_has_prefix(p, "ë")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ë");
-            p += strlen("ë");
-        } else if (mk_has_prefix(p, "ï")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ï");
-            p += strlen("ï");
-        } else if (mk_has_prefix(p, "ö")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ö");
-            p += strlen("ö");
-        } else if (mk_has_prefix(p, "ă")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ă");
-            p += strlen("ă");
-        } else if (mk_has_prefix(p, "ĕ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ĕ");
-            p += strlen("ĕ");
-        } else if (mk_has_prefix(p, "ĭ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ĭ");
-            p += strlen("ĭ");
-        } else if (mk_has_prefix(p, "ŏ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ŏ");
-            p += strlen("ŏ");
-        } else if (mk_has_prefix(p, "ŭ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ŭ");
-            p += strlen("ŭ");
-        } else if (mk_has_prefix(p, "ç")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ç");
-            p += strlen("ç");
-        } else if (mk_has_prefix(p, "á")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "á");
-            p += strlen("á");
-        } else if (mk_has_prefix(p, "é")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "é");
-            p += strlen("é");
-        } else if (mk_has_prefix(p, "í")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "í");
-            p += strlen("í");
-        } else if (mk_has_prefix(p, "ó")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ó");
-            p += strlen("ó");
-        } else if (mk_has_prefix(p, "ú")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ú");
-            p += strlen("ú");
-        } else if (mk_has_prefix(p, "ń")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ń");
-            p += strlen("ń");
-        } else if (mk_has_prefix(p, "à")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "à");
-            p += strlen("à");
-        } else if (mk_has_prefix(p, "è")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "è");
-            p += strlen("è");
-        } else if (mk_has_prefix(p, "ì")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ì");
-            p += strlen("ì");
-        } else if (mk_has_prefix(p, "ò")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ò");
-            p += strlen("ò");
-        } else if (mk_has_prefix(p, "ù")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ù");
-            p += strlen("ù");
-        } else if (mk_has_prefix(p, "â")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "â");
-            p += strlen("â");
-        } else if (mk_has_prefix(p, "ê")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ê");
-            p += strlen("ê");
-        } else if (mk_has_prefix(p, "î")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "î");
-            p += strlen("î");
-        } else if (mk_has_prefix(p, "ô")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ô");
-            p += strlen("ô");
-        } else if (mk_has_prefix(p, "û")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "û");
-            p += strlen("û");
-        } else if (mk_has_prefix(p, "ü")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ü");
-            p += strlen("ü");
-        } else if (mk_has_prefix(p, "ṳ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ṳ");
-            p += strlen("ṳ");
-        } else if (mk_has_prefix(p, "ḭ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ḭ");
-            p += strlen("ḭ");
-        } else if (mk_has_prefix(p, "ṵ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ṵ");
-            p += strlen("ṵ");
-        } else if (mk_has_prefix(p, "ÿ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ÿ");
-            p += strlen("ÿ");
-        } else if (mk_has_prefix(p, "ā")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ā");
-            p += strlen("ā");
-        } else if (mk_has_prefix(p, "ē")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ē");
-            p += strlen("ē");
-        } else if (mk_has_prefix(p, "ī")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ī");
-            p += strlen("ī");
-        } else if (mk_has_prefix(p, "ō")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ō");
-            p += strlen("ō");
-        } else if (mk_has_prefix(p, "ū")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ū");
-            p += strlen("ū");
-        } else if (mk_has_prefix(p, "'") || mk_has_prefix(p, "’")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ʼ");
-            p += mk_has_prefix(p, "'") ? 1 : strlen("’");
-        } else if (*p == ':') {
-            status = mk_append_bytes(&tmp, &len, &cap, "ː");
-            p++;
+        const mk_decomposition *rule = mk_find_decomposition(p);
+        size_t i;
+
+        /* Decompose first, so that a precomposed letter and its canonically
+         * equivalent sequence resolve identically. Without this, "ǎ" was
+         * rejected while the NFD spelling of the same character was accepted,
+         * and mk_normalize_grapheme (which returns NFC) turned accepted input
+         * into rejected input. */
+        if (rule == NULL && source_conventions) {
+            for (i = 0; i < sizeof(mk_source_conventions) / sizeof(mk_source_conventions[0]); i++) {
+                if (mk_has_prefix(p, mk_source_conventions[i].composed)) {
+                    rule = &mk_source_conventions[i];
+                    break;
+                }
+            }
+        }
+        if (rule != NULL) {
+            status = mk_append_text(&tmp, &len, &cap, rule->decomposed);
+            p += strlen(rule->composed);
         } else {
             char one[5];
             size_t n = mk_utf8_char_len((unsigned char)*p);
             memcpy(one, p, n);
             one[n] = '\0';
-            status = mk_append_bytes(&tmp, &len, &cap, one);
+            status = mk_append_text(&tmp, &len, &cap, one);
             p += n;
         }
         if (status != MK_OK) {
@@ -360,15 +258,24 @@ mk_status mk_normalize_input_grapheme(
             return MK_ERR_OOM;
         }
     }
-
-    /*
-     * Keep this input policy explicit. Full Unicode NFD here would turn
-     * unsupported source letters such as "ě" into a base letter plus a tone
-     * mark. The fallback path does not do that, so system lookup must not
-     * depend on whether utf8proc is installed.
-     */
     *utf8_out = tmp;
     return MK_OK;
+}
+
+mk_status mk_normalize_input_grapheme(
+    const char *utf8_in,
+    char **utf8_out
+)
+{
+    if (utf8_in == NULL || utf8_out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *utf8_out = NULL;
+    return mk_decompose(
+        mk_strip_leading_stress(mk_resolve_slash(utf8_in)),
+        1,
+        utf8_out
+    );
 }
 
 static const char *mk_compose_known_pair(const char *base, const char *mark)
@@ -539,27 +446,27 @@ mk_status mk_normalize_grapheme(
             mark[mark_len] = '\0';
             composed = mk_compose_known_pair(base, mark);
             if (composed != NULL) {
-                status = mk_append_bytes(&out, &len, &cap, composed);
+                status = mk_append_text(&out, &len, &cap, composed);
                 p += base_len + mark_len;
             } else if (*p == 'g') {
-                status = mk_append_bytes(&out, &len, &cap, "ɡ");
+                status = mk_append_text(&out, &len, &cap, "ɡ");
                 p++;
             } else {
                 char one[5];
                 size_t n = mk_utf8_char_len((unsigned char)*p);
                 memcpy(one, p, n);
                 one[n] = '\0';
-                status = mk_append_bytes(&out, &len, &cap, one);
+                status = mk_append_text(&out, &len, &cap, one);
                 p += n;
             }
         } else if (*p == 'g') {
-            status = mk_append_bytes(&out, &len, &cap, "ɡ");
+            status = mk_append_text(&out, &len, &cap, "ɡ");
             p++;
         } else {
             char one[5];
             memcpy(one, p, base_len);
             one[base_len] = '\0';
-            status = mk_append_bytes(&out, &len, &cap, one);
+            status = mk_append_text(&out, &len, &cap, one);
             p += base_len;
         }
         if (status != MK_OK) {
@@ -602,11 +509,46 @@ static int mk_is_suffix_modifier(const char *p)
     return mk_is_modifier_letter_or_symbol(p);
 }
 
+/* One decoder for both Chao notations, and the only one in the library.
+ *
+ * The superscript digits carry levels 0-5. The IPA tone letters U+02E5-U+02E9
+ * are the same notation written differently and run high to low, 5 down to 1;
+ * there is no tone letter for level 0. Returns the level, or -1 when this is
+ * not a Chao digit at all.
+ *
+ * There were three of these, with three different accepted alphabets. The
+ * tokenizer grouped tone letters into a run that the merge step could not read
+ * and therefore discarded as all-zero, so "a˥" lost its tone; and the
+ * recognizer accepted tone letters but not the superscript zero. */
+int mk_chao_level(const char *p)
+{
+    if (p == NULL) {
+        return -1;
+    }
+    if (mk_has_prefix(p, "⁰")) {
+        return 0;
+    }
+    if (mk_has_prefix(p, "¹") || mk_has_prefix(p, "˩")) {
+        return 1;
+    }
+    if (mk_has_prefix(p, "²") || mk_has_prefix(p, "˨")) {
+        return 2;
+    }
+    if (mk_has_prefix(p, "³") || mk_has_prefix(p, "˧")) {
+        return 3;
+    }
+    if (mk_has_prefix(p, "⁴") || mk_has_prefix(p, "˦")) {
+        return 4;
+    }
+    if (mk_has_prefix(p, "⁵") || mk_has_prefix(p, "˥")) {
+        return 5;
+    }
+    return -1;
+}
+
 static int mk_is_chao_digit(const char *p)
 {
-    return mk_has_prefix(p, "⁰") || mk_has_prefix(p, "¹") ||
-        mk_has_prefix(p, "²") || mk_has_prefix(p, "³") ||
-        mk_has_prefix(p, "⁴") || mk_has_prefix(p, "⁵");
+    return mk_chao_level(p) >= 0;
 }
 
 static mk_status mk_segmentation_nfd(
@@ -614,10 +556,7 @@ static mk_status mk_segmentation_nfd(
     char **utf8_out
 )
 {
-    const char *p = utf8_in;
     char *tmp = NULL;
-    size_t len = 0;
-    size_t cap = 0;
     mk_status status;
 
     if (utf8_in == NULL || utf8_out == NULL) {
@@ -625,82 +564,15 @@ static mk_status mk_segmentation_nfd(
     }
     *utf8_out = NULL;
 
-    while (*p != '\0') {
-        if (mk_has_prefix(p, "ã")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ã");
-            p += strlen("ã");
-        } else if (mk_has_prefix(p, "ẽ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ẽ");
-            p += strlen("ẽ");
-        } else if (mk_has_prefix(p, "ĩ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ĩ");
-            p += strlen("ĩ");
-        } else if (mk_has_prefix(p, "õ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "õ");
-            p += strlen("õ");
-        } else if (mk_has_prefix(p, "ũ")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ũ");
-            p += strlen("ũ");
-        } else if (mk_has_prefix(p, "á")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "á");
-            p += strlen("á");
-        } else if (mk_has_prefix(p, "é")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "é");
-            p += strlen("é");
-        } else if (mk_has_prefix(p, "í")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "í");
-            p += strlen("í");
-        } else if (mk_has_prefix(p, "ó")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ó");
-            p += strlen("ó");
-        } else if (mk_has_prefix(p, "ú")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ú");
-            p += strlen("ú");
-        } else if (mk_has_prefix(p, "à")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "à");
-            p += strlen("à");
-        } else if (mk_has_prefix(p, "è")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "è");
-            p += strlen("è");
-        } else if (mk_has_prefix(p, "ì")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ì");
-            p += strlen("ì");
-        } else if (mk_has_prefix(p, "ò")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ò");
-            p += strlen("ò");
-        } else if (mk_has_prefix(p, "ù")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ù");
-            p += strlen("ù");
-        } else if (mk_has_prefix(p, "â")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "â");
-            p += strlen("â");
-        } else if (mk_has_prefix(p, "ê")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ê");
-            p += strlen("ê");
-        } else if (mk_has_prefix(p, "î")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "î");
-            p += strlen("î");
-        } else if (mk_has_prefix(p, "ô")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ô");
-            p += strlen("ô");
-        } else if (mk_has_prefix(p, "û")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "û");
-            p += strlen("û");
-        } else if (mk_has_prefix(p, "ü")) {
-            status = mk_append_bytes(&tmp, &len, &cap, "ü");
-            p += strlen("ü");
-        } else {
-            char one[5];
-            size_t n = mk_utf8_char_len((unsigned char)*p);
-            memcpy(one, p, n);
-            one[n] = '\0';
-            status = mk_append_bytes(&tmp, &len, &cap, one);
-            p += n;
-        }
-        if (status != MK_OK) {
-            free(tmp);
-            return status;
-        }
+    /* The same table lookup uses, so the tokenizer and the recognizer agree on
+     * which precomposed letters decompose. This used to be a separate
+     * hand-written list of twenty-one letters against the table's 386, which
+     * only mattered when utf8proc was absent -- exactly the build that has no
+     * second chance to get it right. The source conventions are not applied
+     * here: a token is reported as the caller wrote it. */
+    status = mk_decompose(utf8_in, 0, &tmp);
+    if (status != MK_OK) {
+        return status;
     }
 
 #if MK_HAVE_UTF8PROC
@@ -740,40 +612,36 @@ static int mk_is_chao_digit_token(const char *s)
     return 1;
 }
 
-static int mk_chao_digit_value(const char *p)
-{
-    if (mk_has_prefix(p, "⁰")) {
-        return 0;
-    }
-    if (mk_has_prefix(p, "¹")) {
-        return 1;
-    }
-    if (mk_has_prefix(p, "²")) {
-        return 2;
-    }
-    if (mk_has_prefix(p, "³")) {
-        return 3;
-    }
-    if (mk_has_prefix(p, "⁴")) {
-        return 4;
-    }
-    if (mk_has_prefix(p, "⁵")) {
-        return 5;
-    }
-    return -1;
-}
-
 static int mk_chao_token_has_nonzero(const char *s)
 {
     const char *p = s;
 
     while (*p != '\0') {
-        if (mk_chao_digit_value(p) > 0) {
+        if (mk_chao_level(p) > 0) {
             return 1;
         }
         p += mk_utf8_char_len((unsigned char)*p);
     }
     return 0;
+}
+
+/* The vowel letters the cluster grammar and the tone-merge step both need.
+ * This set was written out twice, in two files, in two different orders. */
+int mk_is_vowel_letter(const char *p)
+{
+    return *p == 'a' || *p == 'e' || *p == 'i' || *p == 'o' || *p == 'u' ||
+        mk_has_prefix(p, "y") || mk_has_prefix(p, "ɛ") ||
+        mk_has_prefix(p, "ɔ") || mk_has_prefix(p, "ə") ||
+        mk_has_prefix(p, "ɨ") || mk_has_prefix(p, "ʉ") ||
+        mk_has_prefix(p, "ɯ") || mk_has_prefix(p, "ɵ") ||
+        mk_has_prefix(p, "œ") || mk_has_prefix(p, "æ") ||
+        mk_has_prefix(p, "ɐ") || mk_has_prefix(p, "ɑ") ||
+        mk_has_prefix(p, "ʌ") || mk_has_prefix(p, "ɪ") ||
+        mk_has_prefix(p, "ʊ") || mk_has_prefix(p, "ɤ") ||
+        mk_has_prefix(p, "ø") || mk_has_prefix(p, "ɘ") ||
+        mk_has_prefix(p, "ɜ") || mk_has_prefix(p, "ɞ") ||
+        mk_has_prefix(p, "ɒ") || mk_has_prefix(p, "ɶ") ||
+        mk_has_prefix(p, "ɿ") || mk_has_prefix(p, "ʅ");
 }
 
 static int mk_segment_is_syllabic(const char *segment)
@@ -788,19 +656,7 @@ static int mk_segment_is_syllabic(const char *segment)
             p += mk_utf8_char_len((unsigned char)*p);
             continue;
         }
-        if (*p == 'a' || *p == 'e' || *p == 'i' || *p == 'o' || *p == 'u' ||
-            mk_has_prefix(p, "y") || mk_has_prefix(p, "ɛ") ||
-            mk_has_prefix(p, "ɔ") || mk_has_prefix(p, "ə") ||
-            mk_has_prefix(p, "ɨ") || mk_has_prefix(p, "ʉ") ||
-            mk_has_prefix(p, "ɯ") || mk_has_prefix(p, "ɵ") ||
-            mk_has_prefix(p, "œ") || mk_has_prefix(p, "æ") ||
-            mk_has_prefix(p, "ɐ") || mk_has_prefix(p, "ɑ") ||
-            mk_has_prefix(p, "ʌ") || mk_has_prefix(p, "ɪ") ||
-            mk_has_prefix(p, "ʊ") || mk_has_prefix(p, "ɤ") ||
-            mk_has_prefix(p, "ø") || mk_has_prefix(p, "ɘ") ||
-            mk_has_prefix(p, "ɜ") || mk_has_prefix(p, "ɞ") ||
-            mk_has_prefix(p, "ɒ") || mk_has_prefix(p, "ɶ") ||
-            mk_has_prefix(p, "ɿ") || mk_has_prefix(p, "ʅ")) {
+        if (mk_is_vowel_letter(p)) {
             return 1;
         }
         p += mk_utf8_char_len((unsigned char)*p);
@@ -970,7 +826,7 @@ mk_status mk_segment_ipa(
             continue;
         } else if (mk_has_prefix(p, "͡") || mk_has_prefix(p, "͜")) {
             n = mk_utf8_char_len((unsigned char)*p);
-            status = mk_append_bytes(&current, &current_len, &current_cap, mk_has_prefix(p, "͡") ? "͡" : "͜");
+            status = mk_append_text(&current, &current_len, &current_cap, mk_has_prefix(p, "͡") ? "͡" : "͜");
             if (status != MK_OK) {
                 free(current);
                 free(normalized);
@@ -985,7 +841,7 @@ mk_status mk_segment_ipa(
             n = mk_utf8_char_len((unsigned char)*p);
             memcpy(one, p, n);
             one[n] = '\0';
-            status = mk_append_bytes(&current, &current_len, &current_cap, one);
+            status = mk_append_text(&current, &current_len, &current_cap, one);
             if (status != MK_OK) {
                 free(current);
                 free(normalized);
@@ -999,7 +855,7 @@ mk_status mk_segment_ipa(
             n = mk_utf8_char_len((unsigned char)*p);
             memcpy(one, p, n);
             one[n] = '\0';
-            status = mk_append_bytes(&current, &current_len, &current_cap, one);
+            status = mk_append_text(&current, &current_len, &current_cap, one);
             if (status != MK_OK) {
                 free(current);
                 free(normalized);
@@ -1032,7 +888,7 @@ mk_status mk_segment_ipa(
             n = mk_utf8_char_len((unsigned char)*p);
             memcpy(one, p, n);
             one[n] = '\0';
-            status = mk_append_bytes(&current, &current_len, &current_cap, one);
+            status = mk_append_text(&current, &current_len, &current_cap, one);
             if (status != MK_OK) {
                 free(current);
                 free(normalized);

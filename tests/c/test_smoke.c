@@ -151,8 +151,11 @@ int main(void)
         MK_OK,
         "features p"
     );
-    if (mk_feature_set_size(features) != 4) {
-        fprintf(stderr, "features p: expected 4, got %zu\n", mk_feature_set_size(features));
+    /* Four from the inventory name, plus consonantal, obstruent and
+     * non-continuant, which the generator derives because no inventory NAME
+     * ever states them. */
+    if (mk_feature_set_size(features) != 8) {
+        fprintf(stderr, "features p: expected 8, got %zu\n", mk_feature_set_size(features));
         failed = 1;
     }
     mk_feature_set_free(features);
@@ -163,8 +166,8 @@ int main(void)
         MK_OK,
         "features synthesized pʰ"
     );
-    if (mk_feature_set_size(features) != 5) {
-        fprintf(stderr, "features pʰ: expected 5, got %zu\n", mk_feature_set_size(features));
+    if (mk_feature_set_size(features) != 9) {
+        fprintf(stderr, "features pʰ: expected 9, got %zu\n", mk_feature_set_size(features));
         failed = 1;
     }
     mk_feature_set_free(features);
@@ -187,8 +190,11 @@ int main(void)
         MK_OK,
         "features normalized t͡ʃ"
     );
-    if (mk_feature_set_size(features) != 5) {
-        fprintf(stderr, "features t͡ʃ: expected 5, got %zu\n", mk_feature_set_size(features));
+    /* Five from the inventory name, plus the derived class features
+     * (consonantal, obstruent, non-continuant, non-anterior, distributed,
+     * coronal). */
+    if (mk_feature_set_size(features) != 11) {
+        fprintf(stderr, "features t͡ʃ: expected 11, got %zu\n", mk_feature_set_size(features));
         failed = 1;
     }
     mk_feature_set_free(features);
@@ -275,9 +281,9 @@ int main(void)
         "features tone vowel 31"
     );
     if (!features_contains(features, "vowel") ||
-        !features_contains(features, "tone-offset-lower") ||
-        !features_contains(features, "tone-offset-lowered")) {
-        fprintf(stderr, "features tone vowel 31: expected base vowel and offset tone features\n");
+        !features_contains(features, "tone-onset-3") ||
+        !features_contains(features, "tone-offset-1")) {
+        fprintf(stderr, "features tone vowel 31: expected base vowel and ordered tone levels\n");
         failed = 1;
     }
     mk_feature_set_free(features);
@@ -289,11 +295,10 @@ int main(void)
         "features tone vowel 51"
     );
     if (!features_contains(features, "vowel") ||
-        !features_contains(features, "tone-onset-upper") ||
-        !features_contains(features, "tone-onset-raised") ||
-        !features_contains(features, "tone-offset-lower") ||
-        !features_contains(features, "tone-offset-lowered")) {
-        fprintf(stderr, "features tone vowel 51: expected base vowel and onset/offset tone features\n");
+        !features_contains(features, "tone-onset-5") ||
+        !features_contains(features, "tone-mid-3") ||
+        !features_contains(features, "tone-offset-1")) {
+        fprintf(stderr, "features tone vowel 51: expected base vowel and a 5-3-1 contour\n");
         failed = 1;
     }
     mk_feature_set_free(features);
@@ -341,11 +346,13 @@ int main(void)
         MK_OK,
         "features long level tone diphthong"
     );
+    /* A mid level tone is a positive specification, not the absence of one. */
     if (!features_contains(features, "diphthong") ||
         !features_contains(features, "n1-long") ||
-        features_contains(features, "tone-onset-upper") ||
-        features_contains(features, "tone-offset-lower")) {
-        fprintf(stderr, "features long level tone diphthong: expected n1-long and neutral level tone\n");
+        !features_contains(features, "tone-present") ||
+        !features_contains(features, "tone-onset-3") ||
+        !features_contains(features, "tone-offset-3")) {
+        fprintf(stderr, "features long level tone diphthong: expected n1-long and a mid level tone\n");
         failed = 1;
     }
     mk_feature_set_free(features);
@@ -358,9 +365,9 @@ int main(void)
     );
     if (!features_contains(features, "diphthong") ||
         !features_contains(features, "n1-mid") ||
-        !features_contains(features, "tone-offset-lower") ||
-        !features_contains(features, "tone-offset-lowered")) {
-        fprintf(stderr, "features tone diphthong: expected cluster and tone features\n");
+        !features_contains(features, "tone-onset-3") ||
+        !features_contains(features, "tone-offset-1")) {
+        fprintf(stderr, "features tone diphthong: expected cluster and ordered tone levels\n");
         failed = 1;
     }
     mk_feature_set_free(features);
@@ -470,9 +477,9 @@ int main(void)
         "features tone syllabic sonorant"
     );
     if (!features_contains(features, "syllabic") ||
-        !features_contains(features, "tone-onset-lower") ||
-        !features_contains(features, "tone-offset-lower")) {
-        fprintf(stderr, "features tone syllabic sonorant: expected syllabic and tone features\n");
+        !features_contains(features, "tone-onset-2") ||
+        !features_contains(features, "tone-offset-2")) {
+        fprintf(stderr, "features tone syllabic sonorant: expected syllabic and ordered tone levels\n");
         failed = 1;
     }
     mk_feature_set_free(features);
@@ -567,11 +574,14 @@ int main(void)
     failed |= expect_segment(descriptive, "³¹", 0, "is segment bare tone 31");
     failed |= expect_segment(descriptive, "³⁵", 0, "is segment bare tone 35");
     failed |= expect_segment(descriptive, "⁵⁵", 0, "is segment bare tone 55");
-    failed |= expect_segment(descriptive, "mb", 0, "is segment bare mb");
-    failed |= expect_segment(descriptive, "nd", 0, "is segment bare nd");
-    failed |= expect_segment(descriptive, "ě", 0, "is segment deferred e caron");
-    failed |= expect_segment(descriptive, "ǎ", 0, "is segment deferred a caron");
-    failed |= expect_segment(descriptive, "ý", 0, "is segment deferred y acute");
+    /* Previously rejected: "mb" and "nd" by a two-item blocklist that accepted
+     * "mp" and "nt", and the precomposed tone vowels while their canonically
+     * equivalent NFD spellings were accepted. */
+    failed |= expect_segment(descriptive, "mb", 1, "is segment bare mb");
+    failed |= expect_segment(descriptive, "nd", 1, "is segment bare nd");
+    failed |= expect_segment(descriptive, "ě", 1, "is segment precomposed e caron");
+    failed |= expect_segment(descriptive, "ǎ", 1, "is segment precomposed a caron");
+    failed |= expect_segment(descriptive, "ý", 1, "is segment precomposed y acute");
 
     failed |= expect_status(
         mk_system_segment_distance(descriptive, "p", "b", &distance),
@@ -630,6 +640,89 @@ int main(void)
         MK_OK,
         "distance tone clusters"
     );
+
+    /* Node-weight presets, reached through the scoring seam. Every preset was
+     * previously verified only from Python. */
+    {
+        static const char *const presets[] = {
+            "flat", "segmental", "ignore-tone", "ignore-length",
+            "ignore-secondary", "ignore-prosodic", "tone-heavy", "tone-only"
+        };
+        size_t i;
+        double toned = 0.0;
+        double untoned = 0.0;
+
+        for (i = 0; i < sizeof(presets) / sizeof(presets[0]); i++) {
+            double value = -1.0;
+            failed |= expect_status(
+                mk_system_segment_distance_with_weights(
+                    descriptive, "p", "b", presets[i], &value),
+                MK_OK,
+                presets[i]
+            );
+            if (!(value >= 0.0 && value <= 1.0)) {
+                fprintf(stderr, "preset %s: expected a normalized value, got %.10f\n",
+                    presets[i], value);
+                failed = 1;
+            }
+        }
+
+        /* ignore-tone zeroes the Tonal node, so two tones of one vowel collapse. */
+        failed |= expect_status(
+            mk_system_segment_distance_with_weights(
+                descriptive, "a¹¹", "a⁵⁵", NULL, &toned),
+            MK_OK,
+            "distance a11 a55"
+        );
+        failed |= expect_status(
+            mk_system_segment_distance_with_weights(
+                descriptive, "a¹¹", "a⁵⁵", "ignore-tone", &untoned),
+            MK_OK,
+            "distance a11 a55 ignore-tone"
+        );
+        if (!(toned > 0.0) || untoned != 0.0) {
+            fprintf(stderr,
+                "ignore-tone: expected %.10f > 0 and 0.0, got %.10f and %.10f\n",
+                toned, toned, untoned);
+            failed = 1;
+        }
+
+        /* An unknown preset is MK_ERR_INVALID_ARGUMENT on every scoring path.
+         * The cluster path used to compose its components' fallback values into
+         * a plausible number and report MK_OK. */
+        distance = -1.0;
+        failed |= expect_status(
+            mk_system_segment_distance_with_weights(
+                descriptive, "p", "b", "no-such-preset", &distance),
+            MK_ERR_INVALID_ARGUMENT,
+            "unknown preset categorical"
+        );
+        distance = -1.0;
+        failed |= expect_status(
+            mk_system_segment_distance_with_weights(
+                descriptive, "ai", "au", "no-such-preset", &distance),
+            MK_ERR_INVALID_ARGUMENT,
+            "unknown preset cluster"
+        );
+        distance = -1.0;
+        failed |= expect_status(
+            mk_system_segment_distance_with_weights(
+                phoible, "p", "b", "no-such-preset", &distance),
+            MK_ERR_INVALID_ARGUMENT,
+            "unknown preset valued"
+        );
+    }
+
+    /* A valued system reaches the same seam. */
+    failed |= expect_status(
+        mk_system_segment_distance_with_weights(phoible, "p", "b", "flat", &distance),
+        MK_OK,
+        "distance phoible p b flat"
+    );
+    if (!(distance > 0.0 && distance < 1.0)) {
+        fprintf(stderr, "distance phoible p b flat: expected intermediate value, got %.10f\n", distance);
+        failed = 1;
+    }
 
     failed |= expect_status(mk_normalize_grapheme("g", &normalized), MK_OK, "normalize g");
     failed |= expect_string(normalized, "ɡ", "normalize g");
@@ -742,6 +835,43 @@ int main(void)
     }
 
     {
+        /* IPA tone letters are Chao digits written differently and must survive
+         * merging. The tokenizer grouped them into a tone run that the merge
+         * step could not decode, so it judged the run all-zero and dropped it:
+         * "a˥" came back as a toneless "a". */
+        mk_string_list *segments = NULL;
+        double letters = 0.0;
+        double digits = 0.0;
+
+        failed |= expect_status(mk_segment_ipa_merged("ka˥ba˧", &segments), MK_OK, "segment tone letters");
+        if (mk_string_list_size(segments) != 4) {
+            fprintf(stderr, "segment tone letters: expected 4, got %zu\n", mk_string_list_size(segments));
+            failed = 1;
+        }
+        failed |= expect_list_item(segments, 1, "a˥", "segment tone letter kept");
+        failed |= expect_list_item(segments, 3, "a˧", "segment tone letter kept 3");
+        mk_string_list_free(segments);
+
+        /* And the two notations must score the same, since they say the same
+         * thing: level 1 against level 5. */
+        failed |= expect_status(
+            mk_system_segment_distance(descriptive, "a˩", "a˥", &letters),
+            MK_OK,
+            "distance tone letters"
+        );
+        failed |= expect_status(
+            mk_system_segment_distance(descriptive, "a¹¹", "a⁵⁵", &digits),
+            MK_OK,
+            "distance tone digits"
+        );
+        if (letters != digits || !(letters > 0.0)) {
+            fprintf(stderr,
+                "tone notations disagree: letters %.10f, digits %.10f\n", letters, digits);
+            failed = 1;
+        }
+    }
+
+    {
         /* mk_split_tone undoes the merge, so a consumer that models tone as a
          * separate dimension does not have to reparse Chao digits itself. */
         char *base = NULL;
@@ -828,6 +958,88 @@ int main(void)
     if (!(distance > 0.0 && distance <= 1.0)) {
         fprintf(stderr, "distance runtime: expected positive finite value, got %.10f\n", distance);
         failed = 1;
+    }
+
+    {
+        /* A runtime model's graphemes are lookup keys, so they go through the
+         * same normalization a query does. A row written with a precomposed
+         * "ã" used to be unreachable: the key stayed composed while every
+         * query was decomposed, so neither spelling ever matched. Both must
+         * now resolve, and so must the ligature the source conventions fold. */
+        const mk_system *composed = NULL;
+
+        failed |= expect_status(
+            mk_registry_add_model_text(
+                registry,
+                "@model precomposed\n"
+                "@type categorical\n"
+                "@validation permissive\n"
+                "grapheme ã vowel open front unrounded nasalized\n"
+                "grapheme ʧ consonant voiceless post-alveolar affricate\n"
+            ),
+            MK_OK,
+            "add precomposed model"
+        );
+        failed |= expect_status(
+            mk_registry_get_system(registry, "precomposed", &composed),
+            MK_OK,
+            "get precomposed model"
+        );
+        failed |= expect_segment(composed, "ã", 1, "precomposed key, precomposed query");
+        failed |= expect_segment(composed, "ã", 1, "precomposed key, decomposed query");
+        failed |= expect_segment(composed, "ʧ", 1, "ligature key, ligature query");
+        failed |= expect_segment(composed, "tʃ", 1, "ligature key, expanded query");
+    }
+
+    /* System-aware tokenization must agree with the system's own recognizer:
+     * mk_segment_ipa splits untied "tʃ" and "kp" that descriptive accepts. */
+    {
+        static const struct {
+            const char *input;
+            size_t expected_count;
+            const char *first;
+        } cases[] = {
+            {"tʃa", 2, "tʃ"},
+            {"kpa", 2, "kp"},
+            {"t͡ʃa", 2, "t͡ʃ"},
+            {"papa", 4, "p"},
+        };
+        size_t c;
+
+        for (c = 0; c < sizeof(cases) / sizeof(cases[0]); c++) {
+            mk_string_list *tokens = NULL;
+            size_t t;
+
+            failed |= expect_status(
+                mk_system_segment_ipa(descriptive, cases[c].input, &tokens),
+                MK_OK,
+                "system segment ipa"
+            );
+            if (mk_string_list_size(tokens) != cases[c].expected_count) {
+                fprintf(
+                    stderr,
+                    "system segment ipa %s: expected %zu tokens, got %zu\n",
+                    cases[c].input,
+                    cases[c].expected_count,
+                    mk_string_list_size(tokens)
+                );
+                failed = 1;
+            }
+            failed |= expect_string(
+                mk_string_list_get(tokens, 0),
+                cases[c].first,
+                "system segment ipa first token"
+            );
+            for (t = 0; t < mk_string_list_size(tokens); t++) {
+                failed |= expect_segment(
+                    descriptive,
+                    mk_string_list_get(tokens, t),
+                    1,
+                    "system segment ipa token is a segment"
+                );
+            }
+            mk_string_list_free(tokens);
+        }
     }
 
     mk_registry_free(registry);

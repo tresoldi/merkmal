@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "artifact_id": "pbase-uftc",
+  "artifact_version": "1.0.0",
+  "upstream_name": "P-base",
+  "upstream_release": "UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
+  "upstream_url": "https://pbase.phon.chass.ncsu.edu/",
+  "upstream_commit_or_doi": "UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
+  "retrieved": "UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
+  "transformation": "Segment-indexed feature table for the UFTC feature family, extracted from P-base. The exact extraction procedure is UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
+  "citation": "Mielke, Jeff. P-base. North Carolina State University.",
+  "license_spdx": "CC-BY-NC-SA-4.0",
+  "redistribution_notes": "Non-commercial and share-alike. These terms are materially narrower than the MIT terms covering the merkmal source code, and they restrict commercial redistribution of any package that bundles this table.",
+  "input_sha256": {
+    "inventory.tsv": "c61995ab79dfe970634b16b2dce10b4953e5d104cee81a908186c7f1a2825497",
+    "model.json": "9e40ed67dc074b56a2fda8f1a9fab375ac35846f504f6e719b8c672614c0bdae"
+  },
+  "generator": "tools/generate_c_data.py"
+}

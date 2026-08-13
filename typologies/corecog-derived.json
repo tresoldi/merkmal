@@ -1,10 +1,22 @@
 {
+  "schema_version": 1,
   "name": "corecog-derived",
+  "status": "quarantined",
+  "valid_as": "undirected exploratory co-occurrence statistic",
+  "not_valid_as": "sound-change direction prior",
+  "quarantine_reason": [
+    "Direction is not identified. The counts come from unordered pairs of two daughter varieties; which state is historically earlier cannot be read off such a pair at all.",
+    "The pair orientation is not what the old caveat claimed. It said 'alphabetically-first variety', but the deriving script iterates varieties in input encounter order and never sorts, so re-ordering the input rows flips the labels.",
+    "The cost transform is inverted. derive_direction_costs.py documents that the more frequent direction should be discounted below 1.0, then computes pos_to_neg = 2.0 * (pos_to_neg / total), which grows with frequency.",
+    "Cognate sets contribute quadratically (all language pairs within a set), so large sets and densely sampled families dominate, with no family weighting or effective-sample-size reporting.",
+    "Environment is pooled away, though sound change is typically conditioned by neighbouring segments, syllable position, stress, and morphology.",
+    "The alignments were produced with the same dissimilarity these numbers were then meant to calibrate, so the procedure is partly circular."
+  ],
+  "superseded_by": "Nothing yet. A replacement needs directed ancestor-descendant observations (family, branch, ancestor_state, descendant_state, contexts, ordering, cognate_set, source, confidence) with family-level holdout.",
   "source": "Derived from 149344 cognate pairs across 56 CoreCog datasets",
-  "caveat": "Direction labels (pos_to_neg, neg_to_pos) are relative to alphabetically-first variety in each pair. Asymmetry magnitudes are meaningful across many families, but sign requires phylogenetic direction (e.g., known proto-language).",
   "system": "descriptive",
   "geometry": "clements-hume",
-  "direction_costs": {
+  "quarantined_direction_costs": {
     "airstream": {
       "pos_to_neg": 1.027,
       "neg_to_pos": 0.973

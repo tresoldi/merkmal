@@ -222,12 +222,133 @@ static int check_sound_distances(const char *relative_path, int weighted)
     return failed ? 1 : 0;
 }
 
-int main(void)
+/* Rewrites the three geometry fixtures from the current build. Kept in this
+ * file so the named feature sets above stay the single source of truth; driven
+ * by scripts/regenerate_golden.py, never by the test run itself. */
+static int rewrite_fixture(const char *relative_path, int weighted, int feature_mode)
+{
+    char in_path[1024];
+    char out_path[1024];
+    char line[1024];
+    FILE *in_file;
+    FILE *out_file;
+    int line_no = 0;
+
+    snprintf(in_path, sizeof(in_path), "%s/%s", MERKMAL_SOURCE_DIR, relative_path);
+    snprintf(out_path, sizeof(out_path), "%s/%s.new", MERKMAL_SOURCE_DIR, relative_path);
+    in_file = fopen(in_path, "r");
+    if (in_file == NULL) {
+        fprintf(stderr, "failed to open %s\n", in_path);
+        return 1;
+    }
+    out_file = fopen(out_path, "w");
+    if (out_file == NULL) {
+        fprintf(stderr, "failed to write %s\n", out_path);
+        fclose(in_file);
+        return 1;
+    }
+
+    while (fgets(line, sizeof(line), in_file) != NULL) {
+        char *cursor = line;
+        char preset[128];
+        char a[128];
+        char b[128];
+        char expected_text[128];
+
+        line_no++;
+        if (line_no == 1) {
+            fputs(line, out_file);
+            continue;
+        }
+        preset[0] = '\0';
+        if (weighted && !read_field(&cursor, preset, sizeof(preset))) {
+            continue;
+        }
+        if (!read_field(&cursor, a, sizeof(a)) ||
+            !read_field(&cursor, b, sizeof(b)) ||
+            !read_field(&cursor, expected_text, sizeof(expected_text))) {
+            continue;
+        }
+
+        if (feature_mode) {
+            int actual = -1;
+            if (mk_feature_distance(a, b, &actual) != MK_OK) {
+                fclose(in_file);
+                fclose(out_file);
+                return 1;
+            }
+            fprintf(out_file, "%s\t%s\t%d\n", a, b, actual);
+        } else {
+            const named_features *fa = find_features(a);
+            const named_features *fb = find_features(b);
+            const char *node_weights = weighted && strcmp(preset, "None") != 0 ? preset : NULL;
+            double actual = -1.0;
+
+            if (fa == NULL || fb == NULL) {
+                fclose(in_file);
+                fclose(out_file);
+                return 1;
+            }
+            if (mk_sound_distance(
+                    fa->features, fa->feature_count,
+                    fb->features, fb->feature_count,
+                    node_weights, &actual) != MK_OK) {
+                fclose(in_file);
+                fclose(out_file);
+                return 1;
+            }
+            if (weighted) {
+                fprintf(out_file, "%s\t%s\t%s\t%.10f\n", preset, a, b, actual);
+            } else {
+                fprintf(out_file, "%s\t%s\t%.10f\n", a, b, actual);
+            }
+        }
+    }
+
+    fclose(in_file);
+    fclose(out_file);
+    return rename(out_path, in_path) != 0;
+}
+
+/* An unknown weight preset is an error, not a number. The scorers used to
+ * report it by returning NAN, which callers had to remember to test for. */
+static int check_invalid_preset(void)
+{
+    static const char *const features_a[] = { "consonant", "bilabial", "stop" };
+    static const char *const features_b[] = { "consonant", "bilabial", "nasal" };
+    double value = -1.0;
+    mk_status status;
+
+    status = mk_sound_distance(features_a, 3, features_b, 3, "no-such-preset", &value);
+    if (status != MK_ERR_INVALID_ARGUMENT) {
+        fprintf(stderr, "sound_distance unknown preset: expected %d, got %d\n",
+            MK_ERR_INVALID_ARGUMENT, status);
+        return 1;
+    }
+
+    status = mk_sound_distance(features_a, 3, features_b, 3, "flat", &value);
+    if (status != MK_OK || !(value > 0.0 && value <= 1.0)) {
+        fprintf(stderr, "sound_distance flat: expected a normalized value, got %d %.10f\n",
+            status, value);
+        return 1;
+    }
+    return 0;
+}
+
+int main(int argc, char **argv)
 {
     int failed = 0;
+
+    if (argc > 1 && strcmp(argv[1], "--regenerate") == 0) {
+        failed |= rewrite_fixture("tests/golden/geometry_distances.tsv", 0, 1);
+        failed |= rewrite_fixture("tests/golden/geometry_sound_distances.tsv", 0, 0);
+        failed |= rewrite_fixture("tests/golden/geometry_weighted_distances.tsv", 1, 0);
+        return failed ? 1 : 0;
+    }
 
     failed |= check_feature_distances();
     failed |= check_sound_distances("tests/golden/geometry_sound_distances.tsv", 0);
     failed |= check_sound_distances("tests/golden/geometry_weighted_distances.tsv", 1);
+    failed |= check_invalid_preset();
     return failed ? 1 : 0;
 }

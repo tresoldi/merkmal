@@ -134,8 +134,6 @@ e̞ː	long unrounded mid front vowel
 e̞ˑ	mid-long unrounded mid front vowel
 e̞ˑ̟	mid-long advanced unrounded mid front vowel
 e̞ˤ	pharyngealized unrounded mid front vowel
-ê̞ː	long unrounded mid front vowel
-ê̞ˑ	mid-long unrounded mid front vowel
 ẽ̞	nasalized unrounded mid front vowel
 ẽ̞ː	long nasalized unrounded mid front vowel
 e̞̠	retracted unrounded mid front vowel
@@ -159,7 +157,6 @@ j	voiced palatal approximant consonant
 k	voiceless velar stop consonant
 kx	voiceless velar affricate consonant
 k̬	revoiced voiced velar stop consonant
-k	voiceless velar lateral affricate consonant
 l	voiced alveolar lateral approximant consonant
 l̠	voiced post-alveolar lateral approximant consonant
 l̠ʱ	breathy voiced post-alveolar lateral approximant consonant
@@ -261,16 +258,13 @@ n̪ᶣ	labio-palatalized voiced dental nasal consonant
 n̪’	voiced dental ejective nasal consonant
 n̼	voiced linguolabial nasal consonant
 o	rounded close-mid back vowel
-oz̻	voiced laminal alveolar sibilant fricative consonant
+z̻	voiced laminal alveolar sibilant fricative consonant
 oːː	ultra-long rounded close-mid back vowel
 o̞	rounded mid back vowel
 o̞ː	long rounded mid back vowel
 o̞ˑ	mid-long rounded mid back vowel
 o̞ˤ	pharyngealized rounded mid back vowel
 o̞ˤː	long pharyngealized rounded mid back vowel
-ô̞	rounded mid back vowel
-ô̞ː	long rounded mid back vowel
-ô̞ˑ	mid-long rounded mid back vowel
 õ̞	nasalized rounded mid back vowel
 õ̞ː	long nasalized rounded mid back vowel
 õ̞ˑ	mid-long nasalized rounded mid back vowel
@@ -565,8 +559,6 @@ z̪ᶣ	labio-palatalized voiced dental sibilant fricative consonant
 ø̞ː	long rounded mid front vowel
 ø̞ˑ	mid-long rounded mid front vowel
 ø̞ˤ	pharyngealized rounded mid front vowel
-ø̞̂	rounded mid front vowel
-ø̞̂ˑ	mid-long rounded mid front vowel
 ø̞̃	nasalized rounded mid front vowel
 ø̞̃ː	long nasalized rounded mid front vowel
 ø̞̃ˑ	mid-long nasalized rounded mid front vowel
@@ -585,7 +577,6 @@ z̪ᶣ	labio-palatalized voiced dental sibilant fricative consonant
 ǁ	voiceless lateral click consonant
 ǂ	voiceless palatal click consonant
 ǃ	voiceless alveolar click consonant
-ǃǃ	voiceless retroflex click consonant
 ȡ	voiced alveolo-palatal stop consonant
 ȴ	voiced alveolo-palatal lateral approximant consonant
 ȵ	voiced alveolo-palatal nasal consonant
@@ -716,7 +707,7 @@ z̪ᶣ	labio-palatalized voiced dental sibilant fricative consonant
 ʇ̼	voiced linguolabial click consonant
 ʈ	voiceless retroflex stop consonant
 ʈʂ	voiceless retroflex sibilant affricate consonant
-ʈʂː	long voiced retroflex sibilant affricate consonant
+ʈʂː	long voiceless retroflex sibilant affricate consonant
 ʉ	rounded close central vowel
 ʊ	rounded near-close near-back vowel
 ʊ̈	rounded near-close central vowel
@@ -774,6 +765,6 @@ z̪ᶣ	labio-palatalized voiced dental sibilant fricative consonant
 ⁿdʒ	pre-nasalized voiced post-alveolar affricate consonant
 ⁿd̪	pre-nasalized voiced dental stop consonant
 ⁿd̼	pre-nasalized voiced linguolabial stop consonant
-ⁿgǃ	pre-nasalized voiced alveolar nasal-click consonant
+ⁿgǃ	pre-nasalized voiced alveolar click consonant
 ⁿt̪	pre-nasalized voiceless dental stop consonant
 ⱱ	voiced labio-dental tap consonant

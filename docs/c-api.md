@@ -46,6 +46,7 @@ void mk_registry_free(mk_registry *registry);
 mk_status mk_registry_list_systems(const mk_registry *registry, mk_string_list **out);
 mk_status mk_registry_get_system(const mk_registry *registry, const char *name, const mk_system **out);
 mk_status mk_registry_add_model_text(mk_registry *registry, const char *model_text);
+mk_status mk_registry_add_model_text_ex(mk_registry *registry, const char *model_text, char **diagnostic_out);
 ```
 
 `mk_registry_new_builtin` creates a registry containing the compiled-in
@@ -53,6 +54,15 @@ models. `mk_registry_add_model_text` appends a caller-supplied runtime
 model; see [runtime-model-format.md](runtime-model-format.md). Runtime models
 are copied into the registry and do not depend on the lifetime of
 `model_text`.
+
+Runtime models are validated strictly unless they say `@validation
+permissive`: every feature must reach a scoring dimension, graphemes must be
+unique, and unrecognized lines are rejected. Without that check, a model
+whose features the geometry does not know registers successfully and then
+answers `0.0` for every comparison, which is indistinguishable from "these
+segments are identical". Use `mk_registry_add_model_text_ex` to receive an
+owned diagnostic naming the offending line and token; free it with
+`mk_free_string`.
 
 System pointers returned by `mk_registry_get_system` remain valid until the
 registry is freed. Adding a model does not invalidate an existing system
@@ -97,9 +107,11 @@ roadmap item, and valued systems need a separate design pass.
 Use `mk_system_is_segment` as the non-throwing predicate before feature lookup
 when processing untrusted source data. `mk_system_grapheme_features` reports
 `MK_ERR_UNKNOWN_GRAPHEME` for unknown or invalid tokens.
-Bare `mb` and `nd`, standalone tone clusters such as `³¹`, slash-delimited
-tone/control forms such as `¹/¹`, and source markup/control tokens remain
-invalid.
+Standalone tone clusters such as `³¹`, slash-delimited tone/control forms such
+as `¹/¹`, and source markup/control tokens remain invalid. Bare `mb`, `nd`,
+`mp`, `nt`, and `ŋg` are recognized as prenasalized consonant clusters; an
+earlier two-item blocklist rejected `mb` and `nd` while accepting `mp` and
+`nt`.
 
 ## Geometry And Unicode
 
@@ -108,10 +120,25 @@ mk_status mk_feature_distance(const char *feature_a, const char *feature_b, int 
 mk_status mk_sound_distance(const char *const *features_a, size_t feature_a_count, const char *const *features_b, size_t feature_b_count, const char *node_weights, double *out);
 mk_status mk_normalize_grapheme(const char *utf8_in, char **utf8_out);
 mk_status mk_segment_ipa(const char *utf8_in, mk_string_list **out);
+mk_status mk_system_segment_ipa(const mk_system *system, const char *utf8_in, mk_string_list **out);
 mk_status mk_merge_tone_digits(const mk_string_list *segments, mk_string_list **out);
 mk_status mk_segment_ipa_merged(const char *utf8_in, mk_string_list **out);
 mk_status mk_split_tone(const char *segment, char **base_out, char **tone_out);
 ```
+
+There are two tokenization policies, and the choice matters.
+`mk_segment_ipa` is orthographic: a token starts at each new base code
+point unless a tie bar joins it to the previous one. It is stable and
+language-neutral, but it disagrees with what a system accepts — it splits
+`tʃa` into `t`, `ʃ`, `a` even though the descriptive system recognizes
+untied `tʃ` as one segment. `mk_system_segment_ipa` does longest match
+against the selected system instead, giving `[tʃ, a]` and `[kp, a]`.
+
+Longest match is a policy, not a truth: `kp` may be /k.p/ in a language
+with no labial-velar. Results depend on the selected system and its
+inventory version, so record both with any stored tokenization. Input the
+system does not recognize is passed through as its orthographic token
+rather than dropped, so the function is total.
 
 `mk_split_tone` inverts the merge: `"a¹³"` becomes `("a", "¹³")`. Consumers
 that model tone as a dimension of its own need it, because the merged form
@@ -122,11 +149,11 @@ above. Both outputs are caller-owned and freed with `mk_free_string`.
 
 ### Chao digits are pitch, not tone-category numbers
 
-Tone merging recognises **superscript** Chao digits (`⁰`–`⁵`) only, and this is
-deliberate rather than an omission. A Chao digit is a pitch level, and a
-sequence of them is a contour: `a⁵⁵` is high-level, `a³¹` is mid-falling, and
-the feature system expands them into `tone-onset-*`, `tone-mid-*` and
-`tone-offset-*` features.
+Tone merging recognises **superscript** Chao digits (`⁰`–`⁵`) and the IPA tone
+letters (`˥˦˧˨˩`), and no other digits. Excluding ASCII digits is deliberate
+rather than an omission. A Chao digit is a pitch level, and a sequence of them
+is a contour: `a⁵⁵` is high-level, `a³¹` is mid-falling, and the feature system
+expands them into `tone-onset-*`, `tone-mid-*` and `tone-offset-*` features.
 
 ASCII digits in transcriptions usually mean something else entirely — a tone
 *category* label from a romanisation. Jyutping `ji6`, Vietnamese `mot6`,
@@ -138,6 +165,49 @@ unknown grapheme.
 
 A corpus using category numbers should carry tone in its own column rather
 than inline, and let the consumer decide what the labels mean.
+
+#### Level-to-feature mapping
+
+Every tone-bearing form asserts `tone-present`, which is what separates a
+mid-level tone from tonelessness. Each of the three positions then carries one
+ordered level, `tone-onset-1` through `tone-offset-5`:
+
+| notation | onset | mid | offset |
+| --- | --- | --- | --- |
+| `a⁵` / `a˥` | 5 | 5 | 5 |
+| `a⁵¹` / `a˥˩` | 5 | 3 | 1 |
+| `a⁵³¹` | 5 | 3 | 1 |
+
+One digit sets all three positions. Two digits name the endpoints and the mid
+slot takes the midpoint of the glide, so `a¹`, `a¹¹` and `a¹¹¹` are the same
+segment. Three digits set the positions directly.
+
+Because the levels are an ordered scale rather than independent flags, cost is
+proportional to the difference in pitch: `d(a¹¹, a²²) < d(a¹¹, a³³) < d(a¹¹,
+a⁵⁵)`. The earlier encoding used a register bit plus a height bit, under which
+levels 2 and 4 differ on both and so scored as far apart as 1 and 5.
+
+Both notations are accepted and mean the same thing: the superscript digits
+`⁰`–`⁵` used in Sinological transcription, and the IPA tone letters
+U+02E5–U+02E9 (`˥˦˧˨˩`), which are the primary IPA notation. Note the tone
+letters run high to low: `˥` is level 5.
+
+**Four or more digits are rejected as a whole.** There is no resampling policy,
+and reinterpreting the run in pieces produced contradictory features: `a¹²³⁴`
+used to be accepted carrying two different onset levels at once. `mk_segment_ipa`
+keeps a run in a single token and the recognizer rejects that token whole, so
+tokenization, `mk_system_is_segment`, and feature lookup share one tone grammar.
+`mk_system_is_segment` reports `0`; `mk_system_grapheme_features` returns
+`MK_ERR_PARSE` so the caller can tell malformed tone from an unknown grapheme.
+
+#### Systems without tone support
+
+The valued systems (`pbase-*`, `phoible`) have no dimension a tone modifier can
+move. PHOIBLE declares a `tone` column mapped under `Tonal`, but no diacritic
+effect ever sets it, so every tone-bearing grapheme kept `tone=.` and `a¹¹`
+compared equal to `a⁵⁵`. Those systems now return `MK_ERR_UNSUPPORTED_MODEL`
+for a tone-bearing grapheme rather than a zero that would read as established
+tonal equality.
 
 `mk_normalize_grapheme` uses `utf8proc` when available. The fallback path
 covers the IPA normalization cases used by the built-in models and tests.

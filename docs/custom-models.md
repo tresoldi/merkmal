@@ -21,7 +21,15 @@ Pass the complete model text to:
 mk_registry_add_model_text(registry, model_text);
 ```
 
-See [runtime-model-format.md](runtime-model-format.md) for the current format.
+Validation is strict by default: every feature must be one the geometry knows,
+or the model is rejected. That check exists because an unknown feature reaches
+no scoring dimension, so a model built from unknown features registers cleanly
+and then returns `0.0` for every comparison. Add `@validation permissive` to
+opt out for exploratory work, and use `mk_registry_add_model_text_ex` to get a
+message naming the offending line and token.
+
+See [runtime-model-format.md](runtime-model-format.md) for the current format
+and [geometry.md](geometry.md) for the feature names the geometry knows.
 Only categorical runtime models are public for now; the parser and C data model
 leave room for valued and class-feature formats later.
 

@@ -3,10 +3,27 @@
   "name": "lenition-bias",
   "description": "Lenition-biased direction costs. Losing stricture is cheaper than gaining it.",
   "direction_costs": {
-    "voice": {"pos_to_neg": 0.85, "neg_to_pos": 1.15},
-    "continuant": {"pos_to_neg": 1.25, "neg_to_pos": 0.75},
-    "sonorant": {"pos_to_neg": 1.20, "neg_to_pos": 0.80},
-    "nasal": {"pos_to_neg": 1.10, "neg_to_pos": 0.90},
-    "spread_glottis": {"pos_to_neg": 0.90, "neg_to_pos": 1.10}
-  }
+    "voice": {
+      "pos_to_neg": 1.15,
+      "neg_to_pos": 0.85
+    },
+    "continuant": {
+      "pos_to_neg": 1.25,
+      "neg_to_pos": 0.75
+    },
+    "sonorant": {
+      "pos_to_neg": 1.2,
+      "neg_to_pos": 0.8
+    },
+    "nasal": {
+      "pos_to_neg": 1.1,
+      "neg_to_pos": 0.9
+    },
+    "spread_glottis": {
+      "pos_to_neg": 0.9,
+      "neg_to_pos": 1.1
+    }
+  },
+  "status": "hand-authored hypothesis",
+  "caveat": "Stipulated, not estimated. These numbers encode one analyst's expectation about the lenition scale; nothing here was fitted to data. See typologies/README.md."
 }

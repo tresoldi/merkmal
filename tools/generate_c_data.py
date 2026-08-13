@@ -120,12 +120,112 @@ def parse_sound_name(
     return frozenset(features)
 
 
+# The inventory NAME strings say "voiceless velar stop consonant". They never
+# say "obstruent", "continuant", "anterior" or "consonantal", so the geometry
+# leaves for those never fired and every manner distinction collapsed into a
+# single Manner group boolean: /p/~/f/, /p/~/r/ and /k/~/ʔ/ all cost the same.
+# These derivations are the same ones models/distinctive/model.json already
+# spells out in its scalar_dimensions; applying them here makes the leaves real
+# for the categorical path too.
+SONORANT_MANNERS = frozenset({"nasal", "lateral", "approximant", "trill", "tap", "vowel"})
+OBSTRUENT_MANNERS = frozenset({"stop", "fricative", "affricate", "click", "implosive"})
+CONTINUANT_MANNERS = frozenset({"fricative", "approximant", "trill", "vowel"})
+NON_CONTINUANT_MANNERS = frozenset({"stop", "affricate", "nasal", "implosive", "click"})
+
+ANTERIOR_PLACES = frozenset({"linguolabial", "dental", "alveolar"})
+NON_ANTERIOR_PLACES = frozenset({"post-alveolar", "retroflex", "alveolo-palatal"})
+DISTRIBUTED_PLACES = frozenset({"dental", "post-alveolar", "alveolo-palatal", "linguolabial"})
+NON_DISTRIBUTED_PLACES = frozenset({"alveolar", "retroflex"})
+
+# Articulator features. Each place scale is defined only for its own
+# articulator, so with nothing else a labial and a dorsal have no place
+# dimension in common and their difference disappears: /b/ and /g/ scored
+# exactly zero. These are the privative articulator nodes of standard feature
+# geometry, and they carry the cross-articulator difference that the ordered
+# scales, which measure gradience *within* an articulator, cannot.
+ARTICULATORS = {
+    "labial": frozenset(
+        {"bilabial", "labio-dental", "labial", "labio-palatal", "labio-velar"}
+    ),
+    "coronal": frozenset(
+        {"linguolabial", "dental", "alveolar", "post-alveolar", "retroflex",
+         "alveolo-palatal"}
+    ),
+    "dorsal": frozenset(
+        {"palatal", "palatal-velar", "velar", "uvular", "labio-palatal", "labio-velar"}
+    ),
+    "guttural": frozenset({"pharyngeal", "epiglottal", "glottal"}),
+}
+
+# [-consonantal]: vowels and the four cardinal glides. Without this, /w/ scored
+# as far from /u/ as a glottal stop does from /a/, though w~u and j~i
+# alternations are among the most common things in historical phonology.
+GLIDE_PLACES = frozenset({"palatal", "labio-palatal", "labio-velar", "velar"})
+
+
+def derive_class_features(features: frozenset[str]) -> frozenset[str]:
+    added: set[str] = set()
+
+    if "vowel" in features or ("approximant" in features and features & GLIDE_PLACES):
+        added.add("vocoid")
+    else:
+        added.add("consonantal")
+
+    if features & SONORANT_MANNERS:
+        added.add("sonorant")
+    elif features & OBSTRUENT_MANNERS:
+        added.add("obstruent")
+
+    if features & CONTINUANT_MANNERS:
+        added.add("continuant")
+    elif features & NON_CONTINUANT_MANNERS:
+        added.add("non-continuant")
+
+    if features & ANTERIOR_PLACES:
+        added.add("anterior")
+    elif features & NON_ANTERIOR_PLACES:
+        added.add("non-anterior")
+
+    if features & DISTRIBUTED_PLACES:
+        added.add("distributed")
+    elif features & NON_DISTRIBUTED_PLACES:
+        added.add("non-distributed")
+
+    for articulator, places in ARTICULATORS.items():
+        if features & places:
+            added.add(articulator)
+
+    return features | added
+
+
+def check_ordinal_consistency(
+    grapheme: str, features: frozenset[str], geometry: dict[str, object]
+) -> None:
+    """A segment may not sit at two points on one ordered scale.
+
+    The diacritic composer could produce a vowel carrying both `ultra-short` and
+    `long` (breve plus length mark), a contradiction nothing rejected.
+    """
+    for scale in geometry.get("ordinal_scales", []):
+        present = sorted(features & frozenset(str(x) for x in scale["levels"]))
+        if len(present) > 1:
+            raise SystemExit(
+                f"{grapheme!r} carries {present} on the ordered scale "
+                f"{scale['name']!r}; a segment has one value on a scale"
+            )
+
+
 def enrich_click_features(features: frozenset[str]) -> frozenset[str]:
     if not (features & NON_PULMONIC_FEATURES):
         return features
     added = {"non-pulmonic"}
     if "click" in features or "nasal-click" in features:
-        added.add("velar")
+        # A click has two closures. The name gives the anterior one, which is
+        # its place; the rear closure is definitional of the airstream and gets
+        # its own feature. Adding plain "velar" instead made the rear closure
+        # compete as a place, so /ǃ/ counted as both alveolar and velar and came
+        # out exactly equidistant from /k/ and /t/.
+        added.add("dorsal-closure")
     return features | added
 
 
@@ -140,13 +240,20 @@ def geometry_node_depth(tree: dict[str, object], name: str, depth: int = 1) -> i
     return None
 
 
-def geometry_leaves(tree: dict[str, object], depth: int = 1) -> list[tuple[str, str, str, int, str]]:
-    result: list[tuple[str, str, str, int, str]] = []
+def geometry_leaves(
+    tree: dict[str, object], depth: int = 1
+) -> list[tuple[str, str, str, int, str, float | None]]:
+    result: list[tuple[str, str, str, int, str, float | None]] = []
     parent = str(tree["name"])
     for child in tree.get("children", []):
         if "children" in child:
             result.extend(geometry_leaves(child, depth + 1))
         else:
+            # A leaf may override the mechanical 1/depth base weight. Depth is a
+            # stipulation about how much a difference should cost, and it is
+            # sometimes the wrong one: major class sits at the root but should
+            # not outweigh every segmental property combined.
+            weight = child.get("weight")
             result.append(
                 (
                     str(child["name"]),
@@ -154,6 +261,7 @@ def geometry_leaves(tree: dict[str, object], depth: int = 1) -> list[tuple[str, 
                     str(child.get("negative", "")),
                     depth,
                     parent,
+                    None if weight is None else float(weight),
                 )
             )
     return result
@@ -229,7 +337,9 @@ def load_categorical(name: str, geometry: dict[str, object]) -> tuple[str, list[
             filter_categories=filter_categories,
         )
         if features:
-            entries[normalize_input_grapheme(grapheme)] = sorted(enrich_click_features(features))
+            enriched = derive_class_features(enrich_click_features(features))
+            check_ordinal_consistency(grapheme, enriched, geometry)
+            entries[normalize_input_grapheme(grapheme)] = sorted(enriched)
     scalar_dimensions = []
     tree = geometry["tree"]
     for dim in raw.get("scalar_dimensions", []):
@@ -396,9 +506,12 @@ def emit_geometry(geometry: dict[str, object]) -> str:
     lines: list[str] = []
 
     lines.append("const mk_geometry_leaf mk_clements_hume_leaves[] = {")
-    for name, positive, negative, depth, parent in leaves:
+    for name, positive, negative, depth, parent, weight in leaves:
+        # The runtime reads `depth` only as 1/depth, so an explicit weight is
+        # expressed as the depth that produces it.
+        effective = float(depth) if weight is None else 1.0 / float(weight)
         lines.append(
-            f"    {{{c_string(name)}, {c_string(positive)}, {c_string(negative)}, {float(depth):.1f}, {c_string(parent)}}},"
+            f"    {{{c_string(name)}, {c_string(positive)}, {c_string(negative)}, {effective:.17g}, {c_string(parent)}}},"
         )
     lines.append("};")
     lines.append("")
@@ -492,6 +605,105 @@ def emit_geometry(geometry: dict[str, object]) -> str:
     return "\n".join(lines)
 
 
+def emit_decompositions(diacritics: dict[str, object]) -> str:
+    """Precomposed letters whose decomposition merkmal can interpret.
+
+    Lookup used a hand-written else-if chain covering acute/grave/macron/
+    circumflex on a few vowels. Everything else it left composed, so `ǎ` was
+    rejected while its canonically equivalent NFD form was accepted -- and
+    `mk_normalize_grapheme` returns NFC, so the documented preprocessing step
+    turned working input into failing input.
+
+    Deriving the table here rather than calling utf8proc_NFD at lookup time
+    keeps the two build configurations in step: the fallback build and the
+    utf8proc build accept exactly the same graphemes.
+    """
+    known_marks = {mark_from_hex(cp) for cp in diacritics.get("combining", {})}
+    known_marks |= {mark_from_hex(cp) for cp in diacritics.get("tone_marks", {})}
+
+    pairs: list[tuple[str, str]] = []
+    for codepoint in range(0x00C0, 0x2100):
+        char = chr(codepoint)
+        if unicodedata.category(char) not in {"Ll", "Lu"}:
+            continue
+        decomposed = unicodedata.normalize("NFD", char)
+        if decomposed == char or len(decomposed) < 2:
+            continue
+        base, marks = decomposed[0], decomposed[1:]
+        if unicodedata.category(base) not in {"Ll", "Lu"}:
+            continue
+        # Only letters whose marks mean something here. Decomposing anything
+        # else would turn an unsupported letter into a base plus a mark the
+        # feature system would then misread.
+        if not all(mark in known_marks for mark in marks):
+            continue
+        pairs.append((char, decomposed))
+
+    lines = ["const mk_decomposition mk_default_decompositions[] = {"]
+    for composed, decomposed in pairs:
+        lines.append(f"    {{{c_string(composed)}, {c_string(decomposed)}}},")
+    lines.append("};")
+    lines.append("")
+    lines.append(
+        "const size_t mk_default_decomposition_count =\n"
+        "    sizeof(mk_default_decompositions) / sizeof(mk_default_decompositions[0]);"
+    )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def emit_metadata_features(geometry: dict[str, object]) -> str:
+    """Labels a model may carry that deliberately do not score.
+
+    They are known to the geometry, so strict validation accepts them, but they
+    cannot be all a grapheme has: a model built only from metadata would answer
+    zero for every comparison, which is what strict validation exists to catch.
+    """
+    features = sorted(geometry.get("metadata_features", {}))
+    lines = ["const char *const mk_default_metadata_features[] = {"]
+    for feature in features:
+        lines.append(f"    {c_string(feature)},")
+    lines.append("};")
+    lines.append("")
+    lines.append(
+        "const size_t mk_default_metadata_feature_count =\n"
+        "    sizeof(mk_default_metadata_features) / sizeof(mk_default_metadata_features[0]);"
+    )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def emit_ordinal_scales(geometry: dict[str, object]) -> str:
+    scales = list(geometry.get("ordinal_scales", []))
+    lines: list[str] = []
+
+    for index, scale in enumerate(scales):
+        symbol = f"mk_clements_hume_ordinal_levels_{index}"
+        lines.append(f"static const char *const {symbol}[] = {{")
+        for level in scale["levels"]:
+            lines.append(f"    {c_string(str(level))},")
+        lines.append("};")
+        lines.append("")
+
+    lines.append("const mk_ordinal_scale mk_clements_hume_ordinal_scales[] = {")
+    for index, scale in enumerate(scales):
+        default = scale.get("default_level")
+        default_expr = "MK_ORDINAL_UNDEFINED" if default is None else str(int(default))
+        lines.append(
+            f"    {{{c_string(str(scale['name']))}, {c_string(str(scale['node']))}, "
+            f"mk_clements_hume_ordinal_levels_{index}, {len(scale['levels'])}, "
+            f"{default_expr}, {float(scale['weight']):.17g}}},"
+        )
+    lines.append("};")
+    lines.append("")
+    lines.append(
+        "const size_t mk_clements_hume_ordinal_scale_count =\n"
+        "    sizeof(mk_clements_hume_ordinal_scales) / sizeof(mk_clements_hume_ordinal_scales[0]);"
+    )
+    lines.append("")
+    return "\n".join(lines)
+
+
 def mark_from_hex(value: str) -> str:
     return chr(int(value, 16))
 
@@ -525,7 +737,10 @@ def emit_diacritics(diacritics: dict[str, object]) -> str:
     tone_entries: list[tuple[str, str | None, int]] = []
     for index, (cp, levels) in enumerate(sorted(dict(tone_marks).items())):
         onset, mid, offset = [str(part) for part in levels]
+        # "tone-present" is what separates a mid-level tone from tonelessness;
+        # every tone mark asserts it, including the all-mid macron.
         features = [
+            "tone-present",
             *tone_levels["onset"][onset],
             *tone_levels["mid"][mid],
             *tone_levels["offset"][offset],
@@ -594,7 +809,10 @@ def generate(output: Path) -> None:
         "",
     ]
     chunks.append(emit_geometry(geometry))
+    chunks.append(emit_ordinal_scales(geometry))
+    chunks.append(emit_metadata_features(geometry))
     chunks.append(emit_diacritics(diacritics))
+    chunks.append(emit_decompositions(diacritics))
     for name, kind, entries, geometry_map, weights, scalar_dimensions in systems:
         chunks.append(emit_system(name, kind, entries, geometry_map, weights, scalar_dimensions))
 

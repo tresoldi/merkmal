@@ -1,5 +1,29 @@
 #!/usr/bin/env python3
-"""Derive empirical direction costs from cognator's CoreCog gold data.
+"""QUARANTINED. Do not use this to derive a sound-change direction prior.
+
+Archived pre-C script, kept as a record of what produced
+typologies/corecog-derived.json. Its output is not historically interpretable:
+
+  * Direction is not identified. It tallies changes between two *daughter*
+    varieties, and an unordered pair of attested states does not tell you which
+    one is earlier.
+  * The stated orientation is wrong. The caveat it writes says direction is
+    relative to the alphabetically first variety; `seen_varieties` keeps input
+    encounter order and is never sorted, so re-ordering the input flips labels.
+  * The cost transform is inverted. `direction_ratios` below documents that the
+    more frequent direction should be discounted below 1.0, then computes
+    `pos_to_neg = 2.0 * ratio`, which grows with frequency.
+  * Every language pair inside a cognate set is emitted, so large sets weigh
+    quadratically and well-sampled families dominate.
+  * Environment is pooled away, and the alignments come from the same
+    dissimilarity the result was meant to calibrate.
+
+See typologies/README.md. Fixing the arithmetic alone would not make the output
+valid, and would silently reverse anything already consuming it.
+
+Original description follows.
+
+Derive empirical direction costs from cognator's CoreCog gold data.
 
 Reads arcaverborum's forms.csv, extracts cognate pairs from expert-coded
 datasets, aligns them with Needleman-Wunsch using merkmal distances, and

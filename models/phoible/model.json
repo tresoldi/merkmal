@@ -4,12 +4,12 @@
   "version": "1.0.0",
   "type": "valued",
   "description": "PHOIBLE binary features (37 dimensions)",
-  "license": "CC-BY",
+  "license": "CC-BY-SA-3.0",
   "default_geometry": "clements-hume",
   "state_symbols": {
     "+": 1.0,
     "-": -1.0,
-    "0": null
+    ".": null
   },
   "geometry_map": {
     "advancedTongueRoot": "TongueRoot",

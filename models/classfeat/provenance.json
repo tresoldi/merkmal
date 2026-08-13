@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "artifact_id": "classfeat",
+  "artifact_version": "1.0.0",
+  "upstream_name": "merkmal (first-party)",
+  "upstream_release": null,
+  "upstream_url": "https://github.com/tresoldi/merkmal",
+  "upstream_commit_or_doi": null,
+  "retrieved": null,
+  "transformation": "Hand-authored grapheme/sound-name inventory. The IPA-style sound names follow standard IPA descriptive terminology; whether any specific CLTS release was used as a source is UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
+  "citation": "Tresoldi, Tiago. merkmal.",
+  "license_spdx": "MIT",
+  "redistribution_notes": "Same terms as the merkmal source code.",
+  "input_sha256": {
+    "inventory.tsv": "5baef5bb6d8bafb37a6b6f0f5b333cbd3fd60f575fb6955af3234377ef2ca30b",
+    "model.json": "090dc40c53d7845e737bd25d8f9738b4371287396abc4e10f64d4082bf503515",
+    "weights.json": "ad93e3c032773432c7da34bdb27f8480dcfac8cce945fa72d7a46aed05e6ed01"
+  },
+  "generator": "tools/generate_c_data.py"
+}
