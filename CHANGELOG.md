@@ -2,6 +2,66 @@
 
 ## Unreleased
 
+### Tone as its own segment, which is how the field writes it
+
+CLTS/BIPA spells tone as a segment in its own right — `t o ³³`, not `t o³³` —
+and that is the form CLDF wordlists are published in. merkmal accepted tone only
+bound to a nucleus, so it could not read the tonal half of the world's
+languages as they are actually encoded.
+
+- **Bare tone tokens are segments.** Chao digit runs of one to three levels and
+  IPA tone letters U+02E5–U+02E9 resolve on a new `MK_RESOLVED_TONE` path,
+  carrying the tone features they already had in bound position. `merge_tone_digits`
+  converts between the two spellings and is unchanged.
+- **Chao neutral tone `⁰` is recognized, and is not a pitch level.** It is the
+  notation for a syllable carrying no tone in a language that otherwise has
+  tone — 8.3% of the tone tokens in `beidasinitic`, and that dataset's single
+  largest blocking token. It gets its own privative `tone-neutral` feature
+  rather than being folded into level 3 (which would claim it is mid) or level 1
+  (which would claim it is low). It has no pitch target and says so.
+- **Rejected, with a parse error rather than an unknown-grapheme error:** runs of
+  four or more levels, and `⁰` mixed with a pitch level. The distinction matters
+  — it says the token *is* tone and is spelled wrong.
+- **Valued systems refuse bare tone** with `MK_ERR_UNSUPPORTED_MODEL`, the same
+  policy they already applied to bound tone, because none of them declares a
+  dimension a tone can move and the alternative is a confident zero.
+- Tone tokens carry `tonal-autosegment`, declared in `metadata_features` and
+  deliberately **not scored**. What a tone should cost against a segment is open;
+  see `REFERENCE_LIBRARY_PLAN.md`. Today they compare through the geometry like
+  anything else, which is a placeholder, not an answer.
+
+**Coverage, measured over 152 Lexibank datasets** (`bench/bench_coverage.py`):
+
+| | before | after |
+| --- | ---: | ---: |
+| `descriptive` tokens | 96.12% | **99.71%** |
+| `broad` / `distinctive` tokens | 95.57% | **99.16%** |
+| `descriptive` types | 89.5% | **94.5%** |
+| datasets below 90% token coverage | 37 | **1** |
+| datasets below 3% of forms parsed | **26** | **1** |
+| median dataset, forms fully parsed | 95.9% | **98.2%** |
+
+The one dataset still blocked is `williamsonbenuecongo`, which contains no tone
+at all and fails on CLTS's `<?>` and `<<->>` markers.
+
+On the alignment benchmark, reading tone made 258 more BDPA pairs usable — the
+readable subset goes from 69.8% to **81.2%** — and improved the result rather
+than diluting it. `distinctive` moves from 92.91% to **93.62%** column accuracy
+over all pairs, narrowing the gap to SCA from −3.09% to −2.60%, and holds
+−0.66% [−1.21, −0.05] on the readable subset. The newly readable pairs are
+tone-against-tone, where the ordinal Chao scale does the work; the unresolved
+tone-against-segment cost rarely arises, which is the same conclusion the
+saturation analysis reached from the other direction.
+
+The contrast audit now sweeps the bare-tone recognition space and records 168
+collapses, all of them one Chao contour spelled more than one way. Two things
+that had not been written down anywhere fell out of doing it: a two-digit
+contour fills its middle slot by **rounding the midpoint up**, so `¹²` is the
+same tone as `¹²²` and a different tone from `¹¹²` — a rise reaches its target
+early rather than late — and `distinctive` needed its own `tone_neutral` scalar
+dimension, because a geometry leaf alone does not reach a system that scores
+through `scalar_dimensions`.
+
 ### Two guards, and the bug the second one found
 
 Both come from an adversarial review of a proposed tone design. Neither is about

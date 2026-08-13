@@ -158,6 +158,21 @@ declared `metadata_features`: readable, and deliberately not scored, because
 
 Placements added for that reason:
 
+`Tonal` carries `tone_neutral` (`tone-neutral`) beside `tone_presence`. Chao's
+neutral tone `⁰` marks a syllable with no tone in a language that otherwise has
+tone, so it is not a pitch level: it activates this leaf and none of the ordered
+scales. Folding it into level 3 would assert it is mid and level 1 that it is
+low; it is neither, and the ordinal scales are skipped when one side has no
+value on them. Without the leaf `⁰` scored zero against every level tone, which
+is the collapse `scripts/contrast_baseline.py` exists to catch — and did.
+
+`tonal-autosegment` is a `metadata_feature`: carried on every bare tone token,
+readable, and deliberately **not scored**. It marks a token that is a tone and
+nothing else, as CLTS writes it. What a tone should cost against a segment is
+an open question — the geometry's own answer of roughly 0.50 against a vowel is
+a placeholder that `REFERENCE_LIBRARY_PLAN.md` argues against — and encoding
+that cost as a scoring leaf was tried, reviewed, and rejected.
+
 | Node | Leaves | Labels |
 | --- | --- | --- |
 | `Root` | `vocoid` | `vowel` / `consonant` |

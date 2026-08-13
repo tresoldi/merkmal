@@ -75,7 +75,10 @@ static const resolution_case cases[] = {
     /* Rejections. Unknown means no path recognized the input; parse means a
      * path recognized the shape and rejected the content. */
     { "descriptive", "not-ipa", MK_ERR_UNKNOWN_GRAPHEME, MK_RESOLVED_NONE, NULL },
-    { "descriptive", "³¹", MK_ERR_UNKNOWN_GRAPHEME, MK_RESOLVED_NONE, NULL },
+    { "descriptive", "³¹", MK_OK, MK_RESOLVED_TONE, "tonal-autosegment" },
+    { "descriptive", "⁰", MK_OK, MK_RESOLVED_TONE, "tone-neutral" },
+    { "descriptive", "˥˩", MK_OK, MK_RESOLVED_TONE, "tone-onset-5" },
+    { "phoible", "³¹", MK_ERR_UNSUPPORTED_MODEL, MK_RESOLVED_NONE, NULL },
     { "descriptive", "a¹²³⁴", MK_ERR_PARSE, MK_RESOLVED_NONE, NULL },
     /* A breve plus a length mark puts one segment at two points of the
      * duration scale. Both cluster kinds report it the same way: parse, not

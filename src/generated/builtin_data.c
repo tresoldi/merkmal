@@ -4663,6 +4663,7 @@ const mk_geometry_leaf mk_clements_hume_leaves[] = {
     {"pre_labialized_feature", "pre-labialized", "", 3, "Secondary"},
     {"pre_palatalized_feature", "pre-palatalized", "", 3, "Secondary"},
     {"tone_presence", "tone-present", "", 2, "Tonal"},
+    {"tone_neutral", "tone-neutral", "", 2, "Tonal"},
     {"vocoid", "vocoid", "consonantal", 1.25, "Root"},
 };
 
@@ -4697,6 +4698,7 @@ const mk_feature_node_map mk_clements_hume_feature_to_node[] = {
     {"stop", "Manner"},
     {"syllabic", "Manner"},
     {"tap", "Manner"},
+    {"tone-neutral", "Tonal"},
     {"tone-present", "Tonal"},
     {"trill", "Manner"},
     {"unrounded", "Labial"},
@@ -5593,11 +5595,25 @@ static const char *const mk_clements_hume_feature_path_105[] = {
 
 static const char *const mk_clements_hume_feature_path_106[] = {
     "Root",
+    "Tonal",
+    "tone_neutral",
+    "tone_neutral",
+};
+
+static const char *const mk_clements_hume_feature_path_107[] = {
+    "Root",
+    "Tonal",
+    "tone_neutral",
+    "tone-neutral",
+};
+
+static const char *const mk_clements_hume_feature_path_108[] = {
+    "Root",
     "vocoid",
     "vocoid",
 };
 
-static const char *const mk_clements_hume_feature_path_107[] = {
+static const char *const mk_clements_hume_feature_path_109[] = {
     "Root",
     "vocoid",
     "consonantal",
@@ -5710,8 +5726,10 @@ const mk_feature_path mk_clements_hume_feature_paths[] = {
     {"pre-palatalized", mk_clements_hume_feature_path_103, 5},
     {"tone_presence", mk_clements_hume_feature_path_104, 4},
     {"tone-present", mk_clements_hume_feature_path_105, 4},
-    {"vocoid", mk_clements_hume_feature_path_106, 3},
-    {"consonantal", mk_clements_hume_feature_path_107, 3},
+    {"tone_neutral", mk_clements_hume_feature_path_106, 4},
+    {"tone-neutral", mk_clements_hume_feature_path_107, 4},
+    {"vocoid", mk_clements_hume_feature_path_108, 3},
+    {"consonantal", mk_clements_hume_feature_path_109, 3},
 };
 
 const size_t mk_clements_hume_feature_path_count =
@@ -5814,6 +5832,7 @@ const size_t mk_clements_hume_ordinal_scale_count =
 
 const char *const mk_default_metadata_features[] = {
     "consonant",
+    "tonal-autosegment",
     "vowel",
 };
 
@@ -8201,19 +8220,23 @@ static const char *const distinctive_scalar_dimensions_48_positive[] = {
 };
 
 static const char *const distinctive_scalar_dimensions_49_positive[] = {
-    "fricative",
+    "tone-neutral",
 };
 
 static const char *const distinctive_scalar_dimensions_50_positive[] = {
+    "fricative",
+};
+
+static const char *const distinctive_scalar_dimensions_51_positive[] = {
     "click",
     "nasal-click",
 };
 
-static const char *const distinctive_scalar_dimensions_51_positive[] = {
+static const char *const distinctive_scalar_dimensions_52_positive[] = {
     "implosive",
 };
 
-static const char *const distinctive_scalar_dimensions_52_positive[] = {
+static const char *const distinctive_scalar_dimensions_53_positive[] = {
     "guttural",
 };
 
@@ -8267,10 +8290,11 @@ static const mk_scalar_dimension distinctive_scalar_dimensions[] = {
     {"pre_labialized", "Secondary", distinctive_scalar_dimensions_46_positive, 1, NULL, 0, 0.25},
     {"pre_palatalized", "Secondary", distinctive_scalar_dimensions_47_positive, 1, NULL, 0, 0.25},
     {"tone_presence", "Tonal", distinctive_scalar_dimensions_48_positive, 1, NULL, 0, 0.5},
-    {"fricative", "Manner", distinctive_scalar_dimensions_49_positive, 1, NULL, 0, 0.33333333333333331},
-    {"click", "Manner", distinctive_scalar_dimensions_50_positive, 2, NULL, 0, 0.33333333333333331},
-    {"implosive", "Manner", distinctive_scalar_dimensions_51_positive, 1, NULL, 0, 0.33333333333333331},
-    {"guttural", "Pharyngeal", distinctive_scalar_dimensions_52_positive, 1, NULL, 0, 0.25},
+    {"tone_neutral", "Tonal", distinctive_scalar_dimensions_49_positive, 1, NULL, 0, 0.5},
+    {"fricative", "Manner", distinctive_scalar_dimensions_50_positive, 1, NULL, 0, 0.33333333333333331},
+    {"click", "Manner", distinctive_scalar_dimensions_51_positive, 2, NULL, 0, 0.33333333333333331},
+    {"implosive", "Manner", distinctive_scalar_dimensions_52_positive, 1, NULL, 0, 0.33333333333333331},
+    {"guttural", "Pharyngeal", distinctive_scalar_dimensions_53_positive, 1, NULL, 0, 0.25},
 };
 
 #define DISTINCTIVE_SCALAR_DIMENSIONS_COUNT (sizeof(distinctive_scalar_dimensions) / sizeof(distinctive_scalar_dimensions[0]))

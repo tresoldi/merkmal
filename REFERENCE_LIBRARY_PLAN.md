@@ -243,7 +243,31 @@ diphthong parity — takes the 26 blocked datasets from 0.1% to ~93% of forms
 parsed under `descriptive`. Not one point of that requires a tone-to-segment
 number.
 
-### 1a. Tone (D1)
+### 1a. Tone (D1) — recognition landed 2026-08-13, comparison still open
+
+**Done.** Bare Chao runs and IPA tone letters resolve as segments; `⁰` is
+recognized as neutral tone with its own privative feature rather than folded
+into a pitch level; malformed runs report a parse error rather than an unknown
+grapheme; valued systems refuse. Coverage went from 26 datasets below 3% of
+forms parsed to 1, and token coverage from 95.6% to 99.2% (`descriptive`
+99.7%). The remaining dataset has no tone in it.
+
+The contrast audit now sweeps bare tone forms, because they are the whole
+recognition space for the tonal dimensions and an inventory-derived sweep never
+saw them. That gap surfaced immediately: adding the `tone_neutral` leaf made the
+audit fail with one unreachable dimension per categorical system, which is the
+guard doing its job.
+
+**Still open — what a tone costs against a segment.** Tone tokens carry
+`tonal-autosegment` as a declared unscored `metadata_feature`, so today they
+compare through the geometry like anything else and land around 0.50 against a
+vowel and 0.61 against a stop. Those are placeholder numbers, and §"Review
+outcome" above says why they are the wrong ones. The replacement is the
+comparability channel item 1c already owes, plus a versioned `tier_policy` block
+so the cost is swappable data rather than a tree edit. Until that lands, callers
+comparing a tone with a segment are getting a number nobody defends.
+
+### 1a-1. Tone, original scope (D1)
 
 - `mk_merge_tone_digits` takes a *token list*, not a string. The current
   string form mangles the field's actual input: `'t o ³³'` →

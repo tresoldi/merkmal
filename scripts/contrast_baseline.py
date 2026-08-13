@@ -87,9 +87,69 @@ def read_inventory(system: str) -> list[str]:
         return sorted({row[0] for row in reader if row})
 
 
+# Bare tone tokens are segments and are not inventory rows, so a sweep built
+# only from the inventory never sees them. They are the whole recognition space
+# for the tonal dimensions: every level, every two- and three-level contour, the
+# tone letters, and Chao's neutral tone.
+TONE_LEVELS = "¹²³⁴⁵"
+BARE_TONE_FORMS = (
+    [d for d in TONE_LEVELS]
+    + [a + b for a in TONE_LEVELS for b in TONE_LEVELS]
+    + [a + b + c for a in TONE_LEVELS for b in TONE_LEVELS for c in TONE_LEVELS]
+    + ["˩", "˨", "˧", "˦", "˥", "˥˩", "˩˥", "˧˥", "⁰"]
+)
+
+
+_CHAO_DIGITS = {"⁰": 0, "¹": 1, "²": 2, "³": 3, "⁴": 4, "⁵": 5}
+_CHAO_LETTERS = {"˩": 1, "˨": 2, "˧": 3, "˦": 4, "˥": 5}
+
+
+def chao_contour(token: str) -> tuple[int, int, int] | None:
+    """The (onset, mid, offset) pitch triple a bare tone token denotes.
+
+    Mirrors what the resolver does, so that two spellings of the same tone can
+    be recognized as such *from the notation* rather than from the feature sets
+    they produce -- which would be circular, since identical features are why
+    they score zero in the first place.
+
+    One level fills all three slots; two interpolate the middle; three are taken
+    as written. So `⁵`, `⁵⁵`, `⁵⁵⁵` and `˥` are one tone spelled four ways, and
+    `˥˩` is `⁵¹`.
+
+    The midpoint rounds *up*, matching the resolver: `¹²` fills its middle slot
+    with 2, not 1. That is a stipulation, and it has a visible consequence --
+    `¹²` is the same tone as `¹²²` and a different one from `¹¹²`, so a rise
+    reaches its target early rather than late. Rounding the other way would swap
+    which of those two collapses. This function must not choose independently:
+    if it disagrees with the resolver, the audit either hides a real collapse or
+    reports a false one.
+    """
+    levels = []
+    for char in token:
+        if char in _CHAO_DIGITS:
+            levels.append(_CHAO_DIGITS[char])
+        elif char in _CHAO_LETTERS:
+            levels.append(_CHAO_LETTERS[char])
+        else:
+            return None
+    if not levels or 0 in levels or len(levels) > 3:
+        return None  # neutral tone has no pitch target; over-long runs are rejected
+    if len(levels) == 1:
+        return (levels[0], levels[0], levels[0])
+    if len(levels) == 2:
+        return (levels[0], (levels[0] + levels[1] + 1) // 2, levels[1])
+    return (levels[0], levels[1], levels[2])
+
+
+def spelling_equivalent(a: str, b: str) -> bool:
+    """Whether two graphemes are the same tone written differently."""
+    contour_a = chao_contour(a)
+    return contour_a is not None and contour_a == chao_contour(b)
+
+
 def composed_forms(system: str, bases: list[str]) -> list[str]:
     step = max(1, len(bases) // 40)
-    out: list[str] = []
+    out: list[str] = list(BARE_TONE_FORMS)
     for base in bases[::step][:40]:
         candidates = [base + suffix for suffix in COMPOSED_SUFFIXES]
         candidates += [prefix + base for prefix in COMPOSED_PREFIXES]
@@ -285,6 +345,20 @@ def main() -> int:
                 key = (system, "pair", a, b)
                 if key in baseline:
                     _, status, reason = baseline[key]
+                elif spelling_equivalent(a, b):
+                    # The same tone written differently. Chao's notation is
+                    # redundant by design -- a level tone may be one, two or
+                    # three digits, or a tone letter -- so these zeros are the
+                    # library agreeing with the notation, not losing a contrast.
+                    status = "spelling-equivalent"
+                    reason = (
+                        "the same Chao contour written differently: a level tone "
+                        "may be spelled with one, two or three digits or with a "
+                        "tone letter, and all of them denote one tone. A "
+                        "two-digit contour fills its middle slot by rounding the "
+                        "midpoint up, so a rise reaches its target early: 12 is "
+                        "122 and not 112"
+                    )
                 else:
                     status, reason = "UNDECLARED", "not in the baseline"
                     problems.append(f"undeclared collapse in {system}: {a!r} ~ {b!r}")

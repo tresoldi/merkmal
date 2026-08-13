@@ -557,11 +557,21 @@ int main(void)
     failed |= expect_segment(descriptive, "_", 0, "is segment underscore control");
     failed |= expect_segment(descriptive, "S", 0, "is segment S annotation");
     failed |= expect_segment(descriptive, "T", 0, "is segment T annotation");
-    failed |= expect_segment(descriptive, "¹/¹", 0, "is segment slash tone 11");
-    failed |= expect_segment(descriptive, "³/¹", 0, "is segment slash tone 31");
-    failed |= expect_segment(descriptive, "³¹", 0, "is segment bare tone 31");
-    failed |= expect_segment(descriptive, "³⁵", 0, "is segment bare tone 35");
-    failed |= expect_segment(descriptive, "⁵⁵", 0, "is segment bare tone 55");
+    /* Bare tone tokens are segments now. CLTS writes tone as its own segment
+     * -- "t o ³³" -- which is the form the field's CLDF wordlists use, and
+     * rejecting it left 26 Lexibank datasets unreadable. The slash forms
+     * resolve because normalization takes the BIPA side of "source/BIPA". */
+    failed |= expect_segment(descriptive, "¹/¹", 1, "is segment slash tone 11");
+    failed |= expect_segment(descriptive, "³/¹", 1, "is segment slash tone 31");
+    failed |= expect_segment(descriptive, "³¹", 1, "is segment bare tone 31");
+    failed |= expect_segment(descriptive, "³⁵", 1, "is segment bare tone 35");
+    failed |= expect_segment(descriptive, "⁵⁵", 1, "is segment bare tone 55");
+    failed |= expect_segment(descriptive, "⁰", 1, "is segment neutral tone");
+    failed |= expect_segment(descriptive, "˥˩", 1, "is segment tone letters");
+    /* Still rejected: a run too long to be a contour, and neutral tone mixed
+     * with a pitch level, which is not a spelling this grammar reads. */
+    failed |= expect_segment(descriptive, "¹²³⁴", 0, "is segment overlong tone run");
+    failed |= expect_segment(descriptive, "⁰³", 0, "is segment neutral plus level");
     /* Previously rejected: "mb" and "nd" by a two-item blocklist that accepted
      * "mp" and "nt", and the precomposed tone vowels while their canonically
      * equivalent NFD spellings were accepted. */

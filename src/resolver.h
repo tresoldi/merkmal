@@ -33,7 +33,15 @@ typedef enum mk_resolution_path {
      * untied affricate or a labial-velar stop. */
     MK_RESOLVED_COMPLEX,
     /* Synthesized: a consonant cluster. */
-    MK_RESOLVED_CONSONANT_CLUSTER
+    MK_RESOLVED_CONSONANT_CLUSTER,
+    /* Synthesized: a bare tone token, carrying no segmental content.
+     *
+     * CLTS/BIPA writes tone as its own segment -- "t o ³³", not "t o³³" -- and
+     * that is the form the field's CLDF wordlists are published in. A token on
+     * this path denotes a tone and nothing else, which is why it carries the
+     * `tonal-autosegment` tier label: it is not comparable to a segment on the
+     * same terms two segments are comparable to each other. */
+    MK_RESOLVED_TONE
 } mk_resolution_path;
 
 /* A resolved segment, and the storage behind it.

@@ -50,13 +50,13 @@ evaluated on a held-out half:
 
 | scorer | column accuracy | perfect alignments |
 | --- | ---: | ---: |
-| LingPy SCA | 97.74% | 95.80% |
-| `merkmal:distinctive` | **96.79%** | **94.52%** |
-| `merkmal:broad` | 96.47% | 93.76% |
-| identity baseline | 88.82% | 81.66% |
+| LingPy SCA | 96.83% | 95.08% |
+| `merkmal:distinctive` | **95.99%** | **93.87%** |
+| `merkmal:broad` | 95.62% | 93.11% |
+| identity baseline | 87.73% | 80.31% |
 
-Bootstrap 95% CI on the difference from SCA: `distinctive` −0.77%
-[−1.39, −0.24], `broad` −1.04% [−1.77, −0.35]. Both significant. A feature
+Bootstrap 95% CI on the difference from SCA: `distinctive` −0.66%
+[−1.21, −0.05], `broad` −0.97% [−1.62, −0.27]. Both significant. A feature
 geometry landing within a point of SCA is still a real result — but it is
 "competitive", not "at parity", and the earlier wording overstated it.
 
@@ -66,12 +66,12 @@ is coverage rather than modelling.**
 | scorer | column accuracy | perfect |
 | --- | ---: | ---: |
 | LingPy SCA | 96.35% | 94.49% |
-| `merkmal:distinctive` | 92.91% | 88.80% |
+| `merkmal:distinctive` | 93.62% | 89.51% |
 
-−3.09% [−3.88, −2.18], significant. `merkmal` cannot read 30.2% of the pairs;
+−2.60% [−3.34, −1.79], significant. `merkmal` cannot read 18.8% of the pairs;
 SCA's converter maps *everything*, including the tokens `merkmal` refuses.
 Closing the coverage gap is worth several times more than closing the remaining
-0.77-point modelling gap.
+0.66-point modelling gap.
 
 **3. Across Lexibank, 26 of 152 datasets have under 3% of forms that `merkmal`
 can parse end to end.** Twenty-five are blocked by tone — Sinitic, Hmong-Mien,
@@ -234,14 +234,14 @@ mapped linearly to `[0,1]` distances.
 | `merkmal:broad` | 0.80 | 92.66% | 88.18% |
 | identity | 0.80 | 85.85% | 77.51% |
 
-**Fully parseable subset (1,570 pairs, 69.8%):**
+**Fully parseable subset (1,828 pairs, 81.2%):**
 
 | scorer | gap* | column acc | perfect |
 | --- | ---: | ---: | ---: |
-| LingPy SCA | 0.30 | 97.74% | 95.80% |
-| `merkmal:distinctive` | 0.40 | 96.79% | 94.52% |
-| `merkmal:broad` | 0.40 | 96.47% | 93.76% |
-| identity | 0.80 | 88.82% | 81.66% |
+| LingPy SCA | 0.30 | 96.83% | 95.08% |
+| `merkmal:distinctive` | 0.40 | 95.99% | 93.87% |
+| `merkmal:broad` | 0.40 | 95.62% | 93.11% |
+| identity | 0.80 | 87.73% | 80.31% |
 
 **Caveats, stated plainly.** This isolates the substitution matrix and nothing
 else. LingPy's production SCA aligner also uses prosodic strings, swap
@@ -253,7 +253,7 @@ gold pairwise alignments were derived by projecting MSA rows and dropping
 doubly-gapped columns.
 
 **Both categorical systems are now significantly behind SCA** on data they can
-read — `distinctive` by 0.77 points, `broad` by 1.04. The gap is small and the
+read — `distinctive` by 0.66 points, `broad` by 0.97. The gap is small and the
 ordering between them is unchanged, so the argument for making `distinctive` the
 default stands; what does not stand is the earlier claim that it had caught up
 with the incumbent.

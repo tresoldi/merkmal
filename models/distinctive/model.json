@@ -437,6 +437,14 @@
       "negative": []
     },
     {
+      "name": "tone_neutral",
+      "geometry_node": "Tonal",
+      "positive": [
+        "tone-neutral"
+      ],
+      "negative": []
+    },
+    {
       "name": "fricative",
       "geometry_node": "Manner",
       "positive": [

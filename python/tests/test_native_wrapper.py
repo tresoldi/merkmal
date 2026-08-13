@@ -165,15 +165,29 @@ def test_native_descriptive_broadened_source_tokens() -> None:
         "_",
         "S",
         "T",
-        "¹/¹",
-        "³/¹",
-        "³¹",
-        "³⁵",
-        "⁵⁵",
         "p³³",
     ]
     for token in negative:
         assert not merkmal.is_segment(token, system="descriptive"), token
+
+    # Bare tone tokens are segments. CLTS writes tone as its own segment, which
+    # is how the field's CLDF wordlists spell it; the slash forms resolve
+    # because normalization takes the BIPA side of "source/BIPA".
+    for token in ["³¹", "³⁵", "⁵⁵", "⁰", "˥˩", "¹/¹", "³/¹"]:
+        assert merkmal.is_segment(token, system="descriptive"), token
+    assert "tonal-autosegment" in merkmal.get_features("³¹", system="descriptive")
+    assert "tone-neutral" in merkmal.get_features("⁰", system="descriptive")
+    # Neutral tone is not a pitch level: it must not collapse into one.
+    assert merkmal.distance("⁰", "³³", system="descriptive") > 0.0
+
+    # A tone run too long to be a contour, and neutral tone mixed with a pitch
+    # level, are recognized shapes with rejected content. The library reports
+    # that as a parse error rather than an unknown grapheme, and the difference
+    # is the point: it says the token *is* tone and is spelled wrong.
+    for token in ["¹²³⁴", "⁰³"]:
+        assert not merkmal.is_segment(token, system="descriptive"), token
+        with pytest.raises(merkmal.NativeError):
+            merkmal.get_features(token, system="descriptive")
 
     features_ai = merkmal.get_features("ai", system="descriptive")
     assert {

@@ -131,6 +131,8 @@ const char *mk_resolution_path_name(mk_resolution_path path)
         return "complex";
     case MK_RESOLVED_CONSONANT_CLUSTER:
         return "consonant-cluster";
+    case MK_RESOLVED_TONE:
+        return "tone";
     case MK_RESOLVED_NONE:
     default:
         return "none";
@@ -560,6 +562,112 @@ static mk_status mk_add_chao_tone_features(
         "offset",
         levels[level_count - 1]
     );
+}
+
+static void mk_free_owned_feature_array(char **features, size_t count);
+static mk_status mk_set_synthesized_entry(
+    mk_resolution *out,
+    mk_resolution_path path,
+    const char *grapheme,
+    char **features,
+    size_t count,
+    char **components,
+    size_t component_count
+);
+
+/* A whole token that is nothing but tone.
+ *
+ * The bound spelling "a³³" resolves through the diacritic path, where tone is a
+ * property of a nucleus. This is the other spelling, and it is the one CLTS
+ * uses: tone as a segment of its own. Both have to work, because the corpora
+ * contain both, and merge_tone_digits converts between them.
+ *
+ * Chao's neutral tone "⁰" is deliberately not a pitch level here. It is the
+ * notation for a syllable that carries no tone in a language that otherwise
+ * has tone -- 8.3% of the tone tokens in beidasinitic -- so it gets its own
+ * privative feature rather than being folded into level 3 (which would claim it
+ * is mid) or level 1 (which would claim it is low). It has no pitch target, and
+ * saying so is cheaper than inventing one. */
+static mk_status mk_synthesize_bare_tone(
+    const mk_system *system,
+    const char *normalized,
+    mk_resolution *out
+)
+{
+    const char *p = normalized;
+    int levels[3];
+    size_t count = 0;
+    int neutral = 0;
+    char **features = NULL;
+    size_t feature_count = 0;
+    size_t feature_cap = 0;
+    mk_status status;
+
+    if (normalized == NULL || normalized[0] == '\0') {
+        return MK_ERR_UNKNOWN_GRAPHEME;
+    }
+
+    while (*p != '\0') {
+        int value = mk_chao_level(p);
+        if (value < 0) {
+            /* Some non-tone character: not a bare tone token at all. Hand back
+             * to the other synthesizers rather than rejecting the input. */
+            return MK_ERR_UNKNOWN_GRAPHEME;
+        }
+        if (value == 0) {
+            neutral = 1;
+        } else if (count < 3) {
+            levels[count] = value;
+            count++;
+        } else {
+            count++;
+        }
+        p += mk_utf8_step(p);
+    }
+
+    if (neutral && count > 0) {
+        /* "⁰" mixed with pitch levels is not a contour this grammar reads. */
+        return MK_ERR_PARSE;
+    }
+    if (count > 3) {
+        return MK_ERR_PARSE;
+    }
+
+    /* Valued systems declare no dimension a tone can move, so a tone token
+     * there would score a confidently wrong zero against everything. Refusing
+     * is the same policy those systems already apply to bound tone. */
+    if (system->builtin->kind != MK_SYSTEM_CATEGORICAL) {
+        return MK_ERR_UNSUPPORTED_MODEL;
+    }
+
+    status = mk_add_owned_feature(&features, &feature_count, &feature_cap, "tonal-autosegment");
+    if (status != MK_OK) {
+        goto fail;
+    }
+    if (neutral) {
+        status = mk_add_owned_feature(&features, &feature_count, &feature_cap, "tone-present");
+        if (status != MK_OK) {
+            goto fail;
+        }
+        status = mk_add_owned_feature(&features, &feature_count, &feature_cap, "tone-neutral");
+    } else {
+        status = mk_add_chao_tone_features(
+            &features, &feature_count, &feature_cap, levels, count);
+    }
+    if (status != MK_OK) {
+        goto fail;
+    }
+
+    status = mk_set_synthesized_entry(
+        out, MK_RESOLVED_TONE, normalized, features, feature_count, NULL, 0);
+    if (status != MK_OK) {
+        goto fail;
+    }
+    return MK_OK;
+
+fail:
+    mk_free_owned_feature_array(features, feature_count);
+    return status;
 }
 
 static mk_status mk_match_chao_tone_sequence(
@@ -1749,7 +1857,13 @@ mk_status mk_resolve(
         return MK_OK;
     }
     if (status == MK_ERR_UNKNOWN_GRAPHEME) {
-        status = mk_synthesize_cluster(system, &mk_vowel_cluster_grammar, normalized, out);
+        /* Tried first: a token made only of Chao digits or tone letters is
+         * unambiguous, and letting the cluster grammars see it first would have
+         * them reject it for reasons that say nothing about tone. */
+        status = mk_synthesize_bare_tone(system, normalized, out);
+        if (status == MK_ERR_UNKNOWN_GRAPHEME) {
+            status = mk_synthesize_cluster(system, &mk_vowel_cluster_grammar, normalized, out);
+        }
         if (status == MK_ERR_UNKNOWN_GRAPHEME) {
             status = mk_synthesize_from_diacritics(system, normalized, out);
         }
