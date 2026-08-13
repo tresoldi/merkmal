@@ -199,6 +199,27 @@ def collapses(system: str, covered: list[str]) -> list[tuple[str, str]]:
     ]
 
 
+def uncompared(system: str, pairs: list[tuple[str, str]]) -> int:
+    """How many of these zero-distance pairs shared no comparable dimension.
+
+    A bare count of collapses reads every zero as a claim of identity. In a
+    valued system most of them are not: they are pairs where the feature table
+    says nothing about either segment on any dimension the other has a value
+    for. Splitting the count keeps a rise in "the table is silent here" from
+    looking like a rise in "these are the same sound" -- which matters, because
+    correcting PHOIBLE's `0` cells to `.` moved exactly the first number.
+    """
+    total = 0
+    for a, b in pairs:
+        try:
+            _score, coverage = merkmal.distance_with_coverage(a, b, system=system)
+        except Exception:  # noqa: BLE001 - counted as compared, the safer reading
+            continue
+        if coverage == 0.0:
+            total += 1
+    return total
+
+
 def dead_labels(system: str, covered: list[str]) -> list[str]:
     geometry = json.loads(GEOMETRY.read_text(encoding="utf-8"))
     metadata = set(geometry.get("metadata_features", {}))
@@ -398,15 +419,29 @@ def main() -> int:
                 None,
             )
             examples = "; ".join(f"{a}~{b}" for a, b in found[:6])
+            blank = uncompared(system, found)
+            print(f"  of those, {blank} shared no comparable dimension "
+                  f"({100 * blank / len(found):.1f}%)" if found else "")
+            # The reason is derived from this run, not reviewed by hand, so it is
+            # always recomputed. Carrying the stored one forward is how a stale
+            # sentence outlives the numbers it describes -- which it did once
+            # here already, for the tone spelling rows.
+            status = "upstream-indistinguishable"
+            reason = VALUED_REASON.format(system=system)
+            if found:
+                reason += (
+                    f"; {blank} of these ({100 * blank / len(found):.1f}%) shared no "
+                    "comparable dimension at all, so they are the table being silent "
+                    "rather than the segments being alike"
+                )
             if previous_row is not None:
-                previous, status, reason = previous_row
+                previous, previous_status, _previous_reason = previous_row
+                status = previous_status
                 if int(previous) < len(found):
                     problems.append(
                         f"{system}: zero-distance pairs rose from {previous} to {len(found)}"
                     )
             else:
-                status = "upstream-indistinguishable"
-                reason = VALUED_REASON.format(system=system)
                 problems.append(f"{system}: {len(found)} collapses not yet recorded")
             recorded.append([system, "summary", examples, "", str(len(found)), status, reason])
             if found:

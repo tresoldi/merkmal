@@ -83,6 +83,17 @@ numbers even when no code changed.
   are the library's contract.
 - Re-stamp `models/*/provenance.json` (the input hashes are checked) and
   regenerate `NOTICE`.
+- If PHOIBLE data is touched, re-verify it against the release its manifest
+  pins:
+
+  ```sh
+  scripts/rebuild_phoible_inventory.py <cldf/parameters.csv> --check
+  ```
+
+  It is not in CI because it needs the upstream file, and fetching one over the
+  network is not something a build should depend on. It is how the 5,272
+  miscopied cells were found, so run it rather than trusting that the table
+  still says what upstream says.
 - Never describe a distribution bundling the CLTS-derived categorical
   inventories, PHOIBLE, or P-base data as MIT-only. The current expression is
   `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`.

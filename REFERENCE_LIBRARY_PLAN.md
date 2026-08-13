@@ -47,12 +47,17 @@ below; two items remain and both are the maintainer's call, not work.
   pinned release rather than assumed: v2.0.1 declares no `dc:license` of its own
   (CC-BY-4.0 appears only from the 3.0 revision), so PHOIBLE 2.0's own
   CC-BY-SA-3.0 governs. The existing declaration was correct.
-- **Found while verifying, not yet fixed:** PHOIBLE extraction is not
+- **Found while verifying, now fixed.** PHOIBLE extraction was not
   self-consistent. Against v2.0.1, 3,729 cells where upstream says `0` (not
   applicable) were written `-` rather than `.`, 761 where upstream specifies a
   value were written `.`, and 697 where upstream gives a contour were resolved to
-  a single `+`/`-`. 95.43% of cells are accounted for by the intended
-  transformation. This is data work, not provenance work, and belongs in phase 1.
+  a single `+`/`-`. Rebuilt from the pinned table by
+  `scripts/rebuild_phoible_inventory.py`, which `--check` re-verifies: 5,272
+  cells across 2,002 rows corrected. Reading `0` as `-` had manufactured
+  agreement, so distances were too small — the sampled mean rises from 0.2208 to
+  0.2420 while zero-distance pairs fall from 6.06% to 5.89%. The differing row
+  *sets* (17 here that v2.0.1 lacks, 58 there that this lacks) remain open and
+  are a decision about which release's segment list to carry.
 - **Deferred by decision:** merkmal 0.1.0, 0.1.1 and 0.2.0 are live on PyPI
   declaring `License: MIT`. The 0.2.0 wheel ships `merkmal/data/sounds.tsv`
   (778 rows, 100% CLTS graphemes, 99.1% byte-identical CLTS names) and CLTS's

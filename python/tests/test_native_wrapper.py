@@ -257,7 +257,10 @@ def test_native_distance_matches_golden_probe() -> None:
     )
     assert math.isclose(
         merkmal.distance("p", "b", system="phoible"),
-        0.0365853659,
+        # 0.0366 before the PHOIBLE cells were rebuilt from the pinned upstream
+        # table. Reading its `0` -- "this feature does not apply" -- as `-` made
+        # /p/ and /b/ agree on dimensions neither has, which shrank the distance.
+        0.0394736842,
         abs_tol=1e-10,
     )
     assert merkmal.feature_distance("voiced", "voiceless") == 2

@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+### PHOIBLE's cells rebuilt from the pinned upstream table
+
+**PHOIBLE distances change.** The extraction that produced this inventory was
+not self-consistent, and 5,272 cells across 2,002 rows are corrected against
+`cldf-datasets/phoible` v2.0.1, the release `provenance.json` pins:
+
+- **3,729 cells where upstream says `0`** — the feature does not apply to this
+  segment — **were written `-`**, which asserts that it applies and is absent.
+  `/p/` carried `advancedTongueRoot=-` and `retractedTongueRoot=-`; tongue-root
+  position is not a property a bilabial stop has.
+- **761 cells where upstream gives `+` or `-` were written `.`**, dropping a
+  value the source states.
+- **686 contours such as `+,-` were resolved to a single sign**, while 3,788
+  others became `.`.
+
+One rule now covers every cell, applied by
+`scripts/rebuild_phoible_inventory.py`, whose `--check` re-verifies against the
+pinned table: `+` and `-` carry through; `0`, `N` (upstream has no vector at
+all, 2 segments), a contour, and an empty cell all become `.`. Contours collapse
+rather than resolve, because choosing one phase of `+,-` invents a claim the
+source does not make — and `distance_with_coverage` now reports what saying so
+costs.
+
+**Reading `0` as `-` manufactured agreement**, so distances were systematically
+too small. Over a 24,090-pair sample the mean rises from 0.2208 to 0.2420, and
+zero-distance pairs *fall* from 6.06% to 5.89%: fewer segments now look
+identical, because fewer of them are being credited with agreeing about features
+neither one has.
+
+Still open, and a different question: the row *sets* differ from v2.0.1 by 17
+graphemes here that it lacks and 58 there that this inventory lacks. Which
+release's segment list to carry is a decision rather than a defect, and this
+change does not make it.
+
 ### The last two cluster defects
 
 - **Affricates survive inside a cluster.** `features("ntʃ")` parsed as
