@@ -48,6 +48,30 @@ comparison. Those uses are what this supports today. Historical and typological
 interpretation requires a separate, validated model fitted to language-indexed
 data, which this library does not provide.
 
+## It is a substitution cost, not an aligner
+
+`merkmal` scores one segment against one segment. It has no gap model, no
+alignment, and no sequence operations, and that is a scope decision rather than
+an omission to be filled in later. If you are aligning words, use
+[LingPy](https://lingpy.org/) and give it these distances, or write the
+Needleman-Wunsch yourself — it is thirty lines.
+
+The gap cost is yours to choose, so here is what it measured out at rather than
+leaving you to guess. Tuning on held-out BDPA alignments, the optimum sits at
+**0.30–0.50** for the categorical systems and up to 0.80 for the valued ones;
+`bench/bench_alignment.py` re-derives it. It is not transferable between
+systems, because the distance distributions differ.
+
+Two things worth knowing before you build on the number:
+
+- **A tone and a segment are not comparable on a shared scale**, and the value
+  you get today for `d(³³, p)` is a placeholder the project does not defend.
+  Gold alignments never put tone in a column with a segment; a pipeline should
+  not either. See `REFERENCE_LIBRARY_PLAN.md`.
+- **`sound_distance` is the geometry scorer and takes no system.** It agrees
+  with `distance` only for the geometry-scored systems (`descriptive`, `broad`),
+  not for the default.
+
 See [docs/review-response.md](docs/review-response.md) for the standing
 external review of these claims and what remains open.
 

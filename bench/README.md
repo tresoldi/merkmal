@@ -44,6 +44,29 @@ not redistribute the wordlists and does not inherit their licenses. If it is
 ever extended to carry form-level data that reasoning stops holding; see
 `corpus/provenance.json`.
 
+### `cross_theory.py` — does the conclusion survive the feature theory?
+
+```sh
+bench/cross_theory.py [--bdpa ~/lexibank_clone/bdpa]
+```
+
+The one question this library can answer and its neighbours cannot: PanPhon has
+one feature set, CLTS has none, LingPy has sound classes. Here the same claim is
+put to Hayes-style distinctive features, a descriptive geometry, PHOIBLE's
+binary table, and three P-base sets including Jakobson-Fant-Halle's *acoustic*
+features.
+
+Swept exhaustively rather than hand-picked, because a hand-picked set shows
+whatever the picker expected — the first version of this used fifteen claims I
+chose, and all fifteen were unanimous, which taught nobody anything. Over every
+"A is closer to B than to C" that 41 segments can state and at least six systems
+have an opinion on: **62.6% unanimous, 37.4% split**.
+
+A third of the orderings depend on which feature theory answers. That is not a
+defect in any of them — SPE, JFH and PHOIBLE disagree about what a segment *is*
+— but it means a result resting on one of them is partly a result about that
+theory. Run it twice and say which you used.
+
 ### `bench_alignment.py` — the substitution cost, against the incumbent
 
 ```sh

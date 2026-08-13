@@ -44,6 +44,7 @@ if(MERKMAL_REQUIRE_UTF8PROC AND NOT UTF8PROC_FOUND)
 endif()
 
 set(MERKMAL_SOURCES
+    src/diagnose.c
     src/geometry.c
     src/inventory.c
     src/ipa.c

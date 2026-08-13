@@ -448,6 +448,62 @@ done:
     return result;
 }
 
+static PyObject *py_diagnose(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *keywords[] = {"grapheme", "system", "registry", NULL};
+    PyObject *grapheme_obj;
+    PyObject *system_obj = Py_None;
+    PyObject *registry_obj = Py_None;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *grapheme = NULL;
+    const char *system_name = default_system_name;
+    mk_registry *registry;
+    const mk_system *system;
+    mk_diagnosis diagnosis;
+    PyObject *result = NULL;
+    mk_status status;
+
+    (void)self;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs, "O|OO:diagnose", keywords,
+            &grapheme_obj, &system_obj, &registry_obj
+        )) {
+        return NULL;
+    }
+    if (py_utf8_take(&bag, grapheme_obj, "grapheme", &grapheme) < 0 ||
+        py_utf8_take_optional(&bag, system_obj, "system", &system_name) < 0) {
+        goto done;
+    }
+    registry = resolve_registry(registry_obj, "diagnose");
+    if (registry == NULL) {
+        goto done;
+    }
+    system = resolve_system(registry, system_name, "diagnose");
+    if (system == NULL) {
+        goto done;
+    }
+    status = mk_system_diagnose(system, grapheme, &diagnosis);
+    if (status != MK_OK) {
+        status_error(status, "diagnose");
+        goto done;
+    }
+    /* A dict rather than a tuple: the caller reads these by name, and a
+     * positional shape would fix an order the C struct is free to extend. */
+    result = Py_BuildValue(
+        "{s:s,s:O,s:s#,s:n,s:s}",
+        "status", mk_status_string(diagnosis.status),
+        "ok", diagnosis.status == MK_OK ? Py_True : Py_False,
+        "valid_prefix", grapheme, (Py_ssize_t)diagnosis.valid_prefix_bytes,
+        "offset", (Py_ssize_t)diagnosis.offending_offset,
+        "offending", diagnosis.offending
+    );
+
+done:
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
 static PyObject *py_vector_labels(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     static char *keywords[] = {"system", "registry", NULL};
@@ -1040,6 +1096,8 @@ done:
 static PyMethodDef methods[] = {
     {"list_systems", (PyCFunction)py_list_systems, METH_VARARGS | METH_KEYWORDS,
      "List the systems in a registry."},
+    {"diagnose", (PyCFunction)py_diagnose, METH_VARARGS | METH_KEYWORDS,
+     "diagnose(grapheme, system=None, registry=None) -> dict"},
     {"distance_with_coverage", (PyCFunction)py_distance_with_coverage,
      METH_VARARGS | METH_KEYWORDS,
      "distance_with_coverage(a, b, system=None, node_weights=None, registry=None)"

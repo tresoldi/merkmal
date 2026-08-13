@@ -14,7 +14,10 @@
 #   miss  769 rows 5.6 us | 1068 rows 8.4 us | 3142 rows 25.9 us
 #   tokenize 96.8 us/token, distance 36.8 us/pair
 
-# This table moved for the whole of the coverage work, not one change:
+# diagnose.c (+453 text) is the rejection diagnostic; vector.c (+2,276) the
+# numeric vectors. builtin_data rodata fell again with the PHOIBLE rebuild.
+#
+# Earlier in this release, for the coverage work:
 #   vector.c   +2,276 text   new: the numeric feature vector API
 #   resolver.c   +489 text   bare tone, source markers, cluster gate
 #   utf8.c        +80 text   tone tokenization
@@ -38,23 +41,24 @@
 ## native objects (-O2 -DNDEBUG)
 
 object                             text     rodata     relocs
-geometry.c                         6454         54        114
+diagnose.c                          453          0         14
+geometry.c                         6742         54        114
 inventory.c                         488          0          8
 ipa.c                               587         75         52
 model_text.c                       2884        774         89
 normalize.c                        3430        442        272
 registry.c                         1191          0         31
-resolver.c                        13766       1180        450
+resolver.c                        14342       1184        466
 status.c                             21        202         11
 string_list.c                       565          0         18
 strings.c                           465          0         16
-system.c                           3114        107         89
+system.c                           3514        141        104
 tokenize.c                         1734          6         51
 tone.c                             1259         41         56
 utf8.c                              622          0         13
 vector.c                           2276         16         42
-builtin_data.c                       61     545755       2738
-TOTAL                             38917     548652       4050
+builtin_data.c                       61     541115       2738
+TOTAL                             40634     544050       4095
 
 generated string literals (outside the interned pool): 6568 bytes
 

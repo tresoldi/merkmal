@@ -2,6 +2,36 @@
 
 ## Unreleased
 
+### Diagnosis, scope, and a cross-theory check
+
+- **`mk_system_diagnose` / `merkmal.diagnose`.** Rejection was a status and
+  nothing else, which is enough for "can I score this?" and useless for checking
+  someone's transcriptions — the workflow a validated inventory and a fast C core
+  should be best in the world at, and where the diagnosis *is* the product. It
+  now reports the status, the longest prefix that does resolve, and the first
+  character beyond it: `pʰ̳zz` comes back as `pʰ` plus the offending combining
+  mark, `¹²³⁴` as a parse error with `¹²³` valid and `⁴` at fault.
+
+  Deliberately **no "nearest valid grapheme"**: an edit-distance search over the
+  inventory would be a guess presented as an answer, and the prefix is cheaper
+  and more often right.
+
+- **The README says what the library is not.** `merkmal` supplies a substitution
+  cost and no gap model, no alignment, no sequence operations — a scope decision,
+  not a gap to fill later. It points at LingPy and publishes the measured gap
+  costs (0.30–0.50 categorical, up to 0.80 valued) so nobody has to guess, along
+  with the two live caveats: the tone-versus-segment placeholder, and
+  `sound_distance` not agreeing with `distance` under the default system.
+
+- **`bench/cross_theory.py`** puts the same claim to all seven feature theories.
+  Over every "A is closer to B than to C" that 41 segments can state and at least
+  six systems have an opinion on, **37.4% are not unanimous**.
+
+  The first version of this used fifteen claims I picked, and all fifteen came
+  back unanimous — which demonstrates only that I picked easy ones. Sweeping
+  exhaustively found 10,918 contested orderings, including `d(p,t) < d(p,k)`:
+  whether a labial is nearer a coronal or a velar depends on who is asked.
+
 ### PHOIBLE's cells rebuilt from the pinned upstream table
 
 **PHOIBLE distances change.** The extraction that produced this inventory was

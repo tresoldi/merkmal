@@ -53,6 +53,41 @@ documented otherwise.
 `mk_string_list` is the library's only collection type. Feature sets are
 string lists whose order carries no meaning.
 
+## Diagnosing a refusal
+
+```c
+typedef struct mk_diagnosis {
+    mk_status status;
+    size_t valid_prefix_bytes;
+    size_t offending_offset;
+    char offending[8];
+} mk_diagnosis;
+
+mk_status mk_system_diagnose(const mk_system *system, const char *utf8_grapheme,
+                             mk_diagnosis *out);
+```
+
+Checking someone's transcriptions is the workflow a validated inventory and a
+fast C core should be best in the world at, and there the diagnosis *is* the
+product. A bare `MK_ERR_UNKNOWN_GRAPHEME` does not tell an author whether they
+mistyped one combining mark, used a convention this library does not read, or
+wrote a sound it genuinely lacks.
+
+| input | status | valid prefix | offending |
+| --- | --- | --- | --- |
+| `pʰ` | `ok` | `pʰ` | — |
+| `pʰ̳zz` | unknown grapheme | `pʰ` | `̳` |
+| `¹²³⁴` | parse error | `¹²³` | `⁴` |
+| `<?>` | source markup, not a sound | — | `<` |
+
+The longest resolving prefix localizes the problem and is usually the repair.
+`mk_system_diagnose` returns `MK_OK` unless its arguments are unusable — a
+refused grapheme is the normal case and is reported in `out->status`.
+
+There is deliberately **no "nearest valid grapheme"**. An edit-distance search
+over the inventory would be a guess presented as an answer, and the prefix is
+both cheaper and more often right.
+
 ## Distance with coverage
 
 ```c

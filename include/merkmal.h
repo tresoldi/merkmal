@@ -223,6 +223,40 @@ MK_API mk_status mk_split_tone(
     char **tone_out
 );
 
+/** Why a grapheme was refused, for checking transcriptions.
+ *
+ * `status` is what mk_system_grapheme_features would return: MK_OK when the
+ * grapheme is fine, and otherwise MK_ERR_UNKNOWN_GRAPHEME, MK_ERR_PARSE or
+ * MK_ERR_SOURCE_MARKER, which already say different things.
+ *
+ * `valid_prefix_bytes` is the longest prefix that does resolve -- `pʰ` out of a
+ * mistyped `pʰ` plus junk -- which localizes the problem and is usually the
+ * repair. It is 0 when nothing resolves and the whole length when nothing is
+ * wrong.
+ *
+ * `offending_offset` is the byte offset just past that prefix, and `offending`
+ * holds the character there as a NUL-terminated UTF-8 string, empty when there
+ * is none.
+ *
+ * There is deliberately no "nearest valid grapheme": an edit-distance search
+ * over the inventory would be a guess presented as an answer, and the prefix is
+ * cheaper and more often right.
+ */
+typedef struct mk_diagnosis {
+    mk_status status;
+    size_t valid_prefix_bytes;
+    size_t offending_offset;
+    char offending[8];
+} mk_diagnosis;
+
+/** Fills `out`. Returns MK_OK unless the arguments are unusable: a refused
+ *  grapheme is the normal case and is reported in `out->status`. */
+MK_API mk_status mk_system_diagnose(
+    const mk_system *system,
+    const char *utf8_grapheme,
+    mk_diagnosis *out
+);
+
 /** Distance, with the share of dimensions the comparison actually used.
  *
  * A valued system skips any dimension where either segment has no value, so a

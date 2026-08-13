@@ -421,6 +421,36 @@ def test_coverage_separates_identical_from_incomparable() -> None:
     assert math.isclose(score, merkmal.distance("p", "b", system="descriptive"))
 
 
+def test_diagnose_says_where_a_grapheme_went_wrong() -> None:
+    """Checking transcriptions is the workflow a validated inventory should be
+    best at, and there the diagnosis is the product. "Unknown grapheme" does not
+    tell an author whether they mistyped a mark, used a convention this library
+    does not read, or wrote a sound it genuinely lacks.
+    """
+    fine = merkmal.diagnose("pʰ")
+    assert fine["ok"] and fine["status"] == "ok"
+    assert fine["valid_prefix"] == "pʰ" and fine["offending"] == ""
+
+    # The longest prefix that resolves localizes the problem and is usually the
+    # repair: `pʰ` is right, the combining mark after it is not.
+    bad = merkmal.diagnose("pʰ̳zz")
+    assert not bad["ok"]
+    assert bad["valid_prefix"] == "pʰ"
+    assert bad["offending"] == "̳"
+
+    # The three refusals stay distinguishable, and the prefix points at the
+    # right character in each.
+    markup = merkmal.diagnose("<?>")
+    assert markup["status"] == "source markup, not a sound"
+    malformed = merkmal.diagnose("¹²³⁴")
+    assert malformed["status"] == "parse error"
+    assert malformed["valid_prefix"] == "¹²³"  # a run of three is a contour
+    assert malformed["offending"] == "⁴"       # the fourth digit is the problem
+    unknown = merkmal.diagnose("ɫ")
+    assert unknown["status"] == "unknown grapheme"
+    assert unknown["valid_prefix"] == ""       # nothing of it resolves
+
+
 def test_affricates_survive_inside_a_cluster() -> None:
     """`ntʃ` is n + tʃ, not n + t + ʃ.
 

@@ -56,8 +56,9 @@ python scripts/regenerate_golden.py           # rewrite the fixtures
 ## Where things live
 
 ```
-include/merkmal.h    the entire public surface: 30 symbols, all mk_-prefixed
+include/merkmal.h    the entire public surface: 31 symbols, all mk_-prefixed
 src/
+  diagnose.c         why a grapheme was refused
   status.c           mk_status -> string
   vector.c           fixed-width numeric feature vectors
   strings.c          strdup, streq, has_prefix, append_text, free_items

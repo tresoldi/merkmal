@@ -20,6 +20,7 @@ NativeError = _native.NativeError
 # catches ValueError is unaffected; catch this one to skip the source's own
 # known gaps without also swallowing segments the library genuinely lacks.
 SourceMarkerError = _native.SourceMarkerError
+diagnose = _native.diagnose
 distance = _native.distance
 distance_with_coverage = _native.distance_with_coverage
 feature_vector = _native.feature_vector
@@ -103,6 +104,7 @@ __all__ = [
     "SourceMarkerError",
     "Registry",
     "__version__",
+    "diagnose",
     "distance",
     "distance_with_coverage",
     "feature_distance",
