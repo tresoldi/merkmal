@@ -257,6 +257,20 @@ MK_API mk_status mk_system_diagnose(
     mk_diagnosis *out
 );
 
+/** Whether two segments were comparable at all, and if not, why not. */
+typedef enum mk_comparability {
+    /** They share a tier and dimensions; the score means what it says. */
+    MK_CMP_OK = 0,
+    /** One is a tone and the other a segment. They occupy different tiers, and
+     *  the score is the geometry's declared `tier_policy.cross_tier_cost`
+     *  rather than a measurement. Gold alignments never place a tone in a
+     *  column with a segment. */
+    MK_CMP_CROSS_TIER,
+    /** Same tier, but no dimension on which both have a value. A valued
+     *  system's 0.0 here means "nothing to compare", not "identical". */
+    MK_CMP_NO_SHARED_DIMENSION
+} mk_comparability;
+
 /** Distance, with the share of dimensions the comparison actually used.
  *
  * A valued system skips any dimension where either segment has no value, so a
@@ -277,7 +291,8 @@ MK_API mk_status mk_system_segment_distance_ex(
     const char *utf8_b,
     const char *node_weights,
     double *out,
-    double *coverage
+    double *coverage,
+    mk_comparability *why
 );
 
 /** Number of columns a system's feature vectors have. Fixed per system. */

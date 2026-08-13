@@ -411,6 +411,7 @@ static PyObject *py_distance_with_coverage(PyObject *self, PyObject *args, PyObj
     const mk_system *system;
     double score = 0.0;
     double coverage = 0.0;
+    mk_comparability why = MK_CMP_OK;
     PyObject *result = NULL;
     mk_status status;
 
@@ -436,12 +437,20 @@ static PyObject *py_distance_with_coverage(PyObject *self, PyObject *args, PyObj
     if (system == NULL) {
         goto done;
     }
-    status = mk_system_segment_distance_ex(system, a, b, node_weights, &score, &coverage);
+    status = mk_system_segment_distance_ex(
+        system, a, b, node_weights, &score, &coverage, &why);
     if (status != MK_OK) {
         status_error(status, "distance_with_coverage");
         goto done;
     }
-    result = Py_BuildValue("(dd)", score, coverage);
+    {
+        /* Three values, because two of them are only interpretable together:
+         * a 0.0 with coverage 0.0 is "nothing to compare", and a cross-tier
+         * score is a declared policy value rather than a measurement. */
+        const char *label = why == MK_CMP_CROSS_TIER ? "cross-tier"
+            : (why == MK_CMP_NO_SHARED_DIMENSION ? "no-shared-dimension" : "ok");
+        result = Py_BuildValue("(dds)", score, coverage, label);
+    }
 
 done:
     py_utf8_args_clear(&bag);

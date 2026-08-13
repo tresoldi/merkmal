@@ -5844,6 +5844,7 @@ const char *const mk_default_metadata_features[] = {
 const size_t mk_default_metadata_feature_count =
     sizeof(mk_default_metadata_features) / sizeof(mk_default_metadata_features[0]);
 
+const double mk_clements_hume_cross_tier_cost = 1;
 const mk_diacritic_map mk_default_combining_diacritics[] = {
     {"̃", "nasalized"},
     {"̆", "ultra-short"},

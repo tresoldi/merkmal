@@ -263,7 +263,13 @@ saw them. That gap surfaced immediately: adding the `tone_neutral` leaf made the
 audit fail with one unreachable dimension per categorical system, which is the
 guard doing its job.
 
-**Still open — what a tone costs against a segment.** Tone tokens carry
+**Closed 2026-08-13.** Cross-tier comparison reports `MK_CMP_CROSS_TIER` and a
+declared `tier_policy.cross_tier_cost` of 1.0, held in the geometry file as data
+rather than as a tree edit. `MK_CMP_NO_SHARED_DIMENSION` covers the other
+incomparable case. No measurable benchmark effect, as expected: BDPA has no
+tonal-versus-toneless pair. The original text follows.
+
+**Was open — what a tone costs against a segment.** Tone tokens carry
 `tonal-autosegment` as a declared unscored `metadata_feature`, so today they
 compare through the geometry like anything else and land around 0.50 against a
 vowel and 0.61 against a stop. Those are placeholder numbers, and §"Review

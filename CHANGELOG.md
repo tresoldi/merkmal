@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+### A tone and a segment are no longer compared
+
+**Breaking (C, unreleased):** `mk_system_segment_distance_ex` takes a fourth
+output, `mk_comparability *why`. `merkmal.distance_with_coverage` returns three
+values instead of two.
+
+Until now a tone token scored against a segment through the geometry, returning
+0.61 against a stop and 0.50 against a vowel **with coverage 1.0** — claiming a
+complete comparison. Those numbers are functions of how many features the
+*other* segment has, not statements about tone: every 7-feature segment scored
+exactly 0.5000. And they sit below the cost at which an aligner stops matching
+the two, while gold alignments never put a tone in a column with a segment.
+
+`why` now distinguishes three cases: `MK_CMP_OK`, `MK_CMP_CROSS_TIER` (the score
+is a declared policy value, not a measurement), and `MK_CMP_NO_SHARED_DIMENSION`
+(a `0.0` that means "nothing to compare", not "identical").
+
+**The cross-tier cost is data.** `tier_policy.cross_tier_cost` lives in
+`geometries/clements-hume.json`, so changing it is a versioned data change with
+a diff rather than a tree edit — which is what lets a later evidence-derived or
+preference-derived scorer carry its own without moving this one. That was the
+decisive argument against the tier *leaf* an adversarial review rejected: a leaf
+baked into the single compiled-in geometry is baked in for every user of every
+system forever.
+
+It is 1.0, meaning incomparable. `bench/sweep_tone_distance.py` saturates above
+roughly 0.7 — every value from there upward produces byte-identical alignments —
+so the data cannot distinguish any cost in that region from refusing to compare
+at all. A caller wanting a finite cost reads `why` and supplies their own.
+
+No measurable effect on the alignment benchmark, which is the expected result
+and a second confirmation of an earlier finding: BDPA contains no
+tonal-versus-toneless language pair, so the case almost never arises there. It
+arises constantly in Lexibank.
+
 ### The fitted scorer, run and not shipped
 
 Both earlier reviews concluded a fitted pair-cost table is the only real answer

@@ -401,22 +401,24 @@ def test_coverage_separates_identical_from_incomparable() -> None:
     included. The score is unchanged -- inventing values would be fabricating
     data -- but the caller can now see the difference.
     """
-    score, coverage = merkmal.distance_with_coverage("˦˨", "d", system="phoible")
+    score, coverage, why = merkmal.distance_with_coverage("˦˨", "d", system="phoible")
     assert score == 0.0
     assert coverage == 0.0  # nothing was compared at all
+    assert why == "no-shared-dimension"
 
     # Genuinely indistinguishable is a different thing, and now looks different:
     # P-base UFTC gives /e/ and /i/ the same value on every dimension it defines.
-    score, coverage = merkmal.distance_with_coverage("e", "i", system="pbase-uftc")
+    score, coverage, why = merkmal.distance_with_coverage("e", "i", system="pbase-uftc")
     assert score == 0.0
     assert coverage > 0.5
+    assert why == "ok"  # compared, and genuinely indistinguishable
 
     # A segment against itself is fully covered, not uncovered.
-    assert merkmal.distance_with_coverage("p", "p", system="phoible") == (0.0, 1.0)
+    assert merkmal.distance_with_coverage("p", "p", system="phoible") == (0.0, 1.0, "ok")
 
     # Categorical systems score over the union of what either segment specifies,
     # so the ambiguity cannot arise and coverage is 1.0 by construction.
-    score, coverage = merkmal.distance_with_coverage("p", "b", system="descriptive")
+    score, coverage, _why = merkmal.distance_with_coverage("p", "b", system="descriptive")
     assert coverage == 1.0
     assert math.isclose(score, merkmal.distance("p", "b", system="descriptive"))
 
@@ -556,6 +558,27 @@ def test_feature_vectors_are_fixed_width_and_labelled() -> None:
 
     with pytest.raises(ValueError):
         merkmal.feature_vector("not-ipa")
+
+
+def test_a_tone_and_a_segment_are_not_compared() -> None:
+    """They occupy different tiers, and the geometry's answer for them is an
+    artifact of how many features the *other* segment has -- 0.61 against a
+    stop, 0.50 against a vowel -- not a statement about tone. Gold alignments
+    never put the two in one column.
+    """
+    for other in ["p", "a", "s", "n"]:
+        score, coverage, why = merkmal.distance_with_coverage(
+            "³³", other, system="descriptive"
+        )
+        assert why == "cross-tier", other
+        assert coverage == 0.0, other
+        # The declared policy value, not a measurement: geometries/clements-hume.json
+        # carries it as `tier_policy.cross_tier_cost` so it is data, not a tree edit.
+        assert score == 1.0, other
+
+    # Tone against tone is an ordinary comparison and is unaffected.
+    score, coverage, why = merkmal.distance_with_coverage("³³", "⁵⁵", system="descriptive")
+    assert why == "ok" and coverage == 1.0 and 0.0 < score < 1.0
 
 
 def test_source_markup_is_distinguishable_from_an_unsupported_sound() -> None:

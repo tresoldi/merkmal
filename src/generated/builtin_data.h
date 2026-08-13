@@ -181,6 +181,9 @@ extern const mk_builtin_system mk_builtin_systems[];
 extern const size_t mk_builtin_system_count;
 extern const mk_geometry_leaf mk_clements_hume_leaves[];
 extern const size_t mk_clements_hume_leaf_count;
+/* What a tone costs against a segment. Declared in the geometry file; see
+ * `tier_policy` there for why it is 1.0 and what the alternatives cost. */
+extern const double mk_clements_hume_cross_tier_cost;
 extern const mk_ordinal_scale mk_clements_hume_ordinal_scales[];
 extern const size_t mk_clements_hume_ordinal_scale_count;
 extern const mk_feature_node_map mk_clements_hume_feature_to_node[];

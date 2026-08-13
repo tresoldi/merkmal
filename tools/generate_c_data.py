@@ -635,6 +635,21 @@ def emit_system(
     return "\n".join(lines)
 
 
+def emit_tier_policy(geometry: dict[str, object]) -> str:
+    """What a tone costs against a segment, as a compiled-in constant.
+
+    Emitted from the geometry file rather than written in C so that changing it
+    is a data change with a version and a diff, not a code change -- which is
+    what lets a later fitted scorer carry its own without disturbing this one.
+    """
+    policy = geometry.get("tier_policy", {})
+    cost = float(policy.get("cross_tier_cost", 1.0))
+    return (
+        "const double mk_clements_hume_cross_tier_cost = "
+        f"{cost:.17g};"
+    )
+
+
 def emit_geometry(geometry: dict[str, object]) -> str:
     tree = geometry["tree"]
     ftn = sorted(geometry.get("feature_to_node", {}).items())
@@ -994,6 +1009,7 @@ def generate(output: Path) -> None:
     chunks.append(emit_geometry(geometry))
     chunks.append(emit_ordinal_scales(geometry))
     chunks.append(emit_metadata_features(geometry))
+    chunks.append(emit_tier_policy(geometry))
     chunks.append(emit_diacritics(diacritics))
     chunks.append(emit_decompositions(diacritics))
     chunks.extend(system_chunks)

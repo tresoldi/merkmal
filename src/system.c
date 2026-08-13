@@ -326,13 +326,20 @@ static mk_status mk_vowel_cluster_distance(
     return MK_OK;
 }
 
+/* A tone token carries this and nothing else does. See the resolver. */
+static int mk_is_tonal_autosegment(mk_feature_view view)
+{
+    return mk_view_has(view, "tonal-autosegment");
+}
+
 static mk_status mk_distance_with_coverage(
     const mk_system *system,
     const char *utf8_a,
     const char *utf8_b,
     const char *node_weights,
     double *out,
-    double *coverage
+    double *coverage,
+    mk_comparability *why
 )
 {
     mk_resolution resolved_a;
@@ -352,6 +359,26 @@ static mk_status mk_distance_with_coverage(
     if (status != MK_OK) {
         mk_resolution_clear(&resolved_a);
         return status;
+    }
+
+    /* Cross-tier before anything else. A tone and a segment share no dimension
+     * by construction, so scoring them through the geometry returns a number
+     * built entirely from how many features the *other* one has -- 0.61 against
+     * a stop, 0.50 against a vowel -- which is not a statement about tone and
+     * sits below the cost at which an aligner stops matching the two. Gold
+     * alignments never put them in one column. */
+    if (mk_is_tonal_autosegment(mk_view_of(&resolved_a)) !=
+        mk_is_tonal_autosegment(mk_view_of(&resolved_b))) {
+        *out = mk_clements_hume_cross_tier_cost;
+        if (coverage != NULL) {
+            *coverage = 0.0;
+        }
+        if (why != NULL) {
+            *why = MK_CMP_CROSS_TIER;
+        }
+        mk_resolution_clear(&resolved_a);
+        mk_resolution_clear(&resolved_b);
+        return MK_OK;
     }
 
     if (system->builtin->kind == MK_SYSTEM_CATEGORICAL) {
@@ -399,6 +426,12 @@ static mk_status mk_distance_with_coverage(
         if (coverage != NULL) {
             *coverage = 0.0;
         }
+        return status;
+    }
+    /* Same tier, nothing in common. The score is 0.0 and does not mean
+     * "identical"; saying which is the whole point of this channel. */
+    if (why != NULL && coverage != NULL && *coverage == 0.0) {
+        *why = MK_CMP_NO_SHARED_DIMENSION;
     }
     return status;
 }
@@ -411,7 +444,7 @@ mk_status mk_system_segment_distance_with_weights(
     double *out
 )
 {
-    return mk_distance_with_coverage(system, utf8_a, utf8_b, node_weights, out, NULL);
+    return mk_distance_with_coverage(system, utf8_a, utf8_b, node_weights, out, NULL, NULL);
 }
 
 mk_status mk_system_segment_distance_ex(
@@ -420,11 +453,15 @@ mk_status mk_system_segment_distance_ex(
     const char *utf8_b,
     const char *node_weights,
     double *out,
-    double *coverage
+    double *coverage,
+    mk_comparability *why
 )
 {
     if (coverage == NULL) {
         return MK_ERR_INVALID_ARGUMENT;
+    }
+    if (why != NULL) {
+        *why = MK_CMP_OK;
     }
     /* Categorical systems score over the union of what either segment
      * specifies, so a pair with nothing in common still has dimensions to
@@ -432,7 +469,7 @@ mk_status mk_system_segment_distance_ex(
      * keeps the call usable for any system rather than only for the valued
      * ones, and the doc comment says which is which. */
     *coverage = 1.0;
-    return mk_distance_with_coverage(system, utf8_a, utf8_b, node_weights, out, coverage);
+    return mk_distance_with_coverage(system, utf8_a, utf8_b, node_weights, out, coverage, why);
 }
 
 /* The most tokens a single system segment can span. "iau³³" already needs

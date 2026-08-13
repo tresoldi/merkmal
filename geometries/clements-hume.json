@@ -570,5 +570,9 @@
     "n2-": "structural: a feature of the second component; see `n1-`",
     "n3-": "structural: a feature of the third component; see `n1-`",
     "move-": "structural: the trajectory between components of a vowel cluster. Descriptive only: no dimension reads it, and the movement is not scored"
+  },
+  "tier_policy": {
+    "cross_tier_cost": 1.0,
+    "note": "What a tone costs against a segment. Data rather than a tree edit, so it can be changed, versioned and argued about without touching the geometry that scores everything else -- and so a later evidence-derived or preference-derived scorer can carry its own without moving this one. 1.0 means incomparable: gold alignments never put a tone in a column with a segment, and the alignment sweep in bench/sweep_tone_distance.py saturates above about 0.7, meaning the data cannot distinguish any cost in that region from refusing to compare at all. A caller who wants a finite cost reads the comparability flag and supplies their own. Scoring it through the geometry instead yields 0.61 against a stop and 0.50 against a vowel, which are artifacts of how many features the other segment has rather than statements about tone, and are below the threshold at which an aligner stops matching tone to segments."
   }
 }

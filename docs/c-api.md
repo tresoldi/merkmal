@@ -102,6 +102,25 @@ is ambiguous between "identical" and "nothing in common to compare". PHOIBLE
 writes `.` in 30,181 cells and its tone letters are `.` on every dimension, so
 `˦˨` scores `0.0` against every segment in the table.
 
+`*why` reports whether the pair was comparable at all:
+
+| value | meaning |
+| --- | --- |
+| `MK_CMP_OK` | same tier, shared dimensions; the score is a measurement |
+| `MK_CMP_CROSS_TIER` | a tone against a segment. The score is the geometry file's declared `tier_policy.cross_tier_cost`, not a measurement |
+| `MK_CMP_NO_SHARED_DIMENSION` | same tier, no dimension both have a value on. A `0.0` here means "nothing to compare", not "identical" |
+
+**Cross-tier is a policy, and the policy is data.** `tier_policy.cross_tier_cost`
+lives in `geometries/clements-hume.json`, so changing it is a versioned data
+change with a diff rather than a tree edit — and a later evidence-derived scorer
+can carry its own without disturbing this one. It is 1.0, meaning incomparable:
+gold alignments never place a tone in a column with a segment, and
+`bench/sweep_tone_distance.py` saturates above roughly 0.7, so the data cannot
+distinguish any cost in that region from refusing to compare. Scoring a tone
+through the geometry instead gives 0.61 against a stop and 0.50 against a vowel,
+which are functions of how many features the *other* segment has rather than
+statements about tone.
+
 `*coverage` is the share of the system's declared dimensions on which both
 segments had a value, in `[0, 1]`. `d(˦˨, d)` in PHOIBLE is `(0.0, 0.0)`;
 `d(e, i)` in P-base UFTC, genuinely indistinguishable there, is `(0.0, 0.75)`.
