@@ -110,6 +110,72 @@ The goal is a stated, tested guarantee: **if a token appears in a CLDF
 `Segments` column, `merkmal` has defined behaviour for it.** Today that holds
 for 73.4% of Lexibank segment types.
 
+### 1a-0. What a tone segment is worth — decided 2026-08-13
+
+Three distinct pairs were being conflated. Only the third was ever open:
+
+| pair | status |
+| --- | --- |
+| `a` ~ `a¹³` — toneless vs tone-bearing vowel | exists, 0.1014 |
+| `a¹³` ~ `a³³` — two tones on one vowel | exists, 0.0489 |
+| `¹³` ~ `p` — a *bare* tone token vs a segment | does not exist; this is the decision |
+
+**D8 — a bare tone segment is separated from segmental units by a Root-level
+tier leaf carried by every segment.** Autosegmentally motivated: tone occupies
+its own tier, and a tier mismatch is a real phonological statement rather than a
+fudge. It sits beside `vocoid` (weight 0.8), which is the existing precedent for
+a Root-level major-class leaf.
+
+The evidence, in the order it should be weighed:
+
+1. **Gold alignments never put tone in a column with a segment.** Across BDPA's
+   110 tone-bearing MSAs, a column containing a tone token contains: tone 2,295
+   times, a gap 879 times, and an actual segment ~0 times (the 137 `*` and 41
+   `.` are BDPA's own markers). 105 of those 110 MSAs have at least one toneless
+   row, so tonal-versus-toneless is the common case, not an edge case. This is a
+   categorical fact and it is the real justification.
+2. **The geometry's own answer is too low.** A tone-only feature set already
+   scores 0.50 against a vowel and 0.61 against a stop through `sound_distance`.
+   An aligner prefers gapping both sides when the distance exceeds 2×gap, and
+   the tuned gaps are 0.30–0.50, so the threshold is 0.60–1.00. At 0.50 the
+   aligner matches tone to vowels, which gold data never does.
+3. **That 0.50/0.61 spread is an artifact, not phonology.** It tracks the *other*
+   segment's feature count — every 7-feature segment scores exactly 0.5000 — and
+   is not even monotone in it (`t`, 10 features, scores 0.5925, below `p` at 8
+   features and 0.6071). It looks principled and is not.
+4. **Fitting bounds the weight; it does not pick it.** Sweeping the tone-segment
+   distance over 330 BDPA pairs containing tone: 0.30 → 81.98%, 0.50 → 82.79%,
+   **0.80 → 85.23%**, 1.00 → 85.47%, 2.00 → 84.53% (test column accuracy, gap
+   re-tuned per value). Bootstrap: 0.80 vs 0.50 is +2.01% [−0.07, +4.50], *not*
+   significant though every value ≥0.7 beat every value ≤0.5 on dev; 0.80 vs
+   1.00 is −0.02% [−1.36, +1.44], indistinguishable. So the target is "high,
+   inside roughly [0.7, 1.2]" and the choice within that band remains a
+   stipulation — an evidence-bounded one, to be documented as such alongside the
+   geometry's other stipulated weights, not described as fitted.
+
+**D9 — the tier leaf applies to every segment, and the resulting re-scaling is
+accepted.** Like `vocoid`, it enters the denominator of every distance and will
+compress within-class contrasts across all eight systems. This was chosen over
+confining it to tone comparisons, for uniformity. The failure when `vocoid` was
+added was that the compression went *undocumented* and silently invalidated
+calibrated thresholds; that must not repeat. Required alongside the change:
+measure the compression, publish the before/after distribution, regenerate the
+golden fixtures with the drift reported, and state plainly in `CHANGELOG.md`
+that stored distances, alignments, clusters and thresholds must be recomputed.
+
+**D10 — a toneless segment is closest to mid.** Today `d(a, a¹³)`, `d(a, a³³)`,
+`d(a, a⁵⁵)` and `d(a, a¹¹)` are all exactly 0.1014: a toneless vowel is
+equidistant from every tone. Instead an absent tone level compares as level 3 on
+the ordinal scale, so a toneless form matches an unmarked/mid register most
+cheaply, which is what tonogenesis work needs. `tone-present` stays privative, so
+a toneless form is still not identical to a mid-level one.
+
+The argument against, recorded because it is real: in CLDF corpora an unmarked
+vowel usually means tone was not transcribed rather than that it is level 3, so
+this reads missing data as a phonological value. Mitigation: the `ignore-tone`
+weight preset already exists for callers working with untranscribed-tone data,
+and the docs for this behaviour should point at it.
+
 ### 1a. Tone (D1)
 
 - `mk_merge_tone_digits` takes a *token list*, not a string. The current
