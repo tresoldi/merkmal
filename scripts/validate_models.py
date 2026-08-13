@@ -496,6 +496,68 @@ def validate_model_dir(model_dir: Path, expected_name: str | None = None) -> Non
         warn("No partitions defined")
 
 
+def check_scalar_weight_agreement() -> None:
+    """The two scoring paths must not disagree about what a dimension costs.
+
+    A categorical model may score through its own `scalar_dimensions` instead of
+    the geometry leaves. Where a dimension shares a name with a leaf, the two
+    have to cost the same, or `docs/geometry.md` describes neither of them.
+
+    They used to disagree on all 35 shared names, for two reasons: a dimension
+    was weighted at its geometry *node's* depth while the leaf of the same name
+    sits one level below that node, and an explicit `weight` on a leaf was
+    dropped on the scalar path -- `vocoid` is declared 0.8 and was scoring 1.0
+    in `distinctive`, the system meant to become the default. Both are fixed in
+    `tools/generate_c_data.py`; this is what stops them coming back.
+    """
+    # Ask the generator itself what weight it will emit, rather than restating
+    # its rule here. A guard that reimplements the thing it guards passes when
+    # both copies are wrong together, which is how the original divergence
+    # survived: docs/geometry.md stated one rule and the generator applied
+    # another, and nothing compared them.
+    sys.path.insert(0, str(ROOT / "tools"))
+    try:
+        import generate_c_data
+    finally:
+        sys.path.pop(0)
+
+    geometry_obj = json.loads(
+        (ROOT / "geometries" / "clements-hume.json").read_text(encoding="utf-8")
+    )
+    # Depth convention has to come from the generator too. `geometry_leaves`
+    # counts from the root's children, not from the root, and reimplementing
+    # that here by eye is precisely how a guard ends up certifying a mismatch.
+    leaves = {
+        name: (1.0 / depth if explicit is None else float(explicit))
+        for name, _pos, _neg, depth, _parent, explicit in generate_c_data.geometry_leaves(
+            geometry_obj["tree"]
+        )
+    }
+    shared = 0
+    bad = 0
+    for path in sorted((ROOT / "models").glob("*/model.json")):
+        system = path.parent.name
+        if json.loads(path.read_text(encoding="utf-8")).get("type") != "categorical":
+            continue
+        _kind, _entries, _gmap, _weights, dimensions = generate_c_data.load_categorical(
+            system, geometry_obj
+        )
+        for dim in dimensions:
+            name = str(dim["name"])
+            if name not in leaves:
+                continue
+            shared += 1
+            if abs(float(dim["weight"]) - leaves[name]) > 1e-12:
+                error(
+                    f"{system}: scalar dimension {name!r} will be emitted at weight "
+                    f"{float(dim['weight']):.6f}, but the geometry leaf of the same name "
+                    f"costs {leaves[name]:.6f}"
+                )
+                bad += 1
+    if bad == 0:
+        ok(f"{shared} scalar dimension(s) agree with the geometry leaves they mirror")
+
+
 def validate_cross_model_parity() -> None:
     """Check that categorical models share identical inventories."""
     print("\n[Cross-model parity checks]")
@@ -540,6 +602,7 @@ def main() -> None:
         for name in models:
             validate_model(name)
         validate_cross_model_parity()
+        check_scalar_weight_agreement()
 
     print("\n" + "=" * 60)
     if errors:

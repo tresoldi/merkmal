@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+### Two guards, and the bug the second one found
+
+Both come from an adversarial review of a proposed tone design. Neither is about
+tone; both are about checks that passed while the thing they claimed to check
+was untrue.
+
+- **`contrast_baseline.py` now checks that dimensions can be reached, not only
+  that labels land.** It verified every label a system returns can move some
+  distance, and never asked the reverse question of the artifact that does the
+  scoring. For `distinctive` that artifact is its own `scalar_dimensions`, not
+  the geometry, so **nine dimensions left behind by the ordinal tone rewrite**
+  (`tone_onset_register`, `tone_mid_height`, and seven more) sat unreachable
+  while the script printed "every scoring dimension is reachable". They are
+  removed; `regenerate_golden.py --check` confirms no value moves, which is
+  exactly why nothing caught them.
+- **`validate_models.py` now checks that a model's scalar weights agree with the
+  geometry leaves they mirror**, by asking the generator what it will emit
+  rather than restating its rule. **Behavior change:** it found that an explicit
+  `"weight"` on a geometry leaf was silently dropped on the scalar path, so
+  `vocoid` was declared 0.8 in `geometries/clements-hume.json` and cost **1.0**
+  in `distinctive` — a 25% overweight on major class, in the system intended to
+  become the default, and `docs/geometry.md` documented neither number. Fixed in
+  `tools/generate_c_data.py`.
+
+  **This changes `distinctive` distances.** Measured over 24,090 pairs: mean
+  distance −1.2%, per-pair ratios 0.72–1.12, and **2.69% of "is A closer than B"
+  orderings flip** — a reordering, not a rescale, so a published correction
+  factor cannot repair it. Stored `distinctive` distances, alignments, clusters
+  and thresholds must be recomputed. On the alignment benchmark the change is a
+  wash (96.79% vs 96.90% column accuracy, 94.52% vs 94.39% perfect); the reason
+  to make it is that the two scoring paths now cost the same thing the same
+  amount. `broad`, `descriptive` and the valued systems are unaffected — they
+  score through geometry leaves, which already honoured the explicit weight.
+
 ### Two benchmarks that measure the library against the outside
 
 Every existing guard measures merkmal against itself — golden fixtures, the
@@ -26,9 +60,9 @@ that is internally consistent and unusable in practice. These two do not.
   alignment substitution cost against LingPy's SCA classes on BDPA gold
   alignments, through an identical Needleman-Wunsch with the gap tuned per
   scorer on a held-out half. On pairs merkmal can fully read, `distinctive`
-  reaches 96.90% column accuracy against SCA's 97.74% — close, but behind by a
+  reaches 96.79% column accuracy against SCA's 97.74% — close, but behind by a
   margin that is statistically significant (bootstrap 95% CI on the difference
-  [-1.18, -0.14]). Over the whole benchmark it falls further behind (92.91% vs
+  [-1.39, -0.24]). Over the whole benchmark it falls further behind (92.91% vs
   96.35%) because it cannot read 30% of the pairs. Coverage is worth several
   times more than the remaining modelling gap.
 - Added `bench/corpus/`, an aggregate segment-frequency table with its own

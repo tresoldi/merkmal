@@ -432,15 +432,28 @@ def load_categorical(name: str, geometry: dict[str, object]) -> tuple[str, list[
             entries[normalize_input_grapheme(grapheme)] = sorted(enriched)
     scalar_dimensions = []
     tree = geometry["tree"]
+    leaf_weights = {
+        name: (1.0 / depth if explicit is None else float(explicit))
+        for name, _pos, _neg, depth, _parent, explicit in geometry_leaves(tree)
+    }
     for dim in raw.get("scalar_dimensions", []):
+        # A scalar dimension hangs *under* its geometry node, so it sits one
+        # level deeper than that node -- which is exactly where the geometry's
+        # own leaf of the same name sits. Weighting it at the parent's depth
+        # made every dimension one level shallower than the leaf it mirrors, so
+        # the two scoring paths disagreed on all 35 shared names and
+        # docs/geometry.md described neither. An explicit leaf weight wins here
+        # for the same reason it wins on the geometry path: depth is a
+        # stipulation, and sometimes the wrong one.
         depth = geometry_node_depth(tree, dim["geometry_node"]) or 2
+        weight = leaf_weights.get(dim["name"], 1.0 / (depth + 1))
         scalar_dimensions.append(
             {
                 "name": dim["name"],
                 "geometry_node": dim["geometry_node"],
                 "positive": list(dim.get("positive", [])),
                 "negative": list(dim.get("negative", [])),
-                "weight": 1.0 / depth,
+                "weight": weight,
             }
         )
     return "MK_SYSTEM_CATEGORICAL", sorted(entries.items()), [], [], scalar_dimensions

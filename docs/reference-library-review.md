@@ -51,12 +51,12 @@ evaluated on a held-out half:
 | scorer | column accuracy | perfect alignments |
 | --- | ---: | ---: |
 | LingPy SCA | 97.74% | 95.80% |
-| `merkmal:distinctive` | **96.90%** | **94.39%** |
+| `merkmal:distinctive` | **96.79%** | **94.52%** |
 | `merkmal:broad` | 96.47% | 93.76% |
 | identity baseline | 88.82% | 81.66% |
 
-Bootstrap 95% CI on the difference from SCA: `distinctive` −0.65%
-[−1.18, −0.14], `broad` −1.04% [−1.77, −0.35]. Both significant. A feature
+Bootstrap 95% CI on the difference from SCA: `distinctive` −0.77%
+[−1.39, −0.24], `broad` −1.04% [−1.77, −0.35]. Both significant. A feature
 geometry landing within a point of SCA is still a real result — but it is
 "competitive", not "at parity", and the earlier wording overstated it.
 
@@ -71,12 +71,13 @@ is coverage rather than modelling.**
 −3.09% [−3.88, −2.18], significant. `merkmal` cannot read 30.2% of the pairs;
 SCA's converter maps *everything*, including the tokens `merkmal` refuses.
 Closing the coverage gap is worth several times more than closing the remaining
-0.65-point modelling gap.
+0.77-point modelling gap.
 
-**3. Across Lexibank, 28 of 152 datasets have effectively zero forms that
-`merkmal` can parse end to end**, and they are, without exception, the tonal
-ones: Sinitic, Hmong-Mien, Bai, Tai-Kadai, Lolo-Burmese, Karen, Tujia,
-Benue-Congo.
+**3. Across Lexibank, 26 of 152 datasets have under 3% of forms that `merkmal`
+can parse end to end.** Twenty-five are blocked by tone — Sinitic, Hmong-Mien,
+Bai, Tai-Kadai, Lolo-Burmese, Karen, Tujia — several of them writing it through
+the `source/BIPA` slash convention. The twenty-sixth, `williamsonbenuecongo`,
+contains no tone at all and is blocked by CLTS's `<?>` and `<<->>` markers.
 
 | | |
 | --- | ---: |
@@ -85,7 +86,7 @@ Benue-Congo.
 | datasets below 50% | 31 of 152 |
 | datasets below 3% | 26 of 152 |
 
-The single cause is that **CLTS/BIPA writes tone as its own segment**
+The dominant cause is that **CLTS/BIPA writes tone as its own segment**
 (`t o ³³`), and `merkmal` only accepts tone bound to a vowel (`a³³`). 474,905
 tokens — 3.3% of all Lexibank tokens, and the majority of tokens in every tonal
 dataset — are standalone tone tokens that `is_segment` rejects.
@@ -238,7 +239,7 @@ mapped linearly to `[0,1]` distances.
 | scorer | gap* | column acc | perfect |
 | --- | ---: | ---: | ---: |
 | LingPy SCA | 0.30 | 97.74% | 95.80% |
-| `merkmal:distinctive` | 0.30 | 96.90% | 94.39% |
+| `merkmal:distinctive` | 0.40 | 96.79% | 94.52% |
 | `merkmal:broad` | 0.40 | 96.47% | 93.76% |
 | identity | 0.80 | 88.82% | 81.66% |
 
@@ -252,7 +253,7 @@ gold pairwise alignments were derived by projecting MSA rows and dropping
 doubly-gapped columns.
 
 **Both categorical systems are now significantly behind SCA** on data they can
-read — `distinctive` by 0.65 points, `broad` by 1.04. The gap is small and the
+read — `distinctive` by 0.77 points, `broad` by 1.04. The gap is small and the
 ordering between them is unchanged, so the argument for making `distinctive` the
 default stands; what does not stand is the earlier claim that it had caught up
 with the incumbent.
