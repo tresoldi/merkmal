@@ -854,7 +854,18 @@ its current numbers; the `MK_HAVE_UTF8PROC` profiles and which one WASM ships.
 **Acceptance criteria.** A new contributor can answer the guide's §37 questions
 from the repository alone.
 
-**Depends on.** Everything above.
+**Outcome.** [STYLE.md](STYLE.md) covers the module map and why two files stay
+large, the ownership vocabulary, the error model and the
+`UNKNOWN_GRAPHEME`/`PARSE` split, every build/test/sanitizer/analysis/fuzz/
+benchmark command, the generated-data invariants a change to the emitter must
+preserve, where each kind of test belongs, and the platform assumptions.
+
+Every command in it was run as written before the file was committed, which is
+the only way a commands section stays true.
+
+`CLAUDE.md` was not added. `STYLE.md` and the README already answer what a
+contributor — human or agent — needs, and a second file restating them is one
+more thing to fall out of date.
 
 ---
 
@@ -889,15 +900,49 @@ Attractive, and deliberately not scheduled:
 
 ---
 
-## 5. First recommended milestone
+## 5. What actually happened
 
-**Milestone A.**
+All eight milestones are implemented. Measured results:
 
-It is the smallest, it is nearly free — the warning ratchet is a two-line CMake
-change against code that already passes — and it produces the two things
-everything else needs: a footprint baseline that makes Milestone C's claims
-checkable, and a `MK_HAVE_UTF8PROC=0` test run that turns the shipped WASM
-configuration from smoke-tested into tested.
+| | before | after |
+|---|---|---|
+| `builtin_data.o` `.rodata` | 2,485,500 B | 546,420 B |
+| relocations, whole library | 282,512 | 4,008 |
+| `footprint.wasm` | 1,286,045 B | 574,609 B |
+| tokenization | 96.8 µs/token | 48.7 µs/token |
+| inventory miss (phoible) | 25.9 µs | 0.08 µs |
+| C test binaries | 5 | 7, plus 3 fuzz harnesses |
+| CI jobs | 5 | 10 |
 
-Expect the fallback job to fail on first run. Finding that now, before any file
-moves, is precisely the point.
+Four defects were found and fixed along the way, three of them by the tooling
+this plan added:
+
+1. **A heap buffer overread on truncated UTF-8**, reachable from every public
+   entry point taking transcription text. Found by the Milestone E buffer
+   audit, confirmed with AddressSanitizer.
+2. **Silent truncation of synthesized feature labels** into features the
+   geometry does not know, reachable through a runtime model. Same audit.
+3. **A leak in the affricate-retraction lookup**, introduced during Milestone C
+   and caught by the sanitizer job before it left the branch.
+4. **A red WebAssembly CI job**, whose two assertions had been pinned to
+   pre-C Python values. Found in Milestone A simply by running it.
+
+Where the plan was wrong, it is corrected in place above rather than quietly:
+two module splits were measured and rejected, the relocation target was missed
+and by how much, `PY_UTF8_SLOTS` was already safe, and the Python ASan job
+turned out not to be a leak check.
+
+## 6. First recommended milestone
+
+**Milestone A**, and that is where the work started.
+
+It was the smallest, it was nearly free — the warning ratchet was a two-line
+CMake change against code that already passed — and it produced the two things
+everything else needed: a footprint baseline that made Milestone C's claims
+checkable, and a `MK_HAVE_UTF8PROC=0` test run that turned the shipped
+WebAssembly configuration from smoke-tested into tested.
+
+The plan predicted the fallback job would fail on first run. It passed; the
+coverage gap had not yet cost anything. What did fail was the WebAssembly smoke
+job, which had been red on `master` against assertions pinned to pre-C Python
+values.

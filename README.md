@@ -300,6 +300,8 @@ merkmal/
 ├── cmake/                  CMake and pkg-config package templates
 ├── tools/                  data generators for compiled-in C tables
 ├── scripts/                active source-data validation and audit scripts
+├── bench/                  footprint and lookup benchmarks, with a baseline
+├── fuzz/                   libFuzzer harnesses and seed corpora
 ├── tests/c/                C tests
 ├── tests/golden/           parity fixtures for the native implementation
 ├── models/                 source model data used by generators
@@ -310,6 +312,10 @@ merkmal/
 ├── docs/legacy_python/     archived pre-C tutorials, notebooks, and scripts
 └── docs/                   C API and format documentation
 ```
+
+Contributing to the C core: [STYLE.md](STYLE.md) covers the module map,
+ownership and error conventions, the build/test/sanitizer/fuzz commands, and
+what to know before changing the generated data.
 
 ## License
 
