@@ -223,6 +223,29 @@ MK_API mk_status mk_split_tone(
     char **tone_out
 );
 
+/** Distance, with the share of dimensions the comparison actually used.
+ *
+ * A valued system skips any dimension where either segment has no value, so a
+ * score of `0.0` is ambiguous: it can mean "identical" or "nothing in common to
+ * compare". PHOIBLE writes `.` in 30,181 cells, and a pair whose overlap is
+ * entirely `.` scored a confident zero with no way for a caller to tell.
+ *
+ * `*coverage` is the share of the system's declared dimensions on which both
+ * segments had a value, in `[0, 1]`. Treat a low value as a weak comparison
+ * however your work requires -- the library does not decide a threshold.
+ *
+ * Categorical systems score over the union of what either segment specifies, so
+ * the ambiguity cannot arise there and `*coverage` is 1.0.
+ */
+MK_API mk_status mk_system_segment_distance_ex(
+    const mk_system *system,
+    const char *utf8_a,
+    const char *utf8_b,
+    const char *node_weights,
+    double *out,
+    double *coverage
+);
+
 /** Number of columns a system's feature vectors have. Fixed per system. */
 MK_API mk_status mk_system_vector_width(const mk_system *system, size_t *out);
 

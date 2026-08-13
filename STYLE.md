@@ -56,7 +56,7 @@ python scripts/regenerate_golden.py           # rewrite the fixtures
 ## Where things live
 
 ```
-include/merkmal.h    the entire public surface: 29 symbols, all mk_-prefixed
+include/merkmal.h    the entire public surface: 30 symbols, all mk_-prefixed
 src/
   status.c           mk_status -> string
   vector.c           fixed-width numeric feature vectors

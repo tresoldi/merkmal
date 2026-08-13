@@ -330,6 +330,34 @@ when the swept population is unchanged.
   "this library does not support this sound".
 - **Boundary markers** `+`, `_`, `#` get documented behaviour.
 
+### 1c-0. Status, 2026-08-13
+
+**Done.** `ŋm` is one segment, completing the `kp`/`gb` series (a deliberate
+departure from CLTS v1.4.1, which reads `kp` as a cluster — recorded in
+`CHANGELOG.md`). And the valued zero-coverage defect is closed:
+`mk_system_segment_distance_ex` returns the share of dimensions the comparison
+used, so PHOIBLE's tone letters scoring `0.0` against everything is now visible
+as `(0.0, 0.0)` rather than indistinguishable from a real identity.
+
+**Two left, both deliberately.**
+
+**Affricates inside clusters.** `features("ntʃ")` still parses as *n + t + ʃ*
+rather than *n + tʃ*. The contradiction the review named is gone —
+`system_segment_ipa("ntʃa")` and the recognizer now agree that `ntʃ` is one
+token — but the cluster component parser still splits by letter instead of by
+longest match. The fix is to route components through the tokenizer, which is
+where the affricate knowledge already lives.
+
+**Doubled spelling and length.** `d(aa, aː) = 0.2651` against
+`d(a, aː) = 0.0564`, so a doubled vowel is scored further from the long vowel
+than a single short one is. The tempting fix — read `aa` as `aː` — is exactly
+the move that broke `ɫ`: it asserts a transcription convention as an identity,
+and doubled vowels are a genuine sequence in some sources and a length spelling
+in others. Nothing in the data says which, per form. The real problem is that
+the cluster-to-segment scorer's length penalty pushes a geminate away from its
+length-marked equivalent, and that is a scoring question rather than a
+normalization one. Left alone rather than fixed the fast way.
+
 ### 1c. Residual defects from the review
 
 - `d(kp, ŋm) = 0.7255`. `/kp/` is a unit, `/ŋm/` is synthesized as a cluster.

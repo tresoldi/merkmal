@@ -586,10 +586,12 @@ mk_status mk_score_valued(
     mk_feature_view a,
     mk_feature_view b,
     const char *node_weights,
-    double *out
+    double *out,
+    double *coverage
 )
 {
     size_t i;
+    size_t compared = 0;
     double total_weight = 0.0;
     double total_diff = 0.0;
     const mk_node_weight_preset *preset = NULL;
@@ -599,6 +601,9 @@ mk_status mk_score_valued(
         return MK_ERR_INVALID_ARGUMENT;
     }
     *out = 0.0;
+    if (coverage != NULL) {
+        *coverage = 0.0;
+    }
     status = mk_resolve_weight_preset(node_weights, &preset);
     if (status != MK_OK) {
         return status;
@@ -617,6 +622,7 @@ mk_status mk_score_valued(
         if (a_val == 0.0 && b_val == 0.0) {
             continue;
         }
+        compared++;
 
         weight = system->dimension_weights != NULL ? system->dimension_weights[i] : 0.5;
         weight = mk_dimension_weight(preset, system->geometry_map[i].node, weight);
@@ -625,6 +631,16 @@ mk_status mk_score_valued(
     }
 
     *out = total_weight > 0.0 ? total_diff / total_weight : 0.0;
+    /* The share of the system's declared dimensions on which both segments
+     * actually had a value. Without it, a score of 0.0 is ambiguous between
+     * "identical" and "nothing in common to compare" -- and the second happens:
+     * PHOIBLE writes `.` in 30,181 cells, and a pair whose overlap is entirely
+     * `.` scored a confident zero. */
+    if (coverage != NULL) {
+        *coverage = system->geometry_map_count > 0
+            ? (double)compared / (double)system->geometry_map_count
+            : 0.0;
+    }
     return MK_OK;
 }
 

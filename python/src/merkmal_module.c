@@ -394,6 +394,60 @@ done:
     return result;
 }
 
+static PyObject *py_distance_with_coverage(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *keywords[] = {"a", "b", "system", "node_weights", "registry", NULL};
+    PyObject *a_obj;
+    PyObject *b_obj;
+    PyObject *system_obj = Py_None;
+    PyObject *weights_obj = Py_None;
+    PyObject *registry_obj = Py_None;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *a = NULL;
+    const char *b = NULL;
+    const char *system_name = default_system_name;
+    const char *node_weights = NULL;
+    mk_registry *registry;
+    const mk_system *system;
+    double score = 0.0;
+    double coverage = 0.0;
+    PyObject *result = NULL;
+    mk_status status;
+
+    (void)self;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs, "OO|OOO:distance_with_coverage", keywords,
+            &a_obj, &b_obj, &system_obj, &weights_obj, &registry_obj
+        )) {
+        return NULL;
+    }
+    if (py_utf8_take(&bag, a_obj, "a", &a) < 0 ||
+        py_utf8_take(&bag, b_obj, "b", &b) < 0 ||
+        py_utf8_take_optional(&bag, system_obj, "system", &system_name) < 0 ||
+        py_utf8_take_optional(&bag, weights_obj, "node_weights", &node_weights) < 0) {
+        goto done;
+    }
+    registry = resolve_registry(registry_obj, "distance_with_coverage");
+    if (registry == NULL) {
+        goto done;
+    }
+    system = resolve_system(registry, system_name, "distance_with_coverage");
+    if (system == NULL) {
+        goto done;
+    }
+    status = mk_system_segment_distance_ex(system, a, b, node_weights, &score, &coverage);
+    if (status != MK_OK) {
+        status_error(status, "distance_with_coverage");
+        goto done;
+    }
+    result = Py_BuildValue("(dd)", score, coverage);
+
+done:
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
 static PyObject *py_vector_labels(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     static char *keywords[] = {"system", "registry", NULL};
@@ -986,6 +1040,10 @@ done:
 static PyMethodDef methods[] = {
     {"list_systems", (PyCFunction)py_list_systems, METH_VARARGS | METH_KEYWORDS,
      "List the systems in a registry."},
+    {"distance_with_coverage", (PyCFunction)py_distance_with_coverage,
+     METH_VARARGS | METH_KEYWORDS,
+     "distance_with_coverage(a, b, system=None, node_weights=None, registry=None)"
+     " -> tuple[float, float]"},
     {"feature_vector", (PyCFunction)py_feature_vector, METH_VARARGS | METH_KEYWORDS,
      "feature_vector(grapheme, system=None, registry=None) -> tuple[float, ...]"},
     {"vector_labels", (PyCFunction)py_vector_labels, METH_VARARGS | METH_KEYWORDS,

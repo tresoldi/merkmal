@@ -289,12 +289,13 @@ static mk_status mk_vowel_cluster_distance(
     return MK_OK;
 }
 
-mk_status mk_system_segment_distance_with_weights(
+static mk_status mk_distance_with_coverage(
     const mk_system *system,
     const char *utf8_a,
     const char *utf8_b,
     const char *node_weights,
-    double *out
+    double *out,
+    double *coverage
 )
 {
     mk_resolution resolved_a;
@@ -335,14 +336,20 @@ mk_status mk_system_segment_distance_with_weights(
         }
     } else if (system->builtin->kind == MK_SYSTEM_VALUED) {
         if (mk_streq(resolved_a.grapheme, resolved_b.grapheme)) {
+            /* One segment compared with itself is fully covered, not
+             * uncovered: every dimension it has, it shares. */
             *out = 0.0;
+            if (coverage != NULL) {
+                *coverage = 1.0;
+            }
         } else {
             status = mk_score_valued(
                 system->builtin,
                 mk_view_of(&resolved_a),
                 mk_view_of(&resolved_b),
                 node_weights,
-                out
+                out,
+                coverage
             );
         }
     } else {
@@ -352,8 +359,43 @@ mk_status mk_system_segment_distance_with_weights(
     mk_resolution_clear(&resolved_b);
     if (status != MK_OK) {
         *out = 0.0;
+        if (coverage != NULL) {
+            *coverage = 0.0;
+        }
     }
     return status;
+}
+
+mk_status mk_system_segment_distance_with_weights(
+    const mk_system *system,
+    const char *utf8_a,
+    const char *utf8_b,
+    const char *node_weights,
+    double *out
+)
+{
+    return mk_distance_with_coverage(system, utf8_a, utf8_b, node_weights, out, NULL);
+}
+
+mk_status mk_system_segment_distance_ex(
+    const mk_system *system,
+    const char *utf8_a,
+    const char *utf8_b,
+    const char *node_weights,
+    double *out,
+    double *coverage
+)
+{
+    if (coverage == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    /* Categorical systems score over the union of what either segment
+     * specifies, so a pair with nothing in common still has dimensions to
+     * disagree on and the ambiguous zero cannot arise. Reporting 1.0 there
+     * keeps the call usable for any system rather than only for the valued
+     * ones, and the doc comment says which is which. */
+    *coverage = 1.0;
+    return mk_distance_with_coverage(system, utf8_a, utf8_b, node_weights, out, coverage);
 }
 
 /* The most tokens a single system segment can span. "iau³³" already needs

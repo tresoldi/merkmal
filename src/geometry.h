@@ -58,12 +58,16 @@ mk_status mk_score_categorical(
     const char *node_weights,
     double *out
 );
+/* `coverage` may be NULL. When given, it receives the share of the system's
+ * declared dimensions on which both segments had a value -- the thing that
+ * separates "identical" from "nothing to compare". */
 mk_status mk_score_valued(
     const mk_builtin_system *system,
     mk_feature_view a,
     mk_feature_view b,
     const char *node_weights,
-    double *out
+    double *out,
+    double *coverage
 );
 
 #endif

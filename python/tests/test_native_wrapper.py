@@ -390,6 +390,52 @@ def test_feature_distance_takes_no_system() -> None:
         merkmal.feature_distance("voiced", "voiceless", system="phoible")  # type: ignore[call-arg]
 
 
+def test_coverage_separates_identical_from_incomparable() -> None:
+    """A valued 0.0 used to mean either "the same" or "nothing to compare".
+
+    The first independent review found PHOIBLE's tone letters carry `.` on every
+    dimension and so scored 0.0 against every segment in the table, `/a/`
+    included. The score is unchanged -- inventing values would be fabricating
+    data -- but the caller can now see the difference.
+    """
+    score, coverage = merkmal.distance_with_coverage("˦˨", "d", system="phoible")
+    assert score == 0.0
+    assert coverage == 0.0  # nothing was compared at all
+
+    # Genuinely indistinguishable is a different thing, and now looks different:
+    # P-base UFTC gives /e/ and /i/ the same value on every dimension it defines.
+    score, coverage = merkmal.distance_with_coverage("e", "i", system="pbase-uftc")
+    assert score == 0.0
+    assert coverage > 0.5
+
+    # A segment against itself is fully covered, not uncovered.
+    assert merkmal.distance_with_coverage("p", "p", system="phoible") == (0.0, 1.0)
+
+    # Categorical systems score over the union of what either segment specifies,
+    # so the ambiguity cannot arise and coverage is 1.0 by construction.
+    score, coverage = merkmal.distance_with_coverage("p", "b", system="descriptive")
+    assert coverage == 1.0
+    assert math.isclose(score, merkmal.distance("p", "b", system="descriptive"))
+
+
+def test_labial_velars_are_one_series() -> None:
+    """`ŋm` is the nasal member of the `kp`/`gb` series, not a cluster.
+
+    CLTS v1.4.1 reads `kp` as a cluster; this library departs from that because
+    the standard analysis in the Niger-Congo languages that have them is a
+    single doubly-articulated segment. `ŋm` was left out of the departure, which
+    put it 0.73 from `kp` where `gb` sits at 0.18.
+    """
+    assert merkmal.get_features("ŋm") == frozenset(
+        {"consonant", "labio-velar", "nasal", "voiced"}
+    )
+    assert merkmal.distance("gb", "ŋm") < merkmal.distance("kp", "ŋm")
+    assert merkmal.distance("kp", "ŋm") < merkmal.distance("kp", "a")
+    # Close to both of the things it is articulated as, which is the point.
+    assert merkmal.distance("ŋm", "ŋ") < 0.25
+    assert merkmal.distance("ŋm", "m") < 0.25
+
+
 def test_feature_vectors_are_fixed_width_and_labelled() -> None:
     """Numbers for the models that want numbers, with the columns named.
 

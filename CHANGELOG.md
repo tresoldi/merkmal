@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+### Coverage alongside the score, and one segment series made whole
+
+- **`mk_system_segment_distance_ex` / `merkmal.distance_with_coverage`.** A
+  valued system skips any dimension where either segment has no value, so a
+  score of `0.0` meant either "identical" or "nothing in common to compare" and
+  a caller could not tell which. The first independent review found the sharp
+  case: PHOIBLE's tone letters carry `.` on every dimension, so `˦˨` scored a
+  confident `0.0` against every segment in the table, `/a/` included.
+
+  The score is unchanged — inventing values to separate them would be
+  fabricating data — but `coverage` now reports the share of the system's
+  declared dimensions both segments actually had a value on. `d(˦˨, d)` is
+  `(0.0, 0.0)`; `d(e, i)` in P-base UFTC, which is genuinely indistinguishable
+  there, is `(0.0, 0.75)`. Same score, and now visibly not the same claim. The
+  library sets no threshold: what counts as too weak a comparison depends on the
+  work.
+
+  Categorical systems score over the union of what either segment specifies, so
+  the ambiguity cannot arise and coverage is 1.0 there by construction.
+
+- **`ŋm` is one segment, not a cluster.** It is the nasal member of the `kp`/`gb`
+  series — Yoruba, Ewe, Igbo — and was the one left as a two-component cluster,
+  which scored it 0.73 from `kp` where `gb` sits at 0.18. Now 0.38 from `kp`,
+  0.23 from `gb`, and close to both `ŋ` and `m`, which is what a doubly
+  articulated segment should look like.
+
+  Worth recording that this is a **departure from CLTS**, and a deliberate one:
+  CLTS v1.4.1 reads `kp` as "from voiceless velar stop to voiceless bilabial stop
+  cluster". The library already departed for `kp` and `gb` because the standard
+  analysis in the languages that have them is a single segment. Extending it to
+  `ŋm` makes the series coherent; leaving it out was the anomaly.
+
 ### Numeric feature vectors
 
 `mk_system_feature_vector`, `mk_system_vector_labels`, `mk_system_vector_width`,

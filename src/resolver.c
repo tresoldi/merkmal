@@ -1672,18 +1672,39 @@ static mk_status mk_synthesize_descriptive_complex(
     size_t cap = 0;
     const char *place = NULL;
     const char *phonation = NULL;
+    /* Manner defaults to affricate because most entries here are ones; the
+     * doubly-articulated segments set it explicitly. */
+    const char *manner = "affricate";
+    int sibilant = 1;
     mk_status status;
 
     if (!mk_admits_synthesized_clusters(system)) {
         return MK_ERR_UNKNOWN_GRAPHEME;
     }
 
+    /* The labial-velars are one segment, not two. CLTS v1.4.1 reads `kp` as
+     * "from voiceless velar stop to voiceless bilabial stop cluster", and this
+     * library already departs from that for `kp` and `gb`, because in the
+     * Niger-Congo languages that have them the standard analysis is a single
+     * doubly-articulated segment. `ŋm` is the nasal member of exactly that
+     * series -- Yoruba, Ewe, Igbo -- and was the one left as a cluster, which
+     * scored it 0.73 from `kp` where `gb` scores 0.25. Extending the departure
+     * is what makes the series coherent; leaving it out was the anomaly. */
     if (mk_streq(normalized, "kp")) {
         place = "labio-velar";
         phonation = "voiceless";
+        manner = "stop";
+        sibilant = 0;
     } else if (mk_streq(normalized, "gb")) {
         place = "labio-velar";
         phonation = "voiced";
+        manner = "stop";
+        sibilant = 0;
+    } else if (mk_streq(normalized, "ŋm")) {
+        place = "labio-velar";
+        phonation = "voiced";
+        manner = "nasal";
+        sibilant = 0;
     } else if (mk_streq(normalized, "kx")) {
         place = "velar";
         phonation = "voiceless";
@@ -1728,11 +1749,7 @@ static mk_status mk_synthesize_descriptive_complex(
     if (status != MK_OK) {
         goto fail;
     }
-    if (mk_streq(normalized, "kp") || mk_streq(normalized, "gb")) {
-        status = mk_add_owned_feature(&features, &count, &cap, "stop");
-    } else {
-        status = mk_add_owned_feature(&features, &count, &cap, "affricate");
-    }
+    status = mk_add_owned_feature(&features, &count, &cap, manner);
     if (status != MK_OK) {
         goto fail;
     }
@@ -1740,7 +1757,7 @@ static mk_status mk_synthesize_descriptive_complex(
     if (status != MK_OK) {
         goto fail;
     }
-    if (!mk_streq(place, "velar") && !mk_streq(normalized, "kp") && !mk_streq(normalized, "gb")) {
+    if (sibilant && !mk_streq(place, "velar")) {
         status = mk_add_owned_feature(&features, &count, &cap, "sibilant");
         if (status != MK_OK) {
             goto fail;

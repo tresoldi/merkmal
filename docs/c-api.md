@@ -53,6 +53,29 @@ documented otherwise.
 `mk_string_list` is the library's only collection type. Feature sets are
 string lists whose order carries no meaning.
 
+## Distance with coverage
+
+```c
+mk_status mk_system_segment_distance_ex(const mk_system *system,
+                                        const char *utf8_a, const char *utf8_b,
+                                        const char *node_weights,
+                                        double *out, double *coverage);
+```
+
+A valued system skips any dimension where either segment has no value, so `0.0`
+is ambiguous between "identical" and "nothing in common to compare". PHOIBLE
+writes `.` in 30,181 cells and its tone letters are `.` on every dimension, so
+`˦˨` scores `0.0` against every segment in the table.
+
+`*coverage` is the share of the system's declared dimensions on which both
+segments had a value, in `[0, 1]`. `d(˦˨, d)` in PHOIBLE is `(0.0, 0.0)`;
+`d(e, i)` in P-base UFTC, genuinely indistinguishable there, is `(0.0, 0.75)`.
+The library sets no threshold — what counts as too weak a comparison depends on
+the work.
+
+Categorical systems score over the union of what either segment specifies, so
+the ambiguity cannot arise and `*coverage` is 1.0.
+
 ## Feature vectors
 
 ```c
