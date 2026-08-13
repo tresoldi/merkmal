@@ -8101,179 +8101,119 @@ static const char *const distinctive_scalar_dimensions_28_positive[] = {
 };
 
 static const char *const distinctive_scalar_dimensions_29_positive[] = {
-    "tone-onset-upper",
-};
-
-static const char *const distinctive_scalar_dimensions_29_negative[] = {
-    "tone-onset-lower",
-};
-
-static const char *const distinctive_scalar_dimensions_30_positive[] = {
-    "tone-onset-raised",
-};
-
-static const char *const distinctive_scalar_dimensions_30_negative[] = {
-    "tone-onset-lowered",
-};
-
-static const char *const distinctive_scalar_dimensions_31_positive[] = {
-    "tone-offset-upper",
-};
-
-static const char *const distinctive_scalar_dimensions_31_negative[] = {
-    "tone-offset-lower",
-};
-
-static const char *const distinctive_scalar_dimensions_32_positive[] = {
-    "tone-offset-raised",
-};
-
-static const char *const distinctive_scalar_dimensions_32_negative[] = {
-    "tone-offset-lowered",
-};
-
-static const char *const distinctive_scalar_dimensions_33_positive[] = {
     "vowel",
 };
 
-static const char *const distinctive_scalar_dimensions_33_negative[] = {
+static const char *const distinctive_scalar_dimensions_29_negative[] = {
     "consonant",
 };
 
-static const char *const distinctive_scalar_dimensions_34_positive[] = {
+static const char *const distinctive_scalar_dimensions_30_positive[] = {
     "revoiced",
 };
 
-static const char *const distinctive_scalar_dimensions_34_negative[] = {
+static const char *const distinctive_scalar_dimensions_30_negative[] = {
     "devoiced",
 };
 
-static const char *const distinctive_scalar_dimensions_35_positive[] = {
+static const char *const distinctive_scalar_dimensions_31_positive[] = {
     "pre-aspirated",
 };
 
-static const char *const distinctive_scalar_dimensions_36_positive[] = {
+static const char *const distinctive_scalar_dimensions_32_positive[] = {
     "pre-glottalized",
 };
 
-static const char *const distinctive_scalar_dimensions_37_positive[] = {
+static const char *const distinctive_scalar_dimensions_33_positive[] = {
     "strong",
 };
 
-static const char *const distinctive_scalar_dimensions_38_positive[] = {
+static const char *const distinctive_scalar_dimensions_34_positive[] = {
     "pre-nasalized",
 };
 
-static const char *const distinctive_scalar_dimensions_39_positive[] = {
+static const char *const distinctive_scalar_dimensions_35_positive[] = {
     "nasal-click",
 };
 
-static const char *const distinctive_scalar_dimensions_40_positive[] = {
+static const char *const distinctive_scalar_dimensions_36_positive[] = {
     "unreleased",
 };
 
-static const char *const distinctive_scalar_dimensions_41_positive[] = {
+static const char *const distinctive_scalar_dimensions_37_positive[] = {
     "with-nasal-release",
 };
 
-static const char *const distinctive_scalar_dimensions_42_positive[] = {
+static const char *const distinctive_scalar_dimensions_38_positive[] = {
     "with-lateral-release",
 };
 
-static const char *const distinctive_scalar_dimensions_43_positive[] = {
+static const char *const distinctive_scalar_dimensions_39_positive[] = {
     "with-frication",
 };
 
-static const char *const distinctive_scalar_dimensions_44_positive[] = {
+static const char *const distinctive_scalar_dimensions_40_positive[] = {
     "advanced",
 };
 
-static const char *const distinctive_scalar_dimensions_44_negative[] = {
+static const char *const distinctive_scalar_dimensions_40_negative[] = {
     "retracted",
 };
 
-static const char *const distinctive_scalar_dimensions_45_positive[] = {
+static const char *const distinctive_scalar_dimensions_41_positive[] = {
     "raised",
 };
 
-static const char *const distinctive_scalar_dimensions_45_negative[] = {
+static const char *const distinctive_scalar_dimensions_41_negative[] = {
     "lowered",
 };
 
-static const char *const distinctive_scalar_dimensions_46_positive[] = {
+static const char *const distinctive_scalar_dimensions_42_positive[] = {
     "centralized",
 };
 
-static const char *const distinctive_scalar_dimensions_47_positive[] = {
+static const char *const distinctive_scalar_dimensions_43_positive[] = {
     "mid-centralized",
 };
 
-static const char *const distinctive_scalar_dimensions_48_positive[] = {
+static const char *const distinctive_scalar_dimensions_44_positive[] = {
     "more-rounded",
 };
 
-static const char *const distinctive_scalar_dimensions_48_negative[] = {
+static const char *const distinctive_scalar_dimensions_44_negative[] = {
     "less-rounded",
 };
 
-static const char *const distinctive_scalar_dimensions_49_positive[] = {
+static const char *const distinctive_scalar_dimensions_45_positive[] = {
     "labio-palatalized",
 };
 
-static const char *const distinctive_scalar_dimensions_50_positive[] = {
+static const char *const distinctive_scalar_dimensions_46_positive[] = {
     "pre-labialized",
 };
 
-static const char *const distinctive_scalar_dimensions_51_positive[] = {
+static const char *const distinctive_scalar_dimensions_47_positive[] = {
     "pre-palatalized",
 };
 
-static const char *const distinctive_scalar_dimensions_52_positive[] = {
+static const char *const distinctive_scalar_dimensions_48_positive[] = {
     "tone-present",
 };
 
-static const char *const distinctive_scalar_dimensions_53_positive[] = {
-    "tone-onset-mid-level",
-};
-
-static const char *const distinctive_scalar_dimensions_54_positive[] = {
-    "tone-mid-upper",
-};
-
-static const char *const distinctive_scalar_dimensions_54_negative[] = {
-    "tone-mid-lower",
-};
-
-static const char *const distinctive_scalar_dimensions_55_positive[] = {
-    "tone-mid-raised",
-};
-
-static const char *const distinctive_scalar_dimensions_55_negative[] = {
-    "tone-mid-lowered",
-};
-
-static const char *const distinctive_scalar_dimensions_56_positive[] = {
-    "tone-mid-mid-level",
-};
-
-static const char *const distinctive_scalar_dimensions_57_positive[] = {
-    "tone-offset-mid-level",
-};
-
-static const char *const distinctive_scalar_dimensions_58_positive[] = {
+static const char *const distinctive_scalar_dimensions_49_positive[] = {
     "fricative",
 };
 
-static const char *const distinctive_scalar_dimensions_59_positive[] = {
+static const char *const distinctive_scalar_dimensions_50_positive[] = {
     "click",
     "nasal-click",
 };
 
-static const char *const distinctive_scalar_dimensions_60_positive[] = {
+static const char *const distinctive_scalar_dimensions_51_positive[] = {
     "implosive",
 };
 
-static const char *const distinctive_scalar_dimensions_61_positive[] = {
+static const char *const distinctive_scalar_dimensions_52_positive[] = {
     "guttural",
 };
 
@@ -8307,39 +8247,30 @@ static const mk_scalar_dimension distinctive_scalar_dimensions[] = {
     {"ejective", "Prosodic", distinctive_scalar_dimensions_26_positive, 1, NULL, 0, 0.5},
     {"rhotacized", "Secondary", distinctive_scalar_dimensions_27_positive, 1, NULL, 0, 0.33333333333333331},
     {"velarized", "Secondary", distinctive_scalar_dimensions_28_positive, 1, NULL, 0, 0.33333333333333331},
-    {"tone_onset_register", "TonalOnset", distinctive_scalar_dimensions_29_positive, 1, distinctive_scalar_dimensions_29_negative, 1, 0.33333333333333331},
-    {"tone_onset_height", "TonalOnset", distinctive_scalar_dimensions_30_positive, 1, distinctive_scalar_dimensions_30_negative, 1, 0.33333333333333331},
-    {"tone_offset_register", "TonalOffset", distinctive_scalar_dimensions_31_positive, 1, distinctive_scalar_dimensions_31_negative, 1, 0.33333333333333331},
-    {"tone_offset_height", "TonalOffset", distinctive_scalar_dimensions_32_positive, 1, distinctive_scalar_dimensions_32_negative, 1, 0.33333333333333331},
-    {"vocoid", "Root", distinctive_scalar_dimensions_33_positive, 1, distinctive_scalar_dimensions_33_negative, 1, 1},
-    {"voice_shift", "Laryngeal", distinctive_scalar_dimensions_34_positive, 1, distinctive_scalar_dimensions_34_negative, 1, 0.5},
-    {"pre_aspiration", "Laryngeal", distinctive_scalar_dimensions_35_positive, 1, NULL, 0, 0.5},
-    {"pre_glottalization", "Laryngeal", distinctive_scalar_dimensions_36_positive, 1, NULL, 0, 0.5},
-    {"strength", "Laryngeal", distinctive_scalar_dimensions_37_positive, 1, NULL, 0, 0.5},
-    {"pre_nasalization", "Manner", distinctive_scalar_dimensions_38_positive, 1, NULL, 0, 0.5},
-    {"nasal_click", "Manner", distinctive_scalar_dimensions_39_positive, 1, NULL, 0, 0.5},
-    {"no_release", "Release", distinctive_scalar_dimensions_40_positive, 1, NULL, 0, 0.33333333333333331},
-    {"nasal_release", "Release", distinctive_scalar_dimensions_41_positive, 1, NULL, 0, 0.33333333333333331},
-    {"lateral_release", "Release", distinctive_scalar_dimensions_42_positive, 1, NULL, 0, 0.33333333333333331},
-    {"fricated_release", "Release", distinctive_scalar_dimensions_43_positive, 1, NULL, 0, 0.33333333333333331},
-    {"front_back_shift", "Shift", distinctive_scalar_dimensions_44_positive, 1, distinctive_scalar_dimensions_44_negative, 1, 0.33333333333333331},
-    {"height_shift", "Shift", distinctive_scalar_dimensions_45_positive, 1, distinctive_scalar_dimensions_45_negative, 1, 0.33333333333333331},
-    {"centralization", "Shift", distinctive_scalar_dimensions_46_positive, 1, NULL, 0, 0.33333333333333331},
-    {"mid_centralization", "Shift", distinctive_scalar_dimensions_47_positive, 1, NULL, 0, 0.33333333333333331},
-    {"rounding_degree", "Labial", distinctive_scalar_dimensions_48_positive, 1, distinctive_scalar_dimensions_48_negative, 1, 0.33333333333333331},
-    {"labio_palatalized", "Secondary", distinctive_scalar_dimensions_49_positive, 1, NULL, 0, 0.33333333333333331},
-    {"pre_labialized", "Secondary", distinctive_scalar_dimensions_50_positive, 1, NULL, 0, 0.33333333333333331},
-    {"pre_palatalized", "Secondary", distinctive_scalar_dimensions_51_positive, 1, NULL, 0, 0.33333333333333331},
-    {"tone_presence", "Tonal", distinctive_scalar_dimensions_52_positive, 1, NULL, 0, 0.5},
-    {"tone_onset_mid_level", "TonalOnset", distinctive_scalar_dimensions_53_positive, 1, NULL, 0, 0.33333333333333331},
-    {"tone_mid_register", "TonalMid", distinctive_scalar_dimensions_54_positive, 1, distinctive_scalar_dimensions_54_negative, 1, 0.33333333333333331},
-    {"tone_mid_height", "TonalMid", distinctive_scalar_dimensions_55_positive, 1, distinctive_scalar_dimensions_55_negative, 1, 0.33333333333333331},
-    {"tone_mid_mid_level", "TonalMid", distinctive_scalar_dimensions_56_positive, 1, NULL, 0, 0.33333333333333331},
-    {"tone_offset_mid_level", "TonalOffset", distinctive_scalar_dimensions_57_positive, 1, NULL, 0, 0.33333333333333331},
-    {"fricative", "Manner", distinctive_scalar_dimensions_58_positive, 1, NULL, 0, 0.5},
-    {"click", "Manner", distinctive_scalar_dimensions_59_positive, 2, NULL, 0, 0.5},
-    {"implosive", "Manner", distinctive_scalar_dimensions_60_positive, 1, NULL, 0, 0.5},
-    {"guttural", "Pharyngeal", distinctive_scalar_dimensions_61_positive, 1, NULL, 0, 0.33333333333333331},
+    {"vocoid", "Root", distinctive_scalar_dimensions_29_positive, 1, distinctive_scalar_dimensions_29_negative, 1, 1},
+    {"voice_shift", "Laryngeal", distinctive_scalar_dimensions_30_positive, 1, distinctive_scalar_dimensions_30_negative, 1, 0.5},
+    {"pre_aspiration", "Laryngeal", distinctive_scalar_dimensions_31_positive, 1, NULL, 0, 0.5},
+    {"pre_glottalization", "Laryngeal", distinctive_scalar_dimensions_32_positive, 1, NULL, 0, 0.5},
+    {"strength", "Laryngeal", distinctive_scalar_dimensions_33_positive, 1, NULL, 0, 0.5},
+    {"pre_nasalization", "Manner", distinctive_scalar_dimensions_34_positive, 1, NULL, 0, 0.5},
+    {"nasal_click", "Manner", distinctive_scalar_dimensions_35_positive, 1, NULL, 0, 0.5},
+    {"no_release", "Release", distinctive_scalar_dimensions_36_positive, 1, NULL, 0, 0.33333333333333331},
+    {"nasal_release", "Release", distinctive_scalar_dimensions_37_positive, 1, NULL, 0, 0.33333333333333331},
+    {"lateral_release", "Release", distinctive_scalar_dimensions_38_positive, 1, NULL, 0, 0.33333333333333331},
+    {"fricated_release", "Release", distinctive_scalar_dimensions_39_positive, 1, NULL, 0, 0.33333333333333331},
+    {"front_back_shift", "Shift", distinctive_scalar_dimensions_40_positive, 1, distinctive_scalar_dimensions_40_negative, 1, 0.33333333333333331},
+    {"height_shift", "Shift", distinctive_scalar_dimensions_41_positive, 1, distinctive_scalar_dimensions_41_negative, 1, 0.33333333333333331},
+    {"centralization", "Shift", distinctive_scalar_dimensions_42_positive, 1, NULL, 0, 0.33333333333333331},
+    {"mid_centralization", "Shift", distinctive_scalar_dimensions_43_positive, 1, NULL, 0, 0.33333333333333331},
+    {"rounding_degree", "Labial", distinctive_scalar_dimensions_44_positive, 1, distinctive_scalar_dimensions_44_negative, 1, 0.33333333333333331},
+    {"labio_palatalized", "Secondary", distinctive_scalar_dimensions_45_positive, 1, NULL, 0, 0.33333333333333331},
+    {"pre_labialized", "Secondary", distinctive_scalar_dimensions_46_positive, 1, NULL, 0, 0.33333333333333331},
+    {"pre_palatalized", "Secondary", distinctive_scalar_dimensions_47_positive, 1, NULL, 0, 0.33333333333333331},
+    {"tone_presence", "Tonal", distinctive_scalar_dimensions_48_positive, 1, NULL, 0, 0.5},
+    {"fricative", "Manner", distinctive_scalar_dimensions_49_positive, 1, NULL, 0, 0.5},
+    {"click", "Manner", distinctive_scalar_dimensions_50_positive, 2, NULL, 0, 0.5},
+    {"implosive", "Manner", distinctive_scalar_dimensions_51_positive, 1, NULL, 0, 0.5},
+    {"guttural", "Pharyngeal", distinctive_scalar_dimensions_52_positive, 1, NULL, 0, 0.33333333333333331},
 };
 
 #define DISTINCTIVE_SCALAR_DIMENSIONS_COUNT (sizeof(distinctive_scalar_dimensions) / sizeof(distinctive_scalar_dimensions[0]))

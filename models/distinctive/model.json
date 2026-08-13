@@ -267,46 +267,6 @@
       "geometry_node": "Secondary"
     },
     {
-      "name": "tone_onset_register",
-      "positive": [
-        "tone-onset-upper"
-      ],
-      "negative": [
-        "tone-onset-lower"
-      ],
-      "geometry_node": "TonalOnset"
-    },
-    {
-      "name": "tone_onset_height",
-      "positive": [
-        "tone-onset-raised"
-      ],
-      "negative": [
-        "tone-onset-lowered"
-      ],
-      "geometry_node": "TonalOnset"
-    },
-    {
-      "name": "tone_offset_register",
-      "positive": [
-        "tone-offset-upper"
-      ],
-      "negative": [
-        "tone-offset-lower"
-      ],
-      "geometry_node": "TonalOffset"
-    },
-    {
-      "name": "tone_offset_height",
-      "positive": [
-        "tone-offset-raised"
-      ],
-      "negative": [
-        "tone-offset-lowered"
-      ],
-      "geometry_node": "TonalOffset"
-    },
-    {
       "name": "vocoid",
       "geometry_node": "Root",
       "positive": [
@@ -473,50 +433,6 @@
       "geometry_node": "Tonal",
       "positive": [
         "tone-present"
-      ],
-      "negative": []
-    },
-    {
-      "name": "tone_onset_mid_level",
-      "geometry_node": "TonalOnset",
-      "positive": [
-        "tone-onset-mid-level"
-      ],
-      "negative": []
-    },
-    {
-      "name": "tone_mid_register",
-      "geometry_node": "TonalMid",
-      "positive": [
-        "tone-mid-upper"
-      ],
-      "negative": [
-        "tone-mid-lower"
-      ]
-    },
-    {
-      "name": "tone_mid_height",
-      "geometry_node": "TonalMid",
-      "positive": [
-        "tone-mid-raised"
-      ],
-      "negative": [
-        "tone-mid-lowered"
-      ]
-    },
-    {
-      "name": "tone_mid_mid_level",
-      "geometry_node": "TonalMid",
-      "positive": [
-        "tone-mid-mid-level"
-      ],
-      "negative": []
-    },
-    {
-      "name": "tone_offset_mid_level",
-      "geometry_node": "TonalOffset",
-      "positive": [
-        "tone-offset-mid-level"
       ],
       "negative": []
     },

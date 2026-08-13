@@ -103,7 +103,7 @@ Per-artifact detail
   sha256(classes.tsv):     0e89f4bfbc3d2479ab06bbef2546fac5ec38ba6b0391b05837e0e2b581ba4dca
   sha256(features.tsv):    6b6a59227720e3f28790b0fbb4242819bfaaf05a9a8310aeceb20a1a404102a7
   sha256(inventory.tsv):   f519520eeaf4922ebdc92da19ba209344c63d53eca6b698914032c8f07560a56
-  sha256(model.json):      0710e9b9df3604ee7c961a8a7f71c5769d2e00ab1eb225e7a2a027e7fc8b54b6
+  sha256(model.json):      014798c3590833e4422a05b76e6b414087dc02214e6ffbd248107471bb31b087
 
 [pbase-hc]  (models/pbase-hc)
   artifact_version:        1.0.0

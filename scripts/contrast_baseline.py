@@ -195,6 +195,40 @@ def unreachable_dimensions(system: str, covered: list[str]) -> list[str]:
     return out
 
 
+def unreachable_model_dimensions(system: str, covered: list[str]) -> list[str]:
+    """Scoring dimensions the *model* declares that no grapheme can activate.
+
+    `unreachable_dimensions` above audits the geometry. That is the wrong
+    artifact for a system that scores through its own `scalar_dimensions` and
+    never reads a geometry leaf -- which is what `distinctive` does. Auditing
+    only the geometry is how nine tone dimensions survived the ordinal tone
+    rewrite: they were left behind by the old two-bit Chao encoding, no grapheme
+    has been able to reach them since, and every check in this repository passed.
+
+    A dimension is reachable if any grapheme carries any of its labels. One pole
+    is enough: presence against absence still separates two segments.
+    """
+    path = ROOT / "models" / system / "model.json"
+    if not path.exists():
+        return []
+    declared = json.loads(path.read_text(encoding="utf-8")).get("scalar_dimensions", [])
+    if not declared:
+        return []
+
+    present: set[str] = set()
+    for grapheme in covered:
+        present |= set(merkmal.get_features(grapheme, system=system))
+
+    out = []
+    for dim in declared:
+        labels = [str(x) for x in dim.get("positive", [])] + [
+            str(x) for x in dim.get("negative", [])
+        ]
+        if not any(label in present for label in labels):
+            out.append(f"{dim['name']} (no grapheme carries any of {labels})")
+    return out
+
+
 def read_baseline() -> dict[tuple[str, str, str, str], tuple[str, str, str]]:
     if not BASELINE.exists():
         return {}
@@ -294,6 +328,17 @@ def main() -> int:
                     print(f"    {name}")
             else:
                 print("  every scoring dimension is reachable")
+
+        orphans = unreachable_model_dimensions(system, covered)
+        if orphans:
+            problems.append(
+                f"{system}: {len(orphans)} declared model dimension(s) no grapheme can reach"
+            )
+            print(f"  ORPHANED MODEL DIMENSIONS ({len(orphans)}):")
+            for name in orphans:
+                print(f"    {name}")
+        elif (ROOT / "models" / system / "model.json").exists():
+            print("  every declared model dimension is reachable")
 
     if args.write:
         with BASELINE.open("w", encoding="utf-8", newline="") as handle:
