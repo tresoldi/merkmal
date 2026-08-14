@@ -277,6 +277,13 @@ mk_status mk_system_segment_distance(const mk_system *system, const char *utf8_a
 mk_status mk_system_segment_distance_with_weights(const mk_system *system, const char *utf8_a, const char *utf8_b, const char *node_weights, double *out);
 ```
 
+`mk_system_name` and `mk_system_kind` answer for a caller holding a system
+pointer rather than the name it looked the system up by. The kind — one of
+`categorical`, `valued`, `trained` — is worth asking for because coverage means
+different things by it: a valued system's is a real fraction, a categorical
+one's is 1.0 for any pair reaching a scored dimension. Their lifetimes differ
+behind identical signatures: the name is registry-owned, the kind is static.
+
 `node_weights` may be `NULL`, `"ignore-tone"`, `"ignore-prosodic"`,
 `"segmental"`, `"tone-heavy"`, `"tone-only"`, or `"flat"`.
 

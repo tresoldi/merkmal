@@ -62,6 +62,8 @@ static int show_distance(const mk_system *system)
     double distance = 0.0;
     double coverage = 0.0;
     mk_comparability why = MK_CMP_OK;
+    const char *name = NULL;
+    const char *kind = NULL;
     mk_status status;
 
     /* The _ex form reports how much of the comparison was real. A plain 0.0
@@ -74,8 +76,23 @@ static int show_distance(const mk_system *system)
         fprintf(stderr, "distance: %s\n", mk_status_string(status));
         return 1;
     }
+
+    /* Coverage means different things by kind, so a caller that stores a system
+     * pointer and reports numbers from it wants to say which kind produced
+     * them. A valued system skips any dimension either segment leaves unset, so
+     * its coverage is a real fraction and a segment can be under 1.0 even
+     * against itself. A categorical one weighs whatever either segment
+     * specifies, so an ordinary pair is fully covered. Both strings are
+     * borrowed: the name lives as long as the registry, the kind is static. */
+    if (mk_system_name(system, &name) != MK_OK ||
+        mk_system_kind(system, &kind) != MK_OK) {
+        fprintf(stderr, "system identity: unavailable\n");
+        return 1;
+    }
+
     printf("\nd(p, b) = %.4f  (coverage %.2f, comparability %d)\n",
         distance, coverage, (int)why);
+    printf("  scored by %s, a %s system\n", name, kind);
     return 0;
 }
 

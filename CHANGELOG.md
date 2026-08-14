@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### The two system-identity calls have a caller
+
+`mk_system_name` and `mk_system_kind` were exported, documented, ABI-frozen and
+called by nothing in the repository — not a test, not the example, not the
+Python extension. Two public functions no one had ever run.
+
+They are not dead surface, though, and the coverage work is what makes that
+clear: `*coverage` means different things by system kind, and a caller holding
+a `const mk_system *` had no way to ask which kind they had short of hardcoding
+the eight built-in names. `examples/transcribe.c` now reports it alongside the
+number — *"scored by descriptive, a categorical system"* — which both shows why
+the function exists and exercises it under `ctest`.
+
+`test_smoke.c` covers both, including the thing their identical signatures
+cannot express: the name is registry-owned storage and the kind is a static
+string. It checks a runtime model's name is the text the caller supplied, and
+that `phoible` reports `valued` where the others report `categorical` — the one
+distinction the function exists to draw.
+
 ### `mk_feature_distance` says when it has no answer
 
 It wrote `999` into `*out` and returned `MK_OK`. That is the second error

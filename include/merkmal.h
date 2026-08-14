@@ -137,9 +137,20 @@ MK_API mk_status mk_registry_add_model_text_n(
     char **diagnostic_out
 );
 
-/** Returns the name of a system as borrowed registry-owned storage. */
+/* System identity, for a caller holding a system pointer rather than the name
+ * it looked the system up by.
+ *
+ * The kind is worth asking for because coverage means different things by it.
+ * A valued system skips any dimension either segment leaves unset, so its
+ * coverage is a real fraction and a segment can be under 1.0 even against
+ * itself; a categorical one weighs whatever either segment specifies, so an
+ * ordinary pair is fully covered. See mk_system_segment_distance_ex.
+ *
+ * Both are borrowed, and their lifetimes differ behind identical signatures:
+ * the name is registry-owned and valid as long as the registry, while the kind
+ * is a static string that outlives everything. */
 MK_API mk_status mk_system_name(const mk_system *system, const char **out);
-/** Returns the system kind as borrowed static storage. */
+/** One of "categorical", "valued", or "trained". Static storage. */
 MK_API mk_status mk_system_kind(const mk_system *system, const char **out);
 
 /* Whether the system recognizes this grapheme, without allocating a feature

@@ -970,6 +970,55 @@ int main(void)
     );
     failed |= expect_status(mk_registry_get_system(registry, "toy", &toy), MK_OK, "get runtime model");
 
+    /* System identity. Both were exported, documented and never called by
+     * anything -- not a test, not the example, not the Python extension. The
+     * kind matters to a caller because coverage means different things by it:
+     * a valued system's is a real fraction, a categorical one's is 1.0 for any
+     * pair that reaches a scored dimension.
+     *
+     * The two returns have different lifetimes behind identical signatures. The
+     * name is registry-owned storage, so it stays valid as long as the registry
+     * and, for a runtime model, is the text the caller supplied. The kind is a
+     * static string. Nothing in the type says which; this is where it is
+     * checked. */
+    {
+        const mk_system *valued = NULL;
+        const char *name = NULL;
+        const char *kind = NULL;
+
+        failed |= expect_status(mk_system_name(toy, &name), MK_OK, "runtime system name");
+        if (name == NULL || strcmp(name, "toy") != 0) {
+            printf("FAIL: runtime system name is \"%s\"\n", name ? name : "(null)");
+            failed = 1;
+        }
+        failed |= expect_status(mk_system_kind(toy, &kind), MK_OK, "runtime system kind");
+        if (kind == NULL || strcmp(kind, "categorical") != 0) {
+            printf("FAIL: runtime model is a %s system\n", kind ? kind : "(null)");
+            failed = 1;
+        }
+
+        failed |= expect_status(mk_system_name(descriptive, &name), MK_OK, "builtin system name");
+        if (name == NULL || strcmp(name, "descriptive") != 0) {
+            printf("FAIL: builtin system name is \"%s\"\n", name ? name : "(null)");
+            failed = 1;
+        }
+
+        /* The one pair where the kinds differ, which is the distinction the
+         * function exists to report. */
+        failed |= expect_status(
+            mk_registry_get_system(registry, "phoible", &valued), MK_OK, "get phoible");
+        failed |= expect_status(mk_system_kind(valued, &kind), MK_OK, "valued system kind");
+        if (kind == NULL || strcmp(kind, "valued") != 0) {
+            printf("FAIL: phoible is a %s system\n", kind ? kind : "(null)");
+            failed = 1;
+        }
+
+        failed |= expect_status(
+            mk_system_name(NULL, &name), MK_ERR_INVALID_ARGUMENT, "name of no system");
+        failed |= expect_status(
+            mk_system_kind(toy, NULL), MK_ERR_INVALID_ARGUMENT, "kind into no out-param");
+    }
+
     /* A name already in the registry is refused rather than appended.
      * mk_registry_get_system returns the first match, so a second `toy` used to
      * install with MK_OK and then be unreachable for the rest of the registry's
