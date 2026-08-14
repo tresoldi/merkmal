@@ -947,6 +947,48 @@ int main(void)
         "add runtime model"
     );
     failed |= expect_status(mk_registry_get_system(registry, "toy", &toy), MK_OK, "get runtime model");
+
+    /* A name already in the registry is refused rather than appended.
+     * mk_registry_get_system returns the first match, so a second `toy` used to
+     * install with MK_OK and then be unreachable for the rest of the registry's
+     * life -- the caller told it worked, every query answered from the first
+     * one. The compiled-in names are held to the same rule. */
+    {
+        char *why = NULL;
+
+        failed |= expect_status(
+            mk_registry_add_model_text(
+                registry,
+                "@model toy\n"
+                "@type categorical\n"
+                "@geometry clements-hume\n"
+                "grapheme Z consonant voiced velar stop\n"
+            ),
+            MK_ERR_DUPLICATE_SYSTEM,
+            "duplicate runtime model name"
+        );
+        failed |= expect_status(
+            mk_registry_add_model_text_ex(
+                registry,
+                "@model descriptive\n"
+                "@type categorical\n"
+                "@geometry clements-hume\n"
+                "grapheme Z consonant voiced velar stop\n",
+                &why
+            ),
+            MK_ERR_DUPLICATE_SYSTEM,
+            "runtime model may not shadow a compiled-in name"
+        );
+        if (why == NULL || strstr(why, "descriptive") == NULL) {
+            printf("FAIL: duplicate diagnostic did not name the system\n");
+            failed = 1;
+        }
+        mk_string_free(why);
+        /* Refused before anything was installed, so the grapheme the rejected
+         * models declared is nowhere and the first `toy` is untouched. */
+        failed |= expect_segment(toy, "Z", 0, "rejected duplicate installed nothing");
+        failed |= expect_segment(toy, "X", 1, "the first model is untouched");
+    }
     /* A system pointer remains valid when the registry grows. */
     failed |= expect_segment(descriptive, "p", 1, "system pointer after registry growth");
     failed |= expect_status(mk_system_grapheme_features(toy, "X", &features), MK_OK, "features runtime X");

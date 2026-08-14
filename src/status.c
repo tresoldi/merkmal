@@ -19,6 +19,8 @@ const char *mk_status_string(mk_status status)
         return "out of memory";
     case MK_ERR_SOURCE_MARKER:
         return "source markup, not a sound";
+    case MK_ERR_DUPLICATE_SYSTEM:
+        return "a system by that name is already registered";
     default:
         return "unknown status";
     }

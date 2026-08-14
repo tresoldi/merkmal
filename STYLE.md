@@ -174,6 +174,10 @@ The distinction that matters:
   the synthesizers hand off to one another.
 - `MK_ERR_PARSE` — something recognized the shape and rejected the content: an
   over-long Chao run, a feature label too long to represent.
+- `MK_ERR_DUPLICATE_SYSTEM` — the model parsed and validated; the registry
+  already holds that name. Its own status rather than `MK_ERR_INVALID_ARGUMENT`
+  because that value already means "you passed a null pointer" on the same
+  call, and a name collision is something a caller can act on.
 
 That split is what lets `mk_system_is_segment` stay total while
 `mk_system_grapheme_features` reports why.

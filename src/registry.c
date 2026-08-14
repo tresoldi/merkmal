@@ -11,6 +11,33 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* The detail behind MK_ERR_DUPLICATE_SYSTEM, when the caller asked for one.
+ *
+ * Sized to the name rather than written into a fixed buffer: a model name comes
+ * from caller-supplied text and has no length the library gets to assume. A
+ * caller who did not ask for a diagnostic, or an allocation that fails, still
+ * gets the status -- the message is detail, never the answer. */
+static void mk_registry_set_duplicate_diagnostic(char **out, const char *name)
+{
+    static const char prefix[] = "a system named '";
+    static const char suffix[] = "' is already registered";
+    size_t length;
+    char *message;
+
+    if (out == NULL || name == NULL) {
+        return;
+    }
+    length = sizeof(prefix) - 1 + strlen(name) + sizeof(suffix);
+    message = (char *)malloc(length);
+    if (message == NULL) {
+        return;
+    }
+    memcpy(message, prefix, sizeof(prefix) - 1);
+    memcpy(message + sizeof(prefix) - 1, name, strlen(name));
+    memcpy(message + sizeof(prefix) - 1 + strlen(name), suffix, sizeof(suffix));
+    *out = message;
+}
+
 static void mk_free_owned_system(mk_system *system)
 {
     size_t i;
@@ -197,6 +224,22 @@ mk_status mk_registry_add_model_text_n(
     status = mki_parse_model_text_n(model_text, model_text_length, &model, diagnostic_out);
     if (status != MK_OK) {
         return status;
+    }
+
+    /* Before anything is installed. mk_registry_get_system returns the first
+     * match, so a second system under an existing name would register with
+     * MK_OK and then be unreachable for the rest of the registry's life. The
+     * parser already refuses a grapheme declared twice within one model, for
+     * the same reason: an ambiguous lookup is not something to resolve
+     * silently. */
+    {
+        const mk_system *existing = NULL;
+
+        if (mk_registry_get_system(registry, model.name, &existing) == MK_OK) {
+            mk_registry_set_duplicate_diagnostic(diagnostic_out, model.name);
+            mki_parsed_model_clear(&model);
+            return MK_ERR_DUPLICATE_SYSTEM;
+        }
     }
 
     next_systems = (mk_system **)realloc(

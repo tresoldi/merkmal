@@ -56,7 +56,20 @@ typedef enum mk_status {
      *
      * Appended to the enum rather than inserted, so existing values keep their
      * numbers. */
-    MK_ERR_SOURCE_MARKER
+    MK_ERR_SOURCE_MARKER,
+    /** A registry already holds a system by that name.
+     *
+     * Lookup returns the first match, so appending a second `descriptive`
+     * registered successfully and was then unreachable for the rest of the
+     * registry's life: the caller was told their model installed, and every
+     * query for it answered from the built-in one instead. Refusing says so at
+     * the point the caller can still do something about it -- rename, skip, or
+     * warn -- which is why this is its own status rather than the
+     * MK_ERR_INVALID_ARGUMENT this call already returns for a null pointer.
+     *
+     * Appended to the enum rather than inserted, so existing values keep their
+     * numbers. */
+    MK_ERR_DUPLICATE_SYSTEM
 } mk_status;
 
 /** Returns the stable English label for a status code. */

@@ -2,6 +2,42 @@
 
 ## Unreleased
 
+### A duplicate system name is refused instead of silently lost
+
+`mk_registry_add_model_text` appended unconditionally, and
+`mk_registry_get_system` returns the first match. A model named `descriptive`
+therefore registered with `MK_OK`, appeared twice in
+`mk_registry_list_systems`, and was unreachable for the rest of the registry's
+life -- every query for the name answered from the built-in one. The caller was
+told their model installed and it had not.
+
+It now returns `MK_ERR_DUPLICATE_SYSTEM`, a new status appended to the enum so
+existing values keep their numbers. Its own value rather than
+`MK_ERR_INVALID_ARGUMENT`, because that is what the same call already returns
+for a null pointer, and conflating a caller's bug with a name collision leaves
+the diagnostic string as the only way to tell them apart -- which is what
+`mk_status` exists to avoid. The check runs before anything is installed, so a
+refused model leaves the registry exactly as it was.
+
+There is deliberately no shadowing. Appending and letting the last match win
+would change what a name means mid-session for every caller, including one
+already holding a `const mk_system *` obtained under the old meaning. If
+extending a built-in is wanted, the honest feature is a model that declares what
+it extends, not a name collision that happens to win.
+
+The parser has refused a grapheme declared twice within one model since the
+format existed, with a comment noting that a binary search "may return either
+row". This is the same ambiguity one level up.
+
+### The Python exception type now follows the status
+
+`add_model_text` chose its exception by whether the C library had produced a
+diagnostic string: any failure carrying detail became `NativeError` regardless
+of cause, and only failures without detail reached the status mapping. So the
+new duplicate-name status arrived as `NativeError` rather than the `ValueError`
+the mapping specifies. `status_error_detail` now takes the message and the type
+separately -- the detail replaces the text, the status still picks the class.
+
 ### Geminacy is a question about segments, not about bytes
 
 A two-part cluster was a geminate when its two parts were spelled identically,

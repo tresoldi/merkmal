@@ -182,10 +182,21 @@ static int py_str_array_init(py_str_array *arr, PyObject *obj, const char *name)
 
 /* Always returns NULL, with a Python exception set, so callers can `return
  * status_error(...)` directly. The exception type is this binding's contract;
- * the message comes from the C library, so the two cannot drift. */
-static PyObject *status_error(mk_status status, const char *context)
+ * the message comes from the C library, so the two cannot drift.
+ *
+ * `detail` replaces the status string when the C call produced something more
+ * specific -- a model-text diagnostic naming the offending line. It changes the
+ * message only. The type is chosen from the status here and nowhere else:
+ * add_model_text used to raise NativeError whenever a diagnostic happened to
+ * exist, so the exception a caller saw depended on whether the library had
+ * something to say rather than on what went wrong. */
+static PyObject *status_error_detail(
+    mk_status status,
+    const char *context,
+    const char *detail
+)
 {
-    const char *message = mk_status_string(status);
+    const char *message = detail != NULL ? detail : mk_status_string(status);
 
     switch (status) {
     case MK_ERR_UNKNOWN_SYSTEM:
@@ -197,6 +208,11 @@ static PyObject *status_error(mk_status status, const char *context)
         break;
     case MK_ERR_UNSUPPORTED_MODEL:
         PyErr_Format(PyExc_NotImplementedError, "%s: %s", context, message);
+        break;
+    case MK_ERR_DUPLICATE_SYSTEM:
+        /* A name collision the caller can act on -- rename, skip, warn -- not a
+         * bad pointer, which is what this call's MK_ERR_INVALID_ARGUMENT means. */
+        PyErr_Format(PyExc_ValueError, "%s: %s", context, message);
         break;
     case MK_ERR_SOURCE_MARKER:
         /* A subclass of ValueError, so callers that already catch ValueError
@@ -216,6 +232,11 @@ static PyObject *status_error(mk_status status, const char *context)
         break;
     }
     return NULL;
+}
+
+static PyObject *status_error(mk_status status, const char *context)
+{
+    return status_error_detail(status, context, NULL);
 }
 
 static void registry_capsule_destructor(PyObject *capsule)
@@ -1085,13 +1106,10 @@ static PyObject *py_add_model_text(PyObject *self, PyObject *args, PyObject *kwa
     status = mk_registry_add_model_text_ex(registry, text, &diagnostic);
     if (status != MK_OK) {
         /* The diagnostic names the offending line and token; without it the
-         * caller only learns that something in the model was wrong. */
-        if (diagnostic != NULL) {
-            PyErr_Format(mk_py_error, "add_model_text: %s", diagnostic);
-            mk_string_free(diagnostic);
-        } else {
-            status_error(status, "add_model_text");
-        }
+         * caller only learns that something in the model was wrong. Either way
+         * the exception type comes from the status. */
+        status_error_detail(status, "add_model_text", diagnostic);
+        mk_string_free(diagnostic);
         goto done;
     }
     mk_string_free(diagnostic);

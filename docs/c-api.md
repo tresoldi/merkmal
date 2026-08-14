@@ -233,6 +233,14 @@ model; see [runtime-model-format.md](runtime-model-format.md). Runtime models
 are copied into the registry and do not depend on the lifetime of
 `model_text`.
 
+A name already in the registry is refused with `MK_ERR_DUPLICATE_SYSTEM`,
+including the compiled-in names. `mk_registry_get_system` returns the first
+match, so a second system under an existing name would install successfully and
+then be unreachable for the rest of the registry's life. Nothing is installed
+when the name is taken, so the registry is unchanged and the caller can rename
+and retry. There is no shadowing: a runtime model cannot override a built-in by
+reusing its name.
+
 Runtime models are validated strictly unless they say `@validation
 permissive`: every feature must reach a scoring dimension, graphemes must be
 unique, and unrecognized lines are rejected. Without that check, a model

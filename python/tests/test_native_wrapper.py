@@ -719,6 +719,39 @@ def test_error_messages_come_from_the_c_library() -> None:
         merkmal.get_features("a⁵⁵", system="phoible")
 
 
+def test_a_duplicate_system_name_is_refused() -> None:
+    """A second system under an existing name used to install and vanish.
+
+    `mk_registry_get_system` returns the first match, so appending a second
+    `descriptive` registered with MK_OK and was then unreachable for the rest of
+    the registry's life: the caller was told it worked and every query answered
+    from the built-in one.
+
+    The exception type is `ValueError` rather than `NativeError` because the
+    type now comes from the status. It used to come from whether the C library
+    happened to produce a diagnostic string, which meant every model-text
+    failure carrying detail looked the same to a caller regardless of cause.
+    """
+    model = (
+        "@model toy\n"
+        "@type categorical\n"
+        "@geometry clements-hume\n"
+        "grapheme X consonant voiceless bilabial stop\n"
+    )
+    registry = merkmal.Registry()
+    registry.add_model_text(model)
+
+    for name in ("toy", "descriptive"):
+        with pytest.raises(ValueError, match=f"'{name}' is already registered"):
+            registry.add_model_text(model.replace("@model toy", f"@model {name}"))
+
+    systems = registry.list_systems()
+    assert len(systems) == len(set(systems))
+    # The first model is untouched and the refused ones installed nothing.
+    assert registry.is_segment("X", system="toy")
+    assert registry.get_features("p", system="descriptive")
+
+
 def test_cli_uses_native_wrapper(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["systems"]) == 0
     output = capsys.readouterr().out.splitlines()
