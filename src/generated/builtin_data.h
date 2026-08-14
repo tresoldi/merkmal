@@ -56,11 +56,20 @@ const char *mki_pool_string(unsigned int offset);
 const char *mki_feature_name(unsigned short id);
 extern const size_t mki_feature_name_count;
 
+/* `weight` is what the dimension costs, already resolved.
+ *
+ * It used to be `depth`, and the runtime read it as 1/depth. A leaf declaring
+ * an explicit "weight" in the geometry file was then emitted as the depth that
+ * would produce it, so the table held 1.25 and 2.5 as "depths" of leaves that
+ * are not at those depths. The C side had no way to tell which rows were depths
+ * and which were inverted weights, and the disclaimer existed only in the
+ * Python. The generator now does the arithmetic and the field says what it
+ * holds. */
 typedef struct mk_geometry_leaf {
     const char *name;
     const char *positive;
     const char *negative;
-    double depth;
+    double weight;
     const char *parent;
 } mk_geometry_leaf;
 

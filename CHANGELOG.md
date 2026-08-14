@@ -2,6 +2,44 @@
 
 ## Unreleased
 
+### The header is the shape, and the generator is held to it
+
+`builtin_data.h` declares twelve struct types; `tools/generate_c_data.py`
+emitted brace-initializers for them, positionally. That made field order
+load-bearing across two languages with nothing checking it.
+`mk_builtin_system`'s `entry_graphemes` and `entry_feature_at` are both
+`const unsigned int *` and adjacent, so transposing either the struct or the
+emitter compiled clean under `-Werror` and returned the wrong row for every
+lookup. `check_generated_data.py` would not have noticed: it compares the
+emitter to its own output, so it proves determinism and nothing else.
+
+Every emitted struct now goes through `c_struct`, which reads the field names
+out of the header and refuses an initializer that has drifted from them. That
+covers the direction designated initializers alone do not: GCC's
+`-Wmissing-field-initializers` fires for a positional initializer that omits a
+field and stays silent for a designated one, so naming the fields would have
+traded a silent transposition for a silent zero-fill. Verified in all three
+directions — a field added to the header, a field renamed, and a field the
+emitter does not know — each now stops the generator with a message naming the
+struct.
+
+`MK_MAX_ENTRY_FEATURES` was a second `= 64` in the generator, kept in step by a
+comment asking the reader to remember. It is read from the header. Raising it
+there alone used to emit a row wider than the pointer array the resolver
+reserves inside every `mk_resolution`, which is stack corruption no test in the
+tree would have caught.
+
+`mk_geometry_leaf.depth` is now `weight`, because that is what it held. A leaf
+declaring an explicit weight was emitted as *the depth that would produce it*,
+so the table carried 1.25 and 2.5 as the "depths" of leaves that are at neither,
+and the runtime divided them back. The C side had no way to tell which rows were
+depths and which were inverted weights, and the disclaimer lived only in the
+Python. The generator does the arithmetic now and the field says what it holds.
+
+The emitted `.rodata` is byte-identical before and after, which is the check
+that this was a change to how the source reads and not to what it compiles to.
+No distance moved.
+
 ### The CLI caught an exception nothing raises
 
 `merkmal features not-ipa`, `merkmal --system nope features p` and every other

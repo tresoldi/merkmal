@@ -513,7 +513,7 @@ static mk_status mk_score_leaf(
 
     for (i = 0; i < mki_clements_hume_leaf_count; i++) {
         const mk_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
-        double weight = mk_dimension_weight(preset, leaf->parent, 1.0 / leaf->depth);
+        double weight = mk_dimension_weight(preset, leaf->parent, leaf->weight);
         int a_pos = leaf->positive[0] != '\0' && mk_view_contains(a, leaf->positive);
         int a_neg = leaf->negative[0] != '\0' && mk_view_contains(a, leaf->negative);
         int b_pos = leaf->positive[0] != '\0' && mk_view_contains(b, leaf->positive);

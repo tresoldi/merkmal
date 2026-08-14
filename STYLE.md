@@ -116,7 +116,8 @@ external name in it, not just the declared ones. The archive holds 107: the 32
 in `include/merkmal.h` and 75 internal ones — the resolution and scoring seams,
 the cluster policy, the string helpers, the compiled tables. They all used to
 be spelled `mk_`, which meant this file's claim that `mk_` marked the public
-surface was true only by intention. `mki_resolve` and `mki_streq` now say what they are.
+surface was true only by intention. `mki_resolve` and `mki_streq` now say what
+they are.
 
 A shared build hides the internals by visibility either way; the static build,
 which is the default and what the pkg-config consumer links, does not.
@@ -253,11 +254,34 @@ Consequences worth knowing before changing the emitter:
   `test_resolution` checks the emitted order.
 - A row may carry at most `MK_MAX_ENTRY_FEATURES` features. The resolver
   reserves that many pointer slots inside every `mk_resolution`, so raising it
-  costs stack on every lookup. The generator refuses to emit a wider row.
+  costs stack on every lookup. The generator refuses to emit a wider row, and
+  reads the limit out of the header rather than keeping its own copy.
 - The pool is emitted in 2 KB chunks. C99 only requires string literals of
   4,095 characters and adjacent literals concatenate into one.
 - Duplicate graphemes within a system are rejected: a binary search may return
   either row where the old linear scan always returned the first.
+
+`builtin_data.h` is the shape and the generator only fills it in. Every emitted
+struct goes through `c_struct`, which reads the header's fields and refuses an
+initializer that has drifted from them, so the two cannot disagree:
+
+- The header is authoritative for **field order**. Initializers used to be
+  positional, which made order load-bearing across two languages —
+  `entry_graphemes` and `entry_feature_at` are both `const unsigned int *` and
+  adjacent, so transposing either side compiled clean under `-Werror` and
+  returned the wrong row for every lookup.
+- The header is authoritative for **which fields exist**. Designating them
+  fixes the order problem but opens another, because
+  `-Wmissing-field-initializers` does not fire for designated initializers: a
+  new field would be zero-filled in silence. `c_struct` fails the generator
+  instead.
+- The header is authoritative for **`MK_MAX_ENTRY_FEATURES`**. It was a second
+  `= 64` in the generator held in step by a comment, and raising only that one
+  emits a row wider than the array the resolver reserves.
+
+`check_generated_data.py` proves the emitter is deterministic. It cannot prove
+it is right — it compares the emitter against its own output — so what keeps the
+two languages honest is reading the header rather than restating it.
 
 ## Footprint and performance
 

@@ -54,10 +54,98 @@ ASCII_TO_IPA = {
 
 STRESS_MARKS = frozenset({"ˈ", "ˌ"})
 
-# Must match MK_MAX_ENTRY_FEATURES in src/generated/builtin_data.h. The
-# resolver reserves this many pointer slots inside every mk_resolution, so
-# raising it costs stack on every lookup.
-MAX_ENTRY_FEATURES = 64
+BUILTIN_DATA_H = ROOT / "src" / "generated" / "builtin_data.h"
+
+
+def parse_header_structs() -> dict[str, list[str]]:
+    """Field names of every struct in builtin_data.h, in declaration order.
+
+    The header is the shape; this file only fills it in. Reading the fields
+    rather than restating them is what lets c_struct below refuse an
+    initializer that has drifted from the type it is initializing.
+    """
+    text = BUILTIN_DATA_H.read_text(encoding="utf-8")
+    # Comments would otherwise contribute stray identifiers to the field list.
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    structs: dict[str, list[str]] = {}
+    for match in re.finditer(
+        r"typedef\s+struct\s+(\w+)\s*\{(.*?)\}\s*\1\s*;", text, re.DOTALL
+    ):
+        name, body = match.group(1), match.group(2)
+        fields: list[str] = []
+        for member in body.split(";"):
+            member = member.strip()
+            if not member:
+                continue
+            # The declarator's identifier: last word, minus any array bound.
+            field = re.sub(r"\[.*$", "", member.split()[-1]).lstrip("*")
+            if field:
+                fields.append(field)
+        structs[name] = fields
+    return structs
+
+
+HEADER_STRUCTS = parse_header_structs()
+
+
+def c_struct(struct: str, values: dict[str, str]) -> str:
+    """One designated initializer, checked against the header's field list.
+
+    Positional initializers made field order load-bearing across two languages:
+    mk_builtin_system's `entry_graphemes` and `entry_feature_at` are both
+    `const unsigned int *` and adjacent, so transposing either the struct or the
+    emitter compiled clean under -Werror and silently returned the wrong row.
+
+    Designating the fields fixes that direction but opens another, because
+    -Wmissing-field-initializers does not fire for designated initializers: a
+    field added to the header would be quietly zero-filled instead of warned
+    about. So the emitter is checked against the header here, and drift in
+    either direction stops the generator rather than reaching a compiler that
+    has no way to notice it.
+    """
+    fields = HEADER_STRUCTS.get(struct)
+    if fields is None:
+        raise SystemExit(f"{BUILTIN_DATA_H}: no struct {struct}")
+    unknown = sorted(set(values) - set(fields))
+    if unknown:
+        raise SystemExit(
+            f"{struct}: {', '.join(unknown)} is not a field of the struct in "
+            f"{BUILTIN_DATA_H.name}"
+        )
+    missing = [field for field in fields if field not in values]
+    if missing:
+        raise SystemExit(
+            f"{struct}: {', '.join(missing)} left unset. The header declares it, "
+            f"so this generator has to say what goes in it; a designated "
+            f"initializer would zero-fill it without a warning."
+        )
+    body = ", ".join(f".{field} = {values[field]}" for field in fields)
+    return f"{{{body}}}"
+
+
+def read_header_constant(name: str) -> int:
+    """Read a #define from builtin_data.h rather than restating its value.
+
+    This was a second `= 64` with a comment asking the reader to keep the two in
+    step. Raising it here alone emits a row wider than the pointer array the
+    resolver reserves inside every mk_resolution, which is stack corruption that
+    no test in the tree would catch -- and scripts/validate_models.py already
+    makes the argument for reading rather than restating: a guard that
+    reimplements the thing it guards passes when both copies are wrong together.
+    """
+    match = re.search(
+        rf"^#define\s+{re.escape(name)}\s+(\d+)\s*$",
+        BUILTIN_DATA_H.read_text(encoding="utf-8"),
+        re.MULTILINE,
+    )
+    if match is None:
+        raise SystemExit(f"{BUILTIN_DATA_H}: no #define for {name}")
+    return int(match.group(1))
+
+
+# The resolver reserves this many pointer slots inside every mk_resolution, so
+# raising it costs stack on every lookup. The header is the one place it is set.
+MAX_ENTRY_FEATURES = read_header_constant("MK_MAX_ENTRY_FEATURES")
 
 
 def c_string(value: str) -> str:
@@ -502,7 +590,12 @@ def emit_feature_node_map(symbol: str, entries: list[tuple[str, str]]) -> str:
         return ""
     lines.append(f"static const mk_feature_node_map {symbol}[] = {{")
     for feature, node in entries:
-        lines.append(f"    {{{c_string(feature)}, {c_string(node)}}},")
+        lines.append(
+            "    " + c_struct("mk_feature_node_map", {
+                "feature": c_string(feature),
+                "node": c_string(node),
+            }) + ","
+        )
     lines.append("};")
     lines.append("")
     lines.append(
@@ -554,9 +647,15 @@ def emit_scalar_dimensions(symbol: str, dimensions: list[dict[str, object]]) -> 
     for index, dim in enumerate(dimensions):
         pos_symbol, neg_symbol = dim_symbols[index]
         lines.append(
-            f"    {{{c_string(str(dim['name']))}, {c_string(str(dim['geometry_node']))}, "
-            f"{pos_symbol}, {len(dim['positive'])}, "
-            f"{neg_symbol}, {len(dim['negative'])}, {float(dim['weight']):.17g}}},"
+            "    " + c_struct("mk_scalar_dimension", {
+                "name": c_string(str(dim["name"])),
+                "geometry_node": c_string(str(dim["geometry_node"])),
+                "positive": pos_symbol,
+                "positive_count": str(len(dim["positive"])),
+                "negative": neg_symbol,
+                "negative_count": str(len(dim["negative"])),
+                "weight": f"{float(dim['weight']):.17g}",
+            }) + ","
         )
     lines.append("};")
     lines.append("")
@@ -608,7 +707,8 @@ def emit_system(
             raise SystemExit(
                 f"{name}: grapheme {grapheme!r} carries {len(features)} features, "
                 f"over the MK_MAX_ENTRY_FEATURES limit of {MAX_ENTRY_FEATURES}. "
-                f"Raise it in both this generator and src/generated/builtin_data.h."
+                f"Raise it in src/generated/builtin_data.h, which is where this "
+                f"generator reads it from, and mind the stack it costs per lookup."
             )
         grapheme_offsets.append(pool.add(grapheme))
         run = tuple(feature_ids[feature] for feature in features)
@@ -689,11 +789,18 @@ def emit_geometry(geometry: dict[str, object]) -> str:
 
     lines.append("const mk_geometry_leaf mki_clements_hume_leaves[] = {")
     for name, positive, negative, depth, parent, weight in leaves:
-        # The runtime reads `depth` only as 1/depth, so an explicit weight is
-        # expressed as the depth that produces it.
-        effective = float(depth) if weight is None else 1.0 / float(weight)
+        # A leaf's cost is its declared weight, or the reciprocal of its depth
+        # where it declares none. Resolved here so the emitted field is the
+        # weight it claims to be, rather than a depth the runtime has to invert.
+        effective = 1.0 / float(depth) if weight is None else float(weight)
         lines.append(
-            f"    {{{c_string(name)}, {c_string(positive)}, {c_string(negative)}, {effective:.17g}, {c_string(parent)}}},"
+            "    " + c_struct("mk_geometry_leaf", {
+                "name": c_string(name),
+                "positive": c_string(positive),
+                "negative": c_string(negative),
+                "weight": f"{effective:.17g}",
+                "parent": c_string(parent),
+            }) + ","
         )
     lines.append("};")
     lines.append("")
@@ -705,7 +812,12 @@ def emit_geometry(geometry: dict[str, object]) -> str:
 
     lines.append("const mk_feature_node_map mki_clements_hume_feature_to_node[] = {")
     for feature, node in ftn:
-        lines.append(f"    {{{c_string(feature)}, {c_string(node)}}},")
+        lines.append(
+            "    " + c_struct("mk_feature_node_map", {
+                "feature": c_string(feature),
+                "node": c_string(node),
+            }) + ","
+        )
     lines.append("};")
     lines.append("")
     lines.append(
@@ -716,7 +828,12 @@ def emit_geometry(geometry: dict[str, object]) -> str:
 
     lines.append("const mk_node_depth mki_clements_hume_node_depths[] = {")
     for node, depth in node_depths:
-        lines.append(f"    {{{c_string(node)}, {float(depth):.1f}}},")
+        lines.append(
+            "    " + c_struct("mk_node_depth", {
+                "node": c_string(node),
+                "depth": f"{float(depth):.1f}",
+            }) + ","
+        )
     lines.append("};")
     lines.append("")
     lines.append(
@@ -727,7 +844,12 @@ def emit_geometry(geometry: dict[str, object]) -> str:
 
     lines.append("const mk_node_parent mki_clements_hume_node_parents[] = {")
     for node, parent in node_parents:
-        lines.append(f"    {{{c_string(node)}, {c_string(parent)}}},")
+        lines.append(
+            "    " + c_struct("mk_node_parent", {
+                "node": c_string(node),
+                "parent": c_string(parent),
+            }) + ","
+        )
     lines.append("};")
     lines.append("")
     lines.append(
@@ -746,7 +868,12 @@ def emit_geometry(geometry: dict[str, object]) -> str:
         weights = sorted(value.items())
         lines.append(f"static const mk_node_weight {weight_symbol}[] = {{")
         for node, weight in weights:
-            lines.append(f"    {{{c_string(str(node))}, {float(weight):.17g}}},")
+            lines.append(
+                "    " + c_struct("mk_node_weight", {
+                    "node": c_string(str(node)),
+                    "weight": f"{float(weight):.17g}",
+                }) + ","
+            )
         lines.append("};")
         lines.append("")
         preset_entries.append((preset_name, weight_symbol, len(weights), 0))
@@ -755,7 +882,12 @@ def emit_geometry(geometry: dict[str, object]) -> str:
     for preset_name, weight_symbol, weight_count, flat in preset_entries:
         weights_expr = weight_symbol if weight_symbol is not None else "NULL"
         lines.append(
-            f"    {{{c_string(preset_name)}, {weights_expr}, {weight_count}, {flat}}},"
+            "    " + c_struct("mk_node_weight_preset", {
+                "name": c_string(preset_name),
+                "weights": weights_expr,
+                "weight_count": str(weight_count),
+                "flat": str(flat),
+            }) + ","
         )
     lines.append("};")
     lines.append("")
@@ -775,7 +907,11 @@ def emit_geometry(geometry: dict[str, object]) -> str:
     lines.append("const mk_feature_path mki_clements_hume_feature_paths[] = {")
     for index, (feature, path) in enumerate(feature_paths):
         lines.append(
-            f"    {{{c_string(feature)}, mk_clements_hume_feature_path_{index}, {len(path)}}},"
+            "    " + c_struct("mk_feature_path", {
+                "feature": c_string(feature),
+                "path": f"mk_clements_hume_feature_path_{index}",
+                "path_count": str(len(path)),
+            }) + ","
         )
     lines.append("};")
     lines.append("")
@@ -823,7 +959,12 @@ def emit_decompositions(diacritics: dict[str, object]) -> str:
 
     lines = ["const mk_decomposition mki_default_decompositions[] = {"]
     for composed, decomposed in pairs:
-        lines.append(f"    {{{c_string(composed)}, {c_string(decomposed)}}},")
+        lines.append(
+            "    " + c_struct("mk_decomposition", {
+                "composed": c_string(composed),
+                "decomposed": c_string(decomposed),
+            }) + ","
+        )
     lines.append("};")
     lines.append("")
     lines.append(
@@ -872,9 +1013,14 @@ def emit_ordinal_scales(geometry: dict[str, object]) -> str:
         default = scale.get("default_level")
         default_expr = "MK_ORDINAL_UNDEFINED" if default is None else str(int(default))
         lines.append(
-            f"    {{{c_string(str(scale['name']))}, {c_string(str(scale['node']))}, "
-            f"mk_clements_hume_ordinal_levels_{index}, {len(scale['levels'])}, "
-            f"{default_expr}, {float(scale['weight']):.17g}}},"
+            "    " + c_struct("mk_ordinal_scale", {
+                "name": c_string(str(scale["name"])),
+                "node": c_string(str(scale["node"])),
+                "levels": f"mk_clements_hume_ordinal_levels_{index}",
+                "level_count": str(len(scale["levels"])),
+                "default_level": str(default_expr),
+                "weight": f"{float(scale['weight']):.17g}",
+            }) + ","
         )
     lines.append("};")
     lines.append("")
@@ -895,7 +1041,12 @@ def emit_diacritic_map(symbol: str, data: dict[str, object]) -> str:
 
     lines.append(f"const mk_diacritic_map {symbol}[] = {{")
     for cp, feature in sorted(data.items()):
-        lines.append(f"    {{{c_string(mark_from_hex(cp))}, {c_string(str(feature))}}},")
+        lines.append(
+            "    " + c_struct("mk_diacritic_map", {
+                "mark": c_string(mark_from_hex(cp)),
+                "feature": c_string(str(feature)),
+            }) + ","
+        )
     lines.append("};")
     lines.append("")
     lines.append(
@@ -941,7 +1092,13 @@ def emit_diacritics(diacritics: dict[str, object]) -> str:
     lines.append("const mk_tone_mark mki_default_tone_marks[] = {")
     for cp, symbol, count in tone_entries:
         features_expr = symbol if symbol is not None else "NULL"
-        lines.append(f"    {{{c_string(mark_from_hex(cp))}, {features_expr}, {count}}},")
+        lines.append(
+            "    " + c_struct("mk_tone_mark", {
+                "mark": c_string(mark_from_hex(cp)),
+                "features": features_expr,
+                "feature_count": str(count),
+            }) + ","
+        )
     lines.append("};")
     lines.append("")
     lines.append(
@@ -964,7 +1121,14 @@ def emit_diacritics(diacritics: dict[str, object]) -> str:
 
     lines.append("const mk_valued_diacritic_effect mki_default_valued_diacritic_effects[] = {")
     for modifier, symbol, count, state in effect_entries:
-        lines.append(f"    {{{c_string(modifier)}, {symbol}, {count}, '{state[0]}' }},")
+        lines.append(
+            "    " + c_struct("mk_valued_diacritic_effect", {
+                "modifier": c_string(modifier),
+                "alternatives": symbol,
+                "alternative_count": str(count),
+                "state": f"'{state[0]}'",
+            }) + ","
+        )
     lines.append("};")
     lines.append("")
     lines.append(
@@ -1051,10 +1215,21 @@ def generate(output: Path) -> None:
         scalar_expr = f"{prefix}_scalar_dimensions" if scalar_dimensions else "NULL"
         scalar_count = f"{prefix.upper()}_SCALAR_DIMENSIONS_COUNT" if scalar_dimensions else "0"
         chunks.append(
-            f"    {{{c_string(name)}, {kind}, NULL, {prefix.upper()}_ENTRY_COUNT, "
-            f"{prefix}_entry_graphemes, {prefix}_entry_feature_at, "
-            f"{prefix}_entry_feature_n, {prefix}_feature_ids, "
-            f"{map_expr}, {map_count}, {weights_expr}, {scalar_expr}, {scalar_count}}},"
+            "    " + c_struct("mk_builtin_system", {
+                "name": c_string(name),
+                "kind": kind,
+                "entries": "NULL",
+                "entry_count": f"{prefix.upper()}_ENTRY_COUNT",
+                "entry_graphemes": f"{prefix}_entry_graphemes",
+                "entry_feature_at": f"{prefix}_entry_feature_at",
+                "entry_feature_n": f"{prefix}_entry_feature_n",
+                "feature_ids": f"{prefix}_feature_ids",
+                "geometry_map": map_expr,
+                "geometry_map_count": map_count,
+                "dimension_weights": weights_expr,
+                "scalar_dimensions": scalar_expr,
+                "scalar_dimension_count": scalar_count,
+            }) + ","
         )
     chunks.append("};")
     chunks.append("")
