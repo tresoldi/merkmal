@@ -134,8 +134,10 @@ segments had a value, in `[0, 1]`. `d(˦˨, d)` in PHOIBLE is `(0.0, 0.0)`;
 The library sets no threshold — what counts as too weak a comparison depends on
 the work.
 
-Categorical systems score over the union of what either segment specifies, so
-the ambiguity cannot arise and `*coverage` is 1.0.
+Categorical systems weigh any dimension either segment specifies, so an ordinary
+pair is fully covered and the ambiguity does not arise. A pair reaching no
+scored dimension at all still reports `0.0` rather than claiming a comparison
+that did not happen.
 
 ## Feature vectors
 
@@ -321,6 +323,18 @@ mk_status mk_merge_tone_digits(const mk_string_list *segments, mk_string_list **
 mk_status mk_segment_ipa_merged(const char *utf8_in, mk_string_list **out);
 mk_status mk_split_tone(const char *segment, char **base_out, char **tone_out);
 ```
+
+`mk_feature_distance` counts hops along the geometry tree, and is defined only
+over the 110 features the tree contains. A feature the geometry reaches some
+other way has no tree path and no tree distance: `bilabial` and `velar` are
+mapped to the `Place` node rather than being leaves under it, and an
+ordered-scale level such as `tone-onset-1` is a position on a scale. Roughly two
+in five of the labels a categorical system can return are in that group, and
+either feature being off the tree returns `MK_ERR_NO_TREE_PATH`.
+
+It is a tree measurement, not a phonological distance. For two segments use
+`mk_system_segment_distance`, which reads node groups and ordered scales too and
+is defined for every feature a system returns.
 
 There are two tokenization policies, and the choice matters.
 `mk_segment_ipa` is orthographic: a token starts at each new base code

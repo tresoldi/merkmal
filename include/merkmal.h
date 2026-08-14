@@ -69,7 +69,13 @@ typedef enum mk_status {
      *
      * Appended to the enum rather than inserted, so existing values keep their
      * numbers. */
-    MK_ERR_DUPLICATE_SYSTEM
+    MK_ERR_DUPLICATE_SYSTEM,
+    /** A feature has no path in the geometry tree, so no tree distance is
+     * defined for it. See mk_feature_distance.
+     *
+     * Appended to the enum rather than inserted, so existing values keep their
+     * numbers. */
+    MK_ERR_NO_TREE_PATH
 } mk_status;
 
 /** Returns the stable English label for a status code. */
@@ -172,7 +178,27 @@ MK_API mk_status mk_system_segment_distance_with_weights(
     double *out
 );
 
-/** Returns the geometry distance between two feature names. */
+/** Hop count between two feature names along the geometry tree.
+ *
+ * Defined only over features the tree actually contains -- 110 of them. A
+ * feature the geometry reaches some other way has no tree path and no tree
+ * distance: `bilabial` and `velar` are both mapped to the Place node rather
+ * than being leaves under it, and an ordered-scale level such as
+ * `tone-onset-1` is a position on a scale rather than a point on the tree.
+ * Roughly two in five of the labels a categorical system can return are in
+ * that group. Either feature being off the tree returns MK_ERR_NO_TREE_PATH.
+ *
+ * This used to write 999 into *out and return MK_OK, which is a second error
+ * channel of the kind this library does not have elsewhere: 999 is an ordinary
+ * looking integer in a function whose real answers are small ones, so a caller
+ * summing or thresholding got nonsense with nothing to test. It also answered 0
+ * for a feature compared with itself before checking whether it knew the
+ * feature at all, so a misspelling compared with itself was confidently zero.
+ * The domain is checked first now, and identity falls out of the arithmetic.
+ *
+ * This is a tree measurement, not a phonological distance. Two segments are
+ * compared with mk_system_segment_distance, which reads node groups and ordered
+ * scales as well and is defined for every feature a system returns. */
 MK_API mk_status mk_feature_distance(
     const char *feature_a,
     const char *feature_b,

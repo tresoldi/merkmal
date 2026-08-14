@@ -20,6 +20,52 @@
 #define MERKMAL_SOURCE_DIR "."
 #endif
 
+/* The tree distance is defined over the tree, and says so.
+ *
+ * These used to write 999 into *out and return MK_OK. 999 is an ordinary
+ * looking integer in a function whose real answers run from 0 to 8, so a caller
+ * summing or thresholding got nonsense with nothing to test -- and two thirds
+ * of the rows in geometry_distances.tsv recorded it as though it were a
+ * measurement, for the most natural questions anyone would ask: stop against
+ * fricative, bilabial against velar.
+ *
+ * Equality was also tested before the domain, so a feature the tree does not
+ * contain answered 0 against itself while refusing everything else. A
+ * misspelling compared with itself was confidently zero. */
+static int check_off_tree_features_are_reported(void)
+{
+    static const char *const off_tree[][2] = {
+        /* Real, scored features that are mapped to a node rather than being
+         * leaves under it. */
+        { "bilabial", "velar" },
+        { "stop", "fricative" },
+        /* A position on an ordered scale, not a point on the tree. */
+        { "tone-onset-1", "tone-offset-1" },
+        /* Identity does not exempt a feature from the domain... */
+        { "bilabial", "bilabial" },
+        /* ...and neither does a name the geometry has never heard of. */
+        { "not-a-feature", "not-a-feature" },
+        { "not-a-feature", "voiced" }
+    };
+    size_t i;
+    int failed = 0;
+
+    for (i = 0; i < sizeof(off_tree) / sizeof(off_tree[0]); i++) {
+        int value = -12345;
+        mk_status status = mk_feature_distance(off_tree[i][0], off_tree[i][1], &value);
+
+        if (status != MK_ERR_NO_TREE_PATH) {
+            fprintf(
+                stderr,
+                "%s/%s: expected MK_ERR_NO_TREE_PATH, got status %d with value %d\n",
+                off_tree[i][0], off_tree[i][1], (int)status, value
+            );
+            failed = 1;
+        }
+    }
+    return failed;
+}
+
 static int check_feature_distances(void)
 {
     char path[1024];
@@ -221,6 +267,7 @@ int main(void)
     }
 
     failed |= check_feature_distances();
+    failed |= check_off_tree_features_are_reported();
     failed |= check_sound_distances(&cases, "tests/golden/geometry_sound_distances.tsv", 0);
     failed |= check_sound_distances(&cases, "tests/golden/geometry_weighted_distances.tsv", 1);
     failed |= check_invalid_preset();

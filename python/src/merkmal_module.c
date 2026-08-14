@@ -209,6 +209,10 @@ static PyObject *status_error_detail(
     case MK_ERR_UNSUPPORTED_MODEL:
         PyErr_Format(PyExc_NotImplementedError, "%s: %s", context, message);
         break;
+    case MK_ERR_NO_TREE_PATH:
+        /* A real question with no answer on the tree, not a bad argument. */
+        PyErr_Format(PyExc_ValueError, "%s: %s", context, message);
+        break;
     case MK_ERR_DUPLICATE_SYSTEM:
         /* A name collision the caller can act on -- rename, skip, warn -- not a
          * bad pointer, which is what this call's MK_ERR_INVALID_ARGUMENT means. */

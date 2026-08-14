@@ -21,6 +21,8 @@ const char *mk_status_string(mk_status status)
         return "source markup, not a sound";
     case MK_ERR_DUPLICATE_SYSTEM:
         return "a system by that name is already registered";
+    case MK_ERR_NO_TREE_PATH:
+        return "feature has no path in the geometry tree";
     default:
         return "unknown status";
     }

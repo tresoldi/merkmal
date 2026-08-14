@@ -174,6 +174,10 @@ The distinction that matters:
   the synthesizers hand off to one another.
 - `MK_ERR_PARSE` — something recognized the shape and rejected the content: an
   over-long Chao run, a feature label too long to represent.
+- `MK_ERR_NO_TREE_PATH` — the question was well-formed and the geometry tree
+  has no answer to it. `mk_feature_distance` is defined over tree features
+  only; it used to write `999` into the out-parameter and return `MK_OK`, which
+  is the second error channel this section exists to rule out.
 - `MK_ERR_DUPLICATE_SYSTEM` — the model parsed and validated; the registry
   already holds that name. Its own status rather than `MK_ERR_INVALID_ARGUMENT`
   because that value already means "you passed a null pointer" on the same

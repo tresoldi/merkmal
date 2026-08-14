@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+### `mk_feature_distance` says when it has no answer
+
+It wrote `999` into `*out` and returned `MK_OK`. That is the second error
+channel `geometry.h` records removing from the scorers and `STYLE.md` states as
+an absolute rule, and it was worse here than a sentinel usually is: the
+function's real answers run from 0 to 8, so `999` is an ordinary looking
+integer, and a caller summing or thresholding got nonsense with nothing to
+test.
+
+**`999` never meant "unknown feature".** It meant "not on the geometry tree",
+which is true of plenty of features the library scores perfectly well.
+`bilabial` and `velar` are mapped to the `Place` node rather than being leaves
+under it; `tone-onset-1` is a position on an ordered scale. Measured against
+what `descriptive` actually returns, 41 of 97 labels — two in five — were
+answered with the sentinel, and 8 of the 12 rows in
+`tests/golden/geometry_distances.tsv` recorded it as though it were a
+measurement, for the most natural questions anyone would ask: `stop` against
+`fricative`, `bilabial` against `velar`.
+
+Off-tree features now return `MK_ERR_NO_TREE_PATH`, appended to the enum so
+existing values keep their numbers. Its own status rather than
+`MK_ERR_INVALID_ARGUMENT`, which this call already returns for a null pointer.
+
+The equality shortcut was also tested before the domain, so a feature the tree
+does not contain answered `0` against itself while refusing everything else —
+a misspelling compared with itself was confidently zero. The domain is checked
+first now, and identity needs no special case at all: two identical features
+have identical paths, every element is common, and the arithmetic yields 0.
+
+The fixture keeps twelve rows, with the eight sentinel pairs replaced by tree
+pairs spanning the distances the tree actually produces (0, 2, 4, 5, 6, 8).
+`test_geometry.c` asserts the refusals directly, including the two cases that
+made the old behaviour incoherent: identity of an off-tree feature, and a
+misspelling against itself.
+
 ### Four things the documentation said that were not true
 
 - `distance_with_coverage` was documented as returning `tuple[float, float]`.

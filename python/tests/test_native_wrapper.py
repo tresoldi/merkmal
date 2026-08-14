@@ -264,10 +264,13 @@ def test_native_distance_matches_golden_probe() -> None:
         abs_tol=1e-10,
     )
     assert merkmal.feature_distance("voiced", "voiceless") == 2
-    # Tone levels are ordered-scale values, not tree leaves, so they have no
-    # tree path; the geometry distance is defined over the tree only.
-    assert merkmal.feature_distance("tone-onset-1", "tone-offset-1") == 999
-    assert merkmal.feature_distance("bilabial", "velar") == 999
+    # The tree distance is defined over the tree only, and now says so rather
+    # than writing 999 into an int whose real answers run from 0 to 8. Tone
+    # levels are positions on an ordered scale, and place labels are mapped to
+    # the Place node rather than being leaves under it, so neither has a path.
+    for a, b in (("tone-onset-1", "tone-offset-1"), ("bilabial", "velar")):
+        with pytest.raises(ValueError, match="no path in the geometry tree"):
+            merkmal.feature_distance(a, b)
     assert math.isclose(
         merkmal.distance("p", "b", system="distinctive", node_weights="flat"),
         0.14285714285714285,

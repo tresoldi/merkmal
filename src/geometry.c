@@ -156,16 +156,16 @@ mk_status mk_feature_distance(
     if (feature_a == NULL || feature_b == NULL || out == NULL) {
         return MK_ERR_INVALID_ARGUMENT;
     }
-    if (mki_streq(feature_a, feature_b)) {
-        *out = 0;
-        return MK_OK;
-    }
 
+    /* The domain first. Equality used to be tested before this, so a feature
+     * the tree does not contain -- including a misspelt one -- answered 0
+     * against itself while answering "no path" against everything else. With
+     * both paths in hand, identity needs no special case: the two paths are the
+     * same, every element is common, and the arithmetic below yields 0. */
     path_a = mk_find_feature_path(feature_a);
     path_b = mk_find_feature_path(feature_b);
     if (path_a == NULL || path_b == NULL) {
-        *out = 999;
-        return MK_OK;
+        return MK_ERR_NO_TREE_PATH;
     }
 
     common = 0;
