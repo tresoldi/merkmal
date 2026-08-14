@@ -5845,6 +5845,11 @@ const size_t mki_default_metadata_feature_count =
     sizeof(mki_default_metadata_features) / sizeof(mki_default_metadata_features[0]);
 
 const double mki_clements_hume_cross_tier_cost = 1;
+const double mki_clements_hume_cluster_nucleus_share = 0.69999999999999996;
+const double mki_clements_hume_cluster_offglide_share = 0.29999999999999999;
+const double mki_clements_hume_cluster_length_penalty = 0.14999999999999999;
+const double mki_clements_hume_cluster_component_share = 0.80000000000000004;
+const double mki_clements_hume_cluster_segment_share = 0.20000000000000001;
 const mk_diacritic_map mki_default_combining_diacritics[] = {
     {"̃", "nasalized"},
     {"̆", "ultra-short"},

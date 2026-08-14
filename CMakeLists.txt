@@ -45,6 +45,7 @@ if(MERKMAL_REQUIRE_UTF8PROC AND NOT UTF8PROC_FOUND)
 endif()
 
 set(MERKMAL_SOURCES
+    src/cluster.c
     src/diagnose.c
     src/geometry.c
     src/inventory.c
@@ -214,6 +215,50 @@ if(MERKMAL_BUILD_TESTS)
     endif()
     add_test(NAME resolution COMMAND test_resolution)
 
+    # Compiles the sources for the same reason test_resolution does: the scoring
+    # seam is internal, and which scorer a system selects is what this asserts.
+    add_executable(test_scoring tests/c/test_scoring.c ${MERKMAL_SOURCES})
+    target_include_directories(test_scoring
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+    if(UTF8PROC_FOUND)
+        target_compile_definitions(test_scoring PRIVATE MK_HAVE_UTF8PROC=1)
+        target_link_libraries(test_scoring PRIVATE PkgConfig::UTF8PROC)
+    else()
+        target_compile_definitions(test_scoring PRIVATE MK_HAVE_UTF8PROC=0)
+    endif()
+    if(MERKMAL_ENABLE_SANITIZER)
+        target_compile_options(test_scoring
+            PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
+        )
+        target_link_options(test_scoring PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
+    endif()
+    add_test(NAME scoring COMMAND test_scoring)
+
+    # Same reason again: the cluster seam is internal, and what this asserts is
+    # that a resolved cluster carries its parts rather than only their spellings.
+    add_executable(test_cluster tests/c/test_cluster.c ${MERKMAL_SOURCES})
+    target_include_directories(test_cluster
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+    if(UTF8PROC_FOUND)
+        target_compile_definitions(test_cluster PRIVATE MK_HAVE_UTF8PROC=1)
+        target_link_libraries(test_cluster PRIVATE PkgConfig::UTF8PROC)
+    else()
+        target_compile_definitions(test_cluster PRIVATE MK_HAVE_UTF8PROC=0)
+    endif()
+    if(MERKMAL_ENABLE_SANITIZER)
+        target_compile_options(test_cluster
+            PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
+        )
+        target_link_options(test_cluster PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
+    endif()
+    add_test(NAME cluster COMMAND test_cluster)
+
     # The tests are first-party sources and compile under the library's warning
     # set too. Previously only test_header and test_resolution did, which meant
     # the golden and malformed tests -- the ones that handle hostile input and
@@ -226,6 +271,8 @@ if(MERKMAL_BUILD_TESTS)
         test_golden_features
         test_geometry
         test_resolution
+        test_scoring
+        test_cluster
     )
         target_compile_options(${target} PRIVATE ${MERKMAL_C_WARNINGS})
     endforeach()

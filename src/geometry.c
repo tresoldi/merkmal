@@ -12,25 +12,9 @@ typedef struct mk_node_group {
     int differs;
 } mk_node_group;
 
-static int mk_features_contains(
-    const char *const *features,
-    size_t feature_count,
-    const char *feature
-)
-{
-    size_t i;
-
-    for (i = 0; i < feature_count; i++) {
-        if (mki_streq(features[i], feature)) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static int mk_view_contains(mk_feature_view view, const char *feature)
 {
-    return mk_features_contains(view.features, view.count, feature);
+    return mki_features_contain(view.features, view.count, feature);
 }
 
 static int mk_is_leaf_feature(const char *feature)
@@ -106,7 +90,7 @@ int mki_ordinal_conflict(
         const char *found = NULL;
 
         for (j = 0; j < scale->level_count; j++) {
-            if (!mk_features_contains(features, feature_count, scale->levels[j])) {
+            if (!mki_features_contain(features, feature_count, scale->levels[j])) {
                 continue;
             }
             if (found != NULL) {
@@ -425,16 +409,57 @@ static double mk_dimension_value(
     return 0.0;
 }
 
-static double mk_scalar_categorical_distance(
+/* Every scorer opens the same way: zero what it will write, then resolve the
+ * weight preset, which is the only thing that can fail before a feature is
+ * read. */
+static mk_status mk_score_begin(
+    const char *node_weights,
+    double *out,
+    double *coverage,
+    const mk_node_weight_preset **preset
+)
+{
+    if (out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *out = 0.0;
+    if (coverage != NULL) {
+        *coverage = 0.0;
+    }
+    return mk_resolve_weight_preset(node_weights, preset);
+}
+
+/* Coverage for the two categorical scorers. Both skip a dimension neither
+ * segment sets, so a pair that sets none of them arrives here having weighed
+ * nothing: the 0.0 it scores means "nothing to compare", not "identical". Real
+ * inventory rows always reach some dimension; feature sets handed straight to
+ * mk_sound_distance need not. */
+static double mk_categorical_coverage(double total_weight)
+{
+    return total_weight > 0.0 ? 1.0 : 0.0;
+}
+
+static mk_status mk_score_scalar(
     const mk_builtin_system *system,
     mk_feature_view a,
     mk_feature_view b,
-    const mk_node_weight_preset *preset
+    const char *node_weights,
+    double *out,
+    double *coverage
 )
 {
     size_t i;
     double total_weight = 0.0;
     double total_diff = 0.0;
+    const mk_node_weight_preset *preset = NULL;
+    mk_status status = mk_score_begin(node_weights, out, coverage, &preset);
+
+    if (status != MK_OK) {
+        return status;
+    }
+    if (system == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
 
     for (i = 0; i < system->scalar_dimension_count; i++) {
         const mk_scalar_dimension *dimension = &system->scalar_dimensions[i];
@@ -455,28 +480,36 @@ static double mk_scalar_categorical_distance(
 
     mk_accumulate_ordinal_scales(a, b, preset, &total_weight, &total_diff);
 
-    return total_weight > 0.0 ? total_diff / total_weight : 0.0;
+    *out = total_weight > 0.0 ? total_diff / total_weight : 0.0;
+    if (coverage != NULL) {
+        *coverage = mk_categorical_coverage(total_weight);
+    }
+    return MK_OK;
 }
 
-static double mk_categorical_distance_resolved(
+static mk_status mk_score_leaf(
     const mk_builtin_system *system,
     mk_feature_view a,
     mk_feature_view b,
-    const mk_node_weight_preset *preset
+    const char *node_weights,
+    double *out,
+    double *coverage
 )
 {
-    double total_weight;
-    double total_diff;
+    double total_weight = 0.0;
+    double total_diff = 0.0;
     size_t i;
     mk_node_group groups[128];
     size_t group_count;
+    const mk_node_weight_preset *preset = NULL;
+    mk_status status = mk_score_begin(node_weights, out, coverage, &preset);
 
-    if (system != NULL && system->scalar_dimension_count > 0) {
-        return mk_scalar_categorical_distance(system, a, b, preset);
+    /* Scores against the compiled geometry alone, so it has no use for the
+     * system and tolerates a NULL one. */
+    (void)system;
+    if (status != MK_OK) {
+        return status;
     }
-
-    total_weight = 0.0;
-    total_diff = 0.0;
 
     for (i = 0; i < mki_clements_hume_leaf_count; i++) {
         const mk_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
@@ -526,29 +559,10 @@ static double mk_categorical_distance_resolved(
 
     mk_accumulate_ordinal_scales(a, b, preset, &total_weight, &total_diff);
 
-    return total_weight > 0.0 ? total_diff / total_weight : 0.0;
-}
-
-mk_status mki_score_categorical(
-    const mk_builtin_system *system,
-    mk_feature_view a,
-    mk_feature_view b,
-    const char *node_weights,
-    double *out
-)
-{
-    const mk_node_weight_preset *preset = NULL;
-    mk_status status;
-
-    if (out == NULL) {
-        return MK_ERR_INVALID_ARGUMENT;
+    *out = total_weight > 0.0 ? total_diff / total_weight : 0.0;
+    if (coverage != NULL) {
+        *coverage = mk_categorical_coverage(total_weight);
     }
-    *out = 0.0;
-    status = mk_resolve_weight_preset(node_weights, &preset);
-    if (status != MK_OK) {
-        return status;
-    }
-    *out = mk_categorical_distance_resolved(system, a, b, preset);
     return MK_OK;
 }
 
@@ -581,7 +595,7 @@ static int mk_label_value(
     return 0;
 }
 
-mk_status mki_score_valued(
+static mk_status mk_score_valued(
     const mk_builtin_system *system,
     mk_feature_view a,
     mk_feature_view b,
@@ -595,18 +609,15 @@ mk_status mki_score_valued(
     double total_weight = 0.0;
     double total_diff = 0.0;
     const mk_node_weight_preset *preset = NULL;
-    mk_status status;
+    mk_status status = mk_score_begin(node_weights, out, coverage, &preset);
 
-    if (out == NULL || system == NULL) {
-        return MK_ERR_INVALID_ARGUMENT;
-    }
-    *out = 0.0;
-    if (coverage != NULL) {
-        *coverage = 0.0;
-    }
-    status = mk_resolve_weight_preset(node_weights, &preset);
     if (status != MK_OK) {
         return status;
+    }
+    /* Reads the system's geometry map, so unlike the two categorical scorers it
+     * cannot answer without one. mki_scorer_for never hands a NULL system here. */
+    if (system == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
     }
 
     for (i = 0; i < system->geometry_map_count; i++) {
@@ -644,6 +655,45 @@ mk_status mki_score_valued(
     return MK_OK;
 }
 
+mki_scorer mki_scorer_for(const mk_builtin_system *system)
+{
+    /* No system is the compiled geometry alone, which is what leaf scores. */
+    if (system == NULL) {
+        return mk_score_leaf;
+    }
+    if (system->kind == MK_SYSTEM_VALUED) {
+        return mk_score_valued;
+    }
+    if (system->kind != MK_SYSTEM_CATEGORICAL) {
+        /* MK_SYSTEM_TRAINED names a kind the library has no scorer for. Saying
+         * so here is what keeps every caller from having to guess: this used to
+         * be read as "valued" by vector.c, as an error by system.c, and as
+         * "not categorical" by resolver.c. */
+        return NULL;
+    }
+    /* Declared dimensions of its own, so it is scored on those and never reads
+     * a geometry leaf. Only `distinctive` carries them among the compiled
+     * systems; a model parsed at runtime declares none and is scored by leaf. */
+    if (system->scalar_dimension_count > 0) {
+        return mk_score_scalar;
+    }
+    return mk_score_leaf;
+}
+
+const char *mki_scorer_name(mki_scorer scorer)
+{
+    if (scorer == mk_score_leaf) {
+        return "leaf";
+    }
+    if (scorer == mk_score_scalar) {
+        return "scalar";
+    }
+    if (scorer == mk_score_valued) {
+        return "valued";
+    }
+    return "none";
+}
+
 mk_status mk_sound_distance(
     mk_feature_view a,
     mk_feature_view b,
@@ -656,5 +706,5 @@ mk_status mk_sound_distance(
         (b.count > 0 && b.features == NULL)) {
         return MK_ERR_INVALID_ARGUMENT;
     }
-    return mki_score_categorical(NULL, a, b, node_weights, out);
+    return mki_scorer_for(NULL)(NULL, a, b, node_weights, out, NULL);
 }

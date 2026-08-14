@@ -1,5 +1,7 @@
 #include "resolver.h"
 
+#include "cluster.h"
+
 #include "string_list.h"
 #include "strings.h"
 
@@ -105,231 +107,10 @@ mk_status mk_system_segment_distance(
     return mk_system_segment_distance_with_weights(system, utf8_a, utf8_b, NULL, out);
 }
 
-/* Cluster scoring is a composition policy over the resolver and the geometry,
- * not a geometry rule, so it stays here rather than in geometry.c. These are
- * the numbers it composes with; they are stipulated, like the geometry weights
- * they sit on top of. */
-#define MK_CLUSTER_NUCLEUS_SHARE 0.7  /* first component against a plain segment */
-#define MK_CLUSTER_OFFGLIDE_SHARE 0.3 /* the remaining components, averaged */
-#define MK_CLUSTER_LENGTH_PENALTY 0.15 /* per component the other side lacks */
-#define MK_CLUSTER_COMPONENT_SHARE 0.8 /* component agreement vs. whole-segment */
-#define MK_CLUSTER_SEGMENT_SHARE 0.2   /* features of the cluster as a unit */
-
-static double mk_min_double(double a, double b)
-{
-    return a < b ? a : b;
-}
-
-/* Distance from a component spelling to an already-resolved entry. A component
- * the system does not recognize is maximally far rather than an error: the
- * cluster grammar admits spellings no inventory row has. */
-static mk_status mk_component_distance(
-    const mk_system *system,
-    const char *a_text,
-    const mk_resolution *b_entry,
-    const char *node_weights,
-    double *out
-)
-{
-    mk_resolution a_resolved;
-    mk_status status;
-
-    memset(&a_resolved, 0, sizeof(a_resolved));
-    if (mki_resolve(system, a_text, &a_resolved) != MK_OK) {
-        *out = 1.0;
-        return MK_OK;
-    }
-    if (mki_streq(a_resolved.grapheme, b_entry->grapheme)) {
-        *out = 0.0;
-        status = MK_OK;
-    } else {
-        status = mki_score_categorical(
-            system->builtin,
-            mki_view_of(&a_resolved),
-            mki_view_of(b_entry),
-            node_weights,
-            out
-        );
-    }
-    mki_resolution_clear(&a_resolved);
-    return status;
-}
-
-static mk_status mk_cluster_component_distance(
-    const mk_system *system,
-    const char *a_text,
-    const char *b_text,
-    const char *node_weights,
-    double *out
-)
-{
-    mk_resolution a_resolved;
-    mk_status status;
-
-    memset(&a_resolved, 0, sizeof(a_resolved));
-    if (mki_resolve(system, a_text, &a_resolved) != MK_OK) {
-        *out = 1.0;
-        return MK_OK;
-    }
-    status = mk_component_distance(system, b_text, &a_resolved, node_weights, out);
-    mki_resolution_clear(&a_resolved);
-    return status;
-}
-
-static int mk_view_has(mk_feature_view view, const char *feature)
-{
-    size_t i;
-
-    for (i = 0; i < view.count; i++) {
-        if (mki_streq(view.features[i], feature)) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-/* Whether a segment is explicitly marked for length, in any of the degrees the
- * geometry's duration scale carries. */
-static int mk_segment_carries_length(mk_feature_view view)
-{
-    return mk_view_has(view, "long") ||
-        mk_view_has(view, "mid-long") ||
-        mk_view_has(view, "ultra-long");
-}
-
-static mk_status mk_distance_cluster_to_segment(
-    const mk_system *system,
-    const mk_resolution *cluster,
-    const mk_resolution *segment,
-    const char *node_weights,
-    double *out
-)
-{
-    double score;
-    double part;
-    size_t i;
-    mk_status status;
-
-    if (cluster->cluster_component_count == 0) {
-        *out = 1.0;
-        return MK_OK;
-    }
-    status = mk_component_distance(
-        system, cluster->cluster_components[0], segment, node_weights, &part);
-    if (status != MK_OK) {
-        return status;
-    }
-    score = MK_CLUSTER_NUCLEUS_SHARE * part;
-    if (cluster->cluster_component_count > 1) {
-        double rest = 0.0;
-        for (i = 1; i < cluster->cluster_component_count; i++) {
-            status = mk_component_distance(
-                system, cluster->cluster_components[i], segment, node_weights, &part);
-            if (status != MK_OK) {
-                return status;
-            }
-            rest += part;
-        }
-        rest /= (double)(cluster->cluster_component_count - 1);
-        score += MK_CLUSTER_OFFGLIDE_SHARE * rest;
-    }
-    /* The extra-component penalty says a two-part spelling is further from a
-     * one-part segment than a one-part spelling is. That is right for `ai`
-     * against `a`, and double-counting for `aa` against `aː`: the length the
-     * penalty charges for is the very thing the other side spells out. It made
-     * a doubled vowel further from the long vowel (0.233) than a plain short
-     * one was (0.064), and doubling is how Uralic, Austronesian and much
-     * African data write length.
-     *
-     * Waived, not reversed. `aa` lands where `a` does rather than closer,
-     * because whether a doubled vowel means length or a genuine sequence is a
-     * property of the source that nothing here can read per form. Claiming it
-     * means length is the move that cost a PHOIBLE contrast when it was applied
-     * to `ɫ`. */
-    if (!(mk_view_has(mki_view_of(cluster), "geminate") &&
-          mk_segment_carries_length(mki_view_of(segment)))) {
-        score += MK_CLUSTER_LENGTH_PENALTY * (double)(cluster->cluster_component_count - 1);
-    }
-    *out = mk_min_double(score, 1.0);
-    return MK_OK;
-}
-
-static mk_status mk_vowel_cluster_distance(
-    const mk_system *system,
-    const mk_resolution *a,
-    const mk_resolution *b,
-    const char *node_weights,
-    double *out
-)
-{
-    double component_score = 0.0;
-    double segment_score;
-    double score;
-    size_t i;
-    mk_status status;
-
-    if (mki_streq(a->grapheme, b->grapheme)) {
-        *out = 0.0;
-        return MK_OK;
-    }
-    if (a->cluster_component_count == 0 && b->cluster_component_count == 0) {
-        *out = 1.0;
-        return MK_OK;
-    }
-    if (a->cluster_component_count > 0 && b->cluster_component_count == 0) {
-        status = mk_distance_cluster_to_segment(system, a, b, node_weights, &component_score);
-        if (status != MK_OK) {
-            return status;
-        }
-    } else if (a->cluster_component_count == 0 && b->cluster_component_count > 0) {
-        status = mk_distance_cluster_to_segment(system, b, a, node_weights, &component_score);
-        if (status != MK_OK) {
-            return status;
-        }
-    } else {
-        size_t common = a->cluster_component_count < b->cluster_component_count ?
-            a->cluster_component_count : b->cluster_component_count;
-        for (i = 0; i < common; i++) {
-            double part;
-            status = mk_cluster_component_distance(
-                system,
-                a->cluster_components[i],
-                b->cluster_components[i],
-                node_weights,
-                &part
-            );
-            if (status != MK_OK) {
-                return status;
-            }
-            component_score += part;
-        }
-        component_score = common > 0 ? component_score / (double)common : 1.0;
-        if (a->cluster_component_count > common) {
-            component_score += MK_CLUSTER_LENGTH_PENALTY *
-                (double)(a->cluster_component_count - common);
-        }
-        if (b->cluster_component_count > common) {
-            component_score += MK_CLUSTER_LENGTH_PENALTY *
-                (double)(b->cluster_component_count - common);
-        }
-        component_score = mk_min_double(component_score, 1.0);
-    }
-
-    status = mki_score_categorical(
-        system->builtin, mki_view_of(a), mki_view_of(b), node_weights, &segment_score);
-    if (status != MK_OK) {
-        return status;
-    }
-    score = MK_CLUSTER_COMPONENT_SHARE * component_score +
-        MK_CLUSTER_SEGMENT_SHARE * segment_score;
-    *out = mk_min_double(score, 1.0);
-    return MK_OK;
-}
-
 /* A tone token carries this and nothing else does. See the resolver. */
 static int mk_is_tonal_autosegment(mk_feature_view view)
 {
-    return mk_view_has(view, "tonal-autosegment");
+    return mki_features_contain(view.features, view.count, "tonal-autosegment");
 }
 
 static mk_status mk_distance_with_coverage(
@@ -344,6 +125,7 @@ static mk_status mk_distance_with_coverage(
 {
     mk_resolution resolved_a;
     mk_resolution resolved_b;
+    mki_scorer scorer;
     mk_status status;
 
     if (out == NULL) {
@@ -381,43 +163,35 @@ static mk_status mk_distance_with_coverage(
         return MK_OK;
     }
 
-    if (system->builtin->kind == MK_SYSTEM_CATEGORICAL) {
-        if (resolved_a.cluster_component_count > 0 || resolved_b.cluster_component_count > 0) {
-            status = mk_vowel_cluster_distance(
-                system, &resolved_a, &resolved_b, node_weights, out);
-        } else if (mki_streq(resolved_a.grapheme, resolved_b.grapheme)) {
-            /* Two spellings of one segment. The scorer would reach 0.0 anyway;
-             * this skips the walk over every leaf, group, and scale. */
-            *out = 0.0;
-        } else {
-            status = mki_score_categorical(
-                system->builtin,
-                mki_view_of(&resolved_a),
-                mki_view_of(&resolved_b),
-                node_weights,
-                out
-            );
-        }
-    } else if (system->builtin->kind == MK_SYSTEM_VALUED) {
-        if (mki_streq(resolved_a.grapheme, resolved_b.grapheme)) {
-            /* One segment compared with itself is fully covered, not
-             * uncovered: every dimension it has, it shares. */
-            *out = 0.0;
-            if (coverage != NULL) {
-                *coverage = 1.0;
-            }
-        } else {
-            status = mki_score_valued(
-                system->builtin,
-                mki_view_of(&resolved_a),
-                mki_view_of(&resolved_b),
-                node_weights,
-                out,
-                coverage
-            );
-        }
-    } else {
+    scorer = mki_scorer_for(system->builtin);
+    if (scorer == NULL) {
         status = MK_ERR_UNSUPPORTED_MODEL;
+    } else if (resolved_a.cluster_component_count > 0 ||
+               resolved_b.cluster_component_count > 0) {
+        /* Only a categorical system synthesizes clusters, so this never runs
+         * for a valued one. See mk_admits_synthesized_clusters in the resolver. */
+        status = mki_cluster_distance(
+            system, &resolved_a, &resolved_b, node_weights, out);
+    } else if (coverage == NULL &&
+               mki_streq(resolved_a.grapheme, resolved_b.grapheme)) {
+        /* Two spellings of one segment. The scorer would reach 0.0 anyway; this
+         * skips the walk over every leaf, group, and scale.
+         *
+         * Only when no coverage was asked for. A segment compared with itself
+         * is not fully covered: a valued system skips the dimensions the
+         * segment leaves unset, and PHOIBLE's /p/ leaves 11 of them unset. This
+         * used to answer 1.0 for that pair, which is a different quantity from
+         * the one mk_system_segment_distance_ex documents. */
+        *out = 0.0;
+    } else {
+        status = scorer(
+            system->builtin,
+            mki_view_of(&resolved_a),
+            mki_view_of(&resolved_b),
+            node_weights,
+            out,
+            coverage
+        );
     }
     mki_resolution_clear(&resolved_a);
     mki_resolution_clear(&resolved_b);
@@ -463,12 +237,10 @@ mk_status mk_system_segment_distance_ex(
     if (why != NULL) {
         *why = MK_CMP_OK;
     }
-    /* Categorical systems score over the union of what either segment
-     * specifies, so a pair with nothing in common still has dimensions to
-     * disagree on and the ambiguous zero cannot arise. Reporting 1.0 there
-     * keeps the call usable for any system rather than only for the valued
-     * ones, and the doc comment says which is which. */
-    *coverage = 1.0;
+    /* Every scorer reports its own coverage, so there is nothing to assert on
+     * their behalf here. This used to seed 1.0 and let only the valued path
+     * overwrite it, which meant the categorical answer was stated by a caller
+     * that never looked inside the body it was speaking for. */
     return mk_distance_with_coverage(system, utf8_a, utf8_b, node_weights, out, coverage, why);
 }
 

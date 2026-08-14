@@ -1,7 +1,7 @@
 #ifndef MK_GEOMETRY_H
 #define MK_GEOMETRY_H
 
-/* The feature geometry, and the two scorers that read it.
+/* The feature geometry, and the three scorers that read it.
  *
  * The scorers live with the geometry rather than in a module of their own:
  * every step of scoring -- leaf lookup, node grouping, ordered scales, weight
@@ -38,30 +38,22 @@ int mki_ordinal_conflict(
     const char **second_out
 );
 
-/* The scoring seam. Both scorers compare two feature sets under a named weight
- * preset and report failure through mk_status, like everything else in the
- * library. They used to return the score directly and signal an unknown preset
- * with NAN, a second error channel every caller had to remember to test.
+/* The scoring seam.
  *
- * `system` supplies the per-system scoring tables: scalar dimensions for the
- * categorical scorer, the geometry map and dimension weights for the valued
- * one. It may be NULL for the categorical scorer, which then scores against the
- * compiled geometry alone — that is the path mk_sound_distance takes.
+ * A scorer compares two feature sets under a named weight preset and reports
+ * failure through mk_status, like everything else in the library. Scorers used
+ * to return the score directly and signal an unknown preset with NAN, a second
+ * error channel every caller had to remember to test.
+ *
+ * `coverage` may be NULL. When given, it receives the share of the comparison
+ * that actually happened -- the thing that separates "identical" from "nothing
+ * to compare". Every scorer reports it, because the caller cannot know which
+ * one it reached and must not have to.
  *
  * Identity of the two segments is a caller's question, not a scorer's: two
  * spellings of the same segment resolve to the same features and score 0.0
  * through the ordinary path. */
-mk_status mki_score_categorical(
-    const mk_builtin_system *system,
-    mk_feature_view a,
-    mk_feature_view b,
-    const char *node_weights,
-    double *out
-);
-/* `coverage` may be NULL. When given, it receives the share of the system's
- * declared dimensions on which both segments had a value -- the thing that
- * separates "identical" from "nothing to compare". */
-mk_status mki_score_valued(
+typedef mk_status (*mki_scorer)(
     const mk_builtin_system *system,
     mk_feature_view a,
     mk_feature_view b,
@@ -69,5 +61,32 @@ mk_status mki_score_valued(
     double *out,
     double *coverage
 );
+
+/* Which scorer a system is scored by. Never NULL for a system the library can
+ * score, NULL for one it cannot -- which is the only place the caller has to
+ * decide anything.
+ *
+ * Three scorers, selected here and nowhere else:
+ *
+ *   leaf    the compiled geometry's leaves, node groups and ordered scales.
+ *           Takes a NULL system and scores against the geometry alone, which
+ *           is the path mk_sound_distance and every runtime model take.
+ *   scalar  the system's own declared scalar dimensions, plus ordered scales.
+ *           Never reads a geometry leaf.
+ *   valued  the system's geometry map and dimension weights, reading `name=state`
+ *           cells. Requires a system; a NULL one can never select it.
+ *
+ * The selection used to be two tests on two different fields in two files: a
+ * `kind` test in system.c chose categorical against valued, and a test on
+ * `scalar_dimension_count` inside the categorical body chose scalar against
+ * leaf. The second was invisible from this header, and it was the one that
+ * picked the scorer for `distinctive` -- the default system. */
+mki_scorer mki_scorer_for(const mk_builtin_system *system);
+
+/* A stable label for a scorer, for diagnostics and test output: "leaf",
+ * "scalar", "valued", or "none" for a kind nothing scores. Static storage;
+ * never freed. Which scorer a system reaches is part of the answer, the same
+ * way a resolution path is -- see mki_resolution_path_name. */
+const char *mki_scorer_name(mki_scorer scorer);
 
 #endif

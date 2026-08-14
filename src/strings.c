@@ -39,6 +39,21 @@ int mki_has_prefix(const char *s, const char *prefix)
     return strncmp(s, prefix, n) == 0;
 }
 
+int mki_features_contain(const char *const *items, size_t count, const char *feature)
+{
+    size_t i;
+
+    if (items == NULL || feature == NULL || feature[0] == '\0') {
+        return 0;
+    }
+    for (i = 0; i < count; i++) {
+        if (mki_streq(items[i], feature)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 mk_status mki_append_text(char **buf, size_t *len, size_t *cap, const char *s)
 {
     size_t n;

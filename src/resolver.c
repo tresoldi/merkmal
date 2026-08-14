@@ -139,6 +139,8 @@ const char *mki_resolution_path_name(mk_resolution_path path)
     }
 }
 
+static void mk_free_cluster_components(mk_cluster_component *components, size_t count);
+
 void mki_resolution_clear(mk_resolution *entry)
 {
     size_t i;
@@ -151,10 +153,7 @@ void mki_resolution_clear(mk_resolution *entry)
     }
     free(entry->owned_features);
     free(entry->owned_grapheme);
-    for (i = 0; i < entry->cluster_component_count; i++) {
-        free(entry->cluster_components[i]);
-    }
-    free(entry->cluster_components);
+    mk_free_cluster_components(entry->cluster_components, entry->cluster_component_count);
     entry->grapheme = NULL;
     entry->features = NULL;
     entry->feature_count = 0;
@@ -193,14 +192,7 @@ static void mk_resolution_move(mk_resolution *dst, const mk_resolution *src)
  * is why -Wcast-qual has nothing to say about it. */
 static int mk_feature_list_contains(const char *const *items, size_t count, const char *feature)
 {
-    size_t i;
-
-    for (i = 0; i < count; i++) {
-        if (mki_streq(items[i], feature)) {
-            return 1;
-        }
-    }
-    return 0;
+    return mki_features_contain(items, count, feature);
 }
 
 static void mk_replace_owned_feature(
@@ -359,6 +351,15 @@ mk_feature_view mki_view_of(const mk_resolution *entry)
 
     view.features = entry->features;
     view.count = entry->feature_count;
+    return view;
+}
+
+mk_feature_view mki_view_of_component(const mk_cluster_component *component)
+{
+    mk_feature_view view;
+
+    view.features = component->features;
+    view.count = component->feature_count;
     return view;
 }
 
@@ -638,7 +639,7 @@ static mk_status mk_set_synthesized_entry(
     const char *grapheme,
     char **features,
     size_t count,
-    char **components,
+    mk_cluster_component *components,
     size_t component_count
 );
 
@@ -1117,7 +1118,7 @@ static mk_status mk_set_synthesized_entry(
     const char *grapheme,
     char **features,
     size_t count,
-    char **components,
+    mk_cluster_component *components,
     size_t component_count
 )
 {
@@ -1136,38 +1137,20 @@ static mk_status mk_set_synthesized_entry(
     return MK_OK;
 }
 
-static mk_status mk_add_cluster_component(
-    char ***components,
-    size_t *count,
-    size_t *cap,
-    const char *start,
-    size_t len
-)
+static void mk_clear_cluster_component(mk_cluster_component *component)
 {
-    char **next;
-    char *component;
+    size_t i;
 
-    if (*count + 1 > *cap) {
-        size_t new_cap = *cap == 0 ? 4 : *cap * 2;
-        next = (char **)realloc(*components, new_cap * sizeof(**components));
-        if (next == NULL) {
-            return MK_ERR_OOM;
-        }
-        *components = next;
-        *cap = new_cap;
+    for (i = 0; i < component->owned_feature_count; i++) {
+        free(component->owned_features[i]);
     }
-    component = (char *)malloc(len + 1);
-    if (component == NULL) {
-        return MK_ERR_OOM;
-    }
-    memcpy(component, start, len);
-    component[len] = '\0';
-    (*components)[*count] = component;
-    (*count)++;
-    return MK_OK;
+    free(component->owned_features);
+    free(component->borrowed_features);
+    free(component->grapheme);
+    memset(component, 0, sizeof(*component));
 }
 
-static void mk_free_cluster_components(char **components, size_t count)
+static void mk_free_cluster_components(mk_cluster_component *components, size_t count)
 {
     size_t i;
 
@@ -1175,9 +1158,89 @@ static void mk_free_cluster_components(char **components, size_t count)
         return;
     }
     for (i = 0; i < count; i++) {
-        free(components[i]);
+        mk_clear_cluster_component(&components[i]);
     }
     free(components);
+}
+
+/* Reserves a part of a cluster and records its spelling. The features follow
+ * once the cluster's own feature set has been built from them -- see
+ * mk_attach_component_features. */
+static mk_status mk_add_cluster_component(
+    mk_cluster_component **components,
+    size_t *count,
+    size_t *cap,
+    const char *start,
+    size_t len
+)
+{
+    mk_cluster_component *slot;
+    char *grapheme;
+
+    if (*count + 1 > *cap) {
+        size_t new_cap = *cap == 0 ? 4 : *cap * 2;
+        mk_cluster_component *next = (mk_cluster_component *)realloc(
+            *components, new_cap * sizeof(**components));
+        if (next == NULL) {
+            return MK_ERR_OOM;
+        }
+        *components = next;
+        *cap = new_cap;
+    }
+    grapheme = (char *)malloc(len + 1);
+    if (grapheme == NULL) {
+        return MK_ERR_OOM;
+    }
+    memcpy(grapheme, start, len);
+    grapheme[len] = '\0';
+
+    slot = &(*components)[*count];
+    memset(slot, 0, sizeof(*slot));
+    slot->grapheme = grapheme;
+    (*count)++;
+    return MK_OK;
+}
+
+/* Carries a part's resolved features into the record, so scoring never has to
+ * resolve the spelling again.
+ *
+ * Called after the cluster's own feature set has been composed, because that
+ * composition reads the parts. Takes ownership: a synthesized part's array
+ * moves across and `resolved` is left holding nothing, so the caller's clear is
+ * a no-op for it. An inventory part's strings are borrowed from the compiled
+ * pool or the registry and stay borrowed, but the array pointing at them is
+ * copied -- the one `resolved` holds is its own inline scratch and dies with
+ * this frame. That copy is one small allocation per part, against the up to six
+ * full re-resolutions scoring used to pay for every cluster comparison. */
+static mk_status mk_attach_component_features(
+    mk_cluster_component *slot,
+    mk_resolution *resolved
+)
+{
+    slot->feature_count = resolved->feature_count;
+    if (resolved->owned_features != NULL) {
+        slot->owned_features = resolved->owned_features;
+        slot->owned_feature_count = resolved->owned_feature_count;
+        slot->features = (const char *const *)slot->owned_features;
+        resolved->owned_features = NULL;
+        resolved->owned_feature_count = 0;
+        resolved->features = NULL;
+        resolved->feature_count = 0;
+        return MK_OK;
+    }
+    slot->borrowed_features = (const char **)malloc(
+        (resolved->feature_count == 0 ? 1 : resolved->feature_count) *
+        sizeof(*slot->borrowed_features));
+    if (slot->borrowed_features == NULL) {
+        slot->feature_count = 0;
+        return MK_ERR_OOM;
+    }
+    memcpy(
+        slot->borrowed_features,
+        resolved->features,
+        resolved->feature_count * sizeof(*slot->borrowed_features));
+    slot->features = (const char *const *)slot->borrowed_features;
+    return MK_OK;
 }
 
 static mk_status mk_add_position_features(
@@ -1619,7 +1682,7 @@ static mk_status mk_synthesize_cluster(
     const char *p;
     mk_resolution components[3];
     size_t component_count = 0;
-    char **component_names = NULL;
+    mk_cluster_component *component_names = NULL;
     size_t component_name_count = 0;
     size_t component_name_cap = 0;
     char **features = NULL;
@@ -1728,7 +1791,8 @@ static mk_status mk_synthesize_cluster(
     if (status != MK_OK) {
         goto finish;
     }
-    if (component_count == 2 && mki_streq(component_names[0], component_names[1])) {
+    if (component_count == 2 &&
+        mki_streq(component_names[0].grapheme, component_names[1].grapheme)) {
         status = mk_add_owned_feature(&features, &feature_count, &feature_cap, "geminate");
         if (status != MK_OK) {
             goto finish;
@@ -1751,6 +1815,12 @@ static mk_status mk_synthesize_cluster(
     if (grammar->transition_features != NULL) {
         status = grammar->transition_features(
             &features, &feature_count, &feature_cap, components, component_count);
+        if (status != MK_OK) {
+            goto finish;
+        }
+    }
+    for (i = 0; i < component_count; i++) {
+        status = mk_attach_component_features(&component_names[i], &components[i]);
         if (status != MK_OK) {
             goto finish;
         }

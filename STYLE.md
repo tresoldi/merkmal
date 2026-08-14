@@ -74,25 +74,33 @@ src/                 everything else, prefixed mki_ (see "Two prefixes")
   tokenize.c         orthographic tokenization
   inventory.c        reading inventory rows, whichever storage a system uses
   resolver.c         the resolution seam and every synthesizer behind it
-  geometry.c         geometry tables, feature predicates, and both scorers
+  cluster.c          scoring a segment written as more than one part
+  geometry.c         geometry tables, feature predicates, and the three
+                     scorers behind mki_scorer_for
   model_text.c       the runtime-model parser -- the only untrusted-input parser
   registry.c         registry lifecycle
-  system.c           the public system operations, and cluster scoring policy
+  system.c           the public system operations
   generated/         builtin_data.c is emitted, never edited by hand;
                      builtin_data.h describes its shape and is maintained here
 ```
 
 Dependencies point inward and the graph is acyclic: `system.c` and `registry.c`
-sit above `resolver.c`, which sits above `geometry.c` and `inventory.c`, which
-sit above the generated data. A module includes the headers it uses; there is
-deliberately no shared `internal.h`, because there was one and every module
-ended up compiling against every other module's private contract.
+sit above `cluster.c`, which sits above `resolver.c`, which sits above
+`geometry.c` and `inventory.c`, which sit above the generated data. A module
+includes the headers it uses; there is deliberately no shared `internal.h`,
+because there was one and every module ended up compiling against every other
+module's private contract.
 
 Two files are larger than the rest and stay that way on purpose. `resolver.c`
-is a synthesis pipeline whose stages share 26 file-scope helpers; splitting it
+is a synthesis pipeline whose stages share 49 file-scope helpers; splitting it
 would export those instead of hiding them. `geometry.c` holds the scorers with
 the tables they read for the same reason. Both are recorded in
-[REFACTORING_PLAN.md](REFACTORING_PLAN.md).
+[REFACTORING_PLAN.md](REFACTORING_PLAN.md), whose figures for them are older
+than the files.
+
+Cluster scoring was the one part of `system.c` that met neither test — its six
+helpers were used by cluster scoring and nothing else, so moving them to
+`cluster.c` hid them rather than exporting them.
 
 ## Two prefixes
 
@@ -104,11 +112,11 @@ with anything, and are already scoped by the file they sit in. Renaming them
 would be churn that teaches a reader nothing the `static` did not.
 
 C has one symbol namespace, so a consumer linking `libmerkmal.a` sees every
-external name in it, not just the declared ones. The archive holds 99: the 32
-in `include/merkmal.h` and 67 internal ones — the resolution seam, the string
-helpers, the compiled tables. They all used to be spelled `mk_`, which meant
-this file's claim that `mk_` marked the public surface was true only by
-intention. `mki_resolve` and `mki_streq` now say what they are.
+external name in it, not just the declared ones. The archive holds 107: the 32
+in `include/merkmal.h` and 75 internal ones — the resolution and scoring seams,
+the cluster policy, the string helpers, the compiled tables. They all used to
+be spelled `mk_`, which meant this file's claim that `mk_` marked the public
+surface was true only by intention. `mki_resolve` and `mki_streq` now say what they are.
 
 A shared build hides the internals by visibility either way; the static build,
 which is the default and what the pkg-config consumer links, does not.
@@ -172,6 +180,51 @@ That split is what lets `mk_system_is_segment` stay total while
 Use `goto cleanup` for multi-resource error paths. It is used throughout and is
 the expected idiom here.
 
+## The scoring seam
+
+Three scorers, one interface, one place that chooses:
+
+| scorer | reads | systems |
+|---|---|---|
+| `leaf` | the compiled geometry's leaves, node groups and ordered scales | `broad`, `descriptive`, every runtime model, and `mk_sound_distance`'s system-free path |
+| `scalar` | the system's declared `scalar_dimensions`, plus ordered scales | `distinctive` |
+| `valued` | the system's geometry map and `name=state` cells | `phoible`, the four `pbase-*` |
+
+`mki_scorer_for` in `geometry.c` is the only code that decides. It used to be
+two tests on two different fields in two files — a `kind` test in `system.c`
+chose categorical against valued, and a test on `scalar_dimension_count` buried
+inside the categorical body chose scalar against leaf. The second was invisible
+from `geometry.h` and it picked the scorer for the default system.
+
+Every scorer reports `coverage`, because the caller cannot know which one it
+reached and must not have to. Coverage is relative to the *system's* declared
+dimensions, not to the segments, so a segment compared with itself is below 1.0
+whenever it has a gap. `mk_system_segment_distance_ex` used to assert 1.0 on the
+scorers' behalf; it no longer speaks for a body it does not look inside.
+
+Identity is the caller's question, not a scorer's — a scorer sees
+`mk_feature_view` and never a grapheme. The same-grapheme shortcut in `system.c`
+is an optimization for the score, so it applies only when no coverage was asked
+for.
+
+## Clusters carry their parts
+
+A cluster — a diphthong, an untied affricate, a geminate — is synthesized by
+resolving each part and composing the results, so every part has been resolved
+by the time the cluster exists. `mk_cluster_component` carries that forward.
+
+It used to keep only the spelling, and `cluster.c`'s ancestor in `system.c`
+re-resolved it: comparing `ai³³` with `au` ran the whole seam four more times on
+strings that had just been resolved. Storing a part costs one small array copy
+when it came from an inventory, because the array the lookup filled is the
+resolution's own stack scratch; a synthesized part's array moves across for
+free. `bench/baseline.txt` records what that trade measured at.
+
+The five numbers cluster scoring composes with are data, in the geometry file's
+`cluster_policy`, for the same reason `tier_policy` is. The rules that apply
+them — which part is the nucleus, when the length penalty is waived — stay in
+`cluster.c`, because they read both segments.
+
 ## Buffers
 
 Fixed-size stack buffers must either check `snprintf`'s return value or carry a
@@ -228,6 +281,9 @@ it, so a diff there is always an argued change. Two rules, both learned here:
   literal read into adjacent rodata and pass silently.
 - A resolution path belongs in `tests/c/test_resolution.c`, which asserts
   *which* path resolved a grapheme, not merely that one did.
+- A scoring change belongs in `tests/c/test_scoring.c`, which asserts *which*
+  scorer a system selects for the same reason, and covers
+  `mk_system_segment_distance_ex`.
 - A fuzz-found crash belongs in `tests/c/test_malformed.c` too, so `ctest`
   replays it forever rather than only whoever runs the fuzzer.
 

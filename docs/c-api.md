@@ -94,13 +94,20 @@ both cheaper and more often right.
 mk_status mk_system_segment_distance_ex(const mk_system *system,
                                         const char *utf8_a, const char *utf8_b,
                                         const char *node_weights,
-                                        double *out, double *coverage);
+                                        double *out, double *coverage,
+                                        mk_comparability *why);
 ```
+
+`coverage` is required — it is what this entry point is for. `why` may be NULL.
 
 A valued system skips any dimension where either segment has no value, so `0.0`
 is ambiguous between "identical" and "nothing in common to compare". PHOIBLE
 writes `.` in 30,181 cells and its tone letters are `.` on every dimension, so
 `˦˨` scores `0.0` against every segment in the table.
+
+`*coverage` is measured against the system's declared dimensions, not against
+the segments, so a segment compared with itself reports less than 1.0 whenever
+it has a gap: `("p", "p")` on PHOIBLE is 27/38.
 
 `*why` reports whether the pair was comparable at all:
 

@@ -47,9 +47,11 @@ difference costs the full weight for opposite poles, half for one pole against
 an unspecified value. A leaf may override the mechanical depth weight with an
 explicit `"weight"`.
 
-That rule has to hold on both scoring paths. `broad` and `descriptive` score
-through these leaves; `distinctive` scores through the `scalar_dimensions` it
-declares in its own `model.json` and never reads a geometry leaf at all. Where a
+That rule has to hold on both categorical scorers. `broad` and `descriptive` are
+scored by the *leaf* scorer, which reads these leaves; `distinctive` is scored
+by the *scalar* scorer, through the `scalar_dimensions` it declares in its own
+`model.json`, and never reads a geometry leaf at all. Which scorer a system
+reaches is decided in one place, `mki_scorer_for` in `src/geometry.c`. Where a
 dimension shares a name with a leaf, the two must cost the same, or this table
 describes neither of them. They did not: an explicit `"weight"` was dropped on
 the scalar path, so `vocoid` was declared 0.8 here and cost 1.0 in

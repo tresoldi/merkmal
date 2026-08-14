@@ -2,6 +2,108 @@
 
 ## Unreleased
 
+### Clusters carry their parts, and their policy became data
+
+A cluster — a diphthong, an untied affricate, a geminate — is synthesized by
+resolving each part and composing the results. It then threw the parts away and
+kept only their spellings, so scoring re-resolved them: comparing `ai³³` with
+`au` ran the whole resolution seam four more times on strings that had just been
+resolved, and a cluster-to-cluster comparison could run it six.
+
+`mk_cluster_component` carries the resolved parts forward. Storing one costs a
+small array copy when the part came from an inventory, because the array the
+lookup filled is the resolution's own stack scratch and does not survive the
+synthesizer's frame; a synthesized part's array moves across for nothing. The
+trade measured out at no movement in tokenization, where the allocation lands,
+and about 13% off pair scoring, which is what it was for. `bench/baseline.txt`
+records both.
+
+The scoring itself moved to `src/cluster.c` behind `mki_cluster_distance`.
+`system.c` was 595 lines holding three unrelated things — the public entry
+points, 220 lines of cluster policy, and a longest-match tokenizer the directory
+map in `STYLE.md` never named; it is now 367. The move passes the test the
+`resolver.c` and `geometry.c` splits failed: cluster scoring's six helpers were
+used by cluster scoring and nothing else, so moving them hides them rather than
+exporting them.
+
+The five numbers it composes with are now `cluster_policy` in
+`geometries/clements-hume.json`, emitted the way `tier_policy` is, for the
+reason `docs/c-api.md` already gives for that one: they move every diphthong,
+triphthong and geminate distance in the three categorical systems, so changing
+one should be a diff that can be reviewed as data rather than a tree edit. The
+geminate waiver stays in C, because it is a rule and reads both segments. Values
+are unchanged.
+
+`tests/c/test_cluster.c` asserts that a resolved cluster's parts arrive carrying
+features and obeying the storage rule, that the shares are the geometry's, and
+the composition rules those feed — the nucleus weighting, the symmetry, and the
+length penalty being waived against a segment that spells the length out.
+
+**No distance moved.** `regenerate_golden.py --check` and
+`contrast_baseline.py --check` are the proof, and both stay clean.
+
+Not changed, and worth naming: geminacy is still decided by byte-comparing two
+component spellings, twenty lines from a rule that decides prenasalisation from
+features and carries a comment recording that testing the spelling was the bug.
+The parts now carry features, so the featural test is available; it is left for
+its own change, because it would move distances and this one deliberately does
+not.
+
+### One `contains` for feature sets
+
+Four copies of "does this feature set hold this label", in `geometry.c`,
+`system.c`, `vector.c` and `resolver.c`, identical but for where each put its
+guard against an empty needle. Splitting cluster scoring out of `system.c` would
+have made it five. `mki_features_contain` in `strings.h` replaces them, taking
+the array and count so the resolver — which builds feature arrays before any
+view exists — and every holder of an `mk_feature_view` share one body.
+
+The `name=state` scan stays per caller. The scorer distinguishes "no value" from
+"a value of zero" because coverage depends on it; the numeric vectors
+deliberately do not, following the `soundvectors` convention that
+`vector.c` documents. Two contracts, both right, and merging them would have
+broken one.
+
+### One scoring seam, and coverage stops being asserted by the caller
+
+There were three scoring bodies reachable through two functions with
+incompatible signatures, and which one a system reached was decided in two
+places on two different fields. `system.c` tested `kind` to choose categorical
+against valued. Inside the categorical body, line 474 of `geometry.c` tested
+`scalar_dimension_count` to choose scalar against leaf — invisible from
+`geometry.h`, in a function whose name said it *was* the categorical body, and
+it was the test that picked the scorer for `distinctive`, the default system.
+
+The three scorers now share one interface and `mki_scorer_for` chooses, once.
+`mki_score_categorical` and `mki_score_valued` are gone from `geometry.h`;
+`mki_scorer_for` and `mki_scorer_name` replace them. `MK_SYSTEM_TRAINED` — a
+declared kind with no implementation, previously read as "valued" by `vector.c`,
+as an error by `system.c`, and as "not categorical" by `resolver.c` — now has
+one answer: no scorer.
+
+`tests/c/test_scoring.c` asserts which scorer each of the eight systems selects,
+the way `test_resolution.c` asserts which path resolved a grapheme. It also
+gives `mk_system_segment_distance_ex` its first C test; it had none, and was
+covered only through the Python wrapper.
+
+**Behaviour change, `mk_system_segment_distance_ex` only.** No distance moved
+and no golden fixture changed. Every scorer now reports its own `coverage`
+instead of `_ex` seeding 1.0 and letting the valued path overwrite it:
+
+- A segment compared with itself reports the coverage it actually has.
+  `("p", "p")` on PHOIBLE was 1.0 and is 27/38, because PHOIBLE leaves 11 of
+  /p/'s 38 cells empty. The old answer was coverage relative to the segment;
+  the documented quantity is relative to the system's declared dimensions, and
+  the two differ whenever a segment has a gap. The identity shortcut still runs
+  when no coverage is asked for, so `mk_system_segment_distance` is unchanged.
+- A categorical pair reaching no scored dimension reports 0.0 and
+  `MK_CMP_NO_SHARED_DIMENSION` rather than 1.0 and `MK_CMP_OK`. Unreachable
+  with inventory rows, which always reach some dimension; reachable through
+  `mk_sound_distance` with labels the geometry does not know.
+
+`docs/c-api.md` also declared this function with six parameters and then
+discussed the seventh. It now declares the one that exists.
+
 ### A cluster component could be read after its stack frame died
 
 `mk_parse_component_at` merges two adjacent components into one and copies the

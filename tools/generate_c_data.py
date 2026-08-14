@@ -650,6 +650,33 @@ def emit_tier_policy(geometry: dict[str, object]) -> str:
     )
 
 
+def emit_cluster_policy(geometry: dict[str, object]) -> str:
+    """How a multi-part spelling composes, as compiled-in constants.
+
+    Same argument as emit_tier_policy: these move every diphthong, triphthong
+    and geminate distance, so they belong in the geometry file where a change
+    to one is a diff that can be reviewed as data. The rules that apply them --
+    which part is the nucleus, when the length penalty is waived -- stay in C,
+    because they read both segments.
+
+    Defaults are the values these had as #defines in system.c, so a geometry
+    that declares no cluster_policy scores exactly as before.
+    """
+    policy = geometry.get("cluster_policy", {})
+    fields = (
+        ("nucleus_share", 0.7),
+        ("offglide_share", 0.3),
+        ("length_penalty", 0.15),
+        ("component_share", 0.8),
+        ("segment_share", 0.2),
+    )
+    return "\n".join(
+        f"const double mki_clements_hume_cluster_{name} = "
+        f"{float(policy.get(name, default)):.17g};"
+        for name, default in fields
+    )
+
+
 def emit_geometry(geometry: dict[str, object]) -> str:
     tree = geometry["tree"]
     ftn = sorted(geometry.get("feature_to_node", {}).items())
@@ -1010,6 +1037,7 @@ def generate(output: Path) -> None:
     chunks.append(emit_ordinal_scales(geometry))
     chunks.append(emit_metadata_features(geometry))
     chunks.append(emit_tier_policy(geometry))
+    chunks.append(emit_cluster_policy(geometry))
     chunks.append(emit_diacritics(diacritics))
     chunks.append(emit_decompositions(diacritics))
     chunks.extend(system_chunks)

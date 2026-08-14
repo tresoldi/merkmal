@@ -299,8 +299,14 @@ typedef enum mk_comparability {
  * segments had a value, in `[0, 1]`. Treat a low value as a weak comparison
  * however your work requires -- the library does not decide a threshold.
  *
- * Categorical systems score over the union of what either segment specifies, so
- * the ambiguity cannot arise there and `*coverage` is 1.0.
+ * It is relative to the system, not to the segment, so a segment compared with
+ * *itself* is not 1.0 unless it has a value on every dimension: PHOIBLE leaves
+ * 11 of /p/'s 38 cells empty, and `("p", "p")` reports 27/38.
+ *
+ * Categorical systems weigh any dimension either segment specifies, so an
+ * ordinary pair is fully covered and the ambiguity does not arise. A pair that
+ * reaches no scored dimension at all still reports 0.0 rather than claiming a
+ * comparison that did not happen.
  */
 MK_API mk_status mk_system_segment_distance_ex(
     const mk_system *system,

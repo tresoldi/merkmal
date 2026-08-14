@@ -44,6 +44,31 @@ typedef enum mk_resolution_path {
     MK_RESOLVED_TONE
 } mk_resolution_path;
 
+/* One part of a cluster, as the resolver already worked it out.
+ *
+ * A cluster is synthesized by resolving each part and composing the results, so
+ * by the time a cluster exists every part has been resolved once. This carries
+ * that work forward. It used to keep only the spelling, and scoring re-resolved
+ * it: comparing `ai³³` with `au` ran the whole seam -- normalize, three
+ * inventory attempts, five synthesizers -- four more times on strings that had
+ * just been resolved.
+ *
+ * `features` and `feature_count` are the answer, and the storage rule is the
+ * one mk_resolution states: `features` aliases `owned_features` when that is
+ * non-NULL and `borrowed_features` otherwise, and exactly one of the two is
+ * set. A part resolved from an inventory borrows strings from the compiled pool
+ * or the registry, which outlive any resolution; the array holding them is
+ * still owned here, because the one the lookup filled was a stack scratch that
+ * does not survive the synthesizer's frame. */
+typedef struct mk_cluster_component {
+    char *grapheme;
+    const char *const *features;
+    size_t feature_count;
+    char **owned_features;
+    size_t owned_feature_count;
+    const char **borrowed_features;
+} mk_cluster_component;
+
 /* A resolved segment, and the storage behind it.
  *
  * `grapheme`, `features` and `feature_count` are the answer. Where their
@@ -56,8 +81,8 @@ typedef enum mk_resolution_path {
  * On the three inventory paths both owned_* fields are NULL and the answer
  * borrows a compiled-in or registry-owned row, valid as long as the registry
  * is. On every synthesized path the owned_* fields hold heap storage that this
- * struct owns, and `cluster_components` holds the component spellings for the
- * two cluster paths.
+ * struct owns, and `cluster_components` holds the resolved parts for the two
+ * cluster paths.
  *
  * mki_resolution_clear frees the owned side and is safe on either shape, but
  * only on a struct that has been zeroed or filled by mki_resolve. mki_resolve
@@ -71,7 +96,7 @@ typedef struct mk_resolution {
     char **owned_features;
     size_t owned_feature_count;
     char *owned_grapheme;
-    char **cluster_components;
+    mk_cluster_component *cluster_components;
     size_t cluster_component_count;
     /* Scratch for the inventory paths. A compiled-in inventory stores feature
      * ids, so handing the row out as `const char *const *` needs somewhere to
@@ -108,5 +133,6 @@ const char *mki_resolution_path_name(mk_resolution_path path);
 
 /* Scoring wants the features and nothing else. */
 mk_feature_view mki_view_of(const mk_resolution *resolution);
+mk_feature_view mki_view_of_component(const mk_cluster_component *component);
 
 #endif

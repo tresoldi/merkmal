@@ -413,8 +413,19 @@ def test_coverage_separates_identical_from_incomparable() -> None:
     assert coverage > 0.5
     assert why == "ok"  # compared, and genuinely indistinguishable
 
-    # A segment against itself is fully covered, not uncovered.
-    assert merkmal.distance_with_coverage("p", "p", system="phoible") == (0.0, 1.0, "ok")
+    # A segment against itself is covered on the dimensions it actually has,
+    # which is not all of them: PHOIBLE leaves 11 of /p/'s 38 cells at `.`.
+    # This asserted 1.0 while the identity shortcut answered on the scorer's
+    # behalf. That 1.0 was coverage relative to the segment; the documented
+    # quantity is relative to the system's declared dimensions, and the two are
+    # different numbers whenever the segment has a gap.
+    score, coverage, why = merkmal.distance_with_coverage("p", "p", system="phoible")
+    assert score == 0.0
+    assert math.isclose(coverage, 27 / 38)
+    assert why == "ok"
+
+    # Asking for no coverage takes the shortcut instead, and the score agrees.
+    assert merkmal.distance("p", "p", system="phoible") == 0.0
 
     # Categorical systems score over the union of what either segment specifies,
     # so the ambiguity cannot arise and coverage is 1.0 by construction.

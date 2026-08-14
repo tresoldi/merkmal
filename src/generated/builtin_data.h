@@ -198,6 +198,14 @@ extern const size_t mki_clements_hume_leaf_count;
 /* What a tone costs against a segment. Declared in the geometry file; see
  * `tier_policy` there for why it is 1.0 and what the alternatives cost. */
 extern const double mki_clements_hume_cross_tier_cost;
+/* How a segment written as more than one part composes. Declared in the
+ * geometry file; see `cluster_policy` there for what each share does and why
+ * these are data. The rules applying them are in src/cluster.c. */
+extern const double mki_clements_hume_cluster_nucleus_share;
+extern const double mki_clements_hume_cluster_offglide_share;
+extern const double mki_clements_hume_cluster_length_penalty;
+extern const double mki_clements_hume_cluster_component_share;
+extern const double mki_clements_hume_cluster_segment_share;
 extern const mk_ordinal_scale mki_clements_hume_ordinal_scales[];
 extern const size_t mki_clements_hume_ordinal_scale_count;
 extern const mk_feature_node_map mki_clements_hume_feature_to_node[];

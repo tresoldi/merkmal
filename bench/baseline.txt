@@ -76,3 +76,26 @@ tokenize         0.662 s for    13600 tokens       48.7 us/token
 distance         0.258 s for     7600 pairs        34.0 us/pair
 scan (miss)      0.001 s for    20000 lookups       0.1 us/lookup
 scan (hit)       0.002 s for    20000 lookups       0.1 us/lookup
+
+## After clusters kept their resolved parts
+
+A cluster used to store its parts' spellings and nothing else, so scoring one
+re-resolved each part: up to six full runs of the resolution seam for a single
+comparison of two clusters. The parts now carry the features the synthesizer
+already worked out for them.
+
+The trade is an allocation on the resolution side against those re-resolutions
+on the scoring side. Storing a part resolved from an inventory costs one small
+array copy, because the array the lookup filled is stack scratch; a synthesized
+part's array moves across and costs nothing.
+
+Measured on the same corpus and machine, three runs each, before and after:
+
+tokenize    50.5 -> 50.1, 50.7, 51.6 us/token   (the allocation; no movement)
+distance    20.2 -> 17.2, 17.7, 18.5 us/pair    (the re-resolutions; ~13% off)
+
+Tokenization is where the added allocation lands and it did not move, because
+only a cluster pays it and most tokens are not clusters. The pair figure is the
+one the change was for. Both differ from the numbers above, which were recorded
+on other hardware; what is comparable is the before-and-after pair, taken
+together.

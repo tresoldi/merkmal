@@ -40,17 +40,7 @@
 /* Whether a feature list carries `label`. */
 static int mk_vector_has(const mk_feature_view *view, const char *label)
 {
-    size_t i;
-
-    if (label == NULL || label[0] == '\0') {
-        return 0;
-    }
-    for (i = 0; i < view->count; i++) {
-        if (mki_streq(view->features[i], label)) {
-            return 1;
-        }
-    }
-    return 0;
+    return mki_features_contain(view->features, view->count, label);
 }
 
 /* Any of `labels` present. */
