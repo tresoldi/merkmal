@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+### Strict validation stops being quadratic in the caller's text
+
+`mk_validate_strict_entries` compared every grapheme against every earlier one.
+That is O(n²) on text the caller supplies, and
+`mk_registry_add_model_text_n` exists for exactly the inputs that makes
+dangerous — its own documentation names a mapped file, a Python `bytes`, and a
+fuzzer's input. A model of distinct rows is the worst case, because nothing
+short-circuits.
+
+Measured, with `@validation permissive` as the linear baseline:
+
+| rows | strict | permissive | the duplicate check alone |
+| ---: | ---: | ---: | ---: |
+| 2,000 | 37.6 ms | 23.4 ms | 14.2 ms |
+| 8,000 | 256.7 ms | 102.6 ms | 154.1 ms |
+| 16,000 | 953.6 ms | 223.0 ms | 730.6 ms |
+| 32,000 | 5,201 ms | 476.2 ms | 4,724.8 ms |
+
+Sorted and walked once, the same check costs 4.7 / 19.9 / 38.9 / 85.2 ms — 55×
+less at 32,000 rows, and the whole install drops from 5.2 s to 0.57 s.
+
+The pointers are sorted, not the rows, because nothing may assume an order and
+a runtime model is looked up by scanning its rows anyway. Two things about the
+diagnostic changed and neither affects the status: for a model with several
+duplicates the one reported is now whichever sorts first rather than whichever
+came first in the file, and a model with both a duplicate and an unknown
+feature now reports the duplicate.
+
+Nothing tested this at all before — not the rejection, not the diagnostic.
+`test_malformed.c` covers both over 4,000 rows, sized so a return of the
+quadratic form would show up in the suite's runtime.
+
 ### The two system-identity calls have a caller
 
 `mk_system_name` and `mk_system_kind` were exported, documented, ABI-frozen and

@@ -133,6 +133,77 @@ static int run_case(mk_registry *registry, const malformed_case *test)
     return 0;
 }
 
+/* A grapheme declared twice is refused, and refusing it is cheap.
+ *
+ * The check compared every row against every earlier one, which is quadratic in
+ * text the caller supplies -- and mk_registry_add_model_text_n exists for
+ * exactly the inputs that makes dangerous: a mapped file, a Python bytes, a
+ * fuzzer's input. A model of 32,000 distinct rows, the worst case because
+ * nothing short-circuits, spent 4.7 seconds here against 0.5 for parsing the
+ * same text. Sorted and walked once it is 85 ms.
+ *
+ * The size here is a compromise: large enough that a return of the quadratic
+ * form would be obvious in the suite's runtime, small enough to stay cheap. */
+static int check_duplicate_grapheme_is_rejected(void)
+{
+    enum { ROWS = 4000 };
+    static const char header[] =
+        "@model dup\n@type categorical\n@geometry clements-hume\n";
+    static const char row[] = "grapheme q%d consonant voiceless bilabial stop\n";
+    mk_registry *registry = NULL;
+    char *diagnostic = NULL;
+    char *model;
+    size_t used;
+    size_t capacity = sizeof(header) + (size_t)ROWS * 64;
+    int i;
+    int failed = 0;
+    mk_status status;
+
+    model = (char *)malloc(capacity);
+    if (model == NULL) {
+        printf("FAIL: out of memory building the model\n");
+        return 1;
+    }
+    used = sizeof(header) - 1;
+    memcpy(model, header, used);
+    for (i = 0; i < ROWS; i++) {
+        /* The last row repeats the first, so the duplicate is as far from its
+         * partner as the model allows. */
+        used += (size_t)snprintf(model + used, capacity - used, row,
+            i == ROWS - 1 ? 0 : i);
+    }
+
+    if (mk_registry_new_builtin(&registry) != MK_OK) {
+        printf("FAIL: registry\n");
+        free(model);
+        return 1;
+    }
+    status = mk_registry_add_model_text_ex(registry, model, &diagnostic);
+    if (status != MK_ERR_PARSE) {
+        printf("FAIL: a repeated grapheme returned status %d\n", (int)status);
+        failed = 1;
+    }
+    if (diagnostic == NULL || strstr(diagnostic, "more than once") == NULL) {
+        printf("FAIL: diagnostic did not name the repetition: %s\n",
+            diagnostic ? diagnostic : "(null)");
+        failed = 1;
+    }
+    /* Nothing was installed, so the name is still free. */
+    if (failed == 0) {
+        mk_string_free(diagnostic);
+        diagnostic = NULL;
+        model[used - strlen("grapheme q0 consonant voiceless bilabial stop\n")] = '\0';
+        if (mk_registry_add_model_text(registry, model) != MK_OK) {
+            printf("FAIL: the same model without the repetition was refused\n");
+            failed = 1;
+        }
+    }
+    mk_string_free(diagnostic);
+    mk_registry_free(registry);
+    free(model);
+    return failed;
+}
+
 /* A runtime model may name features of any length. A label built from one used
  * to be truncated into a different feature -- one the geometry does not know,
  * and which therefore contributes nothing to any distance. */
@@ -249,6 +320,7 @@ int main(void)
     }
     mk_registry_free(registry);
 
+    failed |= check_duplicate_grapheme_is_rejected();
     failed |= check_long_feature_name_is_rejected();
     failed |= check_unterminated_and_embedded_nul();
     return failed ? 1 : 0;

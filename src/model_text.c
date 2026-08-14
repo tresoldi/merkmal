@@ -174,6 +174,68 @@ static void mk_set_diagnostic(char **out, int line_no, const char *message, cons
     *out = mki_strdup_internal(buffer);
 }
 
+static int mk_compare_grapheme_pointers(const void *a, const void *b)
+{
+    /* Both casts add const rather than remove it. */
+    const char *const *left = (const char *const *)a;
+    const char *const *right = (const char *const *)b;
+
+    return strcmp(*left, *right);
+}
+
+/* Whether any grapheme is declared twice.
+ *
+ * Sorted and walked once rather than compared against every earlier row. The
+ * pairwise form was quadratic on text the caller supplies, and
+ * mk_registry_add_model_text_n exists for exactly the inputs that makes
+ * dangerous -- a mapped file, a Python bytes, a fuzzer's input. A model of
+ * 32,000 rows spent 4.7 seconds here against 0.5 for parsing the same text;
+ * the same model now costs about what parsing it does.
+ *
+ * The pointers are sorted, not the rows: nothing else may assume an order, and
+ * a runtime model is looked up by scanning its rows anyway.
+ *
+ * Reports one duplicate, not all of them, as before. Which one is reported for
+ * a model containing several is no longer file order -- it is whichever sorts
+ * first -- and a model with both a duplicate and an unknown feature now reports
+ * the duplicate, where it used to report whichever came first by row. The
+ * status is MK_ERR_PARSE either way; only the sentence differs. */
+static mk_status mk_check_no_duplicate_grapheme(
+    const mk_builtin_entry *entries,
+    size_t entry_count,
+    char **diagnostic
+)
+{
+    const char **sorted;
+    size_t i;
+
+    if (entry_count < 2) {
+        return MK_OK;
+    }
+    sorted = (const char **)malloc(entry_count * sizeof(*sorted));
+    if (sorted == NULL) {
+        return MK_ERR_OOM;
+    }
+    for (i = 0; i < entry_count; i++) {
+        sorted[i] = entries[i].grapheme;
+    }
+    qsort(sorted, entry_count, sizeof(*sorted), mk_compare_grapheme_pointers);
+    for (i = 1; i < entry_count; i++) {
+        if (strcmp(sorted[i - 1], sorted[i]) == 0) {
+            mk_set_diagnostic(
+                diagnostic,
+                0,
+                "strict validation: grapheme declared more than once",
+                sorted[i]
+            );
+            free(sorted);
+            return MK_ERR_PARSE;
+        }
+    }
+    free(sorted);
+    return MK_OK;
+}
+
 /* Every feature a strict model uses must reach a scoring dimension, and every
  * grapheme must be unique. Both checks exist because a model that fails them
  * still registers and still answers every query: it just answers zero. */
@@ -185,19 +247,14 @@ static mk_status mk_validate_strict_entries(
 {
     size_t i;
     size_t j;
+    mk_status status;
+
+    status = mk_check_no_duplicate_grapheme(entries, entry_count, diagnostic);
+    if (status != MK_OK) {
+        return status;
+    }
 
     for (i = 0; i < entry_count; i++) {
-        for (j = 0; j < i; j++) {
-            if (mki_streq(entries[i].grapheme, entries[j].grapheme)) {
-                mk_set_diagnostic(
-                    diagnostic,
-                    0,
-                    "strict validation: grapheme declared more than once",
-                    entries[i].grapheme
-                );
-                return MK_ERR_PARSE;
-            }
-        }
         for (j = 0; j < entries[i].feature_count; j++) {
             if (!mki_geometry_knows_feature(entries[i].features[j])) {
                 mk_set_diagnostic(
