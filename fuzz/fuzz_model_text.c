@@ -16,21 +16,18 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     mk_parsed_model model;
     char *diagnostic = NULL;
-    char *text;
 
-    /* The API takes a NUL-terminated string, so the harness supplies one. A
-     * heap copy sized to the input is what lets ASan see a read past the end. */
-    text = (char *)malloc(size + 1);
-    if (text == NULL) {
-        return 0;
-    }
-    memcpy(text, data, size);
-    text[size] = '\0';
-
-    if (mk_parse_model_text(text, &model, &diagnostic) == MK_OK) {
-        mk_parsed_model_clear(&model);
+    /* The bytes go in as they are. The harness used to copy them into a
+     * NUL-terminated buffer because that was the only entry point; feeding the
+     * length-taking form directly means libFuzzer's own redzoned allocation is
+     * what the parser reads, so a read one byte past the input is a report
+     * rather than a read into the harness's spare terminator.
+     *
+     * It also gets embedded NUL bytes into the parser, which the copy could
+     * never express. */
+    if (mki_parse_model_text_n((const char *)data, size, &model, &diagnostic) == MK_OK) {
+        mki_parsed_model_clear(&model);
     }
     free(diagnostic);
-    free(text);
     return 0;
 }

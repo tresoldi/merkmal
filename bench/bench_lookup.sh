@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # Build and run the lookup benchmark against the library sources.
 #
-# It is built here rather than as a CMake target because mk_inventory_find is
+# It is built here rather than as a CMake target because mki_inventory_find is
 # internal, and because a benchmark that needs a configured build directory is
 # a benchmark nobody runs.
 #

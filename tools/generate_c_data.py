@@ -588,7 +588,7 @@ def emit_system(
     # segment described identically under different graphemes.
     runs: dict[tuple[int, ...], int] = {}
 
-    # Sorted so that mk_inventory_find can binary-search instead of walking
+    # Sorted so that mki_inventory_find can binary-search instead of walking
     # every row. The key is the UTF-8 bytes, because that is what strcmp
     # compares; sorting by Python str would order by code point and put a
     # two-byte grapheme in a place the C search would not look.
@@ -645,7 +645,7 @@ def emit_tier_policy(geometry: dict[str, object]) -> str:
     policy = geometry.get("tier_policy", {})
     cost = float(policy.get("cross_tier_cost", 1.0))
     return (
-        "const double mk_clements_hume_cross_tier_cost = "
+        "const double mki_clements_hume_cross_tier_cost = "
         f"{cost:.17g};"
     )
 
@@ -660,7 +660,7 @@ def emit_geometry(geometry: dict[str, object]) -> str:
     presets = geometry.get("weight_presets", {})
     lines: list[str] = []
 
-    lines.append("const mk_geometry_leaf mk_clements_hume_leaves[] = {")
+    lines.append("const mk_geometry_leaf mki_clements_hume_leaves[] = {")
     for name, positive, negative, depth, parent, weight in leaves:
         # The runtime reads `depth` only as 1/depth, so an explicit weight is
         # expressed as the depth that produces it.
@@ -671,41 +671,41 @@ def emit_geometry(geometry: dict[str, object]) -> str:
     lines.append("};")
     lines.append("")
     lines.append(
-        "const size_t mk_clements_hume_leaf_count =\n"
-        "    sizeof(mk_clements_hume_leaves) / sizeof(mk_clements_hume_leaves[0]);"
+        "const size_t mki_clements_hume_leaf_count =\n"
+        "    sizeof(mki_clements_hume_leaves) / sizeof(mki_clements_hume_leaves[0]);"
     )
     lines.append("")
 
-    lines.append("const mk_feature_node_map mk_clements_hume_feature_to_node[] = {")
+    lines.append("const mk_feature_node_map mki_clements_hume_feature_to_node[] = {")
     for feature, node in ftn:
         lines.append(f"    {{{c_string(feature)}, {c_string(node)}}},")
     lines.append("};")
     lines.append("")
     lines.append(
-        "const size_t mk_clements_hume_feature_to_node_count =\n"
-        "    sizeof(mk_clements_hume_feature_to_node) / sizeof(mk_clements_hume_feature_to_node[0]);"
+        "const size_t mki_clements_hume_feature_to_node_count =\n"
+        "    sizeof(mki_clements_hume_feature_to_node) / sizeof(mki_clements_hume_feature_to_node[0]);"
     )
     lines.append("")
 
-    lines.append("const mk_node_depth mk_clements_hume_node_depths[] = {")
+    lines.append("const mk_node_depth mki_clements_hume_node_depths[] = {")
     for node, depth in node_depths:
         lines.append(f"    {{{c_string(node)}, {float(depth):.1f}}},")
     lines.append("};")
     lines.append("")
     lines.append(
-        "const size_t mk_clements_hume_node_depth_count =\n"
-        "    sizeof(mk_clements_hume_node_depths) / sizeof(mk_clements_hume_node_depths[0]);"
+        "const size_t mki_clements_hume_node_depth_count =\n"
+        "    sizeof(mki_clements_hume_node_depths) / sizeof(mki_clements_hume_node_depths[0]);"
     )
     lines.append("")
 
-    lines.append("const mk_node_parent mk_clements_hume_node_parents[] = {")
+    lines.append("const mk_node_parent mki_clements_hume_node_parents[] = {")
     for node, parent in node_parents:
         lines.append(f"    {{{c_string(node)}, {c_string(parent)}}},")
     lines.append("};")
     lines.append("")
     lines.append(
-        "const size_t mk_clements_hume_node_parent_count =\n"
-        "    sizeof(mk_clements_hume_node_parents) / sizeof(mk_clements_hume_node_parents[0]);"
+        "const size_t mki_clements_hume_node_parent_count =\n"
+        "    sizeof(mki_clements_hume_node_parents) / sizeof(mki_clements_hume_node_parents[0]);"
     )
     lines.append("")
 
@@ -724,7 +724,7 @@ def emit_geometry(geometry: dict[str, object]) -> str:
         lines.append("")
         preset_entries.append((preset_name, weight_symbol, len(weights), 0))
 
-    lines.append("const mk_node_weight_preset mk_clements_hume_weight_presets[] = {")
+    lines.append("const mk_node_weight_preset mki_clements_hume_weight_presets[] = {")
     for preset_name, weight_symbol, weight_count, flat in preset_entries:
         weights_expr = weight_symbol if weight_symbol is not None else "NULL"
         lines.append(
@@ -733,8 +733,8 @@ def emit_geometry(geometry: dict[str, object]) -> str:
     lines.append("};")
     lines.append("")
     lines.append(
-        "const size_t mk_clements_hume_weight_preset_count =\n"
-        "    sizeof(mk_clements_hume_weight_presets) / sizeof(mk_clements_hume_weight_presets[0]);"
+        "const size_t mki_clements_hume_weight_preset_count =\n"
+        "    sizeof(mki_clements_hume_weight_presets) / sizeof(mki_clements_hume_weight_presets[0]);"
     )
     lines.append("")
 
@@ -745,7 +745,7 @@ def emit_geometry(geometry: dict[str, object]) -> str:
         lines.append("};")
         lines.append("")
 
-    lines.append("const mk_feature_path mk_clements_hume_feature_paths[] = {")
+    lines.append("const mk_feature_path mki_clements_hume_feature_paths[] = {")
     for index, (feature, path) in enumerate(feature_paths):
         lines.append(
             f"    {{{c_string(feature)}, mk_clements_hume_feature_path_{index}, {len(path)}}},"
@@ -753,8 +753,8 @@ def emit_geometry(geometry: dict[str, object]) -> str:
     lines.append("};")
     lines.append("")
     lines.append(
-        "const size_t mk_clements_hume_feature_path_count =\n"
-        "    sizeof(mk_clements_hume_feature_paths) / sizeof(mk_clements_hume_feature_paths[0]);"
+        "const size_t mki_clements_hume_feature_path_count =\n"
+        "    sizeof(mki_clements_hume_feature_paths) / sizeof(mki_clements_hume_feature_paths[0]);"
     )
     lines.append("")
     return "\n".join(lines)
@@ -794,14 +794,14 @@ def emit_decompositions(diacritics: dict[str, object]) -> str:
             continue
         pairs.append((char, decomposed))
 
-    lines = ["const mk_decomposition mk_default_decompositions[] = {"]
+    lines = ["const mk_decomposition mki_default_decompositions[] = {"]
     for composed, decomposed in pairs:
         lines.append(f"    {{{c_string(composed)}, {c_string(decomposed)}}},")
     lines.append("};")
     lines.append("")
     lines.append(
-        "const size_t mk_default_decomposition_count =\n"
-        "    sizeof(mk_default_decompositions) / sizeof(mk_default_decompositions[0]);"
+        "const size_t mki_default_decomposition_count =\n"
+        "    sizeof(mki_default_decompositions) / sizeof(mki_default_decompositions[0]);"
     )
     lines.append("")
     return "\n".join(lines)
@@ -815,14 +815,14 @@ def emit_metadata_features(geometry: dict[str, object]) -> str:
     zero for every comparison, which is what strict validation exists to catch.
     """
     features = sorted(geometry.get("metadata_features", {}))
-    lines = ["const char *const mk_default_metadata_features[] = {"]
+    lines = ["const char *const mki_default_metadata_features[] = {"]
     for feature in features:
         lines.append(f"    {c_string(feature)},")
     lines.append("};")
     lines.append("")
     lines.append(
-        "const size_t mk_default_metadata_feature_count =\n"
-        "    sizeof(mk_default_metadata_features) / sizeof(mk_default_metadata_features[0]);"
+        "const size_t mki_default_metadata_feature_count =\n"
+        "    sizeof(mki_default_metadata_features) / sizeof(mki_default_metadata_features[0]);"
     )
     lines.append("")
     return "\n".join(lines)
@@ -840,7 +840,7 @@ def emit_ordinal_scales(geometry: dict[str, object]) -> str:
         lines.append("};")
         lines.append("")
 
-    lines.append("const mk_ordinal_scale mk_clements_hume_ordinal_scales[] = {")
+    lines.append("const mk_ordinal_scale mki_clements_hume_ordinal_scales[] = {")
     for index, scale in enumerate(scales):
         default = scale.get("default_level")
         default_expr = "MK_ORDINAL_UNDEFINED" if default is None else str(int(default))
@@ -852,8 +852,8 @@ def emit_ordinal_scales(geometry: dict[str, object]) -> str:
     lines.append("};")
     lines.append("")
     lines.append(
-        "const size_t mk_clements_hume_ordinal_scale_count =\n"
-        "    sizeof(mk_clements_hume_ordinal_scales) / sizeof(mk_clements_hume_ordinal_scales[0]);"
+        "const size_t mki_clements_hume_ordinal_scale_count =\n"
+        "    sizeof(mki_clements_hume_ordinal_scales) / sizeof(mki_clements_hume_ordinal_scales[0]);"
     )
     lines.append("")
     return "\n".join(lines)
@@ -885,9 +885,9 @@ def emit_diacritics(diacritics: dict[str, object]) -> str:
     tone_levels = diacritics.get("tone_levels", {})
     valued_effects = diacritics.get("valued_effects", {})
 
-    lines.append(emit_diacritic_map("mk_default_combining_diacritics", dict(diacritics.get("combining", {}))))
-    lines.append(emit_diacritic_map("mk_default_suffix_diacritics", dict(diacritics.get("suffix", {}))))
-    lines.append(emit_diacritic_map("mk_default_prefix_diacritics", dict(diacritics.get("prefix", {}))))
+    lines.append(emit_diacritic_map("mki_default_combining_diacritics", dict(diacritics.get("combining", {}))))
+    lines.append(emit_diacritic_map("mki_default_suffix_diacritics", dict(diacritics.get("suffix", {}))))
+    lines.append(emit_diacritic_map("mki_default_prefix_diacritics", dict(diacritics.get("prefix", {}))))
 
     tone_entries: list[tuple[str, str | None, int]] = []
     for index, (cp, levels) in enumerate(sorted(dict(tone_marks).items())):
@@ -911,15 +911,15 @@ def emit_diacritics(diacritics: dict[str, object]) -> str:
             symbol = None
         tone_entries.append((cp, symbol, len(features)))
 
-    lines.append("const mk_tone_mark mk_default_tone_marks[] = {")
+    lines.append("const mk_tone_mark mki_default_tone_marks[] = {")
     for cp, symbol, count in tone_entries:
         features_expr = symbol if symbol is not None else "NULL"
         lines.append(f"    {{{c_string(mark_from_hex(cp))}, {features_expr}, {count}}},")
     lines.append("};")
     lines.append("")
     lines.append(
-        "const size_t mk_default_tone_mark_count =\n"
-        "    sizeof(mk_default_tone_marks) / sizeof(mk_default_tone_marks[0]);"
+        "const size_t mki_default_tone_mark_count =\n"
+        "    sizeof(mki_default_tone_marks) / sizeof(mki_default_tone_marks[0]);"
     )
     lines.append("")
 
@@ -935,14 +935,14 @@ def emit_diacritics(diacritics: dict[str, object]) -> str:
         lines.append("")
         effect_entries.append((str(modifier), symbol, len(alternatives), str(effect_dict.get("state", "."))))
 
-    lines.append("const mk_valued_diacritic_effect mk_default_valued_diacritic_effects[] = {")
+    lines.append("const mk_valued_diacritic_effect mki_default_valued_diacritic_effects[] = {")
     for modifier, symbol, count, state in effect_entries:
         lines.append(f"    {{{c_string(modifier)}, {symbol}, {count}, '{state[0]}' }},")
     lines.append("};")
     lines.append("")
     lines.append(
-        "const size_t mk_default_valued_diacritic_effect_count =\n"
-        "    sizeof(mk_default_valued_diacritic_effects) / sizeof(mk_default_valued_diacritic_effects[0]);"
+        "const size_t mki_default_valued_diacritic_effect_count =\n"
+        "    sizeof(mki_default_valued_diacritic_effects) / sizeof(mki_default_valued_diacritic_effects[0]);"
     )
     lines.append("")
     return "\n".join(lines)
@@ -990,19 +990,19 @@ def generate(output: Path) -> None:
     # the system chunks are built first and appended below.
     chunks.append(pool.emit("mk_pool"))
     chunks.append(emit_uint_array("mk_feature_offsets", "unsigned int", label_offsets))
-    chunks.append("const char *mk_pool_string(unsigned int offset)")
+    chunks.append("const char *mki_pool_string(unsigned int offset)")
     chunks.append("{")
     chunks.append(f"    return mk_pool_chunks[offset >> {POOL_CHUNK_BITS}] + "
                   f"(offset & {POOL_CHUNK - 1}u);")
     chunks.append("}")
     chunks.append("")
-    chunks.append("const char *mk_feature_name(unsigned short id)")
+    chunks.append("const char *mki_feature_name(unsigned short id)")
     chunks.append("{")
-    chunks.append("    return mk_pool_string(mk_feature_offsets[id]);")
+    chunks.append("    return mki_pool_string(mk_feature_offsets[id]);")
     chunks.append("}")
     chunks.append("")
     chunks.append(
-        "const size_t mk_feature_name_count =\n"
+        "const size_t mki_feature_name_count =\n"
         "    sizeof(mk_feature_offsets) / sizeof(mk_feature_offsets[0]);"
     )
     chunks.append("")
@@ -1014,7 +1014,7 @@ def generate(output: Path) -> None:
     chunks.append(emit_decompositions(diacritics))
     chunks.extend(system_chunks)
 
-    chunks.append("const mk_builtin_system mk_builtin_systems[] = {")
+    chunks.append("const mk_builtin_system mki_builtin_systems[] = {")
     for name, kind, _, geometry_map, weights, scalar_dimensions in systems:
         prefix = c_ident(name)
         map_expr = f"{prefix}_geometry_map" if geometry_map else "NULL"
@@ -1031,8 +1031,8 @@ def generate(output: Path) -> None:
     chunks.append("};")
     chunks.append("")
     chunks.append(
-        "const size_t mk_builtin_system_count =\n"
-        "    sizeof(mk_builtin_systems) / sizeof(mk_builtin_systems[0]);"
+        "const size_t mki_builtin_system_count =\n"
+        "    sizeof(mki_builtin_systems) / sizeof(mki_builtin_systems[0]);"
     )
     chunks.append("")
 

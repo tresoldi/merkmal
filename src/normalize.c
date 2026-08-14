@@ -32,7 +32,7 @@ static const char *mk_resolve_slash(const char *s)
 
 static const char *mk_strip_leading_stress(const char *s)
 {
-    while (mk_has_prefix(s, "ˈ") || mk_has_prefix(s, "ˌ")) {
+    while (mki_has_prefix(s, "ˈ") || mki_has_prefix(s, "ˌ")) {
         s += 2;
     }
     return s;
@@ -42,9 +42,9 @@ static const mk_decomposition *mk_find_decomposition(const char *p)
 {
     size_t i;
 
-    for (i = 0; i < mk_default_decomposition_count; i++) {
-        if (mk_has_prefix(p, mk_default_decompositions[i].composed)) {
-            return &mk_default_decompositions[i];
+    for (i = 0; i < mki_default_decomposition_count; i++) {
+        if (mki_has_prefix(p, mki_default_decompositions[i].composed)) {
+            return &mki_default_decompositions[i];
         }
     }
     return NULL;
@@ -127,21 +127,21 @@ static mk_status mk_decompose(
          * into rejected input. */
         if (rule == NULL && source_conventions) {
             for (i = 0; i < sizeof(mk_source_conventions) / sizeof(mk_source_conventions[0]); i++) {
-                if (mk_has_prefix(p, mk_source_conventions[i].composed)) {
+                if (mki_has_prefix(p, mk_source_conventions[i].composed)) {
                     rule = &mk_source_conventions[i];
                     break;
                 }
             }
         }
         if (rule != NULL) {
-            status = mk_append_text(&tmp, &len, &cap, rule->decomposed);
+            status = mki_append_text(&tmp, &len, &cap, rule->decomposed);
             p += strlen(rule->composed);
         } else {
             char one[5];
-            size_t n = mk_utf8_step(p);
+            size_t n = mki_utf8_step(p);
             memcpy(one, p, n);
             one[n] = '\0';
-            status = mk_append_text(&tmp, &len, &cap, one);
+            status = mki_append_text(&tmp, &len, &cap, one);
             p += n;
         }
         if (status != MK_OK) {
@@ -151,7 +151,7 @@ static mk_status mk_decompose(
     }
 
     if (tmp == NULL) {
-        tmp = mk_strdup_internal("");
+        tmp = mki_strdup_internal("");
         if (tmp == NULL) {
             return MK_ERR_OOM;
         }
@@ -160,7 +160,7 @@ static mk_status mk_decompose(
     return MK_OK;
 }
 
-mk_status mk_normalize_input_grapheme(
+mk_status mki_normalize_input_grapheme(
     const char *utf8_in,
     char **utf8_out
 )
@@ -176,7 +176,7 @@ mk_status mk_normalize_input_grapheme(
     );
 }
 
-mk_status mk_normalize_input_grapheme_literal(
+mk_status mki_normalize_input_grapheme_literal(
     const char *utf8_in,
     char **utf8_out
 )
@@ -194,127 +194,127 @@ mk_status mk_normalize_input_grapheme_literal(
 
 static const char *mk_compose_known_pair(const char *base, const char *mark)
 {
-    if (mk_streq(base, "a") && mk_streq(mark, "̃")) {
+    if (mki_streq(base, "a") && mki_streq(mark, "̃")) {
         return "ã";
     }
-    if (mk_streq(base, "e") && mk_streq(mark, "̃")) {
+    if (mki_streq(base, "e") && mki_streq(mark, "̃")) {
         return "ẽ";
     }
-    if (mk_streq(base, "i") && mk_streq(mark, "̃")) {
+    if (mki_streq(base, "i") && mki_streq(mark, "̃")) {
         return "ĩ";
     }
-    if (mk_streq(base, "o") && mk_streq(mark, "̃")) {
+    if (mki_streq(base, "o") && mki_streq(mark, "̃")) {
         return "õ";
     }
-    if (mk_streq(base, "u") && mk_streq(mark, "̃")) {
+    if (mki_streq(base, "u") && mki_streq(mark, "̃")) {
         return "ũ";
     }
-    if (mk_streq(base, "v") && mk_streq(mark, "̃")) {
+    if (mki_streq(base, "v") && mki_streq(mark, "̃")) {
         return "ṽ";
     }
-    if (mk_streq(base, "a") && mk_streq(mark, "̈")) {
+    if (mki_streq(base, "a") && mki_streq(mark, "̈")) {
         return "ä";
     }
-    if (mk_streq(base, "e") && mk_streq(mark, "̈")) {
+    if (mki_streq(base, "e") && mki_streq(mark, "̈")) {
         return "ë";
     }
-    if (mk_streq(base, "i") && mk_streq(mark, "̈")) {
+    if (mki_streq(base, "i") && mki_streq(mark, "̈")) {
         return "ï";
     }
-    if (mk_streq(base, "o") && mk_streq(mark, "̈")) {
+    if (mki_streq(base, "o") && mki_streq(mark, "̈")) {
         return "ö";
     }
-    if (mk_streq(base, "y") && mk_streq(mark, "̈")) {
+    if (mki_streq(base, "y") && mki_streq(mark, "̈")) {
         return "ÿ";
     }
-    if (mk_streq(base, "a") && mk_streq(mark, "̆")) {
+    if (mki_streq(base, "a") && mki_streq(mark, "̆")) {
         return "ă";
     }
-    if (mk_streq(base, "e") && mk_streq(mark, "̆")) {
+    if (mki_streq(base, "e") && mki_streq(mark, "̆")) {
         return "ĕ";
     }
-    if (mk_streq(base, "i") && mk_streq(mark, "̆")) {
+    if (mki_streq(base, "i") && mki_streq(mark, "̆")) {
         return "ĭ";
     }
-    if (mk_streq(base, "o") && mk_streq(mark, "̆")) {
+    if (mki_streq(base, "o") && mki_streq(mark, "̆")) {
         return "ŏ";
     }
-    if (mk_streq(base, "u") && mk_streq(mark, "̆")) {
+    if (mki_streq(base, "u") && mki_streq(mark, "̆")) {
         return "ŭ";
     }
-    if (mk_streq(base, "c") && mk_streq(mark, "̧")) {
+    if (mki_streq(base, "c") && mki_streq(mark, "̧")) {
         return "ç";
     }
-    if (mk_streq(base, "a") && mk_streq(mark, "́")) {
+    if (mki_streq(base, "a") && mki_streq(mark, "́")) {
         return "á";
     }
-    if (mk_streq(base, "e") && mk_streq(mark, "́")) {
+    if (mki_streq(base, "e") && mki_streq(mark, "́")) {
         return "é";
     }
-    if (mk_streq(base, "i") && mk_streq(mark, "́")) {
+    if (mki_streq(base, "i") && mki_streq(mark, "́")) {
         return "í";
     }
-    if (mk_streq(base, "o") && mk_streq(mark, "́")) {
+    if (mki_streq(base, "o") && mki_streq(mark, "́")) {
         return "ó";
     }
-    if (mk_streq(base, "u") && mk_streq(mark, "́")) {
+    if (mki_streq(base, "u") && mki_streq(mark, "́")) {
         return "ú";
     }
-    if (mk_streq(base, "a") && mk_streq(mark, "̀")) {
+    if (mki_streq(base, "a") && mki_streq(mark, "̀")) {
         return "à";
     }
-    if (mk_streq(base, "e") && mk_streq(mark, "̀")) {
+    if (mki_streq(base, "e") && mki_streq(mark, "̀")) {
         return "è";
     }
-    if (mk_streq(base, "i") && mk_streq(mark, "̀")) {
+    if (mki_streq(base, "i") && mki_streq(mark, "̀")) {
         return "ì";
     }
-    if (mk_streq(base, "o") && mk_streq(mark, "̀")) {
+    if (mki_streq(base, "o") && mki_streq(mark, "̀")) {
         return "ò";
     }
-    if (mk_streq(base, "u") && mk_streq(mark, "̀")) {
+    if (mki_streq(base, "u") && mki_streq(mark, "̀")) {
         return "ù";
     }
-    if (mk_streq(base, "a") && mk_streq(mark, "̂")) {
+    if (mki_streq(base, "a") && mki_streq(mark, "̂")) {
         return "â";
     }
-    if (mk_streq(base, "e") && mk_streq(mark, "̂")) {
+    if (mki_streq(base, "e") && mki_streq(mark, "̂")) {
         return "ê";
     }
-    if (mk_streq(base, "i") && mk_streq(mark, "̂")) {
+    if (mki_streq(base, "i") && mki_streq(mark, "̂")) {
         return "î";
     }
-    if (mk_streq(base, "o") && mk_streq(mark, "̂")) {
+    if (mki_streq(base, "o") && mki_streq(mark, "̂")) {
         return "ô";
     }
-    if (mk_streq(base, "u") && mk_streq(mark, "̂")) {
+    if (mki_streq(base, "u") && mki_streq(mark, "̂")) {
         return "û";
     }
-    if (mk_streq(base, "u") && mk_streq(mark, "̈")) {
+    if (mki_streq(base, "u") && mki_streq(mark, "̈")) {
         return "ü";
     }
-    if (mk_streq(base, "u") && mk_streq(mark, "̤")) {
+    if (mki_streq(base, "u") && mki_streq(mark, "̤")) {
         return "ṳ";
     }
-    if (mk_streq(base, "i") && mk_streq(mark, "̰")) {
+    if (mki_streq(base, "i") && mki_streq(mark, "̰")) {
         return "ḭ";
     }
-    if (mk_streq(base, "u") && mk_streq(mark, "̰")) {
+    if (mki_streq(base, "u") && mki_streq(mark, "̰")) {
         return "ṵ";
     }
-    if (mk_streq(base, "a") && mk_streq(mark, "̄")) {
+    if (mki_streq(base, "a") && mki_streq(mark, "̄")) {
         return "ā";
     }
-    if (mk_streq(base, "e") && mk_streq(mark, "̄")) {
+    if (mki_streq(base, "e") && mki_streq(mark, "̄")) {
         return "ē";
     }
-    if (mk_streq(base, "i") && mk_streq(mark, "̄")) {
+    if (mki_streq(base, "i") && mki_streq(mark, "̄")) {
         return "ī";
     }
-    if (mk_streq(base, "o") && mk_streq(mark, "̄")) {
+    if (mki_streq(base, "o") && mki_streq(mark, "̄")) {
         return "ō";
     }
-    if (mk_streq(base, "u") && mk_streq(mark, "̄")) {
+    if (mki_streq(base, "u") && mki_streq(mark, "̄")) {
         return "ū";
     }
     return NULL;
@@ -337,7 +337,7 @@ mk_status mk_normalize_grapheme(
     }
     *utf8_out = NULL;
 
-    status = mk_normalize_input_grapheme(utf8_in, &tmp);
+    status = mki_normalize_input_grapheme(utf8_in, &tmp);
     if (status != MK_OK) {
         return status;
     }
@@ -347,11 +347,11 @@ mk_status mk_normalize_grapheme(
     cap = 0;
     p = tmp;
     while (*p != '\0') {
-        size_t base_len = mk_utf8_step(p);
+        size_t base_len = mki_utf8_step(p);
         if (p[base_len] != '\0') {
             char base[5];
             char mark[5];
-            size_t mark_len = mk_utf8_step(p + base_len);
+            size_t mark_len = mki_utf8_step(p + base_len);
             const char *composed;
 
             memcpy(base, p, base_len);
@@ -360,27 +360,27 @@ mk_status mk_normalize_grapheme(
             mark[mark_len] = '\0';
             composed = mk_compose_known_pair(base, mark);
             if (composed != NULL) {
-                status = mk_append_text(&out, &len, &cap, composed);
+                status = mki_append_text(&out, &len, &cap, composed);
                 p += base_len + mark_len;
             } else if (*p == 'g') {
-                status = mk_append_text(&out, &len, &cap, "ɡ");
+                status = mki_append_text(&out, &len, &cap, "ɡ");
                 p++;
             } else {
                 char one[5];
-                size_t n = mk_utf8_step(p);
+                size_t n = mki_utf8_step(p);
                 memcpy(one, p, n);
                 one[n] = '\0';
-                status = mk_append_text(&out, &len, &cap, one);
+                status = mki_append_text(&out, &len, &cap, one);
                 p += n;
             }
         } else if (*p == 'g') {
-            status = mk_append_text(&out, &len, &cap, "ɡ");
+            status = mki_append_text(&out, &len, &cap, "ɡ");
             p++;
         } else {
             char one[5];
             memcpy(one, p, base_len);
             one[base_len] = '\0';
-            status = mk_append_text(&out, &len, &cap, one);
+            status = mki_append_text(&out, &len, &cap, one);
             p += base_len;
         }
         if (status != MK_OK) {
@@ -392,7 +392,7 @@ mk_status mk_normalize_grapheme(
     free(tmp);
 
     if (out == NULL) {
-        out = mk_strdup_internal("");
+        out = mki_strdup_internal("");
         if (out == NULL) {
             return MK_ERR_OOM;
         }
@@ -413,7 +413,7 @@ mk_status mk_normalize_grapheme(
     return MK_OK;
 }
 
-mk_status mk_segmentation_nfd(
+mk_status mki_segmentation_nfd(
     const char *utf8_in,
     char **utf8_out
 )
@@ -449,7 +449,7 @@ mk_status mk_segmentation_nfd(
 #endif
 
     if (tmp == NULL) {
-        tmp = mk_strdup_internal("");
+        tmp = mki_strdup_internal("");
         if (tmp == NULL) {
             return MK_ERR_OOM;
         }

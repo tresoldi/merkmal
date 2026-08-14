@@ -1,13 +1,13 @@
 /* What resolution costs, and how much of it is the inventory scan.
  *
- * mk_inventory_find walks every row calling mk_streq -- up to 9,728 string
+ * mki_inventory_find walks every row calling mki_streq -- up to 9,728 string
  * comparisons for a miss, and the longest-match tokenizer issues several
  * lookups per token. Whether that is worth replacing with a binary search is a
  * question about measured share of time, not about the shape of the loop, so
  * this reports the whole operation and the scan separately.
  *
  * Built by bench/bench_lookup.sh against the library sources, because
- * mk_inventory_find is internal.
+ * mki_inventory_find is internal.
  *
  * C99 clock() is used rather than clock_gettime so the benchmark builds
  * wherever the library does. It measures CPU time, which is what is wanted
@@ -109,7 +109,7 @@ int main(void)
     rounds = 20000;
     start = clock();
     for (round = 0; round < rounds; round++) {
-        if (mk_inventory_find(system->builtin, "\xef\xbf\xbd-absent", scratch, &view)) {
+        if (mki_inventory_find(system->builtin, "\xef\xbf\xbd-absent", scratch, &view)) {
             fprintf(stderr, "the miss key unexpectedly hit\n");
             return 1;
         }
@@ -123,7 +123,7 @@ int main(void)
     rounds = 20000;
     start = clock();
     for (round = 0; round < rounds; round++) {
-        if (!mk_inventory_find(system->builtin, "p", scratch, &view)) {
+        if (!mki_inventory_find(system->builtin, "p", scratch, &view)) {
             fprintf(stderr, "the hit key unexpectedly missed\n");
             return 1;
         }

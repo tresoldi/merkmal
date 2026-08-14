@@ -46,7 +46,7 @@ static int mk_vector_has(const mk_feature_view *view, const char *label)
         return 0;
     }
     for (i = 0; i < view->count; i++) {
-        if (mk_streq(view->features[i], label)) {
+        if (mki_streq(view->features[i], label)) {
             return 1;
         }
     }
@@ -97,7 +97,7 @@ static int mk_vector_uses_scalar_dimensions(const mk_builtin_system *builtin)
     return builtin->scalar_dimensions != NULL && builtin->scalar_dimension_count > 0;
 }
 
-size_t mk_vector_width_of(const mk_builtin_system *builtin)
+size_t mki_vector_width_of(const mk_builtin_system *builtin)
 {
     if (mk_vector_is_valued(builtin)) {
         return builtin->geometry_map_count;
@@ -105,7 +105,7 @@ size_t mk_vector_width_of(const mk_builtin_system *builtin)
     if (mk_vector_uses_scalar_dimensions(builtin)) {
         return builtin->scalar_dimension_count;
     }
-    return mk_clements_hume_leaf_count + mk_clements_hume_ordinal_scale_count;
+    return mki_clements_hume_leaf_count + mki_clements_hume_ordinal_scale_count;
 }
 
 mk_status mk_system_vector_width(const mk_system *system, size_t *out)
@@ -113,7 +113,7 @@ mk_status mk_system_vector_width(const mk_system *system, size_t *out)
     if (system == NULL || system->builtin == NULL || out == NULL) {
         return MK_ERR_INVALID_ARGUMENT;
     }
-    *out = mk_vector_width_of(system->builtin);
+    *out = mki_vector_width_of(system->builtin);
     return MK_OK;
 }
 
@@ -129,7 +129,7 @@ mk_status mk_system_vector_labels(const mk_system *system, mk_string_list **out)
         return MK_ERR_INVALID_ARGUMENT;
     }
     *out = NULL;
-    width = mk_vector_width_of(system->builtin);
+    width = mki_vector_width_of(system->builtin);
     /* +1 so a zero-width system still gets a non-NULL allocation. */
     names = (const char **)malloc((width + 1) * sizeof(*names));
     if (names == NULL) {
@@ -145,11 +145,11 @@ mk_status mk_system_vector_labels(const mk_system *system, mk_string_list **out)
             names[n++] = system->builtin->scalar_dimensions[i].name;
         }
     } else {
-        for (i = 0; i < mk_clements_hume_leaf_count; i++) {
-            names[n++] = mk_clements_hume_leaves[i].name;
+        for (i = 0; i < mki_clements_hume_leaf_count; i++) {
+            names[n++] = mki_clements_hume_leaves[i].name;
         }
-        for (i = 0; i < mk_clements_hume_ordinal_scale_count; i++) {
-            names[n++] = mk_clements_hume_ordinal_scales[i].name;
+        for (i = 0; i < mki_clements_hume_ordinal_scale_count; i++) {
+            names[n++] = mki_clements_hume_ordinal_scales[i].name;
         }
     }
 
@@ -194,8 +194,8 @@ static void mk_vector_fill(
         return;
     }
 
-    for (i = 0; i < mk_clements_hume_leaf_count; i++) {
-        const mk_geometry_leaf *leaf = &mk_clements_hume_leaves[i];
+    for (i = 0; i < mki_clements_hume_leaf_count; i++) {
+        const mk_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
 
         if (mk_vector_has(view, leaf->positive)) {
             values[i] = 1.0;
@@ -205,9 +205,9 @@ static void mk_vector_fill(
             values[i] = 0.0;
         }
     }
-    for (i = 0; i < mk_clements_hume_ordinal_scale_count; i++) {
-        const mk_ordinal_scale *scale = &mk_clements_hume_ordinal_scales[i];
-        size_t slot = mk_clements_hume_leaf_count + i;
+    for (i = 0; i < mki_clements_hume_ordinal_scale_count; i++) {
+        const mk_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
+        size_t slot = mki_clements_hume_leaf_count + i;
         size_t level;
 
         values[slot] = 0.0;
@@ -239,7 +239,7 @@ mk_status mk_system_feature_vector(
         return MK_ERR_INVALID_ARGUMENT;
     }
     *written = 0;
-    width = mk_vector_width_of(system->builtin);
+    width = mki_vector_width_of(system->builtin);
     if (capacity < width) {
         /* Reporting the width even on failure means a caller can size a buffer
          * from one failed call rather than needing mk_system_vector_width. */
@@ -247,13 +247,13 @@ mk_status mk_system_feature_vector(
         return MK_ERR_INVALID_ARGUMENT;
     }
 
-    status = mk_resolve(system, utf8_grapheme, &entry);
+    status = mki_resolve(system, utf8_grapheme, &entry);
     if (status != MK_OK) {
         return status;
     }
-    view = mk_view_of(&entry);
+    view = mki_view_of(&entry);
     mk_vector_fill(system->builtin, &view, values);
-    mk_resolution_clear(&entry);
+    mki_resolution_clear(&entry);
     *written = width;
     return MK_OK;
 }

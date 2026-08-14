@@ -20,7 +20,7 @@ static size_t mk_utf8_claimed_len(unsigned char c)
     return 1;
 }
 
-size_t mk_utf8_step(const char *p)
+size_t mki_utf8_step(const char *p)
 {
     size_t claimed = mk_utf8_claimed_len((unsigned char)*p);
     size_t i;
@@ -33,13 +33,13 @@ size_t mk_utf8_step(const char *p)
     return claimed;
 }
 
-unsigned int mk_utf8_codepoint(const char *p)
+unsigned int mki_utf8_codepoint(const char *p)
 {
     unsigned char c = (unsigned char)p[0];
 
     /* Decode only what is there. A sequence cut short by the terminator falls
      * through to the lead byte below. */
-    if (mk_utf8_step(p) != mk_utf8_claimed_len(c)) {
+    if (mki_utf8_step(p) != mk_utf8_claimed_len(c)) {
         return c;
     }
     if (c < 0x80) {
@@ -63,9 +63,9 @@ unsigned int mk_utf8_codepoint(const char *p)
     return c;
 }
 
-int mk_is_combining_mark(const char *p)
+int mki_is_combining_mark(const char *p)
 {
-    unsigned int cp = mk_utf8_codepoint(p);
+    unsigned int cp = mki_utf8_codepoint(p);
 
     return (cp >= 0x0300 && cp <= 0x036F) ||
         (cp >= 0x1AB0 && cp <= 0x1AFF) ||
@@ -79,19 +79,19 @@ static int mk_is_map_mark(const mk_diacritic_map *map, size_t count, const char 
     size_t i;
 
     for (i = 0; i < count; i++) {
-        if (mk_has_prefix(p, map[i].mark)) {
+        if (mki_has_prefix(p, map[i].mark)) {
             return 1;
         }
     }
     return 0;
 }
 
-int mk_is_modifier_letter_or_symbol(const char *p)
+int mki_is_modifier_letter_or_symbol(const char *p)
 {
-    unsigned int cp = mk_utf8_codepoint(p);
+    unsigned int cp = mki_utf8_codepoint(p);
 
-    if (mk_is_map_mark(mk_default_prefix_diacritics, mk_default_prefix_diacritic_count, p) ||
-        mk_is_map_mark(mk_default_suffix_diacritics, mk_default_suffix_diacritic_count, p)) {
+    if (mk_is_map_mark(mki_default_prefix_diacritics, mki_default_prefix_diacritic_count, p) ||
+        mk_is_map_mark(mki_default_suffix_diacritics, mki_default_suffix_diacritic_count, p)) {
         return 1;
     }
     return (cp >= 0x02B0 && cp <= 0x02FF) ||

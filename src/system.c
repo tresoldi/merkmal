@@ -54,9 +54,9 @@ mk_status mk_system_is_segment(
         return MK_ERR_INVALID_ARGUMENT;
     }
     *out = false;
-    status = mk_resolve(system, utf8_grapheme, &entry);
+    status = mki_resolve(system, utf8_grapheme, &entry);
     if (status == MK_OK) {
-        mk_resolution_clear(&entry);
+        mki_resolution_clear(&entry);
         *out = true;
         return MK_OK;
     }
@@ -86,12 +86,12 @@ mk_status mk_system_grapheme_features(
         return MK_ERR_INVALID_ARGUMENT;
     }
     *out = NULL;
-    status = mk_resolve(system, utf8_grapheme, &entry);
+    status = mki_resolve(system, utf8_grapheme, &entry);
     if (status != MK_OK) {
         return status;
     }
-    status = mk_string_list_from_borrowed(entry.features, entry.feature_count, out);
-    mk_resolution_clear(&entry);
+    status = mki_string_list_from_borrowed(entry.features, entry.feature_count, out);
+    mki_resolution_clear(&entry);
     return status;
 }
 
@@ -135,23 +135,23 @@ static mk_status mk_component_distance(
     mk_status status;
 
     memset(&a_resolved, 0, sizeof(a_resolved));
-    if (mk_resolve(system, a_text, &a_resolved) != MK_OK) {
+    if (mki_resolve(system, a_text, &a_resolved) != MK_OK) {
         *out = 1.0;
         return MK_OK;
     }
-    if (mk_streq(a_resolved.grapheme, b_entry->grapheme)) {
+    if (mki_streq(a_resolved.grapheme, b_entry->grapheme)) {
         *out = 0.0;
         status = MK_OK;
     } else {
-        status = mk_score_categorical(
+        status = mki_score_categorical(
             system->builtin,
-            mk_view_of(&a_resolved),
-            mk_view_of(b_entry),
+            mki_view_of(&a_resolved),
+            mki_view_of(b_entry),
             node_weights,
             out
         );
     }
-    mk_resolution_clear(&a_resolved);
+    mki_resolution_clear(&a_resolved);
     return status;
 }
 
@@ -167,12 +167,12 @@ static mk_status mk_cluster_component_distance(
     mk_status status;
 
     memset(&a_resolved, 0, sizeof(a_resolved));
-    if (mk_resolve(system, a_text, &a_resolved) != MK_OK) {
+    if (mki_resolve(system, a_text, &a_resolved) != MK_OK) {
         *out = 1.0;
         return MK_OK;
     }
     status = mk_component_distance(system, b_text, &a_resolved, node_weights, out);
-    mk_resolution_clear(&a_resolved);
+    mki_resolution_clear(&a_resolved);
     return status;
 }
 
@@ -181,7 +181,7 @@ static int mk_view_has(mk_feature_view view, const char *feature)
     size_t i;
 
     for (i = 0; i < view.count; i++) {
-        if (mk_streq(view.features[i], feature)) {
+        if (mki_streq(view.features[i], feature)) {
             return 1;
         }
     }
@@ -246,8 +246,8 @@ static mk_status mk_distance_cluster_to_segment(
      * property of the source that nothing here can read per form. Claiming it
      * means length is the move that cost a PHOIBLE contrast when it was applied
      * to `ɫ`. */
-    if (!(mk_view_has(mk_view_of(cluster), "geminate") &&
-          mk_segment_carries_length(mk_view_of(segment)))) {
+    if (!(mk_view_has(mki_view_of(cluster), "geminate") &&
+          mk_segment_carries_length(mki_view_of(segment)))) {
         score += MK_CLUSTER_LENGTH_PENALTY * (double)(cluster->cluster_component_count - 1);
     }
     *out = mk_min_double(score, 1.0);
@@ -268,7 +268,7 @@ static mk_status mk_vowel_cluster_distance(
     size_t i;
     mk_status status;
 
-    if (mk_streq(a->grapheme, b->grapheme)) {
+    if (mki_streq(a->grapheme, b->grapheme)) {
         *out = 0.0;
         return MK_OK;
     }
@@ -315,8 +315,8 @@ static mk_status mk_vowel_cluster_distance(
         component_score = mk_min_double(component_score, 1.0);
     }
 
-    status = mk_score_categorical(
-        system->builtin, mk_view_of(a), mk_view_of(b), node_weights, &segment_score);
+    status = mki_score_categorical(
+        system->builtin, mki_view_of(a), mki_view_of(b), node_weights, &segment_score);
     if (status != MK_OK) {
         return status;
     }
@@ -351,13 +351,13 @@ static mk_status mk_distance_with_coverage(
     }
     *out = 0.0;
 
-    status = mk_resolve(system, utf8_a, &resolved_a);
+    status = mki_resolve(system, utf8_a, &resolved_a);
     if (status != MK_OK) {
         return status;
     }
-    status = mk_resolve(system, utf8_b, &resolved_b);
+    status = mki_resolve(system, utf8_b, &resolved_b);
     if (status != MK_OK) {
-        mk_resolution_clear(&resolved_a);
+        mki_resolution_clear(&resolved_a);
         return status;
     }
 
@@ -367,17 +367,17 @@ static mk_status mk_distance_with_coverage(
      * a stop, 0.50 against a vowel -- which is not a statement about tone and
      * sits below the cost at which an aligner stops matching the two. Gold
      * alignments never put them in one column. */
-    if (mk_is_tonal_autosegment(mk_view_of(&resolved_a)) !=
-        mk_is_tonal_autosegment(mk_view_of(&resolved_b))) {
-        *out = mk_clements_hume_cross_tier_cost;
+    if (mk_is_tonal_autosegment(mki_view_of(&resolved_a)) !=
+        mk_is_tonal_autosegment(mki_view_of(&resolved_b))) {
+        *out = mki_clements_hume_cross_tier_cost;
         if (coverage != NULL) {
             *coverage = 0.0;
         }
         if (why != NULL) {
             *why = MK_CMP_CROSS_TIER;
         }
-        mk_resolution_clear(&resolved_a);
-        mk_resolution_clear(&resolved_b);
+        mki_resolution_clear(&resolved_a);
+        mki_resolution_clear(&resolved_b);
         return MK_OK;
     }
 
@@ -385,21 +385,21 @@ static mk_status mk_distance_with_coverage(
         if (resolved_a.cluster_component_count > 0 || resolved_b.cluster_component_count > 0) {
             status = mk_vowel_cluster_distance(
                 system, &resolved_a, &resolved_b, node_weights, out);
-        } else if (mk_streq(resolved_a.grapheme, resolved_b.grapheme)) {
+        } else if (mki_streq(resolved_a.grapheme, resolved_b.grapheme)) {
             /* Two spellings of one segment. The scorer would reach 0.0 anyway;
              * this skips the walk over every leaf, group, and scale. */
             *out = 0.0;
         } else {
-            status = mk_score_categorical(
+            status = mki_score_categorical(
                 system->builtin,
-                mk_view_of(&resolved_a),
-                mk_view_of(&resolved_b),
+                mki_view_of(&resolved_a),
+                mki_view_of(&resolved_b),
                 node_weights,
                 out
             );
         }
     } else if (system->builtin->kind == MK_SYSTEM_VALUED) {
-        if (mk_streq(resolved_a.grapheme, resolved_b.grapheme)) {
+        if (mki_streq(resolved_a.grapheme, resolved_b.grapheme)) {
             /* One segment compared with itself is fully covered, not
              * uncovered: every dimension it has, it shares. */
             *out = 0.0;
@@ -407,10 +407,10 @@ static mk_status mk_distance_with_coverage(
                 *coverage = 1.0;
             }
         } else {
-            status = mk_score_valued(
+            status = mki_score_valued(
                 system->builtin,
-                mk_view_of(&resolved_a),
-                mk_view_of(&resolved_b),
+                mki_view_of(&resolved_a),
+                mki_view_of(&resolved_b),
                 node_weights,
                 out,
                 coverage
@@ -419,8 +419,8 @@ static mk_status mk_distance_with_coverage(
     } else {
         status = MK_ERR_UNSUPPORTED_MODEL;
     }
-    mk_resolution_clear(&resolved_a);
-    mk_resolution_clear(&resolved_b);
+    mki_resolution_clear(&resolved_a);
+    mki_resolution_clear(&resolved_b);
     if (status != MK_OK) {
         *out = 0.0;
         if (coverage != NULL) {
@@ -520,7 +520,7 @@ mk_status mk_system_segment_ipa(
             bool is_segment = false;
 
             for (i = 0; i < span; i++) {
-                status = mk_append_text(
+                status = mki_append_text(
                     &joined,
                     &joined_len,
                     &joined_cap,
@@ -579,7 +579,7 @@ mk_status mk_system_segment_ipa(
     mk_string_list_free(orthographic);
     /* The tokens are already owned; hand them over rather than copying every
      * one and freeing the original. */
-    status = mk_string_list_adopt(items, count, out);
+    status = mki_string_list_adopt(items, count, out);
     if (status != MK_OK) {
         goto fail;
     }

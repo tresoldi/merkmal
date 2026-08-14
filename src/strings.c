@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-char *mk_strdup_internal(const char *s)
+char *mki_strdup_internal(const char *s)
 {
     size_t len;
     char *copy;
@@ -20,7 +20,7 @@ char *mk_strdup_internal(const char *s)
     return copy;
 }
 
-int mk_streq(const char *a, const char *b)
+int mki_streq(const char *a, const char *b)
 {
     if (a == NULL || b == NULL) {
         return 0;
@@ -28,7 +28,7 @@ int mk_streq(const char *a, const char *b)
     return strcmp(a, b) == 0;
 }
 
-int mk_has_prefix(const char *s, const char *prefix)
+int mki_has_prefix(const char *s, const char *prefix)
 {
     size_t n;
 
@@ -39,7 +39,7 @@ int mk_has_prefix(const char *s, const char *prefix)
     return strncmp(s, prefix, n) == 0;
 }
 
-mk_status mk_append_text(char **buf, size_t *len, size_t *cap, const char *s)
+mk_status mki_append_text(char **buf, size_t *len, size_t *cap, const char *s)
 {
     size_t n;
     char *next;
@@ -63,7 +63,7 @@ mk_status mk_append_text(char **buf, size_t *len, size_t *cap, const char *s)
     return MK_OK;
 }
 
-void mk_free_items(char **items, size_t count)
+void mki_free_items(char **items, size_t count)
 {
     size_t i;
 

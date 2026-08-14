@@ -4,7 +4,7 @@
 
 #include <string.h>
 
-void mk_inventory_row(
+void mki_inventory_row(
     const mk_builtin_system *system,
     size_t index,
     const char **scratch,
@@ -15,9 +15,13 @@ void mk_inventory_row(
     const unsigned short *ids;
     size_t i;
 
+    /* The two casts here and in mki_inventory_find add const rather than remove
+     * it: a runtime model owns its rows as char **, and a reader gets the
+     * borrowed view. C will not widen char ** to const char *const * on its
+     * own, so the conversion is spelled out. */
     if (system->entries != NULL) {
         out->grapheme = system->entries[index].grapheme;
-        out->features = system->entries[index].features;
+        out->features = (const char *const *)system->entries[index].features;
         out->feature_count = system->entries[index].feature_count;
         return;
     }
@@ -25,14 +29,14 @@ void mk_inventory_row(
     count = system->entry_feature_n[index];
     ids = system->feature_ids + system->entry_feature_at[index];
     for (i = 0; i < count; i++) {
-        scratch[i] = mk_feature_name(ids[i]);
+        scratch[i] = mki_feature_name(ids[i]);
     }
-    out->grapheme = mk_pool_string(system->entry_graphemes[index]);
+    out->grapheme = mki_pool_string(system->entry_graphemes[index]);
     out->features = scratch;
     out->feature_count = count;
 }
 
-int mk_inventory_find(
+int mki_inventory_find(
     const mk_builtin_system *system,
     const char *key,
     const char **scratch,
@@ -47,9 +51,9 @@ int mk_inventory_find(
 
     if (system->entries != NULL) {
         for (i = 0; i < system->entry_count; i++) {
-            if (mk_streq(system->entries[i].grapheme, key)) {
+            if (mki_streq(system->entries[i].grapheme, key)) {
                 out->grapheme = system->entries[i].grapheme;
-                out->features = system->entries[i].features;
+                out->features = (const char *const *)system->entries[i].features;
                 out->feature_count = system->entries[i].feature_count;
                 return 1;
             }
@@ -68,10 +72,10 @@ int mk_inventory_find(
 
         while (low < high) {
             size_t mid = low + (high - low) / 2;
-            int order = strcmp(mk_pool_string(system->entry_graphemes[mid]), key);
+            int order = strcmp(mki_pool_string(system->entry_graphemes[mid]), key);
 
             if (order == 0) {
-                mk_inventory_row(system, mid, scratch, out);
+                mki_inventory_row(system, mid, scratch, out);
                 return 1;
             }
             if (order < 0) {

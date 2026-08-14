@@ -5,7 +5,7 @@ calls the core directly, so none of them needs a CLI, a file, or process state.
 
 | harness | entry points |
 |---|---|
-| `fuzz_model_text` | `mk_parse_model_text` — the runtime-model parser |
+| `fuzz_model_text` | `mki_parse_model_text_n` — the runtime-model parser |
 | `fuzz_segment` | `mk_segment_ipa`, `mk_segment_ipa_merged`, `mk_normalize_grapheme`, `mk_split_tone` |
 | `fuzz_resolve` | `mk_system_is_segment`, `mk_system_grapheme_features`, `mk_system_segment_distance`, `mk_system_segment_ipa`, against every built-in system |
 
@@ -39,6 +39,10 @@ two profiles are different code.
 Seeds are real transcriptions: graphemes from the golden fixtures, tie-barred
 affricates, clicks, tone-marked syllables, and two small runtime models. Add a
 seed whenever a new construction becomes reachable.
+
+`fuzz_model_text` takes the bytes as they are, with no terminator appended, so
+the corpus can hold inputs containing embedded NUL — which the parser must
+refuse rather than truncate at.
 
 ## Crashes
 

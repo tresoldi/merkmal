@@ -12,7 +12,7 @@
 /* Lookup normalization: resolve a slash-delimited spelling, strip leading
  * stress marks, decompose, and apply the source conventions (a model written
  * "ʧ" means the segment written "tʃ"). Returns an owned string. */
-mk_status mk_normalize_input_grapheme(const char *utf8_in, char **utf8_out);
+mk_status mki_normalize_input_grapheme(const char *utf8_in, char **utf8_out);
 
 /* Lookup normalization with the source conventions withheld.
  *
@@ -22,11 +22,11 @@ mk_status mk_normalize_input_grapheme(const char *utf8_in, char **utf8_out);
  * so without the earlier attempt a rule here silently replaces a real
  * inventory row. That happened: mapping U+026B to "lˠ" merged two segments
  * PHOIBLE distinguishes. Returns an owned string. */
-mk_status mk_normalize_input_grapheme_literal(const char *utf8_in, char **utf8_out);
+mk_status mki_normalize_input_grapheme_literal(const char *utf8_in, char **utf8_out);
 
 /* Tokenizer normalization: decompose only. The source conventions are
  * deliberately not applied, because a token is reported as the caller wrote
  * it. Returns an owned string. */
-mk_status mk_segmentation_nfd(const char *utf8_in, char **utf8_out);
+mk_status mki_segmentation_nfd(const char *utf8_in, char **utf8_out);
 
 #endif

@@ -14,7 +14,7 @@ struct mk_string_list {
 };
 
 /* Copies `items` and every string in it. */
-mk_status mk_string_list_from_borrowed(
+mk_status mki_string_list_from_borrowed(
     const char *const *items,
     size_t count,
     mk_string_list **out
@@ -24,7 +24,7 @@ mk_status mk_string_list_from_borrowed(
  * already built an owned array hand it over instead of copying it and freeing
  * the original -- which is what the tokenizer used to do, and why two places
  * assembled the struct by hand rather than going through a constructor. */
-mk_status mk_string_list_adopt(
+mk_status mki_string_list_adopt(
     char **items,
     size_t count,
     mk_string_list **out

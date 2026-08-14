@@ -21,7 +21,7 @@ static int mk_features_contains(
     size_t i;
 
     for (i = 0; i < feature_count; i++) {
-        if (mk_streq(features[i], feature)) {
+        if (mki_streq(features[i], feature)) {
             return 1;
         }
     }
@@ -37,10 +37,10 @@ static int mk_is_leaf_feature(const char *feature)
 {
     size_t i;
 
-    for (i = 0; i < mk_clements_hume_leaf_count; i++) {
-        const mk_geometry_leaf *leaf = &mk_clements_hume_leaves[i];
-        if ((leaf->positive[0] != '\0' && mk_streq(leaf->positive, feature)) ||
-            (leaf->negative[0] != '\0' && mk_streq(leaf->negative, feature))) {
+    for (i = 0; i < mki_clements_hume_leaf_count; i++) {
+        const mk_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
+        if ((leaf->positive[0] != '\0' && mki_streq(leaf->positive, feature)) ||
+            (leaf->negative[0] != '\0' && mki_streq(leaf->negative, feature))) {
             return 1;
         }
     }
@@ -51,9 +51,9 @@ static const char *mk_feature_node(const char *feature)
 {
     size_t i;
 
-    for (i = 0; i < mk_clements_hume_feature_to_node_count; i++) {
-        if (mk_streq(mk_clements_hume_feature_to_node[i].feature, feature)) {
-            return mk_clements_hume_feature_to_node[i].node;
+    for (i = 0; i < mki_clements_hume_feature_to_node_count; i++) {
+        if (mki_streq(mki_clements_hume_feature_to_node[i].feature, feature)) {
+            return mki_clements_hume_feature_to_node[i].node;
         }
     }
     return NULL;
@@ -63,9 +63,9 @@ static const mk_feature_path *mk_find_feature_path(const char *feature)
 {
     size_t i;
 
-    for (i = 0; i < mk_clements_hume_feature_path_count; i++) {
-        if (mk_streq(mk_clements_hume_feature_paths[i].feature, feature)) {
-            return &mk_clements_hume_feature_paths[i];
+    for (i = 0; i < mki_clements_hume_feature_path_count; i++) {
+        if (mki_streq(mki_clements_hume_feature_paths[i].feature, feature)) {
+            return &mki_clements_hume_feature_paths[i];
         }
     }
     return NULL;
@@ -76,10 +76,10 @@ static int mk_is_ordinal_level_feature(const char *feature)
     size_t i;
     size_t j;
 
-    for (i = 0; i < mk_clements_hume_ordinal_scale_count; i++) {
-        const mk_ordinal_scale *scale = &mk_clements_hume_ordinal_scales[i];
+    for (i = 0; i < mki_clements_hume_ordinal_scale_count; i++) {
+        const mk_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
         for (j = 0; j < scale->level_count; j++) {
-            if (mk_streq(scale->levels[j], feature)) {
+            if (mki_streq(scale->levels[j], feature)) {
                 return 1;
             }
         }
@@ -90,7 +90,7 @@ static int mk_is_ordinal_level_feature(const char *feature)
 /* Reports a feature set that sits at two points on one ordered scale. The
  * diacritic composer can build one: breve plus length mark yields both
  * `ultra-short` and `long`, which is not a segment any language contrasts. */
-int mk_ordinal_conflict(
+int mki_ordinal_conflict(
     const char *const *features,
     size_t feature_count,
     const char **scale_out,
@@ -101,8 +101,8 @@ int mk_ordinal_conflict(
     size_t i;
     size_t j;
 
-    for (i = 0; i < mk_clements_hume_ordinal_scale_count; i++) {
-        const mk_ordinal_scale *scale = &mk_clements_hume_ordinal_scales[i];
+    for (i = 0; i < mki_clements_hume_ordinal_scale_count; i++) {
+        const mk_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
         const char *found = NULL;
 
         for (j = 0; j < scale->level_count; j++) {
@@ -131,23 +131,23 @@ static int mk_is_metadata_feature(const char *feature)
 {
     size_t i;
 
-    for (i = 0; i < mk_default_metadata_feature_count; i++) {
-        if (mk_streq(mk_default_metadata_features[i], feature)) {
+    for (i = 0; i < mki_default_metadata_feature_count; i++) {
+        if (mki_streq(mki_default_metadata_features[i], feature)) {
             return 1;
         }
     }
     return 0;
 }
 
-int mk_geometry_knows_feature(const char *feature)
+int mki_geometry_knows_feature(const char *feature)
 {
     if (feature == NULL || feature[0] == '\0') {
         return 0;
     }
-    return mk_is_metadata_feature(feature) || mk_geometry_scores_feature(feature);
+    return mk_is_metadata_feature(feature) || mki_geometry_scores_feature(feature);
 }
 
-int mk_geometry_scores_feature(const char *feature)
+int mki_geometry_scores_feature(const char *feature)
 {
     if (feature == NULL || feature[0] == '\0') {
         return 0;
@@ -172,7 +172,7 @@ mk_status mk_feature_distance(
     if (feature_a == NULL || feature_b == NULL || out == NULL) {
         return MK_ERR_INVALID_ARGUMENT;
     }
-    if (mk_streq(feature_a, feature_b)) {
+    if (mki_streq(feature_a, feature_b)) {
         *out = 0;
         return MK_OK;
     }
@@ -187,7 +187,7 @@ mk_status mk_feature_distance(
     common = 0;
     limit = path_a->path_count < path_b->path_count ?
         path_a->path_count : path_b->path_count;
-    while (common < limit && mk_streq(path_a->path[common], path_b->path[common])) {
+    while (common < limit && mki_streq(path_a->path[common], path_b->path[common])) {
         common++;
     }
 
@@ -199,9 +199,9 @@ static double mk_node_depth_value(const char *node)
 {
     size_t i;
 
-    for (i = 0; i < mk_clements_hume_node_depth_count; i++) {
-        if (mk_streq(mk_clements_hume_node_depths[i].node, node)) {
-            return mk_clements_hume_node_depths[i].depth;
+    for (i = 0; i < mki_clements_hume_node_depth_count; i++) {
+        if (mki_streq(mki_clements_hume_node_depths[i].node, node)) {
+            return mki_clements_hume_node_depths[i].depth;
         }
     }
     return 2.0;
@@ -211,9 +211,9 @@ static const char *mk_geometry_node_parent(const char *node)
 {
     size_t i;
 
-    for (i = 0; i < mk_clements_hume_node_parent_count; i++) {
-        if (mk_streq(mk_clements_hume_node_parents[i].node, node)) {
-            return mk_clements_hume_node_parents[i].parent;
+    for (i = 0; i < mki_clements_hume_node_parent_count; i++) {
+        if (mki_streq(mki_clements_hume_node_parents[i].node, node)) {
+            return mki_clements_hume_node_parents[i].parent;
         }
     }
     return "";
@@ -226,9 +226,9 @@ static const mk_node_weight_preset *mk_find_weight_preset(const char *name)
     if (name == NULL) {
         return NULL;
     }
-    for (i = 0; i < mk_clements_hume_weight_preset_count; i++) {
-        if (mk_streq(mk_clements_hume_weight_presets[i].name, name)) {
-            return &mk_clements_hume_weight_presets[i];
+    for (i = 0; i < mki_clements_hume_weight_preset_count; i++) {
+        if (mki_streq(mki_clements_hume_weight_presets[i].name, name)) {
+            return &mki_clements_hume_weight_presets[i];
         }
     }
     return NULL;
@@ -243,7 +243,7 @@ static mk_status mk_resolve_weight_preset(
         return MK_ERR_INVALID_ARGUMENT;
     }
     *out = NULL;
-    if (node_weights == NULL || node_weights[0] == '\0' || mk_streq(node_weights, "None")) {
+    if (node_weights == NULL || node_weights[0] == '\0' || mki_streq(node_weights, "None")) {
         return MK_OK;
     }
     *out = mk_find_weight_preset(node_weights);
@@ -261,7 +261,7 @@ static double mk_direct_node_weight(
         return 1.0;
     }
     for (i = 0; i < preset->weight_count; i++) {
-        if (mk_streq(preset->weights[i].node, node)) {
+        if (mki_streq(preset->weights[i].node, node)) {
             return preset->weights[i].weight;
         }
     }
@@ -308,7 +308,7 @@ static mk_node_group *mk_get_group(
     size_t i;
 
     for (i = 0; i < *count; i++) {
-        if (mk_streq(groups[i].node, node)) {
+        if (mki_streq(groups[i].node, node)) {
             return &groups[i];
         }
     }
@@ -379,8 +379,8 @@ static void mk_accumulate_ordinal_scales(
 {
     size_t i;
 
-    for (i = 0; i < mk_clements_hume_ordinal_scale_count; i++) {
-        const mk_ordinal_scale *scale = &mk_clements_hume_ordinal_scales[i];
+    for (i = 0; i < mki_clements_hume_ordinal_scale_count; i++) {
+        const mk_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
         int level_a = mk_ordinal_level(a, scale);
         int level_b = mk_ordinal_level(b, scale);
         double weight;
@@ -478,8 +478,8 @@ static double mk_categorical_distance_resolved(
     total_weight = 0.0;
     total_diff = 0.0;
 
-    for (i = 0; i < mk_clements_hume_leaf_count; i++) {
-        const mk_geometry_leaf *leaf = &mk_clements_hume_leaves[i];
+    for (i = 0; i < mki_clements_hume_leaf_count; i++) {
+        const mk_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
         double weight = mk_dimension_weight(preset, leaf->parent, 1.0 / leaf->depth);
         int a_pos = leaf->positive[0] != '\0' && mk_view_contains(a, leaf->positive);
         int a_neg = leaf->negative[0] != '\0' && mk_view_contains(a, leaf->negative);
@@ -529,7 +529,7 @@ static double mk_categorical_distance_resolved(
     return total_weight > 0.0 ? total_diff / total_weight : 0.0;
 }
 
-mk_status mk_score_categorical(
+mk_status mki_score_categorical(
     const mk_builtin_system *system,
     mk_feature_view a,
     mk_feature_view b,
@@ -581,7 +581,7 @@ static int mk_label_value(
     return 0;
 }
 
-mk_status mk_score_valued(
+mk_status mki_score_valued(
     const mk_builtin_system *system,
     mk_feature_view a,
     mk_feature_view b,
@@ -656,5 +656,5 @@ mk_status mk_sound_distance(
         (b.count > 0 && b.features == NULL)) {
         return MK_ERR_INVALID_ARGUMENT;
     }
-    return mk_score_categorical(NULL, a, b, node_weights, out);
+    return mki_score_categorical(NULL, a, b, node_weights, out);
 }

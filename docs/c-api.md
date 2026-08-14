@@ -217,6 +217,7 @@ mk_status mk_registry_list_systems(const mk_registry *registry, mk_string_list *
 mk_status mk_registry_get_system(const mk_registry *registry, const char *name, const mk_system **out);
 mk_status mk_registry_add_model_text(mk_registry *registry, const char *model_text);
 mk_status mk_registry_add_model_text_ex(mk_registry *registry, const char *model_text, char **diagnostic_out);
+mk_status mk_registry_add_model_text_n(mk_registry *registry, const char *model_text, size_t model_text_length, char **diagnostic_out);
 ```
 
 `mk_registry_new_builtin` creates a registry containing the compiled-in
@@ -233,6 +234,16 @@ answers `0.0` for every comparison, which is indistinguishable from "these
 segments are identical". Use `mk_registry_add_model_text_ex` to receive an
 owned diagnostic naming the offending line and token; free it with
 `mk_string_free`.
+
+The first two forms take a NUL-terminated string.
+`mk_registry_add_model_text_n` takes a pointer and a byte count instead, for a
+caller holding a buffer that owes the library no terminator — a mapped file,
+a Python `bytes`, a fuzzer's input. Nothing past `model_text_length` is read.
+The other two forms are this one with `strlen`.
+
+An embedded NUL byte returns `MK_ERR_PARSE` rather than truncating. The format
+is line-oriented text, and a NUL in the middle would otherwise end the model
+early and register the part before it as though it were the whole thing.
 
 System pointers returned by `mk_registry_get_system` remain valid until the
 registry is freed. Adding a model does not invalidate an existing system

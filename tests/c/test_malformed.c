@@ -53,6 +53,18 @@ static const malformed_case cases[] = {
     CASE("only stress marks", "\xCB\x88\xCB\x8C"),
     CASE("long tone run", "a\xC2\xB9\xC2\xB9\xC2\xB9\xC2\xB9\xC2\xB9\xC2\xB9"),
     CASE("boundary only", "+"),
+
+    /* Found by fuzz_resolve. Two consonant components merged into one
+     * inventory row, and the merged resolution was copied out of the frame
+     * that owned it with a plain struct assignment -- so its `features`, which
+     * aliased that frame's inline_features array, pointed at a dead stack slot
+     * by the time mk_synthesize_cluster read it. AddressSanitizer called it a
+     * stack-use-after-return. mk_resolution_move is the fix.
+     *
+     * The literal is split so that "\x96" does not swallow the following F as
+     * a fourth hex digit. */
+    CASE("merged cluster component escaping its frame",
+        "cisntstiisi\x9c\x8b\x96" "Fve"),
 };
 
 /* Exercises everything that takes caller text. Nothing here asserts a
@@ -169,6 +181,59 @@ static int check_long_feature_name_is_rejected(void)
     return failed;
 }
 
+/* mk_registry_add_model_text_n takes bytes, so it is the one entry point that
+ * can be handed a model with no terminator and a model containing a NUL.
+ *
+ * The buffer here is sized exactly to the model and is deliberately not
+ * terminated: if the parser ever reaches for a terminator that a caller did not
+ * promise, this reads off the end of the allocation and ASan says so. */
+static int check_unterminated_and_embedded_nul(void)
+{
+    static const char model[] =
+        "@model unterminated\n"
+        "@type categorical\n"
+        "@validation permissive\n"
+        "grapheme Q consonant\n";
+    const size_t length = sizeof(model) - 1;
+    mk_registry *registry = NULL;
+    char *diagnostic = NULL;
+    char *bytes;
+    int failed = 0;
+
+    if (mk_registry_new_builtin(&registry) != MK_OK) {
+        fprintf(stderr, "could not build the registry\n");
+        return 1;
+    }
+
+    bytes = (char *)malloc(length);
+    if (bytes == NULL) {
+        mk_registry_free(registry);
+        return 1;
+    }
+    memcpy(bytes, model, length);
+
+    if (mk_registry_add_model_text_n(registry, bytes, length, &diagnostic) != MK_OK) {
+        fprintf(stderr, "unterminated model: rejected (%s)\n",
+            diagnostic == NULL ? "no diagnostic" : diagnostic);
+        failed = 1;
+    }
+    mk_string_free(diagnostic);
+    diagnostic = NULL;
+
+    /* The same bytes with a NUL in the middle must be refused rather than
+     * quietly registered as whatever preceded it. */
+    bytes[length / 2] = '\0';
+    if (mk_registry_add_model_text_n(registry, bytes, length, &diagnostic) != MK_ERR_PARSE) {
+        fprintf(stderr, "embedded NUL in a model: expected MK_ERR_PARSE\n");
+        failed = 1;
+    }
+    mk_string_free(diagnostic);
+
+    free(bytes);
+    mk_registry_free(registry);
+    return failed;
+}
+
 int main(void)
 {
     mk_registry *registry = NULL;
@@ -185,5 +250,6 @@ int main(void)
     mk_registry_free(registry);
 
     failed |= check_long_feature_name_is_rejected();
+    failed |= check_unterminated_and_embedded_nul();
     return failed ? 1 : 0;
 }

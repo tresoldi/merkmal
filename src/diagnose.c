@@ -47,9 +47,9 @@ mk_status mk_system_diagnose(
     memset(out, 0, sizeof(*out));
     out->status = MK_OK;
 
-    status = mk_resolve(system, utf8_grapheme, &entry);
+    status = mki_resolve(system, utf8_grapheme, &entry);
     if (status == MK_OK) {
-        mk_resolution_clear(&entry);
+        mki_resolution_clear(&entry);
         out->valid_prefix_bytes = strlen(utf8_grapheme);
         out->offending_offset = out->valid_prefix_bytes;
         return MK_OK;
@@ -63,7 +63,7 @@ mk_status mk_system_diagnose(
      * common case instead of retrying the whole string first. */
     cut = 0;
     while (cut < len) {
-        size_t step = mk_utf8_step(utf8_grapheme + cut);
+        size_t step = mki_utf8_step(utf8_grapheme + cut);
         size_t next = cut + step;
         char *prefix;
 
@@ -76,8 +76,8 @@ mk_status mk_system_diagnose(
         }
         memcpy(prefix, utf8_grapheme, next);
         prefix[next] = '\0';
-        if (mk_resolve(system, prefix, &entry) == MK_OK) {
-            mk_resolution_clear(&entry);
+        if (mki_resolve(system, prefix, &entry) == MK_OK) {
+            mki_resolution_clear(&entry);
             best = next;
         }
         free(prefix);
@@ -87,7 +87,7 @@ mk_status mk_system_diagnose(
     out->valid_prefix_bytes = best;
     out->offending_offset = best;
     if (best < len) {
-        size_t step = mk_utf8_step(utf8_grapheme + best);
+        size_t step = mki_utf8_step(utf8_grapheme + best);
 
         if (step > 0 && best + step <= len && step < sizeof(out->offending)) {
             memcpy(out->offending, utf8_grapheme + best, step);

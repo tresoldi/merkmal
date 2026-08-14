@@ -6,9 +6,9 @@
 
 /* Whether this codepoint is one of the vowel letters the cluster grammar
  * admits and the tone-merge step treats as a nucleus. */
-int mk_is_vowel_letter(const char *p);
+int mki_is_vowel_letter(const char *p);
 
 /* A segment boundary marker: morpheme, syllable, word, or phrase. */
-int mk_is_boundary(const char *p);
+int mki_is_boundary(const char *p);
 
 #endif

@@ -101,6 +101,23 @@ MK_API mk_status mk_registry_add_model_text_ex(
     char **diagnostic_out
 );
 
+/* As _ex, but for text that is not NUL-terminated: `model_text_length` is a
+ * byte count and nothing past it is read.
+ *
+ * This is the entry point for a caller holding a buffer rather than a C string
+ * -- a mapped file, a Python `bytes`, a fuzzer's input -- none of which owe the
+ * library a terminator. The other two forms are this one with strlen.
+ *
+ * An embedded NUL returns MK_ERR_PARSE. The format is line-oriented text; a
+ * NUL in the middle would end the model early and register the truncated part
+ * as if it were whole. */
+MK_API mk_status mk_registry_add_model_text_n(
+    mk_registry *registry,
+    const char *model_text,
+    size_t model_text_length,
+    char **diagnostic_out
+);
+
 /** Returns the name of a system as borrowed registry-owned storage. */
 MK_API mk_status mk_system_name(const mk_system *system, const char **out);
 /** Returns the system kind as borrowed static storage. */

@@ -4599,20 +4599,20 @@ static const unsigned int mk_feature_offsets[] = {
     4377, 4386, 4395, 4404, 4414, 4420, 4435, 4456,
 };
 
-const char *mk_pool_string(unsigned int offset)
+const char *mki_pool_string(unsigned int offset)
 {
     return mk_pool_chunks[offset >> 11] + (offset & 2047u);
 }
 
-const char *mk_feature_name(unsigned short id)
+const char *mki_feature_name(unsigned short id)
 {
-    return mk_pool_string(mk_feature_offsets[id]);
+    return mki_pool_string(mk_feature_offsets[id]);
 }
 
-const size_t mk_feature_name_count =
+const size_t mki_feature_name_count =
     sizeof(mk_feature_offsets) / sizeof(mk_feature_offsets[0]);
 
-const mk_geometry_leaf mk_clements_hume_leaves[] = {
+const mk_geometry_leaf mki_clements_hume_leaves[] = {
     {"voice", "voiced", "voiceless", 2, "Laryngeal"},
     {"spread_glottis", "aspirated", "", 2, "Laryngeal"},
     {"constricted_glottis", "glottalized", "", 2, "Laryngeal"},
@@ -4667,10 +4667,10 @@ const mk_geometry_leaf mk_clements_hume_leaves[] = {
     {"vocoid", "vocoid", "consonantal", 1.25, "Root"},
 };
 
-const size_t mk_clements_hume_leaf_count =
-    sizeof(mk_clements_hume_leaves) / sizeof(mk_clements_hume_leaves[0]);
+const size_t mki_clements_hume_leaf_count =
+    sizeof(mki_clements_hume_leaves) / sizeof(mki_clements_hume_leaves[0]);
 
-const mk_feature_node_map mk_clements_hume_feature_to_node[] = {
+const mk_feature_node_map mki_clements_hume_feature_to_node[] = {
     {"advanced-tongue-root", "TongueRoot"},
     {"affricate", "Manner"},
     {"approximant", "Manner"},
@@ -4706,10 +4706,10 @@ const mk_feature_node_map mk_clements_hume_feature_to_node[] = {
     {"voiceless", "Laryngeal"},
 };
 
-const size_t mk_clements_hume_feature_to_node_count =
-    sizeof(mk_clements_hume_feature_to_node) / sizeof(mk_clements_hume_feature_to_node[0]);
+const size_t mki_clements_hume_feature_to_node_count =
+    sizeof(mki_clements_hume_feature_to_node) / sizeof(mki_clements_hume_feature_to_node[0]);
 
-const mk_node_depth mk_clements_hume_node_depths[] = {
+const mk_node_depth mki_clements_hume_node_depths[] = {
     {"Coronal", 3.0},
     {"Dorsal", 3.0},
     {"Labial", 3.0},
@@ -4730,10 +4730,10 @@ const mk_node_depth mk_clements_hume_node_depths[] = {
     {"TongueRoot", 2.0},
 };
 
-const size_t mk_clements_hume_node_depth_count =
-    sizeof(mk_clements_hume_node_depths) / sizeof(mk_clements_hume_node_depths[0]);
+const size_t mki_clements_hume_node_depth_count =
+    sizeof(mki_clements_hume_node_depths) / sizeof(mki_clements_hume_node_depths[0]);
 
-const mk_node_parent mk_clements_hume_node_parents[] = {
+const mk_node_parent mki_clements_hume_node_parents[] = {
     {"Coronal", "Place"},
     {"Dorsal", "Place"},
     {"Labial", "Place"},
@@ -4754,8 +4754,8 @@ const mk_node_parent mk_clements_hume_node_parents[] = {
     {"TongueRoot", "Root"},
 };
 
-const size_t mk_clements_hume_node_parent_count =
-    sizeof(mk_clements_hume_node_parents) / sizeof(mk_clements_hume_node_parents[0]);
+const size_t mki_clements_hume_node_parent_count =
+    sizeof(mki_clements_hume_node_parents) / sizeof(mki_clements_hume_node_parents[0]);
 
 static const mk_node_weight mk_clements_hume_weight_preset_1[] = {
     {"Length", 0},
@@ -4790,7 +4790,7 @@ static const mk_node_weight mk_clements_hume_weight_preset_7[] = {
     {"TongueRoot", 0},
 };
 
-const mk_node_weight_preset mk_clements_hume_weight_presets[] = {
+const mk_node_weight_preset mki_clements_hume_weight_presets[] = {
     {"flat", NULL, 0, 1},
     {"ignore-length", mk_clements_hume_weight_preset_1, 1, 0},
     {"ignore-prosodic", mk_clements_hume_weight_preset_2, 1, 0},
@@ -4801,8 +4801,8 @@ const mk_node_weight_preset mk_clements_hume_weight_presets[] = {
     {"tone-only", mk_clements_hume_weight_preset_7, 5, 0},
 };
 
-const size_t mk_clements_hume_weight_preset_count =
-    sizeof(mk_clements_hume_weight_presets) / sizeof(mk_clements_hume_weight_presets[0]);
+const size_t mki_clements_hume_weight_preset_count =
+    sizeof(mki_clements_hume_weight_presets) / sizeof(mki_clements_hume_weight_presets[0]);
 
 static const char *const mk_clements_hume_feature_path_0[] = {
     "Root",
@@ -5619,7 +5619,7 @@ static const char *const mk_clements_hume_feature_path_109[] = {
     "consonantal",
 };
 
-const mk_feature_path mk_clements_hume_feature_paths[] = {
+const mk_feature_path mki_clements_hume_feature_paths[] = {
     {"voice", mk_clements_hume_feature_path_0, 4},
     {"voiced", mk_clements_hume_feature_path_1, 4},
     {"voiceless", mk_clements_hume_feature_path_2, 4},
@@ -5732,8 +5732,8 @@ const mk_feature_path mk_clements_hume_feature_paths[] = {
     {"consonantal", mk_clements_hume_feature_path_109, 3},
 };
 
-const size_t mk_clements_hume_feature_path_count =
-    sizeof(mk_clements_hume_feature_paths) / sizeof(mk_clements_hume_feature_paths[0]);
+const size_t mki_clements_hume_feature_path_count =
+    sizeof(mki_clements_hume_feature_paths) / sizeof(mki_clements_hume_feature_paths[0]);
 
 static const char *const mk_clements_hume_ordinal_levels_0[] = {
     "close",
@@ -5814,7 +5814,7 @@ static const char *const mk_clements_hume_ordinal_levels_9[] = {
     "tone-offset-5",
 };
 
-const mk_ordinal_scale mk_clements_hume_ordinal_scales[] = {
+const mk_ordinal_scale mki_clements_hume_ordinal_scales[] = {
     {"vowel_height", "Dorsal", mk_clements_hume_ordinal_levels_0, 7, MK_ORDINAL_UNDEFINED, 1},
     {"vowel_backness", "Dorsal", mk_clements_hume_ordinal_levels_1, 5, MK_ORDINAL_UNDEFINED, 0.80000000000000004},
     {"dorsal_place", "Dorsal", mk_clements_hume_ordinal_levels_2, 6, MK_ORDINAL_UNDEFINED, 0.5},
@@ -5827,10 +5827,10 @@ const mk_ordinal_scale mk_clements_hume_ordinal_scales[] = {
     {"tone_offset_level", "TonalOffset", mk_clements_hume_ordinal_levels_9, 5, MK_ORDINAL_UNDEFINED, 0.40000000000000002},
 };
 
-const size_t mk_clements_hume_ordinal_scale_count =
-    sizeof(mk_clements_hume_ordinal_scales) / sizeof(mk_clements_hume_ordinal_scales[0]);
+const size_t mki_clements_hume_ordinal_scale_count =
+    sizeof(mki_clements_hume_ordinal_scales) / sizeof(mki_clements_hume_ordinal_scales[0]);
 
-const char *const mk_default_metadata_features[] = {
+const char *const mki_default_metadata_features[] = {
     "complex",
     "consonant",
     "consonant-cluster",
@@ -5841,11 +5841,11 @@ const char *const mk_default_metadata_features[] = {
     "vowel",
 };
 
-const size_t mk_default_metadata_feature_count =
-    sizeof(mk_default_metadata_features) / sizeof(mk_default_metadata_features[0]);
+const size_t mki_default_metadata_feature_count =
+    sizeof(mki_default_metadata_features) / sizeof(mki_default_metadata_features[0]);
 
-const double mk_clements_hume_cross_tier_cost = 1;
-const mk_diacritic_map mk_default_combining_diacritics[] = {
+const double mki_clements_hume_cross_tier_cost = 1;
+const mk_diacritic_map mki_default_combining_diacritics[] = {
     {"̃", "nasalized"},
     {"̆", "ultra-short"},
     {"̈", "centralized"},
@@ -5874,10 +5874,10 @@ const mk_diacritic_map mk_default_combining_diacritics[] = {
     {"͈", "strong"},
 };
 
-const size_t mk_default_combining_diacritic_count =
-    sizeof(mk_default_combining_diacritics) / sizeof(mk_default_combining_diacritics[0]);
+const size_t mki_default_combining_diacritic_count =
+    sizeof(mki_default_combining_diacritics) / sizeof(mki_default_combining_diacritics[0]);
 
-const mk_diacritic_map mk_default_suffix_diacritics[] = {
+const mk_diacritic_map mki_default_suffix_diacritics[] = {
     {"ʰ", "aspirated"},
     {"ʱ", "breathy"},
     {"ʲ", "palatalized"},
@@ -5894,10 +5894,10 @@ const mk_diacritic_map mk_default_suffix_diacritics[] = {
     {"ⁿ", "with-nasal-release"},
 };
 
-const size_t mk_default_suffix_diacritic_count =
-    sizeof(mk_default_suffix_diacritics) / sizeof(mk_default_suffix_diacritics[0]);
+const size_t mki_default_suffix_diacritic_count =
+    sizeof(mki_default_suffix_diacritics) / sizeof(mki_default_suffix_diacritics[0]);
 
-const mk_diacritic_map mk_default_prefix_diacritics[] = {
+const mk_diacritic_map mki_default_prefix_diacritics[] = {
     {"ʰ", "pre-aspirated"},
     {"ʲ", "pre-palatalized"},
     {"ʷ", "pre-labialized"},
@@ -5905,8 +5905,8 @@ const mk_diacritic_map mk_default_prefix_diacritics[] = {
     {"ⁿ", "pre-nasalized"},
 };
 
-const size_t mk_default_prefix_diacritic_count =
-    sizeof(mk_default_prefix_diacritics) / sizeof(mk_default_prefix_diacritics[0]);
+const size_t mki_default_prefix_diacritic_count =
+    sizeof(mki_default_prefix_diacritics) / sizeof(mki_default_prefix_diacritics[0]);
 
 static const char *const mk_default_tone_mark_0_features[] = {
     "tone-present",
@@ -5957,7 +5957,7 @@ static const char *const mk_default_tone_mark_6_features[] = {
     "tone-offset-1",
 };
 
-const mk_tone_mark mk_default_tone_marks[] = {
+const mk_tone_mark mki_default_tone_marks[] = {
     {"̀", mk_default_tone_mark_0_features, 4},
     {"́", mk_default_tone_mark_1_features, 4},
     {"̂", mk_default_tone_mark_2_features, 4},
@@ -5967,8 +5967,8 @@ const mk_tone_mark mk_default_tone_marks[] = {
     {"̏", mk_default_tone_mark_6_features, 4},
 };
 
-const size_t mk_default_tone_mark_count =
-    sizeof(mk_default_tone_marks) / sizeof(mk_default_tone_marks[0]);
+const size_t mki_default_tone_mark_count =
+    sizeof(mki_default_tone_marks) / sizeof(mki_default_tone_marks[0]);
 
 static const char *const mk_default_valued_effect_0_alternatives[] = {
     "advancedTongueRoot",
@@ -6064,7 +6064,7 @@ static const char *const mk_default_valued_effect_19_alternatives[] = {
     "dorsal",
 };
 
-const mk_valued_diacritic_effect mk_default_valued_diacritic_effects[] = {
+const mk_valued_diacritic_effect mki_default_valued_diacritic_effects[] = {
     {"advanced-tongue-root", mk_default_valued_effect_0_alternatives, 2, '+' },
     {"aspirated", mk_default_valued_effect_1_alternatives, 2, '+' },
     {"breathy", mk_default_valued_effect_2_alternatives, 2, '+' },
@@ -6087,10 +6087,10 @@ const mk_valued_diacritic_effect mk_default_valued_diacritic_effects[] = {
     {"velarized", mk_default_valued_effect_19_alternatives, 1, '+' },
 };
 
-const size_t mk_default_valued_diacritic_effect_count =
-    sizeof(mk_default_valued_diacritic_effects) / sizeof(mk_default_valued_diacritic_effects[0]);
+const size_t mki_default_valued_diacritic_effect_count =
+    sizeof(mki_default_valued_diacritic_effects) / sizeof(mki_default_valued_diacritic_effects[0]);
 
-const mk_decomposition mk_default_decompositions[] = {
+const mk_decomposition mki_default_decompositions[] = {
     {"À", "À"},
     {"Á", "Á"},
     {"Â", "Â"},
@@ -6479,8 +6479,8 @@ const mk_decomposition mk_default_decompositions[] = {
     {"Ώ", "Ώ"},
 };
 
-const size_t mk_default_decomposition_count =
-    sizeof(mk_default_decompositions) / sizeof(mk_default_decompositions[0]);
+const size_t mki_default_decomposition_count =
+    sizeof(mki_default_decompositions) / sizeof(mki_default_decompositions[0]);
 
 static const unsigned int broad_entry_graphemes[] = {
     4475, 4477, 4485, 4487, 4490, 4494, 4498, 4500, 4505, 4509, 4511, 4514, 4519, 4526, 4535, 4544,
@@ -16857,7 +16857,7 @@ static const double phoible_dimension_weights[] = {
 };
 
 
-const mk_builtin_system mk_builtin_systems[] = {
+const mk_builtin_system mki_builtin_systems[] = {
     {"broad", MK_SYSTEM_CATEGORICAL, NULL, BROAD_ENTRY_COUNT, broad_entry_graphemes, broad_entry_feature_at, broad_entry_feature_n, broad_feature_ids, NULL, 0, NULL, NULL, 0},
     {"descriptive", MK_SYSTEM_CATEGORICAL, NULL, DESCRIPTIVE_ENTRY_COUNT, descriptive_entry_graphemes, descriptive_entry_feature_at, descriptive_entry_feature_n, descriptive_feature_ids, NULL, 0, NULL, NULL, 0},
     {"distinctive", MK_SYSTEM_CATEGORICAL, NULL, DISTINCTIVE_ENTRY_COUNT, distinctive_entry_graphemes, distinctive_entry_feature_at, distinctive_entry_feature_n, distinctive_feature_ids, NULL, 0, NULL, distinctive_scalar_dimensions, DISTINCTIVE_SCALAR_DIMENSIONS_COUNT},
@@ -16868,5 +16868,5 @@ const mk_builtin_system mk_builtin_systems[] = {
     {"phoible", MK_SYSTEM_VALUED, NULL, PHOIBLE_ENTRY_COUNT, phoible_entry_graphemes, phoible_entry_feature_at, phoible_entry_feature_n, phoible_feature_ids, phoible_geometry_map, PHOIBLE_GEOMETRY_MAP_COUNT, phoible_dimension_weights, NULL, 0},
 };
 
-const size_t mk_builtin_system_count =
-    sizeof(mk_builtin_systems) / sizeof(mk_builtin_systems[0]);
+const size_t mki_builtin_system_count =
+    sizeof(mki_builtin_systems) / sizeof(mki_builtin_systems[0]);

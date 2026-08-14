@@ -18,11 +18,20 @@ typedef enum mk_system_type {
     MK_SYSTEM_TRAINED = 3
 } mk_system_type;
 
-/* One inventory row as pointers. This is how a model parsed at runtime holds
- * its rows; a compiled-in inventory uses the interned form below. */
+/* One inventory row as pointers, and the storage that backs it.
+ *
+ * Only a model parsed at runtime ever holds rows this way; every compiled-in
+ * inventory sets `entries` to NULL and uses the interned form below. So every
+ * pointer here is heap storage owned by the system that holds the row, and the
+ * types say so: they were `const char *` for no better reason than sitting
+ * beside the genuinely-const compiled tables, which cost the two destructors
+ * twenty-eight casts to free what they owned.
+ *
+ * Readers do not touch this type. They go through mk_entry_view in
+ * inventory.h, which is const because a reader really is only borrowing. */
 typedef struct mk_builtin_entry {
-    const char *grapheme;
-    const char *const *features;
+    char *grapheme;
+    char **features;
     size_t feature_count;
 } mk_builtin_entry;
 
@@ -43,9 +52,9 @@ typedef struct mk_builtin_entry {
  * slots -- 2.08 MB of pointers, and one relocation each, to name 35 KB of
  * text. Offsets need no relocations, which is what made the WebAssembly
  * payload shrink. */
-const char *mk_pool_string(unsigned int offset);
-const char *mk_feature_name(unsigned short id);
-extern const size_t mk_feature_name_count;
+const char *mki_pool_string(unsigned int offset);
+const char *mki_feature_name(unsigned short id);
+extern const size_t mki_feature_name_count;
 
 typedef struct mk_geometry_leaf {
     const char *name;
@@ -160,11 +169,16 @@ typedef struct mk_scalar_dimension {
  * compiled-in inventory: rows live in entry_graphemes / entry_feature_at /
  * entry_feature_n / feature_ids, all of them offsets and ids into the pool.
  *
+ * `entries` is the one unqualified pointer here because it is the one that is
+ * never rodata. The rest point into compiled tables in both storages, and
+ * `name` points at a literal for a compiled system and at mk_system's
+ * owned_name for a runtime one -- borrowed either way, so it stays const.
+ *
  * Read rows through inventory.h rather than reaching into either form. */
 typedef struct mk_builtin_system {
     const char *name;
     mk_system_type kind;
-    const mk_builtin_entry *entries;
+    mk_builtin_entry *entries;
     size_t entry_count;
     const unsigned int *entry_graphemes;
     const unsigned int *entry_feature_at;
@@ -177,38 +191,38 @@ typedef struct mk_builtin_system {
     size_t scalar_dimension_count;
 } mk_builtin_system;
 
-extern const mk_builtin_system mk_builtin_systems[];
-extern const size_t mk_builtin_system_count;
-extern const mk_geometry_leaf mk_clements_hume_leaves[];
-extern const size_t mk_clements_hume_leaf_count;
+extern const mk_builtin_system mki_builtin_systems[];
+extern const size_t mki_builtin_system_count;
+extern const mk_geometry_leaf mki_clements_hume_leaves[];
+extern const size_t mki_clements_hume_leaf_count;
 /* What a tone costs against a segment. Declared in the geometry file; see
  * `tier_policy` there for why it is 1.0 and what the alternatives cost. */
-extern const double mk_clements_hume_cross_tier_cost;
-extern const mk_ordinal_scale mk_clements_hume_ordinal_scales[];
-extern const size_t mk_clements_hume_ordinal_scale_count;
-extern const mk_feature_node_map mk_clements_hume_feature_to_node[];
-extern const size_t mk_clements_hume_feature_to_node_count;
-extern const mk_node_depth mk_clements_hume_node_depths[];
-extern const size_t mk_clements_hume_node_depth_count;
-extern const mk_node_parent mk_clements_hume_node_parents[];
-extern const size_t mk_clements_hume_node_parent_count;
-extern const mk_node_weight_preset mk_clements_hume_weight_presets[];
-extern const size_t mk_clements_hume_weight_preset_count;
-extern const mk_feature_path mk_clements_hume_feature_paths[];
-extern const size_t mk_clements_hume_feature_path_count;
-extern const mk_diacritic_map mk_default_combining_diacritics[];
-extern const size_t mk_default_combining_diacritic_count;
-extern const mk_diacritic_map mk_default_suffix_diacritics[];
-extern const size_t mk_default_suffix_diacritic_count;
-extern const mk_diacritic_map mk_default_prefix_diacritics[];
-extern const size_t mk_default_prefix_diacritic_count;
-extern const char *const mk_default_metadata_features[];
-extern const size_t mk_default_metadata_feature_count;
-extern const mk_decomposition mk_default_decompositions[];
-extern const size_t mk_default_decomposition_count;
-extern const mk_tone_mark mk_default_tone_marks[];
-extern const size_t mk_default_tone_mark_count;
-extern const mk_valued_diacritic_effect mk_default_valued_diacritic_effects[];
-extern const size_t mk_default_valued_diacritic_effect_count;
+extern const double mki_clements_hume_cross_tier_cost;
+extern const mk_ordinal_scale mki_clements_hume_ordinal_scales[];
+extern const size_t mki_clements_hume_ordinal_scale_count;
+extern const mk_feature_node_map mki_clements_hume_feature_to_node[];
+extern const size_t mki_clements_hume_feature_to_node_count;
+extern const mk_node_depth mki_clements_hume_node_depths[];
+extern const size_t mki_clements_hume_node_depth_count;
+extern const mk_node_parent mki_clements_hume_node_parents[];
+extern const size_t mki_clements_hume_node_parent_count;
+extern const mk_node_weight_preset mki_clements_hume_weight_presets[];
+extern const size_t mki_clements_hume_weight_preset_count;
+extern const mk_feature_path mki_clements_hume_feature_paths[];
+extern const size_t mki_clements_hume_feature_path_count;
+extern const mk_diacritic_map mki_default_combining_diacritics[];
+extern const size_t mki_default_combining_diacritic_count;
+extern const mk_diacritic_map mki_default_suffix_diacritics[];
+extern const size_t mki_default_suffix_diacritic_count;
+extern const mk_diacritic_map mki_default_prefix_diacritics[];
+extern const size_t mki_default_prefix_diacritic_count;
+extern const char *const mki_default_metadata_features[];
+extern const size_t mki_default_metadata_feature_count;
+extern const mk_decomposition mki_default_decompositions[];
+extern const size_t mki_default_decomposition_count;
+extern const mk_tone_mark mki_default_tone_marks[];
+extern const size_t mki_default_tone_mark_count;
+extern const mk_valued_diacritic_effect mki_default_valued_diacritic_effects[];
+extern const size_t mki_default_valued_diacritic_effect_count;
 
 #endif

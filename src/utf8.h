@@ -16,18 +16,18 @@
  * mk_utf8_char_len(unsigned char), taking just the lead byte, so nineteen call
  * sites copied or skipped as many bytes as a truncated sequence claimed:
  * mk_segment_ipa("a\xF0") read four bytes out of a two-byte allocation. */
-size_t mk_utf8_step(const char *p);
+size_t mki_utf8_step(const char *p);
 
 /* The code point at `p`, decoded from the bytes actually present. A truncated
  * sequence yields its lead byte, which the classifiers then treat as an
  * ordinary character rather than a mark. */
-unsigned int mk_utf8_codepoint(const char *p);
+unsigned int mki_utf8_codepoint(const char *p);
 
 /* A combining mark, by code point block. */
-int mk_is_combining_mark(const char *p);
+int mki_is_combining_mark(const char *p);
 
 /* A modifier letter or symbol: the superscripts and spacing modifiers IPA uses
  * to qualify a base segment, plus any mark the diacritic tables name. */
-int mk_is_modifier_letter_or_symbol(const char *p);
+int mki_is_modifier_letter_or_symbol(const char *p);
 
 #endif

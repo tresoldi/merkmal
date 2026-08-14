@@ -43,7 +43,7 @@ static mk_status mk_push_token(char ***items, size_t *count, size_t *cap, char *
 
 static int mk_is_suffix_modifier(const char *p)
 {
-    return mk_is_modifier_letter_or_symbol(p);
+    return mki_is_modifier_letter_or_symbol(p);
 }
 
 mk_status mk_segment_ipa(
@@ -68,7 +68,7 @@ mk_status mk_segment_ipa(
     }
     *out = NULL;
 
-    status = mk_segmentation_nfd(utf8_in, &normalized);
+    status = mki_segmentation_nfd(utf8_in, &normalized);
     if (status != MK_OK) {
         return status;
     }
@@ -91,7 +91,7 @@ mk_status mk_segment_ipa(
                 if (mk_push_token(&items, &count, &cap, current) != MK_OK) {
                     free(current);
                     free(normalized);
-                    mk_free_items(items, count);
+                    mki_free_items(items, count);
                     return MK_ERR_OOM;
                 }
                 current = NULL;
@@ -104,12 +104,12 @@ mk_status mk_segment_ipa(
             continue;
         }
 
-        if (mk_is_chao_digit(p) || mk_is_boundary(p)) {
+        if (mki_is_chao_digit(p) || mki_is_boundary(p)) {
             if (current_len > 0) {
                 if (mk_push_token(&items, &count, &cap, current) != MK_OK) {
                     free(current);
                     free(normalized);
-                    mk_free_items(items, count);
+                    mki_free_items(items, count);
                     return MK_ERR_OOM;
                 }
                 current = NULL;
@@ -120,17 +120,17 @@ mk_status mk_segment_ipa(
             after_tie = 0;
         }
 
-        if (mk_is_chao_digit(p)) {
+        if (mki_is_chao_digit(p)) {
             const char *start = p;
             char *token;
-            while (mk_is_chao_digit(p)) {
-                p += mk_utf8_step(p);
+            while (mki_is_chao_digit(p)) {
+                p += mki_utf8_step(p);
             }
             n = (size_t)(p - start);
             token = (char *)malloc(n + 1);
             if (token == NULL) {
                 free(normalized);
-                mk_free_items(items, count);
+                mki_free_items(items, count);
                 return MK_ERR_OOM;
             }
             memcpy(token, start, n);
@@ -139,17 +139,17 @@ mk_status mk_segment_ipa(
                 free(token);
                 free(current);
                 free(normalized);
-                mk_free_items(items, count);
+                mki_free_items(items, count);
                 return MK_ERR_OOM;
             }
             continue;
-        } else if (mk_is_boundary(p)) {
+        } else if (mki_is_boundary(p)) {
             char *token;
-            n = mk_utf8_step(p);
+            n = mki_utf8_step(p);
             token = (char *)malloc(n + 1);
             if (token == NULL) {
                 free(normalized);
-                mk_free_items(items, count);
+                mki_free_items(items, count);
                 return MK_ERR_OOM;
             }
             memcpy(token, p, n);
@@ -159,46 +159,46 @@ mk_status mk_segment_ipa(
                 free(token);
                 free(current);
                 free(normalized);
-                mk_free_items(items, count);
+                mki_free_items(items, count);
                 return MK_ERR_OOM;
             }
             continue;
-        } else if (mk_has_prefix(p, "͡") || mk_has_prefix(p, "͜")) {
-            n = mk_utf8_step(p);
-            status = mk_append_text(&current, &current_len, &current_cap, mk_has_prefix(p, "͡") ? "͡" : "͜");
+        } else if (mki_has_prefix(p, "͡") || mki_has_prefix(p, "͜")) {
+            n = mki_utf8_step(p);
+            status = mki_append_text(&current, &current_len, &current_cap, mki_has_prefix(p, "͡") ? "͡" : "͜");
             if (status != MK_OK) {
                 free(current);
                 free(normalized);
-                mk_free_items(items, count);
+                mki_free_items(items, count);
                 return status;
             }
             after_tie = 1;
             p += n;
             continue;
-        } else if (mk_is_combining_mark(p)) {
+        } else if (mki_is_combining_mark(p)) {
             char one[5];
-            n = mk_utf8_step(p);
+            n = mki_utf8_step(p);
             memcpy(one, p, n);
             one[n] = '\0';
-            status = mk_append_text(&current, &current_len, &current_cap, one);
+            status = mki_append_text(&current, &current_len, &current_cap, one);
             if (status != MK_OK) {
                 free(current);
                 free(normalized);
-                mk_free_items(items, count);
+                mki_free_items(items, count);
                 return status;
             }
             p += n;
             continue;
         } else if (mk_is_suffix_modifier(p)) {
             char one[5];
-            n = mk_utf8_step(p);
+            n = mki_utf8_step(p);
             memcpy(one, p, n);
             one[n] = '\0';
-            status = mk_append_text(&current, &current_len, &current_cap, one);
+            status = mki_append_text(&current, &current_len, &current_cap, one);
             if (status != MK_OK) {
                 free(current);
                 free(normalized);
-                mk_free_items(items, count);
+                mki_free_items(items, count);
                 return status;
             }
             p += n;
@@ -209,21 +209,21 @@ mk_status mk_segment_ipa(
                 if (mk_push_token(&items, &count, &cap, current) != MK_OK) {
                     free(current);
                     free(normalized);
-                    mk_free_items(items, count);
+                    mki_free_items(items, count);
                     return MK_ERR_OOM;
                 }
                 current = NULL;
                 current_len = 0;
                 current_cap = 0;
             }
-            n = mk_utf8_step(p);
+            n = mki_utf8_step(p);
             memcpy(one, p, n);
             one[n] = '\0';
-            status = mk_append_text(&current, &current_len, &current_cap, one);
+            status = mki_append_text(&current, &current_len, &current_cap, one);
             if (status != MK_OK) {
                 free(current);
                 free(normalized);
-                mk_free_items(items, count);
+                mki_free_items(items, count);
                 return status;
             }
             has_base = 1;
@@ -237,15 +237,15 @@ mk_status mk_segment_ipa(
         if (mk_push_token(&items, &count, &cap, current) != MK_OK) {
             free(current);
             free(normalized);
-            mk_free_items(items, count);
+            mki_free_items(items, count);
             return MK_ERR_OOM;
         }
         current = NULL;
     }
     free(normalized);
 
-    if (mk_string_list_adopt(items, count, out) != MK_OK) {
-        mk_free_items(items, count);
+    if (mki_string_list_adopt(items, count, out) != MK_OK) {
+        mki_free_items(items, count);
         return MK_ERR_OOM;
     }
 

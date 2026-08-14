@@ -2,6 +2,82 @@
 
 ## Unreleased
 
+### A cluster component could be read after its stack frame died
+
+`mk_parse_component_at` merges two adjacent components into one and copies the
+result out with a struct assignment. On the inventory paths a resolution's
+`features` aliases its own `inline_features` array, so the copy duplicated the
+array but left `features` pointing into the local — which stopped existing at
+the closing brace. `mk_synthesize_cluster` then read it.
+
+Reachable from every public entry point that takes transcription text;
+`mk_system_segment_ipa` is the shortest path to it. Found by `fuzz_resolve`,
+confirmed as a stack-use-after-return by AddressSanitizer, and replayed by
+`ctest` now as a case in `test_malformed.c`.
+
+`mk_resolution_move` replaces the assignment and re-points the alias, so the
+hazard `resolver.h` documents has a safe primitive rather than a warning.
+
+Two reasons this survived: the crash needs the fallback Unicode profile, which
+no sanitizer job built — utf8proc's extra normalization pass hid it — and GCC
+leaves stack-use-after-return detection off unless asked. The sanitizer matrix
+now covers both Unicode profiles and sets `ASAN_OPTIONS`.
+
+### `mk_` now means public, and the compiler checks it
+
+`libmerkmal.a` exported 97 symbols. 31 were the API; the other 66 were the
+resolution seam, the string helpers and the compiled tables — and all 97 were
+spelled `mk_`. A consumer linking the static library, which is the default and
+what the pkg-config build produces, saw no difference between a promise and an
+implementation detail.
+
+Internal symbols are now `mki_`. Nothing in the public header moved, so this
+breaks no caller who used only what is declared; it does rename symbols a
+caller could previously have reached by declaring them, which was never
+supported.
+
+`ctest -R public_symbols` reads the archive with `nm` and compares it against
+`include/merkmal.h`, so adding a cross-module helper named `mk_something` now
+fails the suite rather than quietly widening the API.
+
+### The types say which pointers they own
+
+`mk_builtin_entry` declared its pointers `const char *` while owning every one
+of them, because it sat beside the genuinely-const compiled tables. Its two
+destructors cast the qualifier away 28 times to free what they owned.
+
+Nothing was wrong at any of the 28 — the casts were correct — but a type that
+needs a cast to be freed is a type no compiler can check, and the same struct
+serves both a heap-owned runtime model and, in `mk_builtin_system`, tables in
+`.rodata`. `mk_system` now holds the name it allocates in its own `owned_name`
+field, and `mk_builtin_entry` is unqualified because only runtime models ever
+use it. `-Wcast-qual` is on to keep it that way. Costs 16 bytes of text in
+`registry.c`; nothing else in the footprint moves.
+
+### `mk_registry_add_model_text_n`
+
+The runtime-model parser now has an entry point taking a pointer and a byte
+count, for callers holding a buffer rather than a C string. An embedded NUL
+returns `MK_ERR_PARSE` instead of ending the model early and registering the
+truncated part as though it were whole.
+
+The parser already copied its input before tokenizing it destructively, so this
+removes a copy rather than adding one, and the fuzz harness now hands libFuzzer's
+own redzoned allocation straight to the parser instead of terminating it first.
+
+### Warnings, Clang, and an example
+
+- Six warnings added, each measured against the tree first: `-Wvla`,
+  `-Wformat=2`, `-Wdouble-promotion`, `-Wswitch-enum`, `-Wwrite-strings` were
+  already clean; `-Wcast-qual` is what found the ownership defect above.
+- The warning set now applies to every test target. It previously reached two
+  of seven, leaving the malformed-input and golden tests — the ones doing the
+  most pointer arithmetic — as the least-checked code in the tree.
+- CI builds and tests with Clang. It was used only for static analysis and
+  fuzzing, so a GCC-only `-Werror` gate let Clang-visible findings accumulate.
+- `examples/transcribe.c` shows tokenization, feature lookup, scoring and
+  diagnosis through the public header, and runs as a test so it cannot rot.
+
 ### A source convention can no longer shadow a real segment
 
 The resolver applied the source-conventions table before looking anything up,

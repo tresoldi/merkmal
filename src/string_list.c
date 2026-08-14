@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-mk_status mk_string_list_from_borrowed(
+mk_status mki_string_list_from_borrowed(
     const char *const *items,
     size_t count,
     mk_string_list **out
@@ -32,7 +32,7 @@ mk_status mk_string_list_from_borrowed(
     list->count = count;
 
     for (i = 0; i < count; i++) {
-        list->items[i] = mk_strdup_internal(items[i]);
+        list->items[i] = mki_strdup_internal(items[i]);
         if (list->items[i] == NULL) {
             mk_string_list_free(list);
             return MK_ERR_OOM;
@@ -43,7 +43,7 @@ mk_status mk_string_list_from_borrowed(
     return MK_OK;
 }
 
-mk_status mk_string_list_adopt(
+mk_status mki_string_list_adopt(
     char **items,
     size_t count,
     mk_string_list **out
@@ -73,7 +73,7 @@ mk_status mk_string_list_new(
     mk_string_list **out
 )
 {
-    return mk_string_list_from_borrowed(items, count, out);
+    return mki_string_list_from_borrowed(items, count, out);
 }
 
 size_t mk_string_list_size(const mk_string_list *list)

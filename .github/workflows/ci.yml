@@ -70,6 +70,30 @@ jobs:
       - name: Test
         run: ctest --test-dir build/c-fallback --output-on-failure
 
+  c-clang:
+    name: C build and tests under Clang
+    # Every other job that compiles the library uses the runner's GCC; Clang
+    # appeared only in the analysis and fuzz jobs, which build a subset with
+    # different flags. Warning sets diverge between the two compilers, so a
+    # GCC-only -Werror gate lets Clang-visible findings accumulate unseen.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake pkg-config libutf8proc-dev clang
+      - name: Configure
+        run: >
+          CC=clang cmake -S . -B build/c-clang
+          -DCMAKE_BUILD_TYPE=Debug
+          -DMERKMAL_REQUIRE_UTF8PROC=ON
+          -DMERKMAL_WERROR=ON
+      - name: Build
+        run: cmake --build build/c-clang
+      - name: Test
+        run: ctest --test-dir build/c-clang --output-on-failure
+
   c-footprint:
     name: Compiled footprint
     # Reports only. The numbers exist so that data-representation changes can
@@ -135,12 +159,22 @@ jobs:
           done
 
   c-sanitizers:
-    name: C sanitizers
+    name: C sanitizers (${{ matrix.sanitizer }}, ${{ matrix.unicode.name }})
+    # Both Unicode profiles, because they are different code and only one of
+    # them was ever sanitized. A stack-use-after-return in the cluster
+    # synthesizer reproduced solely on the fallback path, so this job was green
+    # while the bug was reachable from every public entry point taking
+    # transcription text. utf8proc's extra NFC/NFD pass is what hid it.
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         sanitizer: [address, undefined]
+        unicode:
+          - name: utf8proc
+            flags: -DMERKMAL_REQUIRE_UTF8PROC=ON
+          - name: fallback
+            flags: -DMERKMAL_USE_UTF8PROC=OFF
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
@@ -151,13 +185,16 @@ jobs:
         run: >
           cmake -S . -B build/c-sanitizer
           -DCMAKE_BUILD_TYPE=Debug
-          -DMERKMAL_REQUIRE_UTF8PROC=ON
+          ${{ matrix.unicode.flags }}
           -DMERKMAL_WERROR=ON
           -DMERKMAL_ENABLE_SANITIZER=${{ matrix.sanitizer }}
       - name: Build
         run: cmake --build build/c-sanitizer
       - name: Test
         run: ctest --test-dir build/c-sanitizer --output-on-failure
+        env:
+          # GCC leaves this off by default; the finding above needed it.
+          ASAN_OPTIONS: detect_stack_use_after_return=1
 
   c-shared:
     name: Shared C library

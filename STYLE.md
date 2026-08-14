@@ -22,6 +22,10 @@ cmake -S . -B build/asan -DCMAKE_BUILD_TYPE=Debug -DMERKMAL_ENABLE_SANITIZER=add
 # Static analysis. Accepted findings are listed in the script.
 scripts/run_static_analysis.sh
 
+# That the library exports the public API and nothing else. Also runs as part
+# of ctest; this form is for checking an archive built somewhere else.
+scripts/check_public_symbols.sh build/dev/libmerkmal.a
+
 # Fuzzing. Clang only; see fuzz/README.md.
 CC=clang cmake -S . -B build/fuzz -DMERKMAL_BUILD_FUZZERS=ON -DMERKMAL_BUILD_TESTS=OFF
 cmake --build build/fuzz
@@ -56,8 +60,8 @@ python scripts/regenerate_golden.py           # rewrite the fixtures
 ## Where things live
 
 ```
-include/merkmal.h    the entire public surface: 31 symbols, all mk_-prefixed
-src/
+include/merkmal.h    the entire public surface: 32 symbols, all mk_-prefixed
+src/                 everything else, prefixed mki_ (see "Two prefixes")
   diagnose.c         why a grapheme was refused
   status.c           mk_status -> string
   vector.c           fixed-width numeric feature vectors
@@ -74,7 +78,8 @@ src/
   model_text.c       the runtime-model parser -- the only untrusted-input parser
   registry.c         registry lifecycle
   system.c           the public system operations, and cluster scoring policy
-  generated/         emitted by tools/generate_c_data.py; never edit by hand
+  generated/         builtin_data.c is emitted, never edited by hand;
+                     builtin_data.h describes its shape and is maintained here
 ```
 
 Dependencies point inward and the graph is acyclic: `system.c` and `registry.c`
@@ -88,6 +93,29 @@ is a synthesis pipeline whose stages share 26 file-scope helpers; splitting it
 would export those instead of hiding them. `geometry.c` holds the scorers with
 the tables they read for the same reason. Both are recorded in
 [REFACTORING_PLAN.md](REFACTORING_PLAN.md).
+
+## Two prefixes
+
+**`mk_` is the public contract. `mki_` is anything else with external linkage.**
+
+The rule is about linkage, not spelling for its own sake. The 108 `static`
+helpers keep their `mk_` names: they have no external linkage, cannot collide
+with anything, and are already scoped by the file they sit in. Renaming them
+would be churn that teaches a reader nothing the `static` did not.
+
+C has one symbol namespace, so a consumer linking `libmerkmal.a` sees every
+external name in it, not just the declared ones. The archive holds 99: the 32
+in `include/merkmal.h` and 67 internal ones — the resolution seam, the string
+helpers, the compiled tables. They all used to be spelled `mk_`, which meant
+this file's claim that `mk_` marked the public surface was true only by
+intention. `mki_resolve` and `mki_streq` now say what they are.
+
+A shared build hides the internals by visibility either way; the static build,
+which is the default and what the pkg-config consumer links, does not.
+
+`ctest -R public_symbols` enforces it by reading the archive with `nm` and
+comparing against the header, so a new cross-module helper named `mk_something`
+fails the suite rather than quietly widening the API.
 
 ## Ownership
 
@@ -110,6 +138,19 @@ registry are valid as long as that registry is. Owned strings are freed with
 `owned_features` exactly when `owned_features` is non-NULL, and on the
 inventory paths it instead aliases the struct's own `inline_features` array.
 `resolver.h` spells this out; read it before touching resolution.
+
+The rule the types must keep: **a pointer a struct owns is not `const`.** Two
+structs hold both kinds side by side and both spell the difference out —
+`mk_resolution` pairs the borrowed `features` with the owned `owned_features`,
+and `mk_system` pairs the borrowed `owned.name` with the allocation
+`owned_name`. `mk_builtin_entry` did not, and its two destructors cast `const`
+away twenty-eight times to free what they owned. Nothing was wrong at any of
+the twenty-eight, but a type that needs a cast to be freed is a type the
+compiler cannot check. `-Wcast-qual` is on so that it stays checkable; when it
+fires, the fix is the type, not the cast.
+
+Casts that *add* `const` are fine and appear at a few call boundaries, because
+C will not convert `char **` to `const char *const *` on its own.
 
 ## Errors
 
@@ -139,7 +180,7 @@ intentional. A truncated *diagnostic* is acceptable and says so. A truncated
 *feature label* is not: it is a different feature, one the geometry does not
 know, which silently contributes nothing to any distance.
 
-Never advance through UTF-8 with the length a lead byte claims. `mk_utf8_step`
+Never advance through UTF-8 with the length a lead byte claims. `mki_utf8_step`
 returns the smaller of the claimed length and the bytes actually present. The
 unbounded form is gone because nineteen call sites used it and every one of
 them could read past the terminator.
@@ -154,7 +195,7 @@ each to name 35 KB of text, which dominated the WebAssembly payload.
 Consequences worth knowing before changing the emitter:
 
 - Rows are sorted by the grapheme's **UTF-8 bytes**, the order `strcmp`
-  imposes, because `mk_inventory_find` binary-searches them. Sorting by Python
+  imposes, because `mki_inventory_find` binary-searches them. Sorting by Python
   `str` would order by code point and the search would miss rows that exist.
   `test_resolution` checks the emitted order.
 - A row may carry at most `MK_MAX_ENTRY_FEATURES` features. The resolver

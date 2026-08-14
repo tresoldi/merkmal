@@ -9,6 +9,6 @@
 #include "system.h"
 
 /* The width for a system, without needing an mk_system wrapper. */
-size_t mk_vector_width_of(const mk_builtin_system *builtin);
+size_t mki_vector_width_of(const mk_builtin_system *builtin);
 
 #endif

@@ -19,6 +19,7 @@ option(MERKMAL_REQUIRE_UTF8PROC "Fail configuration if system utf8proc is missin
 option(MERKMAL_USE_UTF8PROC "Use system utf8proc when available" ON)
 option(MERKMAL_WERROR "Treat compiler warnings as errors (intended for CI)" OFF)
 option(MERKMAL_BUILD_FUZZERS "Build the libFuzzer harnesses (Clang only)" OFF)
+option(MERKMAL_BUILD_EXAMPLES "Build the examples" ON)
 set(MERKMAL_ENABLE_SANITIZER "" CACHE STRING "Enable sanitizer: address or undefined")
 set_property(CACHE MERKMAL_ENABLE_SANITIZER PROPERTY STRINGS "" address undefined)
 
@@ -113,6 +114,22 @@ else()
         -Wconversion
         -Wstrict-prototypes
         -Wmissing-prototypes
+        # The five below were each measured at zero findings against the tree
+        # before being added, so none of them cost a cleanup. They are here to
+        # keep properties the code already has rather than to report news:
+        -Wvla                # stack growth that depends on untrusted input
+        -Wformat=2           # a diagnostic built with a non-literal format
+        -Wdouble-promotion   # a float sneaking into the double scorers
+        -Wswitch-enum        # an mk_status arm forgotten when the enum grows
+        -Wwrite-strings      # a string literal bound to a mutable char *
+        # -Wcast-qual is the one that cost something. It found 28 sites where a
+        # destructor cast const away to free storage it owned, because
+        # mk_builtin_entry declared owned pointers const. Nothing was wrong at
+        # any of the 28 -- the cast was load-bearing and correct -- but a type
+        # that needs a cast to be freed cannot be checked, and the next reader
+        # to free the wrong branch of that union of lifetimes would have found
+        # out at runtime. The type now says which pointers it owns.
+        -Wcast-qual
     )
     if(MERKMAL_WERROR)
         list(APPEND MERKMAL_C_WARNINGS -Werror)
@@ -144,7 +161,6 @@ if(MERKMAL_BUILD_TESTS)
     # fails for the first consumer who includes it before anything else.
     add_executable(test_header tests/c/header/header_only.c)
     target_link_libraries(test_header PRIVATE merkmal)
-    target_compile_options(test_header PRIVATE ${MERKMAL_C_WARNINGS})
     add_test(NAME header COMMAND test_header)
 
     add_executable(test_malformed tests/c/test_malformed.c)
@@ -184,7 +200,6 @@ if(MERKMAL_BUILD_TESTS)
             ${CMAKE_CURRENT_SOURCE_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
-    target_compile_options(test_resolution PRIVATE ${MERKMAL_C_WARNINGS})
     if(UTF8PROC_FOUND)
         target_compile_definitions(test_resolution PRIVATE MK_HAVE_UTF8PROC=1)
         target_link_libraries(test_resolution PRIVATE PkgConfig::UTF8PROC)
@@ -198,6 +213,46 @@ if(MERKMAL_BUILD_TESTS)
         target_link_options(test_resolution PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
     endif()
     add_test(NAME resolution COMMAND test_resolution)
+
+    # The tests are first-party sources and compile under the library's warning
+    # set too. Previously only test_header and test_resolution did, which meant
+    # the golden and malformed tests -- the ones that handle hostile input and
+    # do the most pointer arithmetic -- were the least checked code in the tree.
+    foreach(target
+        test_smoke
+        test_header
+        test_malformed
+        test_golden_distances
+        test_golden_features
+        test_geometry
+        test_resolution
+    )
+        target_compile_options(${target} PRIVATE ${MERKMAL_C_WARNINGS})
+    endforeach()
+
+    # That the archive exports the 31 public symbols and no more. Needs nm and a
+    # static archive to read, so it is skipped rather than failed elsewhere; the
+    # script exits 0 when nm is absent, and a shared build hides internals by
+    # visibility anyway.
+    if(UNIX AND NOT BUILD_SHARED_LIBS)
+        add_test(
+            NAME public_symbols
+            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/check_public_symbols.sh
+                    $<TARGET_FILE:merkmal>
+        )
+    endif()
+endif()
+
+# The examples link the library the way a consumer does, through the public
+# header only. They are built and run as tests rather than merely shipped,
+# because an example nobody compiles is an example that stops working.
+if(MERKMAL_BUILD_EXAMPLES)
+    add_executable(example_transcribe examples/transcribe.c)
+    target_link_libraries(example_transcribe PRIVATE merkmal)
+    target_compile_options(example_transcribe PRIVATE ${MERKMAL_C_WARNINGS})
+    if(MERKMAL_BUILD_TESTS)
+        add_test(NAME example COMMAND example_transcribe)
+    endif()
 endif()
 
 # libFuzzer, so Clang only. Off by default: the harnesses are a development and

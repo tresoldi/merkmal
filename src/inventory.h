@@ -16,7 +16,7 @@
  * `grapheme` always points into compiled or registry-owned storage and is
  * valid as long as the registry is. `features` points either at
  * registry-owned storage or at the caller's scratch array -- see
- * mk_inventory_find. */
+ * mki_inventory_find. */
 typedef struct mk_entry_view {
     const char *grapheme;
     const char *const *features;
@@ -33,7 +33,7 @@ typedef struct mk_entry_view {
  *
  * The strings themselves are never in the scratch: only the pointers to them
  * are, so the row's text stays valid for the life of the registry either way. */
-int mk_inventory_find(
+int mki_inventory_find(
     const mk_builtin_system *system,
     const char *key,
     const char **scratch,
@@ -41,9 +41,9 @@ int mk_inventory_find(
 );
 
 /* Fills `out` with row `index`, which must be below system->entry_count. Same
- * scratch contract as mk_inventory_find. Lets a caller walk an inventory
+ * scratch contract as mki_inventory_find. Lets a caller walk an inventory
  * without knowing its storage; the tests use it to check every compiled row. */
-void mk_inventory_row(
+void mki_inventory_row(
     const mk_builtin_system *system,
     size_t index,
     const char **scratch,

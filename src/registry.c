@@ -18,20 +18,20 @@ static void mk_free_owned_system(mk_system *system)
     if (system == NULL || !system->owns) {
         return;
     }
-    free((char *)system->owned.name);
+    free(system->owned_name);
     for (i = 0; i < system->owned.entry_count; i++) {
+        mk_builtin_entry *entry = &system->owned.entries[i];
         size_t j;
-        mk_builtin_entry *entry = (mk_builtin_entry *)&system->owned.entries[i];
-        char **features = (char **)entry->features;
 
-        free((char *)entry->grapheme);
+        free(entry->grapheme);
         for (j = 0; j < entry->feature_count; j++) {
-            free(features[j]);
+            free(entry->features[j]);
         }
-        free(features);
+        free(entry->features);
     }
-    free((mk_builtin_entry *)system->owned.entries);
+    free(system->owned.entries);
     system->builtin = NULL;
+    system->owned_name = NULL;
     memset(&system->owned, 0, sizeof(system->owned));
     system->owns = 0;
 }
@@ -57,16 +57,16 @@ mk_status mk_registry_new_builtin(mk_registry **out)
     }
 
     registry->systems = (mk_system **)calloc(
-        mk_builtin_system_count,
+        mki_builtin_system_count,
         sizeof(*registry->systems)
     );
     if (registry->systems == NULL) {
         free(registry);
         return MK_ERR_OOM;
     }
-    registry->system_count = mk_builtin_system_count;
+    registry->system_count = mki_builtin_system_count;
 
-    for (i = 0; i < mk_builtin_system_count; i++) {
+    for (i = 0; i < mki_builtin_system_count; i++) {
         registry->systems[i] = (mk_system *)calloc(1, sizeof(*registry->systems[i]));
         if (registry->systems[i] == NULL) {
             while (i > 0) {
@@ -77,7 +77,7 @@ mk_status mk_registry_new_builtin(mk_registry **out)
             free(registry);
             return MK_ERR_OOM;
         }
-        registry->systems[i]->builtin = &mk_builtin_systems[i];
+        registry->systems[i]->builtin = &mki_builtin_systems[i];
     }
 
     *out = registry;
@@ -120,7 +120,7 @@ mk_status mk_registry_list_systems(
         names[i] = registry->systems[i]->builtin->name;
     }
 
-    status = mk_string_list_from_borrowed(names, registry->system_count, out);
+    status = mki_string_list_from_borrowed(names, registry->system_count, out);
     free(names);
     return status;
 }
@@ -139,7 +139,7 @@ mk_status mk_registry_get_system(
     *out = NULL;
 
     for (i = 0; i < registry->system_count; i++) {
-        if (mk_streq(registry->systems[i]->builtin->name, name)) {
+        if (mki_streq(registry->systems[i]->builtin->name, name)) {
             *out = registry->systems[i];
             return MK_OK;
         }
@@ -156,9 +156,29 @@ mk_status mk_registry_add_model_text(
     return mk_registry_add_model_text_ex(registry, model_text, NULL);
 }
 
+/* The two NUL-terminated forms measure the string and hand off to the one that
+ * takes a length, so there is a single install path to keep correct. */
 mk_status mk_registry_add_model_text_ex(
     mk_registry *registry,
     const char *model_text,
+    char **diagnostic_out
+)
+{
+    if (diagnostic_out != NULL) {
+        *diagnostic_out = NULL;
+    }
+    if (registry == NULL || model_text == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    return mk_registry_add_model_text_n(
+        registry, model_text, strlen(model_text), diagnostic_out
+    );
+}
+
+mk_status mk_registry_add_model_text_n(
+    mk_registry *registry,
+    const char *model_text,
+    size_t model_text_length,
     char **diagnostic_out
 )
 {
@@ -174,7 +194,7 @@ mk_status mk_registry_add_model_text_ex(
         return MK_ERR_INVALID_ARGUMENT;
     }
 
-    status = mk_parse_model_text(model_text, &model, diagnostic_out);
+    status = mki_parse_model_text_n(model_text, model_text_length, &model, diagnostic_out);
     if (status != MK_OK) {
         return status;
     }
@@ -184,20 +204,23 @@ mk_status mk_registry_add_model_text_ex(
         (registry->system_count + 1) * sizeof(*registry->systems)
     );
     if (next_systems == NULL) {
-        mk_parsed_model_clear(&model);
+        mki_parsed_model_clear(&model);
         return MK_ERR_OOM;
     }
     registry->systems = next_systems;
 
     slot = (mk_system *)calloc(1, sizeof(*slot));
     if (slot == NULL) {
-        mk_parsed_model_clear(&model);
+        mki_parsed_model_clear(&model);
         return MK_ERR_OOM;
     }
     registry->systems[registry->system_count] = slot;
 
     /* The registry takes over what the parser produced, so the model must not
-     * be cleared on this path. */
+     * be cleared on this path. The name is held twice on purpose: owned_name is
+     * the allocation this struct frees, owned.name is the borrowed view of it
+     * that every reader sees. */
+    slot->owned_name = model.name;
     slot->owned.name = model.name;
     slot->owned.kind = MK_SYSTEM_CATEGORICAL;
     slot->owned.entries = model.entries;

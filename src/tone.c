@@ -25,35 +25,35 @@
  * tokenizer grouped tone letters into a run that the merge step could not read
  * and therefore discarded as all-zero, so "a˥" lost its tone; and the
  * recognizer accepted tone letters but not the superscript zero. */
-int mk_chao_level(const char *p)
+int mki_chao_level(const char *p)
 {
     if (p == NULL) {
         return -1;
     }
-    if (mk_has_prefix(p, "⁰")) {
+    if (mki_has_prefix(p, "⁰")) {
         return 0;
     }
-    if (mk_has_prefix(p, "¹") || mk_has_prefix(p, "˩")) {
+    if (mki_has_prefix(p, "¹") || mki_has_prefix(p, "˩")) {
         return 1;
     }
-    if (mk_has_prefix(p, "²") || mk_has_prefix(p, "˨")) {
+    if (mki_has_prefix(p, "²") || mki_has_prefix(p, "˨")) {
         return 2;
     }
-    if (mk_has_prefix(p, "³") || mk_has_prefix(p, "˧")) {
+    if (mki_has_prefix(p, "³") || mki_has_prefix(p, "˧")) {
         return 3;
     }
-    if (mk_has_prefix(p, "⁴") || mk_has_prefix(p, "˦")) {
+    if (mki_has_prefix(p, "⁴") || mki_has_prefix(p, "˦")) {
         return 4;
     }
-    if (mk_has_prefix(p, "⁵") || mk_has_prefix(p, "˥")) {
+    if (mki_has_prefix(p, "⁵") || mki_has_prefix(p, "˥")) {
         return 5;
     }
     return -1;
 }
 
-int mk_is_chao_digit(const char *p)
+int mki_is_chao_digit(const char *p)
 {
-    return mk_chao_level(p) >= 0;
+    return mki_chao_level(p) >= 0;
 }
 
 static int mk_is_chao_digit_token(const char *s)
@@ -64,10 +64,10 @@ static int mk_is_chao_digit_token(const char *s)
         return 0;
     }
     while (*p != '\0') {
-        if (!mk_is_chao_digit(p)) {
+        if (!mki_is_chao_digit(p)) {
             return 0;
         }
-        p += mk_utf8_step(p);
+        p += mki_utf8_step(p);
     }
     return 1;
 }
@@ -77,10 +77,10 @@ static int mk_chao_token_has_nonzero(const char *s)
     const char *p = s;
 
     while (*p != '\0') {
-        if (mk_chao_level(p) > 0) {
+        if (mki_chao_level(p) > 0) {
             return 1;
         }
-        p += mk_utf8_step(p);
+        p += mki_utf8_step(p);
     }
     return 0;
 }
@@ -90,17 +90,17 @@ static int mk_segment_is_syllabic(const char *segment)
     const char *p = segment;
 
     while (*p != '\0') {
-        if (mk_has_prefix(p, "̩")) {
+        if (mki_has_prefix(p, "̩")) {
             return 1;
         }
-        if (mk_is_combining_mark(p)) {
-            p += mk_utf8_step(p);
+        if (mki_is_combining_mark(p)) {
+            p += mki_utf8_step(p);
             continue;
         }
-        if (mk_is_vowel_letter(p)) {
+        if (mki_is_vowel_letter(p)) {
             return 1;
         }
-        p += mk_utf8_step(p);
+        p += mki_utf8_step(p);
     }
     return 0;
 }
@@ -161,14 +161,14 @@ mk_status mk_merge_tone_digits(
             j = count;
             while (j > 0) {
                 j--;
-                if (mk_streq(items[j], "+")) {
+                if (mki_streq(items[j], "+")) {
                     break;
                 }
                 if (mk_segment_is_syllabic(items[j])) {
                     char *merged = NULL;
                     mk_status status = mk_concat_strings(items[j], segment, &merged);
                     if (status != MK_OK) {
-                        mk_free_items(items, count);
+                        mki_free_items(items, count);
                         return status;
                     }
                     free(items[j]);
@@ -182,16 +182,16 @@ mk_status mk_merge_tone_digits(
             continue;
         }
 
-        items[count] = mk_strdup_internal(segment);
+        items[count] = mki_strdup_internal(segment);
         if (items[count] == NULL) {
-            mk_free_items(items, count);
+            mki_free_items(items, count);
             return MK_ERR_OOM;
         }
         count++;
     }
 
-    if (mk_string_list_adopt(items, count, out) != MK_OK) {
-        mk_free_items(items, count);
+    if (mki_string_list_adopt(items, count, out) != MK_OK) {
+        mki_free_items(items, count);
         return MK_ERR_OOM;
     }
     return MK_OK;
@@ -218,14 +218,14 @@ mk_status mk_split_tone(
     p = segment;
     tone_start = NULL;
     while (*p != '\0') {
-        if (mk_is_chao_digit(p)) {
+        if (mki_is_chao_digit(p)) {
             tone_start = p;
             break;
         }
-        p += mk_utf8_step(p);
+        p += mki_utf8_step(p);
     }
     if (tone_start == NULL) {
-        *base_out = mk_strdup_internal(segment);
+        *base_out = mki_strdup_internal(segment);
         return *base_out == NULL ? MK_ERR_OOM : MK_OK;
     }
     /* A token that is nothing but tone has no base to split off; the caller is
@@ -240,7 +240,7 @@ mk_status mk_split_tone(
     }
     memcpy(*base_out, segment, base_len);
     (*base_out)[base_len] = '\0';
-    *tone_out = mk_strdup_internal(tone_start);
+    *tone_out = mki_strdup_internal(tone_start);
     if (*tone_out == NULL) {
         free(*base_out);
         *base_out = NULL;

@@ -15,8 +15,8 @@
 #include <stddef.h>
 
 /* A parsed model, before it is installed into a registry. On MK_OK the caller
- * owns `name` and `entries` and releases them with mk_parsed_model_clear;
- * mk_parse_model_text leaves nothing allocated on failure. */
+ * owns `name` and `entries` and releases them with mki_parsed_model_clear;
+ * mki_parse_model_text leaves nothing allocated on failure. */
 typedef struct mk_parsed_model {
     char *name;
     mk_builtin_entry *entries;
@@ -33,14 +33,31 @@ typedef struct mk_parsed_model {
  * Returns MK_ERR_PARSE for malformed or invalid text, MK_ERR_UNSUPPORTED_MODEL
  * for a model whose @type this implementation does not have an engine for, and
  * MK_ERR_OOM on allocation failure. */
-mk_status mk_parse_model_text(
+mk_status mki_parse_model_text(
     const char *model_text,
+    mk_parsed_model *out,
+    char **diagnostic
+);
+
+/* As above, for input that is not NUL-terminated. `model_text_length` is in
+ * bytes and `model_text` need not be readable past it.
+ *
+ * An embedded NUL is MK_ERR_PARSE. The parser splits lines with strchr on its
+ * own copy, so a NUL in the middle would silently end the model early and
+ * register whatever had been read so far -- a truncated inventory that looks
+ * like a successful one. Refusing is the only answer that cannot be mistaken
+ * for success.
+ *
+ * mki_parse_model_text is this function with strlen for the length. */
+mk_status mki_parse_model_text_n(
+    const char *model_text,
+    size_t model_text_length,
     mk_parsed_model *out,
     char **diagnostic
 );
 
 /* Frees whatever a parsed model owns and zeroes it. Safe on a zeroed struct,
  * and safe to call twice. */
-void mk_parsed_model_clear(mk_parsed_model *model);
+void mki_parsed_model_clear(mk_parsed_model *model);
 
 #endif

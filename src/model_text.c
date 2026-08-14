@@ -53,17 +53,17 @@ static void mk_free_entries(mk_builtin_entry *entries, size_t count)
 
     for (i = 0; i < count; i++) {
         size_t j;
-        char **features = (char **)entries[i].features;
-        free((char *)entries[i].grapheme);
+
+        free(entries[i].grapheme);
         for (j = 0; j < entries[i].feature_count; j++) {
-            free(features[j]);
+            free(entries[i].features[j]);
         }
-        free(features);
+        free(entries[i].features);
     }
     free(entries);
 }
 
-void mk_parsed_model_clear(mk_parsed_model *model)
+void mki_parsed_model_clear(mk_parsed_model *model)
 {
     if (model == NULL) {
         return;
@@ -103,15 +103,15 @@ static mk_status mk_add_parsed_entry(
             size_t new_cap = feature_cap == 0 ? 8 : feature_cap * 2;
             next_features = (char **)realloc(features, new_cap * sizeof(*features));
             if (next_features == NULL) {
-                mk_free_items(features, feature_count);
+                mki_free_items(features, feature_count);
                 return MK_ERR_OOM;
             }
             features = next_features;
             feature_cap = new_cap;
         }
-        features[feature_count] = mk_strdup_internal(feature);
+        features[feature_count] = mki_strdup_internal(feature);
         if (features[feature_count] == NULL) {
-            mk_free_items(features, feature_count);
+            mki_free_items(features, feature_count);
             return MK_ERR_OOM;
         }
         feature_count++;
@@ -125,7 +125,7 @@ static mk_status mk_add_parsed_entry(
         size_t new_cap = *cap == 0 ? 8 : *cap * 2;
         next_entries = (mk_builtin_entry *)realloc(*entries, new_cap * sizeof(**entries));
         if (next_entries == NULL) {
-            mk_free_items(features, feature_count);
+            mki_free_items(features, feature_count);
             return MK_ERR_OOM;
         }
         *entries = next_entries;
@@ -139,15 +139,15 @@ static mk_status mk_add_parsed_entry(
      * share one normalization. */
     {
         char *key = NULL;
-        mk_status status = mk_normalize_input_grapheme(grapheme, &key);
+        mk_status status = mki_normalize_input_grapheme(grapheme, &key);
 
         if (status != MK_OK) {
-            mk_free_items(features, feature_count);
+            mki_free_items(features, feature_count);
             return status;
         }
         (*entries)[*count].grapheme = key;
     }
-    (*entries)[*count].features = (const char *const *)features;
+    (*entries)[*count].features = features;
     (*entries)[*count].feature_count = feature_count;
     (*count)++;
     return MK_OK;
@@ -171,7 +171,7 @@ static void mk_set_diagnostic(char **out, int line_no, const char *message, cons
     } else {
         snprintf(buffer, sizeof(buffer), "%s: %s", message, detail);
     }
-    *out = mk_strdup_internal(buffer);
+    *out = mki_strdup_internal(buffer);
 }
 
 /* Every feature a strict model uses must reach a scoring dimension, and every
@@ -188,7 +188,7 @@ static mk_status mk_validate_strict_entries(
 
     for (i = 0; i < entry_count; i++) {
         for (j = 0; j < i; j++) {
-            if (mk_streq(entries[i].grapheme, entries[j].grapheme)) {
+            if (mki_streq(entries[i].grapheme, entries[j].grapheme)) {
                 mk_set_diagnostic(
                     diagnostic,
                     0,
@@ -199,7 +199,7 @@ static mk_status mk_validate_strict_entries(
             }
         }
         for (j = 0; j < entries[i].feature_count; j++) {
-            if (!mk_geometry_knows_feature(entries[i].features[j])) {
+            if (!mki_geometry_knows_feature(entries[i].features[j])) {
                 mk_set_diagnostic(
                     diagnostic,
                     0,
@@ -214,7 +214,7 @@ static mk_status mk_validate_strict_entries(
         {
             int scorable = 0;
             for (j = 0; j < entries[i].feature_count; j++) {
-                if (mk_geometry_scores_feature(entries[i].features[j])) {
+                if (mki_geometry_scores_feature(entries[i].features[j])) {
                     scorable = 1;
                     break;
                 }
@@ -234,8 +234,21 @@ static mk_status mk_validate_strict_entries(
     return MK_OK;
 }
 
-mk_status mk_parse_model_text(
+mk_status mki_parse_model_text(
     const char *model_text,
+    mk_parsed_model *out,
+    char **diagnostic
+)
+{
+    if (model_text == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    return mki_parse_model_text_n(model_text, strlen(model_text), out, diagnostic);
+}
+
+mk_status mki_parse_model_text_n(
+    const char *model_text,
+    size_t model_text_length,
     mk_parsed_model *out,
     char **diagnostic
 )
@@ -261,10 +274,20 @@ mk_status mk_parse_model_text(
     out->entry_count = 0;
     unknown_directive[0] = '\0';
 
-    copy = mk_strdup_internal(model_text);
+    /* An embedded NUL would end every strchr and strcmp below early, so the
+     * model would parse as whatever preceded it and register successfully.
+     * Reject it before the copy rather than truncate silently. */
+    if (memchr(model_text, '\0', model_text_length) != NULL) {
+        mk_set_diagnostic(diagnostic, 0, "model text contains an embedded NUL byte", "");
+        return MK_ERR_PARSE;
+    }
+
+    copy = (char *)malloc(model_text_length + 1);
     if (copy == NULL) {
         return MK_ERR_OOM;
     }
+    memcpy(copy, model_text, model_text_length);
+    copy[model_text_length] = '\0';
 
     line = copy;
     while (line != NULL) {
@@ -299,7 +322,7 @@ mk_status mk_parse_model_text(
                 char *cursor = trimmed + 6;
                 char *token = mk_next_token(&cursor);
                 free(name);
-                name = token == NULL ? NULL : mk_strdup_internal(token);
+                name = token == NULL ? NULL : mki_strdup_internal(token);
                 if (token != NULL && name == NULL) {
                     status = MK_ERR_OOM;
                     goto failed;

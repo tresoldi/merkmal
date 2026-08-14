@@ -24,38 +24,38 @@ static char *mk_remove_tie_bars(const char *text)
         char one[5];
         size_t n;
 
-        if (mk_has_prefix(p, "͡")) {
+        if (mki_has_prefix(p, "͡")) {
             p += strlen("͡");
             continue;
         }
-        if (mk_has_prefix(p, "͜")) {
+        if (mki_has_prefix(p, "͜")) {
             p += strlen("͜");
             continue;
         }
-        n = mk_utf8_step(p);
+        n = mki_utf8_step(p);
         memcpy(one, p, n);
         one[n] = '\0';
-        if (mk_append_text(&out, &len, &cap, one) != MK_OK) {
+        if (mki_append_text(&out, &len, &cap, one) != MK_OK) {
             free(out);
             return NULL;
         }
         p += n;
     }
     if (out == NULL) {
-        out = mk_strdup_internal("");
+        out = mki_strdup_internal("");
     }
     return out;
 }
 
 static char *mk_insert_affricate_retraction(const char *text)
 {
-    if (mk_streq(text, "tʃ")) {
-        return mk_strdup_internal("t̠ʃ");
+    if (mki_streq(text, "tʃ")) {
+        return mki_strdup_internal("t̠ʃ");
     }
-    if (mk_streq(text, "dʒ")) {
-        return mk_strdup_internal("d̠ʒ");
+    if (mki_streq(text, "dʒ")) {
+        return mki_strdup_internal("d̠ʒ");
     }
-    return mk_strdup_internal(text);
+    return mki_strdup_internal(text);
 }
 
 /* Three attempts at the inventory, in order: as written, with tie bars
@@ -72,7 +72,7 @@ static mk_status mk_lookup_normalized(
     char *without_tie;
     char *retracted;
 
-    if (mk_inventory_find(system->builtin, normalized, scratch, out)) {
+    if (mki_inventory_find(system->builtin, normalized, scratch, out)) {
         if (path_out != NULL) {
             *path_out = MK_RESOLVED_INVENTORY;
         }
@@ -83,8 +83,8 @@ static mk_status mk_lookup_normalized(
     if (without_tie == NULL) {
         return MK_ERR_OOM;
     }
-    if (!mk_streq(without_tie, normalized)) {
-        if (mk_inventory_find(system->builtin, without_tie, scratch, out)) {
+    if (!mki_streq(without_tie, normalized)) {
+        if (mki_inventory_find(system->builtin, without_tie, scratch, out)) {
             free(without_tie);
             if (path_out != NULL) {
                 *path_out = MK_RESOLVED_TIE_STRIPPED;
@@ -99,7 +99,7 @@ static mk_status mk_lookup_normalized(
         return MK_ERR_OOM;
     }
     {
-        int hit = mk_inventory_find(system->builtin, retracted, scratch, out);
+        int hit = mki_inventory_find(system->builtin, retracted, scratch, out);
 
         /* Freed on both paths. The view borrows the pool, never `retracted`,
          * so releasing it here does not invalidate anything in *out. */
@@ -114,7 +114,7 @@ static mk_status mk_lookup_normalized(
     return MK_ERR_UNKNOWN_GRAPHEME;
 }
 
-const char *mk_resolution_path_name(mk_resolution_path path)
+const char *mki_resolution_path_name(mk_resolution_path path)
 {
     switch (path) {
     case MK_RESOLVED_INVENTORY:
@@ -139,7 +139,7 @@ const char *mk_resolution_path_name(mk_resolution_path path)
     }
 }
 
-void mk_resolution_clear(mk_resolution *entry)
+void mki_resolution_clear(mk_resolution *entry)
 {
     size_t i;
 
@@ -165,12 +165,38 @@ void mk_resolution_clear(mk_resolution *entry)
     entry->cluster_component_count = 0;
 }
 
-static int mk_feature_list_contains(char **items, size_t count, const char *feature)
+/* Move a resolution out of a frame that is about to die.
+ *
+ * A plain struct assignment is not enough. On the inventory paths `features`
+ * aliases the struct's own `inline_features` array, so a copy duplicates the
+ * array but leaves `features` pointing into the *source*. The moment the
+ * source goes out of scope the destination dangles -- which is the hazard
+ * resolver.h warns about, and it was reachable: a fuzzer found
+ * "cisntstiisi\234\213\226Fve" reading a dead frame through
+ * mk_synthesize_cluster.
+ *
+ * Use this rather than `*dst = *src` for any resolution that outlives its
+ * source. The owned paths need no fixup: `owned_features` is heap storage that
+ * the copy inherits along with the pointer. */
+static void mk_resolution_move(mk_resolution *dst, const mk_resolution *src)
+{
+    *dst = *src;
+    if (src->features == src->inline_features) {
+        dst->features = dst->inline_features;
+    }
+}
+
+/* These three only read, and say so. Callers holding the mutable `char **` half
+ * of an mk_resolution widen with a cast at the call, the way the call to
+ * mki_ordinal_conflict below already did; C does not convert `char **` to
+ * `const char *const *` on its own. Adding const is the safe direction, which
+ * is why -Wcast-qual has nothing to say about it. */
+static int mk_feature_list_contains(const char *const *items, size_t count, const char *feature)
 {
     size_t i;
 
     for (i = 0; i < count; i++) {
-        if (mk_streq(items[i], feature)) {
+        if (mki_streq(items[i], feature)) {
             return 1;
         }
     }
@@ -187,8 +213,8 @@ static void mk_replace_owned_feature(
     size_t i;
 
     for (i = 0; i < count; i++) {
-        if (mk_streq(items[i], from)) {
-            char *copy = mk_strdup_internal(to);
+        if (mki_streq(items[i], from)) {
+            char *copy = mki_strdup_internal(to);
             if (copy != NULL) {
                 free(items[i]);
                 items[i] = copy;
@@ -202,7 +228,8 @@ static mk_status mk_add_owned_feature(char ***items, size_t *count, size_t *cap,
 {
     char **next;
 
-    if (feature == NULL || feature[0] == '\0' || mk_feature_list_contains(*items, *count, feature)) {
+    if (feature == NULL || feature[0] == '\0' ||
+        mk_feature_list_contains((const char *const *)*items, *count, feature)) {
         return MK_OK;
     }
     if (*count + 1 > *cap) {
@@ -214,7 +241,7 @@ static mk_status mk_add_owned_feature(char ***items, size_t *count, size_t *cap,
         *items = next;
         *cap = new_cap;
     }
-    (*items)[*count] = mk_strdup_internal(feature);
+    (*items)[*count] = mki_strdup_internal(feature);
     if ((*items)[*count] == NULL) {
         return MK_ERR_OOM;
     }
@@ -265,14 +292,14 @@ static mk_status mk_copy_entry_features(const mk_entry_view *entry, char ***item
     return MK_OK;
 }
 
-static int mk_feature_array_marks_nucleus(char **items, size_t count)
+static int mk_feature_array_marks_nucleus(const char *const *items, size_t count)
 {
     return mk_feature_list_contains(items, count, "vowel") ||
         mk_feature_list_contains(items, count, "syllabic") ||
         mk_feature_list_contains(items, count, "syllabic=+");
 }
 
-static int mk_feature_array_marks_sonorant(char **items, size_t count)
+static int mk_feature_array_marks_sonorant(const char *const *items, size_t count)
 {
     return mk_feature_list_contains(items, count, "sonorant") ||
         mk_feature_list_contains(items, count, "nasal") ||
@@ -284,41 +311,41 @@ static int mk_feature_array_marks_sonorant(char **items, size_t count)
 
 static const char *mk_feature_dimension(const char *feature)
 {
-    if (mk_streq(feature, "close") ||
-        mk_streq(feature, "near-close") ||
-        mk_streq(feature, "close-mid") ||
-        mk_streq(feature, "mid") ||
-        mk_streq(feature, "open-mid") ||
-        mk_streq(feature, "near-open") ||
-        mk_streq(feature, "open")) {
+    if (mki_streq(feature, "close") ||
+        mki_streq(feature, "near-close") ||
+        mki_streq(feature, "close-mid") ||
+        mki_streq(feature, "mid") ||
+        mki_streq(feature, "open-mid") ||
+        mki_streq(feature, "near-open") ||
+        mki_streq(feature, "open")) {
         return "height";
     }
-    if (mk_streq(feature, "front") ||
-        mk_streq(feature, "near-front") ||
-        mk_streq(feature, "central") ||
-        mk_streq(feature, "near-back") ||
-        mk_streq(feature, "back")) {
+    if (mki_streq(feature, "front") ||
+        mki_streq(feature, "near-front") ||
+        mki_streq(feature, "central") ||
+        mki_streq(feature, "near-back") ||
+        mki_streq(feature, "back")) {
         return "centrality";
     }
-    if (mk_streq(feature, "rounded") || mk_streq(feature, "unrounded")) {
+    if (mki_streq(feature, "rounded") || mki_streq(feature, "unrounded")) {
         return "roundedness";
     }
-    if (mk_streq(feature, "long") ||
-        mk_streq(feature, "mid-long") ||
-        mk_streq(feature, "ultra-long") ||
-        mk_streq(feature, "ultra-short")) {
+    if (mki_streq(feature, "long") ||
+        mki_streq(feature, "mid-long") ||
+        mki_streq(feature, "ultra-long") ||
+        mki_streq(feature, "ultra-short")) {
         return "duration";
     }
-    if (mk_streq(feature, "nasalized")) {
+    if (mki_streq(feature, "nasalized")) {
         return "nasalization";
     }
-    if (mk_streq(feature, "centralized") ||
-        mk_streq(feature, "mid-centralized") ||
-        mk_streq(feature, "advanced") ||
-        mk_streq(feature, "retracted")) {
+    if (mki_streq(feature, "centralized") ||
+        mki_streq(feature, "mid-centralized") ||
+        mki_streq(feature, "advanced") ||
+        mki_streq(feature, "retracted")) {
         return "relative";
     }
-    if (mk_streq(feature, "non-syllabic") || mk_streq(feature, "syllabic")) {
+    if (mki_streq(feature, "non-syllabic") || mki_streq(feature, "syllabic")) {
         return "syllabicity";
     }
     return NULL;
@@ -326,7 +353,7 @@ static const char *mk_feature_dimension(const char *feature)
 
 /* A resolved entry is a grapheme, its features, and the storage behind them.
  * Scoring wants only the middle part. */
-mk_feature_view mk_view_of(const mk_resolution *entry)
+mk_feature_view mki_view_of(const mk_resolution *entry)
 {
     mk_feature_view view;
 
@@ -345,7 +372,7 @@ static const char *mk_view_feature_for_dimension(
     for (i = 0; i < view.count; i++) {
         const char *candidate = view.features[i];
         const char *candidate_dimension = mk_feature_dimension(candidate);
-        if (candidate_dimension != NULL && mk_streq(candidate_dimension, dimension)) {
+        if (candidate_dimension != NULL && mki_streq(candidate_dimension, dimension)) {
             return candidate;
         }
     }
@@ -421,7 +448,7 @@ static const mk_diacritic_map *mk_match_diacritic_map(
     size_t i;
 
     for (i = 0; i < count; i++) {
-        if (mk_has_prefix(text, map[i].mark)) {
+        if (mki_has_prefix(text, map[i].mark)) {
             return &map[i];
         }
     }
@@ -430,7 +457,7 @@ static const mk_diacritic_map *mk_match_diacritic_map(
 
 static const char *mk_match_extra_suffix_feature(const char *text, size_t *bytes_out)
 {
-    if (mk_has_prefix(text, "ʳ")) {
+    if (mki_has_prefix(text, "ʳ")) {
         *bytes_out = strlen("ʳ");
         return "rhotacized";
     }
@@ -439,7 +466,7 @@ static const char *mk_match_extra_suffix_feature(const char *text, size_t *bytes
 
 static const char *mk_match_extra_prefix_feature(const char *text, size_t *bytes_out)
 {
-    if (mk_has_prefix(text, "ᵐ")) {
+    if (mki_has_prefix(text, "ᵐ")) {
         *bytes_out = strlen("ᵐ");
         return "pre-nasalized";
     }
@@ -450,9 +477,9 @@ static const mk_tone_mark *mk_match_tone_mark(const char *text)
 {
     size_t i;
 
-    for (i = 0; i < mk_default_tone_mark_count; i++) {
-        if (mk_has_prefix(text, mk_default_tone_marks[i].mark)) {
-            return &mk_default_tone_marks[i];
+    for (i = 0; i < mki_default_tone_mark_count; i++) {
+        if (mki_has_prefix(text, mki_default_tone_marks[i].mark)) {
+            return &mki_default_tone_marks[i];
         }
     }
     return NULL;
@@ -582,15 +609,15 @@ static int mk_is_source_marker(const char *text)
         return 0;
     }
     /* CLDF boundary markers. */
-    if (mk_streq(text, "+") || mk_streq(text, "_") || mk_streq(text, "#")) {
+    if (mki_streq(text, "+") || mki_streq(text, "_") || mki_streq(text, "#")) {
         return 1;
     }
     /* CLTS: a grapheme the conversion could not resolve. */
-    if (mk_streq(text, "<?>")) {
+    if (mki_streq(text, "<?>")) {
         return 1;
     }
     /* CLDF: source material left unparsed, escaped as <<...>>. */
-    if (mk_has_prefix(text, "<<")) {
+    if (mki_has_prefix(text, "<<")) {
         size_t len = strlen(text);
         if (len >= 4 && strcmp(text + len - 2, ">>") == 0) {
             return 1;
@@ -648,7 +675,7 @@ static mk_status mk_synthesize_bare_tone(
     }
 
     while (*p != '\0') {
-        int value = mk_chao_level(p);
+        int value = mki_chao_level(p);
         if (value < 0) {
             /* Some non-tone character: not a bare tone token at all. Hand back
              * to the other synthesizers rather than rejecting the input. */
@@ -662,7 +689,7 @@ static mk_status mk_synthesize_bare_tone(
         } else {
             count++;
         }
-        p += mk_utf8_step(p);
+        p += mki_utf8_step(p);
     }
 
     if (neutral && count > 0) {
@@ -731,7 +758,7 @@ static mk_status mk_match_chao_tone_sequence(
      * and letting the caller retry on the remainder splits "a¹²³⁴" into two
      * separate tone readings whose features contradict each other. */
     while (*p != '\0') {
-        int value = mk_chao_level(p);
+        int value = mki_chao_level(p);
         if (value < 1 || value > 5) {
             break;
         }
@@ -739,7 +766,7 @@ static mk_status mk_match_chao_tone_sequence(
             levels[count] = value;
         }
         count++;
-        p += mk_utf8_step(p);
+        p += mki_utf8_step(p);
     }
 
     if (count == 0) {
@@ -761,9 +788,9 @@ static const mk_valued_diacritic_effect *mk_find_valued_effect(const char *modif
 {
     size_t i;
 
-    for (i = 0; i < mk_default_valued_diacritic_effect_count; i++) {
-        if (mk_streq(mk_default_valued_diacritic_effects[i].modifier, modifier)) {
-            return &mk_default_valued_diacritic_effects[i];
+    for (i = 0; i < mki_default_valued_diacritic_effect_count; i++) {
+        if (mki_streq(mki_default_valued_diacritic_effects[i].modifier, modifier)) {
+            return &mki_default_valued_diacritic_effects[i];
         }
     }
     return NULL;
@@ -791,14 +818,14 @@ static int mk_system_supports_tone(const mk_system *system)
     if (system->builtin->kind != MK_SYSTEM_VALUED) {
         return 1;
     }
-    for (i = 0; i < mk_default_valued_diacritic_effect_count; i++) {
-        const mk_valued_diacritic_effect *effect = &mk_default_valued_diacritic_effects[i];
+    for (i = 0; i < mki_default_valued_diacritic_effect_count; i++) {
+        const mk_valued_diacritic_effect *effect = &mki_default_valued_diacritic_effects[i];
         if (strncmp(effect->modifier, "tone-", 5) != 0) {
             continue;
         }
         for (j = 0; j < effect->alternative_count; j++) {
             for (k = 0; k < system->builtin->geometry_map_count; k++) {
-                if (mk_streq(system->builtin->geometry_map[k].feature, effect->alternatives[j])) {
+                if (mki_streq(system->builtin->geometry_map[k].feature, effect->alternatives[j])) {
                     return 1;
                 }
             }
@@ -843,8 +870,8 @@ static mk_status mk_decompose_diacritics(
     p = normalized;
     while (*p != '\0') {
         const mk_diacritic_map *prefix = mk_match_diacritic_map(
-            mk_default_prefix_diacritics,
-            mk_default_prefix_diacritic_count,
+            mki_default_prefix_diacritics,
+            mki_default_prefix_diacritic_count,
             p
         );
         const char *extra_prefix;
@@ -912,8 +939,8 @@ static mk_status mk_decompose_diacritics(
         }
 
         combining = mk_match_diacritic_map(
-            mk_default_combining_diacritics,
-            mk_default_combining_diacritic_count,
+            mki_default_combining_diacritics,
+            mki_default_combining_diacritic_count,
             p
         );
         if (combining != NULL) {
@@ -938,22 +965,24 @@ static mk_status mk_decompose_diacritics(
         }
 
         suffix = mk_match_diacritic_map(
-            mk_default_suffix_diacritics,
-            mk_default_suffix_diacritic_count,
+            mki_default_suffix_diacritics,
+            mki_default_suffix_diacritic_count,
             p
         );
         if (suffix != NULL) {
             const char *feature = suffix->feature;
             /* "aːː" is an overlong vowel. Adding "long" twice deduplicates to
              * one "long", which made it identical to "aː". */
-            if (mk_streq(feature, "long") &&
-                mk_feature_list_contains(modifiers, modifier_count, "ultra-long")) {
+            if (mki_streq(feature, "long") &&
+                mk_feature_list_contains(
+                    (const char *const *)modifiers, modifier_count, "ultra-long")) {
                 /* A third length mark has no level left to promote to. */
                 status = MK_ERR_PARSE;
                 goto fail;
             }
-            if (mk_streq(feature, "long") &&
-                mk_feature_list_contains(modifiers, modifier_count, "long")) {
+            if (mki_streq(feature, "long") &&
+                mk_feature_list_contains(
+                    (const char *const *)modifiers, modifier_count, "long")) {
                 mk_replace_owned_feature(modifiers, modifier_count, "long", "ultra-long");
                 recognized_modifier = 1;
                 p += strlen(suffix->mark);
@@ -968,10 +997,10 @@ static mk_status mk_decompose_diacritics(
             continue;
         }
 
-        n = mk_utf8_step(p);
+        n = mki_utf8_step(p);
         memcpy(one, p, n);
         one[n] = '\0';
-        status = mk_append_text(&base, &base_len, &base_cap, one);
+        status = mki_append_text(&base, &base_len, &base_cap, one);
         if (status != MK_OK) {
             goto fail;
         }
@@ -979,7 +1008,7 @@ static mk_status mk_decompose_diacritics(
     }
 
     if (base == NULL) {
-        base = mk_strdup_internal("");
+        base = mki_strdup_internal("");
         if (base == NULL) {
             status = MK_ERR_OOM;
             goto fail;
@@ -1092,7 +1121,7 @@ static mk_status mk_set_synthesized_entry(
     size_t component_count
 )
 {
-    out->owned_grapheme = mk_strdup_internal(grapheme);
+    out->owned_grapheme = mki_strdup_internal(grapheme);
     if (out->owned_grapheme == NULL) {
         return MK_ERR_OOM;
     }
@@ -1169,7 +1198,7 @@ static mk_status mk_add_position_features(
     }
     for (i = 0; i < component->feature_count; i++) {
         const char *feature = component->features[i];
-        if (mk_streq(feature, "vowel") || mk_has_prefix(feature, "tone-")) {
+        if (mki_streq(feature, "vowel") || mki_has_prefix(feature, "tone-")) {
             continue;
         }
         if (mk_add_prefixed_feature(features, count, cap, prefix, feature) != MK_OK) {
@@ -1195,8 +1224,8 @@ static mk_status mk_add_cluster_movement_features(
     size_t i;
 
     for (i = 0; i < sizeof(dimensions) / sizeof(dimensions[0]); i++) {
-        const char *from_feature = mk_view_feature_for_dimension(mk_view_of(from), dimensions[i]);
-        const char *to_feature = mk_view_feature_for_dimension(mk_view_of(to), dimensions[i]);
+        const char *from_feature = mk_view_feature_for_dimension(mki_view_of(from), dimensions[i]);
+        const char *to_feature = mk_view_feature_for_dimension(mki_view_of(to), dimensions[i]);
 
         if (mk_add_movement_feature(features, count, cap, dimensions[i], from_feature, to_feature) != MK_OK) {
             return MK_ERR_OOM;
@@ -1220,15 +1249,15 @@ typedef struct mk_component_grammar {
 
 static int mk_vowel_starts_component(const char *p)
 {
-    return mk_is_vowel_letter(p);
+    return mki_is_vowel_letter(p);
 }
 
 static int mk_vowel_component_accepted(const mk_resolution *component)
 {
     return mk_feature_array_marks_nucleus(
-            (char **)component->features, component->feature_count) &&
+            component->features, component->feature_count) &&
         mk_feature_list_contains(
-            (char **)component->features, component->feature_count, "vowel");
+            component->features, component->feature_count, "vowel");
 }
 
 /* Source markup and control tokens are not segments and must not start one. */
@@ -1241,16 +1270,16 @@ static int mk_consonant_starts_component(const char *p)
         *p == '/' ||
         *p == '[' ||
         *p == ']' ||
-        mk_has_prefix(p, "→") ||
-        mk_has_prefix(p, "∼"));
+        mki_has_prefix(p, "→") ||
+        mki_has_prefix(p, "∼"));
 }
 
 static int mk_consonant_component_accepted(const mk_resolution *component)
 {
     return mk_feature_list_contains(
-            (char **)component->features, component->feature_count, "consonant") &&
+            component->features, component->feature_count, "consonant") &&
         !mk_feature_list_contains(
-            (char **)component->features, component->feature_count, "vowel");
+            component->features, component->feature_count, "vowel");
 }
 
 static const mk_component_grammar mk_vowel_component_grammar = {
@@ -1278,23 +1307,23 @@ static mk_status mk_parse_component_once(
     size_t cap = 0;
     mk_status status;
 
-    if (*p == '\0' || mk_chao_level(p) >= 1 || mk_match_tone_mark(p) != NULL) {
+    if (*p == '\0' || mki_chao_level(p) >= 1 || mk_match_tone_mark(p) != NULL) {
         return MK_ERR_UNKNOWN_GRAPHEME;
     }
     if (!grammar->admits_start(p)) {
         return MK_ERR_UNKNOWN_GRAPHEME;
     }
 
-    status = mk_append_text(&component, &len, &cap, "");
+    status = mki_append_text(&component, &len, &cap, "");
     if (status != MK_OK) {
         return status;
     }
     {
         char one[5];
-        size_t n = mk_utf8_step(p);
+        size_t n = mki_utf8_step(p);
         memcpy(one, p, n);
         one[n] = '\0';
-        status = mk_append_text(&component, &len, &cap, one);
+        status = mki_append_text(&component, &len, &cap, one);
         if (status != MK_OK) {
             free(component);
             return status;
@@ -1308,16 +1337,16 @@ static mk_status mk_parse_component_once(
         const char *extra_suffix;
         size_t extra_suffix_bytes = 0;
 
-        if (mk_chao_level(p) >= 1 || mk_match_tone_mark(p) != NULL) {
+        if (mki_chao_level(p) >= 1 || mk_match_tone_mark(p) != NULL) {
             break;
         }
         combining = mk_match_diacritic_map(
-            mk_default_combining_diacritics,
-            mk_default_combining_diacritic_count,
+            mki_default_combining_diacritics,
+            mki_default_combining_diacritic_count,
             p
         );
         if (combining != NULL) {
-            status = mk_append_text(&component, &len, &cap, combining->mark);
+            status = mki_append_text(&component, &len, &cap, combining->mark);
             if (status != MK_OK) {
                 free(component);
                 return status;
@@ -1330,7 +1359,7 @@ static mk_status mk_parse_component_once(
             char mark[5];
             memcpy(mark, p, extra_suffix_bytes);
             mark[extra_suffix_bytes] = '\0';
-            status = mk_append_text(&component, &len, &cap, mark);
+            status = mki_append_text(&component, &len, &cap, mark);
             if (status != MK_OK) {
                 free(component);
                 return status;
@@ -1339,12 +1368,12 @@ static mk_status mk_parse_component_once(
             continue;
         }
         suffix = mk_match_diacritic_map(
-            mk_default_suffix_diacritics,
-            mk_default_suffix_diacritic_count,
+            mki_default_suffix_diacritics,
+            mki_default_suffix_diacritic_count,
             p
         );
         if (suffix != NULL) {
-            status = mk_append_text(&component, &len, &cap, suffix->mark);
+            status = mki_append_text(&component, &len, &cap, suffix->mark);
             if (status != MK_OK) {
                 free(component);
                 return status;
@@ -1372,7 +1401,7 @@ static mk_status mk_parse_component_once(
         return status;
     }
     if (!grammar->accepts(component_out)) {
-        mk_resolution_clear(component_out);
+        mki_resolution_clear(component_out);
         free(component);
         return MK_ERR_UNKNOWN_GRAPHEME;
     }
@@ -1421,13 +1450,13 @@ static mk_status mk_parse_component_at(
             size_t span = (size_t)(second_end - start);
             char *text = (char *)malloc(span + 1);
 
-            mk_resolution_clear(&second);
+            mki_resolution_clear(&second);
             if (text == NULL) {
                 return MK_ERR_OOM;
             }
             memcpy(text, start, span);
             text[span] = '\0';
-            if (mk_append_text(&joined, &len, &cap, text) == MK_OK) {
+            if (mki_append_text(&joined, &len, &cap, text) == MK_OK) {
                 mk_resolution merged;
                 mk_entry_view entry;
                 mk_status merged_status;
@@ -1443,19 +1472,22 @@ static mk_status mk_parse_component_at(
                     merged_status = mk_synthesize_descriptive_complex(system, joined, &merged);
                 }
                 if (merged_status == MK_OK && grammar->accepts(&merged)) {
-                    mk_resolution_clear(component_out);
-                    *component_out = merged;
+                    mki_resolution_clear(component_out);
+                    /* `merged` dies at the closing brace; its features may
+                     * alias its own inline array, so this cannot be a plain
+                     * struct assignment. */
+                    mk_resolution_move(component_out, &merged);
                     *end_out = second_end;
                     free(joined);
                     free(text);
                     return MK_OK;
                 }
-                mk_resolution_clear(&merged);
+                mki_resolution_clear(&merged);
             }
             free(joined);
             free(text);
         } else {
-            mk_resolution_clear(&second);
+            mki_resolution_clear(&second);
         }
     }
     *end_out = first_end;
@@ -1508,11 +1540,11 @@ static mk_status mk_add_prenasalization(
 {
     if (component_count >= 2 &&
         mk_feature_list_contains(
-            (char **)components[0].features, components[0].feature_count, "nasal") &&
+            components[0].features, components[0].feature_count, "nasal") &&
         !mk_feature_list_contains(
-            (char **)components[1].features, components[1].feature_count, "nasal") &&
+            components[1].features, components[1].feature_count, "nasal") &&
         mk_feature_list_contains(
-            (char **)components[1].features, components[1].feature_count, "obstruent")) {
+            components[1].features, components[1].feature_count, "obstruent")) {
         return mk_add_owned_feature(features, count, cap, "pre-nasalized");
     }
     return MK_OK;
@@ -1696,7 +1728,7 @@ static mk_status mk_synthesize_cluster(
     if (status != MK_OK) {
         goto finish;
     }
-    if (component_count == 2 && mk_streq(component_names[0], component_names[1])) {
+    if (component_count == 2 && mki_streq(component_names[0], component_names[1])) {
         status = mk_add_owned_feature(&features, &feature_count, &feature_cap, "geminate");
         if (status != MK_OK) {
             goto finish;
@@ -1740,7 +1772,7 @@ static mk_status mk_synthesize_cluster(
 
 finish:
     for (i = 0; i < component_count; i++) {
-        mk_resolution_clear(&components[i]);
+        mki_resolution_clear(&components[i]);
     }
     mk_free_owned_feature_array(features, feature_count);
     mk_free_cluster_components(component_names, component_name_count);
@@ -1776,51 +1808,51 @@ static mk_status mk_synthesize_descriptive_complex(
      * series -- Yoruba, Ewe, Igbo -- and was the one left as a cluster, which
      * scored it 0.73 from `kp` where `gb` scores 0.25. Extending the departure
      * is what makes the series coherent; leaving it out was the anomaly. */
-    if (mk_streq(normalized, "kp")) {
+    if (mki_streq(normalized, "kp")) {
         place = "labio-velar";
         phonation = "voiceless";
         manner = "stop";
         sibilant = 0;
-    } else if (mk_streq(normalized, "gb")) {
+    } else if (mki_streq(normalized, "gb")) {
         place = "labio-velar";
         phonation = "voiced";
         manner = "stop";
         sibilant = 0;
-    } else if (mk_streq(normalized, "ŋm")) {
+    } else if (mki_streq(normalized, "ŋm")) {
         place = "labio-velar";
         phonation = "voiced";
         manner = "nasal";
         sibilant = 0;
-    } else if (mk_streq(normalized, "kx")) {
+    } else if (mki_streq(normalized, "kx")) {
         place = "velar";
         phonation = "voiceless";
-    } else if (mk_streq(normalized, "gɣ")) {
+    } else if (mki_streq(normalized, "gɣ")) {
         place = "velar";
         phonation = "voiced";
-    } else if (mk_streq(normalized, "kɣ")) {
+    } else if (mki_streq(normalized, "kɣ")) {
         place = "velar";
-    } else if (mk_streq(normalized, "ts")) {
+    } else if (mki_streq(normalized, "ts")) {
         place = "alveolar";
         phonation = "voiceless";
-    } else if (mk_streq(normalized, "dz")) {
+    } else if (mki_streq(normalized, "dz")) {
         place = "alveolar";
         phonation = "voiced";
-    } else if (mk_streq(normalized, "tʃ")) {
+    } else if (mki_streq(normalized, "tʃ")) {
         place = "post-alveolar";
         phonation = "voiceless";
-    } else if (mk_streq(normalized, "dʒ")) {
+    } else if (mki_streq(normalized, "dʒ")) {
         place = "post-alveolar";
         phonation = "voiced";
-    } else if (mk_streq(normalized, "tɕ")) {
+    } else if (mki_streq(normalized, "tɕ")) {
         place = "alveolo-palatal";
         phonation = "voiceless";
-    } else if (mk_streq(normalized, "dʑ")) {
+    } else if (mki_streq(normalized, "dʑ")) {
         place = "alveolo-palatal";
         phonation = "voiced";
-    } else if (mk_streq(normalized, "tʂ")) {
+    } else if (mki_streq(normalized, "tʂ")) {
         place = "retroflex";
         phonation = "voiceless";
-    } else if (mk_streq(normalized, "dʐ")) {
+    } else if (mki_streq(normalized, "dʐ")) {
         place = "retroflex";
         phonation = "voiced";
     } else {
@@ -1843,7 +1875,7 @@ static mk_status mk_synthesize_descriptive_complex(
     if (status != MK_OK) {
         goto fail;
     }
-    if (sibilant && !mk_streq(place, "velar")) {
+    if (sibilant && !mki_streq(place, "velar")) {
         status = mk_add_owned_feature(&features, &count, &cap, "sibilant");
         if (status != MK_OK) {
             goto fail;
@@ -1891,7 +1923,7 @@ static mk_status mk_synthesize_from_diacritics(
     if (status != MK_OK) {
         return status;
     }
-    if (!recognized_modifier || mk_streq(base, normalized)) {
+    if (!recognized_modifier || mki_streq(base, normalized)) {
         status = MK_ERR_UNKNOWN_GRAPHEME;
         goto finish;
     }
@@ -1900,7 +1932,7 @@ static mk_status mk_synthesize_from_diacritics(
         goto finish;
     }
 
-    status = mk_resolve(system, base, &base_resolved);
+    status = mki_resolve(system, base, &base_resolved);
     if (status == MK_OK) {
         for (i = 0; i < base_resolved.feature_count; i++) {
             status = mk_add_owned_feature(&features, &count, &cap, base_resolved.features[i]);
@@ -1933,34 +1965,34 @@ static mk_status mk_synthesize_from_diacritics(
         }
     }
     if (tone_seen &&
-        !mk_feature_array_marks_nucleus(features, count) &&
-        mk_feature_array_marks_sonorant(features, count)) {
+        !mk_feature_array_marks_nucleus((const char *const *)features, count) &&
+        mk_feature_array_marks_sonorant((const char *const *)features, count)) {
         status = mk_add_owned_feature(&features, &count, &cap, "syllabic");
         if (status != MK_OK) {
             goto finish;
         }
     }
-    if (tone_seen && !mk_feature_array_marks_nucleus(features, count)) {
+    if (tone_seen && !mk_feature_array_marks_nucleus((const char *const *)features, count)) {
         status = MK_ERR_UNKNOWN_GRAPHEME;
         goto finish;
     }
     /* A breve plus a length mark asserts both `ultra-short` and `long`. Nothing
      * downstream can act on a segment that is at two points of one scale, and
      * silently keeping whichever came first would be arbitrary. */
-    if (mk_ordinal_conflict((const char *const *)features, count, NULL, NULL, NULL)) {
+    if (mki_ordinal_conflict((const char *const *)features, count, NULL, NULL, NULL)) {
         status = MK_ERR_PARSE;
         goto finish;
     }
 
 finish:
     free(base);
-    mk_resolution_clear(&base_resolved);
+    mki_resolution_clear(&base_resolved);
     mk_free_owned_feature_array(modifiers, modifier_count);
     if (status != MK_OK) {
         mk_free_owned_feature_array(features, count);
         return status;
     }
-    out->owned_grapheme = mk_strdup_internal(normalized);
+    out->owned_grapheme = mki_strdup_internal(normalized);
     if (out->owned_grapheme == NULL) {
         mk_free_owned_feature_array(features, count);
         return MK_ERR_OOM;
@@ -1974,7 +2006,7 @@ finish:
     return MK_OK;
 }
 
-mk_status mk_resolve(
+mk_status mki_resolve(
     const mk_system *system,
     const char *utf8_grapheme,
     mk_resolution *out
@@ -2000,7 +2032,7 @@ mk_status mk_resolve(
     {
         char *literal = NULL;
 
-        if (mk_normalize_input_grapheme_literal(utf8_grapheme, &literal) == MK_OK) {
+        if (mki_normalize_input_grapheme_literal(utf8_grapheme, &literal) == MK_OK) {
             mk_entry_view found;
 
             if (mk_lookup_normalized(
@@ -2015,7 +2047,7 @@ mk_status mk_resolve(
         }
     }
 
-    status = mk_normalize_input_grapheme(utf8_grapheme, &normalized);
+    status = mki_normalize_input_grapheme(utf8_grapheme, &normalized);
     if (status != MK_OK) {
         return status;
     }

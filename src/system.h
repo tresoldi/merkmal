@@ -11,6 +11,11 @@ struct mk_system {
      * otherwise. Everything downstream reads only through this. */
     const mk_builtin_system *builtin;
     mk_builtin_system owned;
+    /* The allocation `owned.name` borrows, and NULL unless `owns`. It is held
+     * separately because mk_builtin_system::name is const -- it names a string
+     * literal for a compiled system -- and the destructor should not have to
+     * cast that away to free what this struct allocated. */
+    char *owned_name;
     int owns;
 };
 

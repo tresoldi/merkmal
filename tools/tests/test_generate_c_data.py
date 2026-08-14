@@ -24,7 +24,7 @@ from generate_c_data import (  # noqa: E402
 
 
 def read_back(pool: StringPool, offset: int) -> str:
-    """Resolve an offset exactly as the generated mk_pool_string does."""
+    """Resolve an offset exactly as the generated mki_pool_string does."""
     chunk = pool.chunks[offset >> POOL_CHUNK_BITS]
     local = offset & (POOL_CHUNK - 1)
     end = chunk.index(b"\0", local)

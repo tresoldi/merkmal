@@ -59,8 +59,8 @@ typedef enum mk_resolution_path {
  * struct owns, and `cluster_components` holds the component spellings for the
  * two cluster paths.
  *
- * mk_resolution_clear frees the owned side and is safe on either shape, but
- * only on a struct that has been zeroed or filled by mk_resolve. mk_resolve
+ * mki_resolution_clear frees the owned side and is safe on either shape, but
+ * only on a struct that has been zeroed or filled by mki_resolve. mki_resolve
  * zeroes `out` before doing any work; anything building one by hand must
  * memset it first, or the clear will free whatever the stack held. */
 typedef struct mk_resolution {
@@ -80,7 +80,7 @@ typedef struct mk_resolution {
      *
      * On those paths `features` aliases this array. The strings it points at
      * are in the compiled pool and outlive everything, so nothing here is
-     * freed and mk_resolution_clear leaves it alone. It does mean an
+     * freed and mki_resolution_clear leaves it alone. It does mean an
      * mk_resolution must not be copied by value and then used after the
      * original goes out of scope. */
     const char *inline_features[MK_MAX_ENTRY_FEATURES];
@@ -94,19 +94,19 @@ typedef struct mk_resolution {
  * the shape and rejected the content, such as a Chao run too long to be a
  * contour. The distinction is what lets mk_system_is_segment stay total while
  * mk_system_grapheme_features reports why. */
-mk_status mk_resolve(
+mk_status mki_resolve(
     const mk_system *system,
     const char *utf8_grapheme,
     mk_resolution *out
 );
 
-void mk_resolution_clear(mk_resolution *resolution);
+void mki_resolution_clear(mk_resolution *resolution);
 
 /* A stable label for the path, for diagnostics and test output. Static
  * storage; never freed. */
-const char *mk_resolution_path_name(mk_resolution_path path);
+const char *mki_resolution_path_name(mk_resolution_path path);
 
 /* Scoring wants the features and nothing else. */
-mk_feature_view mk_view_of(const mk_resolution *resolution);
+mk_feature_view mki_view_of(const mk_resolution *resolution);
 
 #endif

@@ -115,18 +115,18 @@ static int run_case(const mk_registry *registry, const resolution_case *c)
         return 1;
     }
 
-    status = mk_resolve(system, c->grapheme, &resolution);
+    status = mki_resolve(system, c->grapheme, &resolution);
     if (status != c->status) {
         fprintf(stderr, "%s/%s: expected status %d, got %d\n",
             c->system, c->grapheme, c->status, status);
-        mk_resolution_clear(&resolution);
+        mki_resolution_clear(&resolution);
         return 1;
     }
     if (resolution.path != c->path) {
         fprintf(stderr, "%s/%s: expected path %s, got %s\n",
             c->system, c->grapheme,
-            mk_resolution_path_name(c->path),
-            mk_resolution_path_name(resolution.path));
+            mki_resolution_path_name(c->path),
+            mki_resolution_path_name(resolution.path));
         failed = 1;
     }
     if (status == MK_OK) {
@@ -158,25 +158,25 @@ static int run_case(const mk_registry *registry, const resolution_case *c)
             failed = 1;
         }
     }
-    mk_resolution_clear(&resolution);
+    mki_resolution_clear(&resolution);
     return failed;
 }
 
-/* mk_resolution_clear must be safe on a zeroed struct and on one already
+/* mki_resolution_clear must be safe on a zeroed struct and on one already
  * cleared, because every caller memsets before use and clears on every exit. */
 static int check_clear_is_total(void)
 {
     mk_resolution resolution;
 
     memset(&resolution, 0, sizeof(resolution));
-    mk_resolution_clear(&resolution);
-    mk_resolution_clear(&resolution);
-    mk_resolution_clear(NULL);
+    mki_resolution_clear(&resolution);
+    mki_resolution_clear(&resolution);
+    mki_resolution_clear(NULL);
     if (resolution.path != MK_RESOLVED_NONE || resolution.features != NULL) {
         fprintf(stderr, "clear: expected a zeroed resolution\n");
         return 1;
     }
-    if (strcmp(mk_resolution_path_name(MK_RESOLVED_NONE), "none") != 0) {
+    if (strcmp(mki_resolution_path_name(MK_RESOLVED_NONE), "none") != 0) {
         fprintf(stderr, "path name: expected none\n");
         return 1;
     }
@@ -188,7 +188,7 @@ static int check_invalid_arguments(void)
     mk_resolution resolution;
     int failed = 0;
 
-    if (mk_resolve(NULL, "p", &resolution) != MK_ERR_INVALID_ARGUMENT) {
+    if (mki_resolve(NULL, "p", &resolution) != MK_ERR_INVALID_ARGUMENT) {
         fprintf(stderr, "resolve: expected invalid argument for a NULL system\n");
         failed = 1;
     }
@@ -201,7 +201,7 @@ static int check_invalid_arguments(void)
  * rows, which is what makes a bad pool offset or a truncated feature run show
  * up as a failure rather than as a wrong answer for some segment nobody
  * sampled. Each row must also resolve back to itself: that exercises
- * mk_inventory_find against the same data mk_inventory_row reports. */
+ * mki_inventory_find against the same data mki_inventory_row reports. */
 static int check_every_compiled_row(void)
 {
     const char *scratch[MK_MAX_ENTRY_FEATURES];
@@ -211,15 +211,15 @@ static int check_every_compiled_row(void)
     size_t rows = 0;
     int failed = 0;
 
-    for (s = 0; s < mk_builtin_system_count; s++) {
-        const mk_builtin_system *system = &mk_builtin_systems[s];
+    for (s = 0; s < mki_builtin_system_count; s++) {
+        const mk_builtin_system *system = &mki_builtin_systems[s];
 
         for (i = 0; i < system->entry_count; i++) {
             mk_entry_view row;
             mk_entry_view found;
             const char *found_scratch[MK_MAX_ENTRY_FEATURES];
 
-            mk_inventory_row(system, i, scratch, &row);
+            mki_inventory_row(system, i, scratch, &row);
             rows++;
 
             /* The binary search assumes this order. Python sorts the rows by
@@ -230,7 +230,7 @@ static int check_every_compiled_row(void)
                 mk_entry_view previous;
                 const char *previous_scratch[MK_MAX_ENTRY_FEATURES];
 
-                mk_inventory_row(system, i - 1, previous_scratch, &previous);
+                mki_inventory_row(system, i - 1, previous_scratch, &previous);
                 if (strcmp(previous.grapheme, row.grapheme) >= 0) {
                     fprintf(stderr, "%s rows %zu/%zu: out of order (%s then %s)\n",
                             system->name, i - 1, i, previous.grapheme, row.grapheme);
@@ -257,7 +257,7 @@ static int check_every_compiled_row(void)
                 }
             }
 
-            if (!mk_inventory_find(system, row.grapheme, found_scratch, &found)) {
+            if (!mki_inventory_find(system, row.grapheme, found_scratch, &found)) {
                 fprintf(stderr, "%s row %zu (%s): does not find itself\n",
                         system->name, i, row.grapheme);
                 failed = 1;
@@ -286,14 +286,14 @@ static int check_feature_name_table(void)
     size_t i;
     int failed = 0;
 
-    for (i = 0; i < mk_feature_name_count; i++) {
-        const char *name = mk_feature_name((unsigned short)i);
+    for (i = 0; i < mki_feature_name_count; i++) {
+        const char *name = mki_feature_name((unsigned short)i);
         if (name == NULL || name[0] == '\0') {
             fprintf(stderr, "feature id %zu has no name\n", i);
             failed = 1;
             continue;
         }
-        if (i > 0 && strcmp(mk_feature_name((unsigned short)(i - 1)), name) >= 0) {
+        if (i > 0 && strcmp(mki_feature_name((unsigned short)(i - 1)), name) >= 0) {
             fprintf(stderr, "feature ids are not in sorted order at %zu (%s)\n", i, name);
             failed = 1;
         }

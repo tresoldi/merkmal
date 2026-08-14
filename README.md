@@ -333,6 +333,7 @@ merkmal/
 ├── scripts/                active source-data validation and audit scripts
 ├── bench/                  footprint and lookup benchmarks, with a baseline
 ├── fuzz/                   libFuzzer harnesses and seed corpora
+├── examples/               worked examples, built and run as tests
 ├── tests/c/                C tests
 ├── tests/golden/           parity fixtures for the native implementation
 ├── models/                 source model data used by generators
@@ -345,8 +346,13 @@ merkmal/
 ```
 
 Contributing to the C core: [STYLE.md](STYLE.md) covers the module map,
-ownership and error conventions, the build/test/sanitizer/fuzz commands, and
-what to know before changing the generated data.
+ownership and error conventions, the `mk_`/`mki_` prefix rule, the
+build/test/sanitizer/fuzz commands, and what to know before changing the
+generated data.
+
+For a worked example of the C API — tokenizing a transcription, reading each
+segment's features, scoring a pair, and explaining a rejected token — see
+[examples/transcribe.c](examples/transcribe.c).
 
 ## License
 
