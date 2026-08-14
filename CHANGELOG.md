@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+### Geminacy is a question about segments, not about bytes
+
+A two-part cluster was a geminate when its two parts were spelled identically,
+byte for byte -- twenty lines from `mk_add_prenasalization`, which decides from
+features and carries a comment recording that testing the spelling *was* the
+bug. Two adjacent rules about the same two parts disagreed about what "the same"
+means. It is featural now.
+
+Measured before changing it, on all three categorical systems:
+
+| sweep | two-part clusters | disagreements |
+| --- | --- | --- |
+| every ordered pair of distinct inventory graphemes | 24,824 | 0 |
+| every inventory row doubled, with and without one added mark | 8,992 | 10 |
+| the tone spellings the contrast baseline declares equivalent | 315 | 0 |
+
+So the rules never disagree about two genuinely different segments, and no
+distance in the tree moves. The ten are all redundant marks -- a creaky vowel
+written with a second creaky mark, a nasal one with a second nasal mark -- where
+the featural rule says geminate and the byte rule does not. Those are one
+segment written twice, which is what a geminate is, so the featural answer is
+also the better one for them.
+
+A false geminate would need two genuinely different segments with identical
+features. Those score exactly zero against each other, which is the undeclared
+collapse `scripts/contrast_baseline.py --check` sweeps the categorical systems
+for and fails on, so the invariant this rests on is already enforced in CI and
+does not need its own sweep in `ctest`.
+
+`tests/c/test_cluster.c` covers `aa`, `ai`, `au`, and one redundant-mark pair
+written in hex escapes, because stacked combining marks render ambiguously and
+that case only means anything if the bytes are exact. It is the only observable
+difference between the two rules, and a revert to byte comparison fails on it
+and on nothing else -- checked by making the revert and watching it fail.
+
 ### The header is the shape, and the generator is held to it
 
 `builtin_data.h` declares twelve struct types; `tools/generate_c_data.py`

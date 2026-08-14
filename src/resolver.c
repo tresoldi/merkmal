@@ -1201,6 +1201,44 @@ static mk_status mk_add_cluster_component(
     return MK_OK;
 }
 
+/* Whether two resolved parts denote the same segment, which is what makes a
+ * two-part cluster a geminate.
+ *
+ * This used to compare the two spellings byte for byte, twenty lines from
+ * mk_add_prenasalization, which decides from features and carries a comment
+ * recording that testing the spelling was the bug. Two adjacent rules about the
+ * same two parts should not disagree about what "the same" means.
+ *
+ * The two rules agree on every pair of distinct inventory segments -- measured
+ * across 24,824 two-part clusters in each of the three categorical systems, and
+ * again over the tone spellings the contrast baseline declares equivalent. They
+ * differ only where a mark is redundant: a nasal vowel written with a second
+ * nasal mark, a creaky one with a second creaky mark. Those are one segment
+ * written twice, which is what a geminate is, so the featural answer is also the
+ * right one for them.
+ *
+ * A false geminate would need two genuinely different segments with identical
+ * features. Those score exactly zero against each other, which is the
+ * undeclared collapse scripts/contrast_baseline.py sweeps the categorical
+ * systems for and fails on.
+ *
+ * Equal counts plus one-way containment: a resolved feature set does not repeat
+ * a label. */
+static int mk_same_segment(const mk_resolution *a, const mk_resolution *b)
+{
+    size_t i;
+
+    if (a->feature_count != b->feature_count) {
+        return 0;
+    }
+    for (i = 0; i < a->feature_count; i++) {
+        if (!mki_features_contain(b->features, b->feature_count, a->features[i])) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 /* Carries a part's resolved features into the record, so scoring never has to
  * resolve the spelling again.
  *
@@ -1791,8 +1829,7 @@ static mk_status mk_synthesize_cluster(
     if (status != MK_OK) {
         goto finish;
     }
-    if (component_count == 2 &&
-        mki_streq(component_names[0].grapheme, component_names[1].grapheme)) {
+    if (component_count == 2 && mk_same_segment(&components[0], &components[1])) {
         status = mk_add_owned_feature(&features, &feature_count, &feature_cap, "geminate");
         if (status != MK_OK) {
             goto finish;

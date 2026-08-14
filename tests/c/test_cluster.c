@@ -13,6 +13,7 @@
 #include "cluster.h"
 #include "merkmal.h"
 #include "resolver.h"
+#include "strings.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -146,6 +147,57 @@ static void check_composition(const mk_system *system)
     }
 }
 
+/* Geminacy is decided from the parts' features, not from their spellings.
+ *
+ * The two rules agree on every pair of distinct inventory segments. They differ
+ * only where a mark is redundant -- a nasal vowel written with a second nasal
+ * mark resolves to the features of one nasal vowel -- and that pair is one
+ * segment written twice, which is what a geminate is. It is the only observable
+ * difference between the rules, so it is what a revert to byte comparison would
+ * fail on. */
+static void check_geminacy_is_featural(const mk_system *system)
+{
+    static const struct {
+        const char *token;
+        int geminate;
+        const char *why;
+    } cases[] = {
+        { "aa", 1, "one segment written twice" },
+        { "ai", 0, "two different vowels" },
+        { "au", 0, "two different vowels" },
+        /* A creaky ultra-long /a/ against the same vowel with the creaky mark
+         * written a second time: "a" U+0330 U+02D0 U+02D0, then the same with a
+         * second U+0330. Different bytes, nine identical features. Spelled out
+         * in escapes because stacked combining marks render ambiguously, and
+         * this case only means anything if the bytes are exact. */
+        { "a\xcc\xb0\xcb\x90\xcb\x90" "a\xcc\xb0\xcb\x90\xcb\x90\xcc\xb0", 1,
+          "a redundant mark does not make it a different segment" },
+    };
+    size_t i;
+
+    for (i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        mk_resolution resolved;
+        int geminate;
+
+        if (mki_resolve(system, cases[i].token, &resolved) != MK_OK) {
+            fail(cases[i].token, "did not resolve");
+            continue;
+        }
+        if (resolved.cluster_component_count != 2) {
+            fail(cases[i].token, "did not resolve to two parts");
+            mki_resolution_clear(&resolved);
+            continue;
+        }
+        geminate = mki_features_contain(
+            resolved.features, resolved.feature_count, "geminate");
+        if (geminate != cases[i].geminate) {
+            fail(cases[i].why, cases[i].geminate ?
+                "expected geminate" : "expected not geminate");
+        }
+        mki_resolution_clear(&resolved);
+    }
+}
+
 /* mki_cluster_distance is reached with two plain segments only through a
  * caller's mistake, and answers rather than reading past a component array
  * that is not there. */
@@ -182,6 +234,7 @@ int main(void)
     if (descriptive != NULL) {
         check_parts_carry_features(descriptive);
         check_composition(descriptive);
+        check_geminacy_is_featural(descriptive);
         check_two_plain_segments(descriptive);
     }
     check_policy_is_data();
