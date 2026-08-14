@@ -1,0 +1,6 @@
+@model ty
+@type categorical
+grapheme pb stop consonant
+grapheme pbilabitop consonant
+grapheme b v
+grapheme b voiced bionsonasonant

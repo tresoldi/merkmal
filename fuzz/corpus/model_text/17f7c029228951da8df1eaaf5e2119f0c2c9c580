@@ -1,0 +1,7 @@
+@model tiny
+@type categorical
+grapheme lbipabial stop consonant
+grapheme b labial stop consonant
+grapheme  pbilabial stop consonant
+grapheme ÿ labint
+grapheme b  consonantb v=l stopant

@@ -1,0 +1,3 @@
+@model tiny
+@type categorical
+grapheme b voiced s

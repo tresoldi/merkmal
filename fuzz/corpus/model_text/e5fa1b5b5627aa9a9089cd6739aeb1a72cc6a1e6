@@ -1,0 +1,4 @@
+@model tiny
+@type categorical
+grapheme p`less bilabial stop consonant
+grapheme bvoiced bilabial s

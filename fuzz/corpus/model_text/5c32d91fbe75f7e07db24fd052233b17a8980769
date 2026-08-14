@@ -1,0 +1,4 @@
+@model tiny
+@type categorical
+grapheme pbilabial stop consonant
+grapheme pbilabial  bionsonant

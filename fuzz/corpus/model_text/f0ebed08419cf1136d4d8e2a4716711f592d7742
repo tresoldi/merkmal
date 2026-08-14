@@ -1,0 +1,6 @@
+# aomment
+@model loose
+@type categorical
+@validation permissive
+@geome e
+grapheme l low

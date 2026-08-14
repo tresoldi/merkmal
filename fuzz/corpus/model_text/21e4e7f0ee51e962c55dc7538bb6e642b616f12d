@@ -1,0 +1,4 @@
+@model tiny
+@type categorical
+grapheme l stop consonant
+grapheme b vasonant

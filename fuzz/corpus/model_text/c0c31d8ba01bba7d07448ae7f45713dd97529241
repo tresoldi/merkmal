@@ -1,0 +1,5 @@
+@model tiny
+@type categorical
+grapheme pbilabial stop consonant
+grapheme b labial stop consonant
+grapheme  pnsob labial stonant

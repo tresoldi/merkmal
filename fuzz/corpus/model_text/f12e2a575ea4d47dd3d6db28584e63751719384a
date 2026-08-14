@@ -1,0 +1,4 @@
+@model tiny
+@type categorical
+grapheme pl stop consonant
+grapheme b voiced bilabial stop consonant

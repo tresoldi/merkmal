@@ -1,0 +1,4 @@
+@model tiny
+@type categorical
+grapheme Žbilabial stop consonant
+grapheme b voice
