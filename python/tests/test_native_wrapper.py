@@ -729,6 +729,35 @@ def test_cli_uses_native_wrapper(capsys: pytest.CaptureFixture[str]) -> None:
     assert "spreadGlottis=+" in output
 
 
+@pytest.mark.parametrize(
+    ("argv", "expected"),
+    [
+        (["features", "not-ipa"], "unknown grapheme"),
+        (["--system", "nope", "features", "p"], "unknown system"),
+        (["distance", "p", "xyz"], "unknown grapheme"),
+        (["--system", "phoible", "features", "³³"], "unsupported"),
+    ],
+)
+def test_cli_reports_user_mistakes_without_a_traceback(
+    argv: list[str], expected: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Every one of these used to escape the handler and print a traceback.
+
+    The CLI caught merkmal.NativeError, which is created with no base class and
+    so is not a superclass of the KeyError, ValueError and NotImplementedError
+    the wrapper actually raises. `_print_error` was unreachable for any ordinary
+    mistake. The success paths were the only ones under test, which is why it
+    survived.
+    """
+    assert main(argv) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith("error: ")
+    assert expected in captured.err
+    # KeyError renders its argument with repr(); the message is for a person.
+    assert "'" not in captured.err
+
+
 def test_tone_presence_separates_mid_tone_from_tonelessness() -> None:
     """Regression cover for the review's tone findings.
 

@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### The CLI caught an exception nothing raises
+
+`merkmal features not-ipa`, `merkmal --system nope features p` and every other
+ordinary mistake exited through a traceback rather than the error message the
+CLI has a function for.
+
+It caught `merkmal.NativeError`, which is created with no base class, while the
+wrapper raises Python's own `KeyError` for an unknown system, `ValueError` for
+an unknown grapheme and `NotImplementedError` for an unsupported model. Those
+types are the documented contract and are what a caller expects to catch, so
+the mapping is right and the handler was wrong. `_print_error` and the usage
+exit code were unreachable for anything a person would actually type.
+
+It survived because the only CLI test exercised success paths. There is now one
+that asserts the exit code, the message and an empty stdout for four failing
+invocations.
+
 ### Clusters carry their parts, and their policy became data
 
 A cluster — a diphthong, an untied affricate, a geminate — is synthesized by
