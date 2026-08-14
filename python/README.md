@@ -50,8 +50,10 @@ Consonant clusters use `consonant-cluster`, positional component features such
 as `n1-nasal` and `n2-stop`, plus `geminate` or `pre-nasalized` when the
 component sequence supports those readings. Markup/control tokens such as
 `<?>`, `<<->>`, and `→` are still rejected.
-Bare `mb` and `nd` are rejected; use explicit prenasalized notation such as
-`ᵐb` or `ⁿd` when that is the intended segment.
+Bare `mb` and `nd` resolve, as two-component clusters carrying `pre-nasalized`
+alongside their `n1-`/`n2-` component features. Use the explicit notation `ᵐb`
+or `ⁿd` when a single prenasalized segment is meant rather than a sequence: that
+form resolves to one segment with `pre-nasalized` and no component features.
 
 Use `is_segment()` as the non-throwing predicate for source tokens. Unknown
 tokens return `False` from `is_segment()` and raise `ValueError` from

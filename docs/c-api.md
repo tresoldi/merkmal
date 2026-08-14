@@ -343,6 +343,15 @@ untoned segment, which is not an error; a token that is nothing but tone
 digits returns `MK_ERR_UNKNOWN_GRAPHEME`, matching the standalone-tone policy
 above. Both outputs are caller-owned and freed with `mk_string_free`.
 
+The split is orthographic, like `mk_segment_ipa` and for the same reason: it
+finds the first Chao digit and cuts there without reading the run. `"a¹²³⁴"`
+splits into `("a", "¹²³⁴")` and returns `MK_OK`, even though four digits are
+rejected as a contour and `mk_system_is_segment` reports `false` for that token.
+Its one error is about shape — there is no base to split off — never about the
+content of the run. A caller who needs the content checked has
+`mk_system_is_segment` and `mk_system_grapheme_features`, which return
+`MK_ERR_PARSE` where this returns a clean split.
+
 ### Chao digits are pitch, not tone-category numbers
 
 Tone merging recognises **superscript** Chao digits (`⁰`–`⁵`) and the IPA tone

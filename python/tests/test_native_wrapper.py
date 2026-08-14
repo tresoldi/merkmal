@@ -658,7 +658,7 @@ def test_sound_distance_scores_bare_feature_sets() -> None:
         abs_tol=1e-12,
     )
     # It does *not* agree with the default. `sound_distance` is the geometry
-    # scorer and takes no system, while `distinctive` -- the default since 1.1 --
+    # scorer and takes no system, while `distinctive` -- the default --
     # scores through its own scalar_dimensions. Two scorers, two answers, and a
     # caller feeding default features into sound_distance gets the geometry's
     # number rather than the one `distance` would give. Asserted so that the

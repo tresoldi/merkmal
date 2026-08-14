@@ -907,6 +907,28 @@ int main(void)
         base = NULL;
 
         /* Splitting every merged segment round-trips the whole word. */
+        /* The split is orthographic and does not read the run. Four digits are
+         * not a contour this library accepts -- the recognizer rejects the
+         * whole token -- but splitting it is a question about spelling, the
+         * same separation mk_segment_ipa keeps when it splits "tʃa" into three
+         * tokens that the descriptive system would have read as two. Asserted
+         * so the documented split of responsibilities cannot drift into a
+         * silent validation nobody asked this function for. */
+        failed |= expect_status(
+            mk_split_tone("a¹²³⁴", &base, &tone), MK_OK, "split does not validate the run");
+        if (base == NULL || strcmp(base, "a") != 0 ||
+            tone == NULL || strcmp(tone, "¹²³⁴") != 0) {
+            fprintf(stderr, "split tone 4-digit: got base \"%s\" tone \"%s\"\n",
+                base ? base : "(null)", tone ? tone : "(null)");
+            failed = 1;
+        }
+        mk_string_free(base);
+        mk_string_free(tone);
+        base = NULL;
+        tone = NULL;
+        /* And the recognizer is where that token is refused. */
+        failed |= expect_segment(descriptive, "a¹²³⁴", 0, "the recognizer rejects the run");
+
         failed |= expect_status(mk_split_tone("o³¹", &base, &tone), MK_OK, "split tone 2");
         if (base == NULL || strcmp(base, "o") != 0 || tone == NULL || strcmp(tone, "³¹") != 0) {
             fprintf(stderr, "split tone 2: got base \"%s\" tone \"%s\"\n",

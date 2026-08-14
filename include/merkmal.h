@@ -246,7 +246,21 @@ MK_API mk_status mk_segment_ipa_merged(
  * On MK_OK both outputs are caller-owned and freed with mk_string_free.
  * *tone_out is NULL when the segment carries no tone, which is not an error.
  * A token consisting only of tone digits returns MK_ERR_UNKNOWN_GRAPHEME,
- * matching the policy that standalone tone clusters are not segments. */
+ * matching the policy that standalone tone clusters are not segments.
+ *
+ * The split is orthographic and does not read the tone run: it finds the first
+ * Chao digit and cuts there. "a¹²³⁴" splits into ("a", "¹²³⁴") and returns
+ * MK_OK, though four digits are not a contour this library accepts and
+ * mk_system_is_segment reports false for that token. That is the same
+ * separation mk_segment_ipa keeps, which splits "tʃa" into three tokens while
+ * the descriptive system recognizes "tʃ" as one segment: an orthographic
+ * operation answers about spelling, and whether the result denotes a segment is
+ * a question for the recognizer.
+ *
+ * So the one error here is about *shape* -- there is no base to split off --
+ * and never about the content of the run. A caller who needs the content
+ * checked calls mk_system_is_segment or mk_system_grapheme_features, which
+ * report MK_ERR_PARSE for a run this one splits without complaint. */
 MK_API mk_status mk_split_tone(
     const char *segment,
     char **base_out,

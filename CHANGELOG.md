@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### Four things the documentation said that were not true
+
+- `distance_with_coverage` was documented as returning `tuple[float, float]`.
+  It returns three values -- score, coverage, and the comparability label --
+  so `help()` and every editor reading the docstring had the arity wrong.
+- The Python README said bare `mb` and `nd` are rejected. They resolve, as
+  two-component clusters carrying `pre-nasalized`; the note had been stale since
+  the two-item blocklist that rejected them was removed, and
+  `test_native_wrapper.py` has asserted they are segments ever since. The
+  explicit `ᵐb` notation is still worth naming, because it gives one segment
+  rather than a sequence, so that is what the README now says.
+- Two comments dated the current default system "since 1.1". There is no 1.1:
+  no tag, and the change sits under `## Unreleased` here. Version attribution
+  belongs in this file, so the comments now state the default without pinning a
+  release nobody has cut.
+- `mk_split_tone` did not say that it does not validate. It is an orthographic
+  split -- find the first Chao digit, cut there -- so `"a¹²³⁴"` splits cleanly
+  into `("a", "¹²³⁴")` even though four digits are rejected as a contour and the
+  recognizer refuses that token. That is the separation `mk_segment_ipa` already
+  keeps, which splits `"tʃa"` into three tokens the descriptive system would
+  read as two, and it was worth stating because the function's one error
+  (`MK_ERR_UNKNOWN_GRAPHEME`, for a token with no base to split off) reads like
+  validation and is not. Behaviour is unchanged; `test_smoke.c` now pins it so
+  the split of responsibilities cannot drift into a check nobody asked for.
+
 ### A duplicate system name is refused instead of silently lost
 
 `mk_registry_add_model_text` appended unconditionally, and

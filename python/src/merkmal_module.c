@@ -19,7 +19,7 @@ static const char *registry_capsule_name = "merkmal.registry";
 /* The system used when a call names none. One definition: this string used to
  * be written out four times, three in this file and once in __init__.py.
  *
- * `distinctive` rather than `descriptive` since 1.1. They now recognize the
+ * `distinctive` rather than `descriptive`. They now recognize the
  * same graphemes -- 0 disagreements over 7,396 Lexibank segment types -- so the
  * choice is purely about which scores better, and on BDPA gold alignments
  * `distinctive` is not distinguishable from LingPy's SCA (-0.39%, CI crossing
@@ -1128,7 +1128,7 @@ static PyMethodDef methods[] = {
     {"distance_with_coverage", (PyCFunction)py_distance_with_coverage,
      METH_VARARGS | METH_KEYWORDS,
      "distance_with_coverage(a, b, system=None, node_weights=None, registry=None)"
-     " -> tuple[float, float]"},
+     " -> tuple[float, float, str]"},
     {"feature_vector", (PyCFunction)py_feature_vector, METH_VARARGS | METH_KEYWORDS,
      "feature_vector(grapheme, system=None, registry=None) -> tuple[float, ...]"},
     {"vector_labels", (PyCFunction)py_vector_labels, METH_VARARGS | METH_KEYWORDS,
