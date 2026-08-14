@@ -289,13 +289,31 @@ jobs:
       - name: Build the extension with AddressSanitizer
         run: MERKMAL_SANITIZE=address python -m pip install -e ".[dev]" --no-build-isolation
       - name: Test
-        # CPython is not built with ASan, so its runtime is preloaded. The
-        # suppression file covers the four interpreter type allocations that
-        # live for the process; see the file for what this does and does not
-        # prove about leaks.
+        # CPython is not built with ASan, so its runtime is preloaded. What that
+        # buys is error detection -- overreads, use-after-free, bad refcount
+        # arithmetic in the extension -- and that is what this job is for.
+        #
+        # Leak detection is off, and deliberately. It was tried by suppressing
+        # _PyType_AllocNoTrack, dictresize and type_new, the frames where the
+        # interpreter allocates the types it keeps for the life of the process.
+        # The suppressions never matched: ASan cannot unwind a CPython built
+        # without frame pointers, so the reported stacks stop inside
+        # _PyObject_Malloc, several frames below any name worth suppressing.
+        # Python 3.12 leaks 65 such allocations at exit and 3.14 does not, so
+        # the job was red or green depending on the runner's interpreter.
+        #
+        # Suppressing what does appear would mean `leak:_PyObject_Malloc`,
+        # which covers every allocation the extension makes through the
+        # interpreter -- the whole point of suppressing by frame was to avoid
+        # exactly that. And it would buy nothing: a leak injected into the
+        # extension on purpose was classified as still reachable and never
+        # reported, with or without the file.
+        #
+        # Leak coverage for the C core is the ctest suite under ASan, where it
+        # works and where it caught a real leak in the resolver.
         run: |
           LD_PRELOAD=$(gcc -print-file-name=libasan.so.8) \
-          LSAN_OPTIONS=suppressions=python/tests/lsan-suppressions.txt \
+          ASAN_OPTIONS=detect_leaks=0 \
             python -m pytest python/tests -q
 
   wasm:
