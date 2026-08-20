@@ -6,7 +6,7 @@
 # the 97 names in libmerkmal.a were internal -- mki_resolve, mki_streq,
 # mki_parse_model_text and the compiled tables -- and they were spelled mk_,
 # exactly like the 31 that are promises. Nothing distinguished the two, so
-# STYLE.md's claim that mk_ meant "public" was true only by intention.
+# The claim that mk_ meant "public" was true only by intention.
 #
 # The rule this enforces: mk_ is the public contract, mki_ is internal. Adding a
 # cross-module helper called mk_something is now a test failure rather than a

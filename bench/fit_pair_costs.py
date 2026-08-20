@@ -3,8 +3,8 @@
 
 Both earlier reviews concluded that a fitted pair-cost table is the only real
 answer to the scorer's disagreement with the frequency of sound change. This is
-that experiment, run under the constraints `REFERENCE_LIBRARY_PLAN.md` D7 sets,
-because the constraints are what make the answer worth anything:
+that experiment, run under the following constraints because they are what make
+the answer worth anything:
 
 - **Split by whole family, never by word pair.** Pairs from one alignment share
   a wordlist and its doculects; splitting between them leaks and the resulting

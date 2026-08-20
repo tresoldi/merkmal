@@ -172,7 +172,7 @@ is the collapse `scripts/contrast_baseline.py` exists to catch — and did.
 readable, and deliberately **not scored**. It marks a token that is a tone and
 nothing else, as CLTS writes it. What a tone should cost against a segment is
 an open question — the geometry's own answer of roughly 0.50 against a vowel is
-a placeholder that `REFERENCE_LIBRARY_PLAN.md` argues against — and encoding
+a placeholder the project does not defend — and encoding
 that cost as a scoring leaf was tried, reviewed, and rejected.
 
 | Node | Leaves | Labels |

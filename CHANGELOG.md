@@ -56,8 +56,8 @@ distinction the function exists to draw.
 ### `mk_feature_distance` says when it has no answer
 
 It wrote `999` into `*out` and returned `MK_OK`. That is the second error
-channel `geometry.h` records removing from the scorers and `STYLE.md` states as
-an absolute rule, and it was worse here than a sentinel usually is: the
+channel `geometry.h` records removing from the scorers, and it was worse here
+than a sentinel usually is: the
 function's real answers run from 0 to 8, so `999` is an ordinary looking
 integer, and a caller summing or thresholding got nonsense with nothing to
 test.
@@ -258,7 +258,7 @@ records both.
 The scoring itself moved to `src/cluster.c` behind `mki_cluster_distance`.
 `system.c` was 595 lines holding three unrelated things — the public entry
 points, 220 lines of cluster policy, and a longest-match tokenizer the directory
-map in `STYLE.md` never named; it is now 367. The move passes the test the
+map never named; it is now 367. The move passes the test the
 `resolver.c` and `geometry.c` splits failed: cluster scoring's six helpers were
 used by cluster scoring and nothing else, so moving them hides them rather than
 exporting them.
@@ -737,7 +737,7 @@ uses those, and the rest use the geometry they score through. Widths are 54
 system, so a column is addressable by name.
 
 No call vectorizes a token list. That is a loop, and sequence-level operations
-are not this library's (`REFERENCE_LIBRARY_PLAN.md`, D2).
+are not this library's.
 
 ### Source markup says so, and two CLTS spellings resolve
 
@@ -868,8 +868,8 @@ languages as they are actually encoded.
   policy they already applied to bound tone, because none of them declares a
   dimension a tone can move and the alternative is a confident zero.
 - Tone tokens carry `tonal-autosegment`, declared in `metadata_features` and
-  deliberately **not scored**. What a tone should cost against a segment is open;
-  see `REFERENCE_LIBRARY_PLAN.md`. Today they compare through the geometry like
+  deliberately **not scored**. What a tone should cost against a segment is open.
+  Today they compare through the geometry like
   anything else, which is a placeholder, not an answer.
 
 **Coverage, measured over 152 Lexibank datasets** (`bench/bench_coverage.py`):
@@ -1186,8 +1186,8 @@ is unchanged.
   existed in three places — `CMakeLists.txt`, `setup.py`, and the WebAssembly
   smoke script — so splitting a module meant remembering all three, and the one
   that gets forgotten fails only in whichever build nobody runs locally.
-- `geometry.c` and `resolver.c` were left whole; see `REFACTORING_PLAN.md` for
-  the measurements behind that.
+- `geometry.c` and `resolver.c` were left whole; measurements showed they did
+  not benefit from further splitting.
 
 ### Enforced warning baseline, a testable fallback profile, and footprint measurement
 

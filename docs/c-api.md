@@ -178,7 +178,8 @@ labels are unique within a system, so a column is addressable by name.
 
 There is no call that vectorizes a token list. It is a loop over
 `mk_system_feature_vector`, and the library does not own sequence-level
-operations (see `REFERENCE_LIBRARY_PLAN.md`, D2).
+operations; the library deliberately supplies segment-level costs, not
+sequence-level alignment.
 
 ## Status Codes
 

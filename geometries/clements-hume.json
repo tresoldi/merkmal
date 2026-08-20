@@ -558,7 +558,7 @@
   "metadata_features": {
     "consonant": "human-readable duplicate of the derived `consonantal`, which is what scores",
     "vowel": "human-readable duplicate of the derived `vocoid`, which is what scores",
-    "tonal-autosegment": "marks a token that is a tone and nothing else, as CLTS writes it; carried for the caller's benefit and deliberately not scored, because a tone and a segment are not comparable on a shared scale -- see REFERENCE_LIBRARY_PLAN.md",
+    "tonal-autosegment": "marks a token that is a tone and nothing else, as CLTS writes it; carried for the caller's benefit and deliberately not scored, because a tone and a segment are not comparable on a shared scale",
     "diphthong": "structural: this grapheme is a vowel cluster. Clusters score through their components, not through this label",
     "triphthong": "structural: a three-vowel cluster; see `diphthong`",
     "complex": "structural: a segment written as more than one letter",

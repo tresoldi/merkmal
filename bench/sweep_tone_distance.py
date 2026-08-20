@@ -1,8 +1,8 @@
 """Sweep the distance between a bare tone segment and a segmental unit.
 
-Kept because it is the evidence behind D8/D9 in REFERENCE_LIBRARY_PLAN.md: the
-tier leaf's weight should land where this sweep says, and if the tone
-representation changes this is how to re-derive the target.
+Kept because it is the evidence behind the tone-tier leaf weight: the weight
+should land where this sweep says, and if the tone representation changes this
+is how to re-derive the target.
 
     bench/sweep_tone_distance.py <bdpa-checkout>
 

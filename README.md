@@ -67,7 +67,7 @@ Two things worth knowing before you build on the number:
 - **A tone and a segment are not comparable on a shared scale**, and the value
   you get today for `d(³³, p)` is a placeholder the project does not defend.
   Gold alignments never put tone in a column with a segment; a pipeline should
-  not either. See `REFERENCE_LIBRARY_PLAN.md`.
+  not either.
 - **`sound_distance` is the geometry scorer and takes no system.** It agrees
   with `distance` only for the geometry-scored systems (`descriptive`, `broad`),
   not for the default.
@@ -345,10 +345,10 @@ merkmal/
 └── docs/                   C API and format documentation
 ```
 
-Contributing to the C core: [STYLE.md](STYLE.md) covers the module map,
-ownership and error conventions, the `mk_`/`mki_` prefix rule, the
-build/test/sanitizer/fuzz commands, and what to know before changing the
-generated data.
+Contributing to the C core: the source tree under `src/` uses the `mk_`/`mki_`
+prefix convention, caller-owned output buffers, and `mk_status` return codes
+throughout. Build and test with `cmake` and `ctest`; see the CMakeLists.txt
+options for sanitizer and fuzzer builds.
 
 For a worked example of the C API — tokenizing a transcription, reading each
 segment's features, scoring a pair, and explaining a rejected token — see

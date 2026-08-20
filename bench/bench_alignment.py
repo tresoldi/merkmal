@@ -2,7 +2,7 @@
 """Score merkmal's segment distance as an alignment substitution cost.
 
 merkmal supplies a substitution cost and deliberately not a gap model or an
-aligner (see REFERENCE_LIBRARY_PLAN.md, D2). The question this answers is
+aligner. The question this answers is
 therefore narrow and is the only one the library is responsible for: *as a
 substitution cost*, is it as good as what the field already uses?
 
