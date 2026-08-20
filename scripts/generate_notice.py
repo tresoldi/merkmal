@@ -72,21 +72,28 @@ def render() -> str:
         ]
         for spdx in sorted(restrictive):
             lines.append(f"  * {spdx}: {', '.join(sorted(by_license[spdx]))}")
-        lines += [
-            "",
-            "  CC-BY-4.0 requires attribution: credit the upstream project and",
-            "  say that changes were made. Cite what each artifact's manifest",
-            "  names, not this project alone.",
-            "",
-            "  PHOIBLE and the four P-base models are redistributed under these",
-            "  terms by permission rather than under their own. Upstream they are",
-            "  CC-BY-SA-3.0 and CC-BY-NC-SA-4.0, neither of which allows dropping",
-            "  share-alike or the non-commercial clause unilaterally, so this",
-            "  rests on a grant. Each manifest carries a `relicensed` block, and",
-            "  its grantor, date and evidence are still UNVERIFIED. Establish",
-            "  them before relying on this for redistribution.",
-            "",
-        ]
+        lines.append("")
+        if "CC-BY-4.0" in by_license:
+            lines += [
+                "  CC-BY-4.0 requires attribution: credit the upstream project and",
+                "  say that changes were made. Cite what each artifact's manifest",
+                "  names, not this project alone.",
+                "",
+            ]
+        if "CC-BY-SA-3.0" in by_license:
+            lines += [
+                "  CC-BY-SA-3.0 requires attribution and share-alike:",
+                "  adaptations must be shared under the same or a compatible",
+                "  license.",
+                "",
+            ]
+        if "CC-BY-NC-SA-4.0" in by_license:
+            lines += [
+                "  CC-BY-NC-SA-4.0 requires attribution, share-alike, and",
+                "  prohibits commercial use. A distribution containing these",
+                "  artifacts may not be used for commercial purposes.",
+                "",
+            ]
 
     lines += ["Per-artifact detail", "-" * 19, ""]
     for path, manifest in manifests:

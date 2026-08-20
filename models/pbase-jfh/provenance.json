@@ -9,19 +9,11 @@
   "retrieved": "UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
   "transformation": "Segment-indexed feature table for the JFH feature family, extracted from P-base. The exact extraction procedure is UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
   "citation": "Mielke, Jeff. P-base. North Carolina State University.",
-  "license_spdx": "CC-BY-4.0",
-  "redistribution_notes": "Upstream terms are CC-BY-NC-SA-4.0. Redistributed here under CC-BY-4.0 by permission; see `relicensed`, whose grantor and date are not yet recorded. Attribution to the upstream project remains required and is not affected by the relicense.",
+  "license_spdx": "CC-BY-NC-SA-4.0",
+  "redistribution_notes": "Upstream terms are CC-BY-NC-SA-4.0. Redistributed here under the same terms. Attribution to the upstream project is required, adaptations must be shared under the same or a compatible license, and commercial use is not permitted.",
   "input_sha256": {
     "inventory.tsv": "4becb9bc3cf1a98718dc47dc8c835b5ff75afbb9feb94c74fc5d852af6184403",
     "model.json": "1e14dca10c8572cdaaabcd79998707f3226a70dd1135c8ee49b26d5dc07530e1"
   },
-  "generator": "tools/generate_c_data.py",
-  "relicensed": {
-    "granted_for": "redistribution within merkmal and its companion packages under CC-BY-4.0",
-    "supersedes": "CC-BY-NC-SA-4.0",
-    "grantor": "UNVERIFIED: the maintainer reports holding permission; the granting party and date are not recorded here and must be before the next data release",
-    "granted_on": "UNVERIFIED: see grantor",
-    "evidence": "UNVERIFIED: no correspondence or written grant is recorded in this repository",
-    "why_this_matters": "CC-BY-SA-3.0 and CC-BY-NC-SA-4.0 do not permit relicensing to CC-BY-4.0 unilaterally: dropping share-alike and the non-commercial clause makes the terms less restrictive, which only the rightsholder can do. So this declaration rests entirely on a permission the repository does not yet evidence. Anyone auditing redistribution should establish it before relying on it, exactly as the CLTS derivation was established in Phase 0 rather than assumed."
-  }
+  "generator": "tools/generate_c_data.py"
 }

@@ -96,6 +96,7 @@ SANITIZE_FLAGS = (
 )
 
 setup(
+    license="MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0",
     options={"bdist_wheel": {"py_limited_api": "cp312"}},
     ext_modules=[
         Extension(

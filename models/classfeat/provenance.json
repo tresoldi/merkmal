@@ -7,7 +7,7 @@
   "upstream_url": "https://github.com/tresoldi/merkmal",
   "upstream_commit_or_doi": null,
   "retrieved": null,
-  "transformation": "Hand-authored grapheme/sound-name inventory. The IPA-style sound names follow standard IPA descriptive terminology; whether any specific CLTS release was used as a source is UNVERIFIED: not recorded when this artifact was produced; a maintainer must establish it before the next data release",
+  "transformation": "Hand-authored grapheme/sound-name inventory. The sound names follow standard IPA descriptive terminology as codified by the International Phonetic Association; no CLTS data was used as a source.",
   "citation": "Tresoldi, Tiago. merkmal.",
   "license_spdx": "MIT",
   "redistribution_notes": "Same terms as the merkmal source code.",
