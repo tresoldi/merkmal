@@ -397,6 +397,8 @@ table.matrix th.unknown { color: var(--warn); }
 .guide header { display: flex; align-items: center; gap: 10px; padding: 12px 18px;
   border-bottom: 1px solid var(--line); }
 .guide header h2 { font: 600 14px/1.4 var(--mono); margin: 0; flex: 1; }
+#guide-try { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+#guide-try:hover { background: var(--ink); border-color: var(--ink); }
 .guide .body { padding: 16px 18px; overflow: auto; flex: 1; }
 .guide .body h3 { font: 600 14px/1.4 var(--mono); margin: 16px 0 6px; }
 .guide .body p { margin: 8px 0; font-size: 14px; line-height: 1.55; }
