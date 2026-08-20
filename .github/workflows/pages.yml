@@ -1,0 +1,55 @@
+name: Deploy to GitHub Pages
+
+# The page is served straight from web/: the WebAssembly engine is a committed
+# artifact, so there is nothing to compile here. Rerun web/build-wasm.sh and
+# commit the result before pushing when src/ or include/ change.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'web/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check the page's assets are all present
+        run: |
+          missing=0
+          for asset in index.html style.css app.js merkmal.js merkmal.wasm \
+                       BUILD_INFO CNAME; do
+              if [ ! -s "web/$asset" ]; then
+                  echo "::error::web/$asset is missing or empty"
+                  missing=1
+              fi
+          done
+          exit $missing
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: web/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>merkmal — phonological features and segment distances</title>
+<meta name="description" content="Look up phonological features and compute segment distances, in the browser.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="top">
+    <h1>merkmal</h1>
+    <span class="version" id="version"></span>
+    <span class="spacer"></span>
+    <a href="https://github.com/tresoldi/merkmal">Source</a>
+  </div>
+
+  <p class="tagline">Phonological feature lookup and segment distance scoring, in the browser.</p>
+
+  <p class="status-banner">
+    <strong>Browser demo.</strong>
+    Runs merkmal entirely in your browser via WebAssembly; no data leaves
+    your machine. Eight built-in feature systems; custom models can be
+    registered at runtime.
+  </p>
+
+  <div class="boundary">
+    <section>
+      <h2>What this does</h2>
+      <ul>
+        <li>Maps IPA graphemes to phonological feature bundles</li>
+        <li>Computes configurable distances between segments</li>
+        <li>Segments IPA transcriptions with tone handling</li>
+        <li>Reports numeric feature vectors for downstream use</li>
+      </ul>
+    </section>
+    <section class="is-not">
+      <h2>What this does not do</h2>
+      <ul>
+        <li>Align sequences of segments (that's <a href="https://github.com/tresoldi/regulae">regulae</a>)</li>
+        <li>Reconstruct proto-forms</li>
+        <li>Tell you which feature system is "correct" for your data</li>
+        <li>Replace domain knowledge about your language's phonology</li>
+      </ul>
+    </section>
+  </div>
+
+  <!-- System selector -->
+  <div class="controls" id="controls">
+    <label for="system">System</label>
+    <select id="system" disabled aria-label="Feature system">
+      <option>loading…</option>
+    </select>
+    <span class="system-kind" id="system-kind"></span>
+    <span class="spacer"></span>
+  </div>
+
+  <!-- Custom model registration -->
+  <details class="custom-model" id="custom-model">
+    <summary>Register a custom model</summary>
+    <textarea id="model-text" spellcheck="false" autocapitalize="off" autocorrect="off"
+              placeholder="@model custom&#10;@type categorical&#10;@geometry clements-hume&#10;feature consonant major&#10;grapheme p consonant voiceless bilabial stop&#10;grapheme b consonant voiced bilabial stop"></textarea>
+    <div class="model-controls">
+      <button id="register-model" disabled>Register</button>
+      <span class="model-status" id="model-status"></span>
+    </div>
+  </details>
+
+  <!-- Tabs -->
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-tab="features">Features</button>
+    <button class="tab" data-tab="distance">Distance</button>
+    <button class="tab" data-tab="tokenizer">Tokenizer</button>
+    <button class="tab" data-tab="matrix">Matrix</button>
+  </div>
+
+  <!-- Features tab -->
+  <div class="tab-content" id="tab-features">
+    <div class="tool-input">
+      <input id="feat-grapheme" type="text" spellcheck="false"
+             autocapitalize="off" autocorrect="off"
+             placeholder="type a grapheme, e.g. pʰ" aria-label="Grapheme" disabled>
+    </div>
+    <div class="result" id="feat-result"></div>
+  </div>
+
+  <!-- Distance tab -->
+  <div class="tab-content" id="tab-distance" hidden>
+    <div class="tool-input">
+      <input id="dist-a" type="text" spellcheck="false"
+             autocapitalize="off" autocorrect="off"
+             placeholder="first segment, e.g. p" aria-label="First segment" disabled>
+      <input id="dist-b" type="text" spellcheck="false"
+             autocapitalize="off" autocorrect="off"
+             placeholder="second segment, e.g. b" aria-label="Second segment" disabled>
+    </div>
+    <div class="result" id="dist-result"></div>
+  </div>
+
+  <!-- Tokenizer tab -->
+  <div class="tab-content" id="tab-tokenizer" hidden>
+    <div class="tool-input">
+      <input id="tok-input" type="text" spellcheck="false"
+             autocapitalize="off" autocorrect="off"
+             placeholder="type a transcription, e.g. tʰoŋ⁵⁵" aria-label="Transcription" disabled>
+    </div>
+    <div class="tool-options">
+      <label class="check">
+        <input type="checkbox" id="tok-system" checked>
+        System-aware
+      </label>
+      <label class="check">
+        <input type="checkbox" id="tok-merge" checked>
+        Merge tones
+      </label>
+    </div>
+    <div class="result" id="tok-result"></div>
+  </div>
+
+  <!-- Matrix tab -->
+  <div class="tab-content" id="tab-matrix" hidden>
+    <div class="tool-input">
+      <input id="mat-input" type="text" spellcheck="false"
+             autocapitalize="off" autocorrect="off"
+             placeholder="segments, e.g. p, b, t, d, k, g" aria-label="Segments" disabled>
+    </div>
+    <div class="result" id="mat-result"></div>
+  </div>
+
+</div>
+
+<script src="merkmal.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
