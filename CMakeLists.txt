@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(merkmal
-    VERSION 1.0.0
+    VERSION 0.9.0
     DESCRIPTION "C99 phonological feature library"
     LANGUAGES C
 )
