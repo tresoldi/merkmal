@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>merkmal — phonological features and segment distances</title>
-<meta name="description" content="Look up phonological features and compute segment distances, in the browser.">
+<meta name="description" content="Browse phonological feature systems, look up segment features, and compute distances between IPA segments.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -18,33 +18,35 @@
     <a href="https://github.com/tresoldi/merkmal">Source</a>
   </div>
 
-  <p class="tagline">Phonological feature lookup and segment distance scoring, in the browser.</p>
+  <p class="tagline">A small C library for phonological features and segment distances.</p>
 
   <p class="status-banner">
-    <strong>Browser demo.</strong>
-    Runs merkmal entirely in your browser via WebAssembly; no data leaves
-    your machine. Eight built-in feature systems; custom models can be
-    registered at runtime.
+    This page lets you try merkmal without installing anything.
+    It runs locally in your browser via WebAssembly &mdash; nothing is
+    sent to a server. Several feature systems are built in
+    (PHOIBLE, BIPA/CLTS, P-base variants, and others); you can also
+    paste your own model.
   </p>
 
   <div class="boundary">
     <section>
-      <h2>What this does</h2>
-      <ul>
-        <li>Maps IPA graphemes to phonological feature bundles</li>
-        <li>Computes configurable distances between segments</li>
-        <li>Segments IPA transcriptions with tone handling</li>
-        <li>Reports numeric feature vectors for downstream use</li>
-      </ul>
+      <h2>Scope</h2>
+      <p>
+        Given an IPA grapheme and a feature system, merkmal returns the
+        feature bundle for that segment. Given two segments, it computes
+        a distance based on their features. It can also tokenize IPA
+        strings and produce pairwise distance matrices.
+      </p>
     </section>
     <section class="is-not">
-      <h2>What this does not do</h2>
-      <ul>
-        <li>Align sequences of segments (that's <a href="https://github.com/tresoldi/regulae">regulae</a>)</li>
-        <li>Reconstruct proto-forms</li>
-        <li>Tell you which feature system is "correct" for your data</li>
-        <li>Replace domain knowledge about your language's phonology</li>
-      </ul>
+      <h2>Limitations</h2>
+      <p>
+        merkmal does not align sequences &mdash; for that, see
+        <a href="https://github.com/tresoldi/regulae">regulae</a>.
+        It does not reconstruct proto-forms, and it cannot tell you which
+        feature system is appropriate for your data; that is a theoretical
+        choice the researcher makes.
+      </p>
     </section>
   </div>
 
