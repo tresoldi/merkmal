@@ -36,7 +36,7 @@ let activeTab = "features";
 
   const version = mk.ccall("merkmal_version", "string", [], []);
   $("version").textContent = "v" + version;
-  fetch("BUILD_INFO").then(r => r.ok ? r.text() : "").then(text => {
+  fetch("BUILD_INFO", {cache: "no-cache"}).then(r => r.ok ? r.text() : "").then(text => {
     const m = text.match(/^git_commit\s+(\S+)/m);
     if (m) $("version").textContent += " (" + m[1] + ")";
   });
