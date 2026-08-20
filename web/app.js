@@ -236,8 +236,9 @@ function runMatrix() {
   const input = $("mat-input").value.trim();
   if (!input) { el.innerHTML = ""; return; }
 
+  const csv = input.replace(/\s*,\s*/g, ",").replace(/\s+/g, ",");
   const r = call("merkmal_distance_matrix", ["string", "string"],
-                 selectedSystem(), input);
+                 selectedSystem(), csv);
   if (!r.ok) {
     el.innerHTML = renderError(r);
     return;
