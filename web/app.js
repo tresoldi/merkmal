@@ -121,6 +121,28 @@ function bindEvents() {
 
   /* Custom model */
   $("register-model").addEventListener("click", registerModel);
+
+  /* IPA keyboard */
+  let lastInput = null;
+  for (const el of document.querySelectorAll(".tool-input input")) {
+    el.addEventListener("focus", () => { lastInput = el; });
+  }
+  $("ipa-grid").addEventListener("mousedown", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    e.preventDefault();
+    const ch = btn.dataset.char || btn.textContent.replace("◌", "");
+    if (!lastInput) lastInput = document.querySelector(".tool-input input:not([disabled])");
+    if (!lastInput) return;
+    const start = lastInput.selectionStart;
+    const end = lastInput.selectionEnd;
+    const val = lastInput.value;
+    lastInput.value = val.slice(0, start) + ch + val.slice(end);
+    const pos = start + ch.length;
+    lastInput.setSelectionRange(pos, pos);
+    lastInput.focus();
+    lastInput.dispatchEvent(new Event("input", {bubbles: true}));
+  });
 }
 
 function rerunActiveTab() {
