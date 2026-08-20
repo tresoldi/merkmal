@@ -371,3 +371,50 @@ function debounce(fn, ms) {
     t = setTimeout(fn, ms);
   };
 }
+
+/* ---- guide ------------------------------------------------------------- */
+
+let guideStep = 0;
+
+function showGuideStep(index) {
+  guideStep = index;
+  const step = GUIDE_STEPS[index];
+  $("guide-title").textContent = step.title;
+  $("guide-body").innerHTML = step.content;
+  $("guide-body").scrollTop = 0;
+  const tryBtn = $("guide-try");
+  tryBtn.hidden = !step.example;
+  tryBtn.onclick = () => {
+    const ex = step.example;
+    const tabBtn = document.querySelector('.tab[data-tab="' + ex.tab + '"]');
+    if (tabBtn) tabBtn.click();
+    for (const [id, val] of Object.entries(ex.inputs)) {
+      const el = $(id);
+      if (el) {
+        el.value = val;
+        el.dispatchEvent(new Event("input", {bubbles: true}));
+      }
+    }
+    $("guide").classList.remove("open");
+  };
+  for (const button of $("guide-steps").children) {
+    button.classList.toggle("current", Number(button.dataset.step) === index);
+  }
+}
+
+function buildGuide() {
+  const steps = $("guide-steps");
+  GUIDE_STEPS.forEach((step, index) => {
+    const button = document.createElement("button");
+    button.textContent = String(index + 1);
+    button.title = step.title;
+    button.dataset.step = String(index);
+    button.addEventListener("click", () => showGuideStep(index));
+    steps.appendChild(button);
+  });
+  showGuideStep(0);
+}
+
+buildGuide();
+$("guide-open").addEventListener("click", () => $("guide").classList.add("open"));
+$("guide-close").addEventListener("click", () => $("guide").classList.remove("open"));

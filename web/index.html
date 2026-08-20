@@ -15,6 +15,7 @@
     <h1>merkmal</h1>
     <span class="version" id="version"></span>
     <span class="spacer"></span>
+    <button id="guide-open">Guide</button>
     <a href="https://github.com/tresoldi/merkmal">Source</a>
   </div>
 
@@ -249,7 +250,18 @@
 
 </div>
 
+<aside class="guide" id="guide">
+  <header>
+    <h2 id="guide-title">Guide</h2>
+    <button id="guide-try" hidden>Try this</button>
+    <button id="guide-close">Close</button>
+  </header>
+  <div class="body" id="guide-body"></div>
+  <div class="steps" id="guide-steps"></div>
+</aside>
+
 <script src="merkmal.js"></script>
+<script src="guide-content.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
