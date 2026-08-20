@@ -289,7 +289,6 @@ mk_status mk_system_segment_ipa(
             char *joined = NULL;
             size_t joined_len = 0;
             size_t joined_cap = 0;
-            bool is_segment = false;
 
             for (i = 0; i < span; i++) {
                 status = mki_append_text(
@@ -307,23 +306,36 @@ mk_status mk_system_segment_ipa(
                 continue;
             }
             if (span == 1) {
-                /* Nothing longer matched; keep the orthographic token even if
-                 * this system does not recognize it, so the tokenizer stays
-                 * total. Callers who need a guarantee check mk_system_is_segment
-                 * on every token. */
                 candidate = joined;
                 chosen = 1;
                 break;
             }
-            status = mk_system_is_segment(system, joined, &is_segment);
-            if (status != MK_OK) {
-                free(joined);
-                goto fail;
-            }
-            if (is_segment) {
-                candidate = joined;
-                chosen = span;
-                break;
+            /* Merge adjacent orthographic tokens only when the combined
+             * string is explicitly in the inventory or is a known complex
+             * segment (affricate, labio-velar, prenasalized stop).  The
+             * old code called mk_system_is_segment here, which runs the
+             * full resolver including consonant-cluster synthesis and
+             * therefore merged ANY consonant combination (th, ph, st…). */
+            {
+                mk_resolution res;
+                status = mki_resolve(system, joined, &res);
+                if (status == MK_OK) {
+                    bool merge = (res.path == MK_RESOLVED_INVENTORY ||
+                                  res.path == MK_RESOLVED_TIE_STRIPPED ||
+                                  res.path == MK_RESOLVED_AFFRICATE_RETRACTED ||
+                                  res.path == MK_RESOLVED_COMPLEX);
+                    mki_resolution_clear(&res);
+                    if (merge) {
+                        candidate = joined;
+                        chosen = span;
+                        break;
+                    }
+                } else if (status != MK_ERR_UNKNOWN_GRAPHEME &&
+                           status != MK_ERR_PARSE &&
+                           status != MK_ERR_SOURCE_MARKER) {
+                    free(joined);
+                    goto fail;
+                }
             }
             free(joined);
         }

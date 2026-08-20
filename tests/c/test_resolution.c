@@ -67,10 +67,10 @@ static const resolution_case cases[] = {
     { "descriptive", "kɣ", MK_OK, MK_RESOLVED_COMPLEX, NULL },
     { "descriptive", "tʂ", MK_OK, MK_RESOLVED_COMPLEX, NULL },
 
-    /* Synthesized consonant clusters: a bare nasal plus a stop. */
-    { "descriptive", "mb", MK_OK, MK_RESOLVED_CONSONANT_CLUSTER, NULL },
-    { "descriptive", "nd", MK_OK, MK_RESOLVED_CONSONANT_CLUSTER, NULL },
-    { "descriptive", "ŋg", MK_OK, MK_RESOLVED_CONSONANT_CLUSTER, NULL },
+    /* Prenasalized stops: recognized as complex segments. */
+    { "descriptive", "mb", MK_OK, MK_RESOLVED_COMPLEX, NULL },
+    { "descriptive", "nd", MK_OK, MK_RESOLVED_COMPLEX, NULL },
+    { "descriptive", "ŋg", MK_OK, MK_RESOLVED_COMPLEX, NULL },
 
     /* Rejections. Unknown means no path recognized the input; parse means a
      * path recognized the shape and rejected the content. */

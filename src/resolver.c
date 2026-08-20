@@ -1901,6 +1901,7 @@ static mk_status mk_synthesize_descriptive_complex(
      * doubly-articulated segments set it explicitly. */
     const char *manner = "affricate";
     int sibilant = 1;
+    int prenasalized = 0;
     mk_status status;
 
     if (!mk_admits_synthesized_clusters(system)) {
@@ -1962,6 +1963,36 @@ static mk_status mk_synthesize_descriptive_complex(
     } else if (mki_streq(normalized, "dʐ")) {
         place = "retroflex";
         phonation = "voiced";
+    } else if (mki_streq(normalized, "mb")) {
+        place = "bilabial";
+        phonation = "voiced";
+        manner = "stop";
+        sibilant = 0;
+        prenasalized = 1;
+    } else if (mki_streq(normalized, "nd")) {
+        place = "alveolar";
+        phonation = "voiced";
+        manner = "stop";
+        sibilant = 0;
+        prenasalized = 1;
+    } else if (mki_streq(normalized, "ŋg")) {
+        place = "velar";
+        phonation = "voiced";
+        manner = "stop";
+        sibilant = 0;
+        prenasalized = 1;
+    } else if (mki_streq(normalized, "ɲɟ")) {
+        place = "palatal";
+        phonation = "voiced";
+        manner = "stop";
+        sibilant = 0;
+        prenasalized = 1;
+    } else if (mki_streq(normalized, "ɳɖ")) {
+        place = "retroflex";
+        phonation = "voiced";
+        manner = "stop";
+        sibilant = 0;
+        prenasalized = 1;
     } else {
         return MK_ERR_UNKNOWN_GRAPHEME;
     }
@@ -1984,6 +2015,12 @@ static mk_status mk_synthesize_descriptive_complex(
     }
     if (sibilant && !mki_streq(place, "velar")) {
         status = mk_add_owned_feature(&features, &count, &cap, "sibilant");
+        if (status != MK_OK) {
+            goto fail;
+        }
+    }
+    if (prenasalized) {
+        status = mk_add_owned_feature(&features, &count, &cap, "pre-nasalized");
         if (status != MK_OK) {
             goto fail;
         }
