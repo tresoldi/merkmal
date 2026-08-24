@@ -27,12 +27,14 @@ identifier for that extraction, and its exact retrieval date, machine-readable
 export, and step-by-step extraction log were not retained; the manifests now
 say so directly rather than labelling the whole provenance unknown.
 
-### Semantic fingerprint design recorded
+### System semantic fingerprints
 
-`docs/semantic-fingerprint.md` specifies the future provenance identity for a
-Merkmal computation: model, scorer, geometry, weights, resolver,
-tokenization/tone policy, and comparison policy. It is a design contract only;
-no public fingerprint API is introduced in this release.
+`mk_system_semantic_fingerprint()` and Python's `system_fingerprint()` return
+an auditable canonical payload and SHA-256 digest for a selected system. The
+v1 payload identifies its model data, scorer, geometry and diacritic inputs,
+resolver, tone grammar, and baseline comparison policy. It is intentionally a
+system identity rather than a claim to identify a whole operation: callers
+must record non-default node weights and tokenization choices alongside it.
 
 ### Strict validation stops being quadratic in the caller's text
 

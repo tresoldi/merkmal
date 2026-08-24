@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import re
 import unicodedata
@@ -54,6 +55,30 @@ ASCII_TO_IPA = {
 STRESS_MARKS = frozenset({"ˈ", "ˌ"})
 
 BUILTIN_DATA_H = ROOT / "src" / "generated" / "builtin_data.h"
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def model_metadata(name: str) -> tuple[str, str]:
+    """Identity of every data input which generated one built-in model.
+
+    File names delimit their bytes so two differently partitioned input sets
+    cannot hash alike. Provenance is intentionally excluded: correcting a
+    citation must not change a segment-distance result.
+    """
+    directory = ROOT / "models" / name
+    digest = hashlib.sha256()
+    for path in sorted(directory.iterdir()):
+        if not path.is_file() or path.name == "provenance.json":
+            continue
+        digest.update(path.name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    raw = json.loads((directory / "model.json").read_text(encoding="utf-8"))
+    return str(raw["version"]), digest.hexdigest()
 
 
 def parse_header_structs() -> dict[str, list[str]]:
@@ -1197,6 +1222,15 @@ def generate(output: Path) -> None:
     )
     chunks.append("")
     chunks.append(emit_geometry(geometry))
+    chunks.append(
+        "const char *const mki_fingerprint_geometry_sha256 = "
+        + c_string(sha256_file(ROOT / "geometries" / "clements-hume.json")) + ";"
+    )
+    chunks.append(
+        "const char *const mki_fingerprint_diacritics_sha256 = "
+        + c_string(sha256_file(ROOT / "diacritics" / "ipa-clts.json")) + ";"
+    )
+    chunks.append("")
     chunks.append(emit_ordinal_scales(geometry))
     chunks.append(emit_metadata_features(geometry))
     chunks.append(emit_tier_policy(geometry))
@@ -1213,9 +1247,12 @@ def generate(output: Path) -> None:
         weights_expr = f"{prefix}_dimension_weights" if weights else "NULL"
         scalar_expr = f"{prefix}_scalar_dimensions" if scalar_dimensions else "NULL"
         scalar_count = f"{prefix.upper()}_SCALAR_DIMENSIONS_COUNT" if scalar_dimensions else "0"
+        version, model_sha256 = model_metadata(name)
         chunks.append(
             "    " + c_struct("mk_builtin_system", {
                 "name": c_string(name),
+                "version": c_string(version),
+                "model_sha256": c_string(model_sha256),
                 "kind": kind,
                 "entries": "NULL",
                 "entry_count": f"{prefix.upper()}_ENTRY_COUNT",

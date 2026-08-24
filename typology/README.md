@@ -75,7 +75,9 @@ useless, because it looks like the thing it is not. Its result carries the
 unreadable segments on each side, the input readability rate, and the mean
 coverage/status of the selected nearest-neighbour comparisons. A bare scalar
 from `inventory_distance` is retained only for compatibility; new analyses must
-store the `InventoryComparison`.
+store the `InventoryComparison`. It also carries Merkmal's semantic-system
+fingerprint, so comparison results remain tied to the feature model that
+produced them.
 
 The result behaves: Mandarin and Yue Chinese are the closest pair tested
 (0.0060), English sits nearer German (0.0115) than French (0.0134), and the

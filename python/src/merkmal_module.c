@@ -482,6 +482,51 @@ done:
     return result;
 }
 
+static PyObject *py_system_fingerprint(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *keywords[] = {"system", "registry", NULL};
+    PyObject *system_obj = Py_None;
+    PyObject *registry_obj = Py_None;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *system_name = default_system_name;
+    mk_registry *registry;
+    const mk_system *system;
+    char *payload = NULL;
+    char *digest = NULL;
+    PyObject *result = NULL;
+    mk_status status;
+
+    (void)self;
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs, "|OO:system_fingerprint", keywords, &system_obj, &registry_obj
+        )) {
+        return NULL;
+    }
+    if (py_utf8_take_optional(&bag, system_obj, "system", &system_name) < 0) {
+        goto done;
+    }
+    registry = resolve_registry(registry_obj, "system_fingerprint");
+    if (registry == NULL) {
+        goto done;
+    }
+    system = resolve_system(registry, system_name, "system_fingerprint");
+    if (system == NULL) {
+        goto done;
+    }
+    status = mk_system_semantic_fingerprint(system, &payload, &digest);
+    if (status != MK_OK) {
+        status_error(status, "system_fingerprint");
+        goto done;
+    }
+    result = Py_BuildValue("(ss)", payload, digest);
+
+done:
+    mk_string_free(payload);
+    mk_string_free(digest);
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
 static PyObject *py_diagnose(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     static char *keywords[] = {"grapheme", "system", "registry", NULL};
@@ -1133,6 +1178,9 @@ static PyMethodDef methods[] = {
      METH_VARARGS | METH_KEYWORDS,
      "distance_with_coverage(a, b, system=None, node_weights=None, registry=None)"
      " -> tuple[float, float, str]"},
+    {"system_fingerprint", (PyCFunction)py_system_fingerprint,
+     METH_VARARGS | METH_KEYWORDS,
+     "system_fingerprint(system=None, registry=None) -> tuple[str, str]"},
     {"feature_vector", (PyCFunction)py_feature_vector, METH_VARARGS | METH_KEYWORDS,
      "feature_vector(grapheme, system=None, registry=None) -> tuple[float, ...]"},
     {"vector_labels", (PyCFunction)py_vector_labels, METH_VARARGS | METH_KEYWORDS,

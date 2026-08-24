@@ -186,6 +186,8 @@ typedef struct mk_scalar_dimension {
  * Read rows through inventory.h rather than reaching into either form. */
 typedef struct mk_builtin_system {
     const char *name;
+    const char *version;
+    const char *model_sha256;
     mk_system_type kind;
     mk_builtin_entry *entries;
     size_t entry_count;
@@ -202,6 +204,9 @@ typedef struct mk_builtin_system {
 
 extern const mk_builtin_system mki_builtin_systems[];
 extern const size_t mki_builtin_system_count;
+/* Hashes of the data inputs shared by every built-in fingerprint. */
+extern const char *const mki_fingerprint_geometry_sha256;
+extern const char *const mki_fingerprint_diacritics_sha256;
 extern const mk_geometry_leaf mki_clements_hume_leaves[];
 extern const size_t mki_clements_hume_leaf_count;
 /* What a tone costs against a segment. Declared in the geometry file; see

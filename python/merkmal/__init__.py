@@ -35,6 +35,7 @@ segment_ipa = _native.segment_ipa
 segment_ipa_merged = _native.segment_ipa_merged
 sound_distance = _native.sound_distance
 system_segment_ipa = _native.system_segment_ipa
+system_fingerprint = _native.system_fingerprint
 split_tone = _native.split_tone
 
 
@@ -99,6 +100,13 @@ class Registry:
             _native.system_segment_ipa(ipa, system=system, registry=self._handle),
         )
 
+    def system_fingerprint(self, *, system: str | None = None) -> tuple[str, str]:
+        """Return the canonical semantic payload and SHA-256 for ``system``."""
+        return cast(
+            "tuple[str, str]",
+            _native.system_fingerprint(system=system, registry=self._handle),
+        )
+
 __all__ = [
     "NativeError",
     "SourceMarkerError",
@@ -119,5 +127,6 @@ __all__ = [
     "sound_distance",
     "split_tone",
     "system_segment_ipa",
+    "system_fingerprint",
     "vector_labels",
 ]

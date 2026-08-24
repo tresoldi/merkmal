@@ -153,6 +153,24 @@ MK_API mk_status mk_system_name(const mk_system *system, const char **out);
 /** One of "categorical", "valued", or "trained". Static storage. */
 MK_API mk_status mk_system_kind(const mk_system *system, const char **out);
 
+/* Returns the canonical system-level semantic fingerprint and its SHA-256
+ * digest. Both outputs are owned strings, freed with mk_string_free.
+ *
+ * The payload identifies the compiled or runtime model data, selected scorer,
+ * geometry and diacritic data, resolver and tone policies. It is deliberately
+ * separate from the library/ABI version: two builds with the same ABI can
+ * produce different scientific results. This operation describes a system;
+ * callers must additionally record any operation-specific choice (for example
+ * a non-default weight preset or tokenization policy).
+ *
+ * `payload_out` or `digest_out` may be NULL when the caller needs only the
+ * other. At least one must be non-NULL. */
+MK_API mk_status mk_system_semantic_fingerprint(
+    const mk_system *system,
+    char **payload_out,
+    char **digest_out
+);
+
 /* Whether the system recognizes this grapheme, without allocating a feature
  * result.
  *

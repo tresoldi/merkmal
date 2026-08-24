@@ -76,6 +76,8 @@ int main(void)
     const mk_system *phoible = NULL;
     const mk_system *toy = NULL;
     mk_string_list *features = NULL;
+    char *fingerprint_payload = NULL;
+    char *fingerprint_digest = NULL;
     char *normalized = NULL;
     double distance = 0.0;
     bool is_segment = false;
@@ -132,6 +134,45 @@ int main(void)
         mk_registry_get_system(registry, "phoible", &phoible),
         MK_OK,
         "get phoible"
+    );
+
+    failed |= expect_status(
+        mk_system_semantic_fingerprint(descriptive, &fingerprint_payload, &fingerprint_digest),
+        MK_OK,
+        "fingerprint descriptive"
+    );
+    if (fingerprint_payload == NULL ||
+        strstr(fingerprint_payload, "schema=merkmal-system-fingerprint-v1\n") == NULL ||
+        strstr(fingerprint_payload, "system=descriptive\n") == NULL ||
+        fingerprint_digest == NULL || strlen(fingerprint_digest) != 64 ||
+        strspn(fingerprint_digest, "0123456789abcdef") != 64) {
+        fprintf(stderr, "fingerprint descriptive: unexpected payload or digest\n");
+        failed = 1;
+    }
+    mk_string_free(fingerprint_payload);
+    fingerprint_payload = NULL;
+    mk_string_free(fingerprint_digest);
+    fingerprint_digest = NULL;
+    failed |= expect_status(
+        mk_system_semantic_fingerprint(descriptive, NULL, &fingerprint_digest),
+        MK_OK,
+        "fingerprint digest only"
+    );
+    if (fingerprint_digest == NULL || strlen(fingerprint_digest) != 64) {
+        fprintf(stderr, "fingerprint digest only: missing digest\n");
+        failed = 1;
+    }
+    mk_string_free(fingerprint_digest);
+    fingerprint_digest = NULL;
+    failed |= expect_status(
+        mk_system_semantic_fingerprint(NULL, &fingerprint_payload, &fingerprint_digest),
+        MK_ERR_INVALID_ARGUMENT,
+        "fingerprint null system"
+    );
+    failed |= expect_status(
+        mk_system_semantic_fingerprint(descriptive, NULL, NULL),
+        MK_ERR_INVALID_ARGUMENT,
+        "fingerprint null outputs"
     );
 
     failed |= expect_status(
@@ -1074,6 +1115,21 @@ int main(void)
         fprintf(stderr, "distance runtime: expected positive finite value, got %.10f\n", distance);
         failed = 1;
     }
+    failed |= expect_status(
+        mk_system_semantic_fingerprint(toy, &fingerprint_payload, &fingerprint_digest),
+        MK_OK,
+        "fingerprint runtime"
+    );
+    if (fingerprint_payload == NULL ||
+        strstr(fingerprint_payload, "model_version=runtime-model-v1\n") == NULL ||
+        fingerprint_digest == NULL || strlen(fingerprint_digest) != 64) {
+        fprintf(stderr, "fingerprint runtime: unexpected payload or digest\n");
+        failed = 1;
+    }
+    mk_string_free(fingerprint_payload);
+    fingerprint_payload = NULL;
+    mk_string_free(fingerprint_digest);
+    fingerprint_digest = NULL;
 
     {
         /* A runtime model's graphemes are lookup keys, so they go through the

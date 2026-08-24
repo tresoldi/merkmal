@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 from pathlib import Path
 
@@ -28,6 +29,27 @@ def test_native_lists_expanded_systems() -> None:
             "phoible",
         ]
     )
+
+
+def test_semantic_fingerprint_is_auditable_and_stable() -> None:
+    payload, digest = merkmal.system_fingerprint(system="descriptive")
+
+    assert payload.startswith("schema=merkmal-system-fingerprint-v1\n")
+    assert "system=descriptive\n" in payload
+    assert len(digest) == 64
+    assert set(digest) <= set("0123456789abcdef")
+    assert digest == hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    assert digest == merkmal.system_fingerprint(system="descriptive")[1]
+    assert digest != merkmal.system_fingerprint(system="phoible")[1]
+
+    registry = merkmal.Registry()
+    registry.add_model_text(
+        "@model fingerprint-toy\n@type categorical\n"
+        "grapheme X consonant voiceless bilabial stop\n"
+    )
+    runtime_payload, runtime_digest = registry.system_fingerprint(system="fingerprint-toy")
+    assert "model_version=runtime-model-v1\n" in runtime_payload
+    assert len(runtime_digest) == 64
 
 
 def test_native_wrapper_surface_is_small() -> None:

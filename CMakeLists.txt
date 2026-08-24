@@ -47,6 +47,7 @@ endif()
 set(MERKMAL_SOURCES
     src/cluster.c
     src/diagnose.c
+    src/fingerprint.c
     src/geometry.c
     src/inventory.c
     src/ipa.c

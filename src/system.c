@@ -1,6 +1,7 @@
 #include "resolver.h"
 
 #include "cluster.h"
+#include "fingerprint.h"
 
 #include "string_list.h"
 #include "strings.h"
@@ -40,6 +41,15 @@ mk_status mk_system_kind(const mk_system *system, const char **out)
     }
     *out = mk_kind_name(system->builtin->kind);
     return MK_OK;
+}
+
+mk_status mk_system_semantic_fingerprint(
+    const mk_system *system,
+    char **payload_out,
+    char **digest_out
+)
+{
+    return mki_system_semantic_fingerprint(system, payload_out, digest_out);
 }
 
 

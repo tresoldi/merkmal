@@ -74,6 +74,7 @@ def test_inventory_comparison_carries_readability_and_match_coverage() -> None:
     assert comparison.selected_matches == 4
     assert comparison.mean_match_coverage > 0.0
     assert comparison.comparability == {"ok": 4}
+    assert len(comparison.system_fingerprint) == 64
 
 
 def test_feature_economy_rises_with_inventory_size() -> None:

@@ -133,6 +133,7 @@ class InventoryComparison:
 
     score: float
     system: str
+    system_fingerprint: str
     left: InventoryReadability
     right: InventoryReadability
     selected_matches: int
@@ -301,6 +302,7 @@ def inventory_comparison(
         return InventoryComparison(
             score=score,
             system=system,
+            system_fingerprint=merkmal.system_fingerprint(system=system)[1],
             left=left,
             right=right,
             selected_matches=len(compared_coverages),

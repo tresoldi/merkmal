@@ -41,7 +41,7 @@ Recommended action:
 Relevant files: `models/pbase-*/provenance.json`,
 `typology/data/provenance.json`, and `docs/release-policy.md`.
 
-### P0 — expose a public semantic fingerprint
+### P0 — expose a public semantic fingerprint — completed
 
 Neither a library version nor a system name fully identifies an analysis. A
 result can change when the inventory, geometry, diacritic resolver, tone
@@ -49,18 +49,19 @@ grammar, scorer, or weighting preset changes without a C ABI change. Cognator
 already demonstrates the risk: its calibration constants are on Merkmal's
 distance scale and a feature-inventory change altered clustering behaviour.
 
-Add a public C/Python API returning a generated, stable fingerprint for the
-complete semantic configuration, for example:
+The public C/Python API now returns a generated, stable fingerprint for the
+system-level semantic configuration, for example:
 
 ```text
 model-id + model-data hash + geometry-id/version + scorer-id/version
-+ resolver-policy-version + tone-policy-version + weight-preset
++ resolver-policy-version + tone-policy-version + baseline comparison policy
 ```
 
-Downstream exports should record it, and tools should reject comparison of
-results with incompatible fingerprints by default. Regulae currently records
-the feature-system name and Merkmal package version, which is a useful start
-but not enough to reconstruct a conditioning vocabulary or a distance scale.
+Downstream exports should record it with their requested node weights and
+tokenization/sequence policy, then reject comparison of results with
+incompatible provenance by default. Regulae currently records the
+feature-system name and Merkmal package version, which is a useful start but
+not enough to reconstruct a conditioning vocabulary or a distance scale.
 
 ### Deferred — segmentation policy
 

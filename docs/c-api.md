@@ -53,6 +53,25 @@ documented otherwise.
 `mk_string_list` is the library's only collection type. Feature sets are
 string lists whose order carries no meaning.
 
+## Scientific system identity
+
+```c
+char *payload = NULL;
+char *digest = NULL;
+
+mk_system_semantic_fingerprint(system, &payload, &digest);
+/* Store both with the result, then: */
+mk_string_free(payload);
+mk_string_free(digest);
+```
+
+The payload is canonical UTF-8 `key=value` text and the digest is its
+lowercase SHA-256 hash. It identifies the selected model, scorer, geometry and
+diacritic data, resolver, tone grammar, and baseline comparison policy. It
+does not identify choices made by a particular calculation, such as a
+non-default node-weight preset or a caller's tokenization policy; retain those
+with the fingerprint. Either output may be `NULL`, but not both.
+
 ## Diagnosing a refusal
 
 ```c

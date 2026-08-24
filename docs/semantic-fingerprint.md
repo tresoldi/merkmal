@@ -2,70 +2,77 @@
 
 ## Status
 
-This is a design contract, not a public API yet. It defines what a future
-fingerprint must identify before an implementation is added. It is deliberately
-separate from the C ABI version and package version.
+Version 1 is implemented as a public, system-level provenance interface. It is
+deliberately separate from the C ABI version and package version: two builds
+can preserve both while changing a scientific result.
 
-## Problem
+```c
+mk_status mk_system_semantic_fingerprint(const mk_system *system,
+                                         char **payload_out,
+                                         char **digest_out);
+```
 
-`merkmal` can keep ABI compatibility while changing a scientific result. A
-feature inventory, geometry, resolver, tone grammar, scorer, or weight preset
-can move distances and change an alignment, cluster, or induced conditioning
-class. A system name such as `descriptive`, and even the package version, are
-therefore inadequate provenance for a stored result.
+Python exposes the same interface as `merkmal.system_fingerprint(system=...)`
+and `Registry.system_fingerprint(system=...)`; both return `(payload, digest)`.
+The strings returned by C are owned by the caller and freed with
+`mk_string_free`. Either output may be `NULL`, but not both.
 
-`cognator` demonstrates this concretely: calibration constants are expressed on
-Merkmal's distance scale, and a change in the descriptive feature inventory
-changed its clustering behaviour. `regulae`'s conditioning vocabulary is the
-feature set returned by the selected system, so the same issue changes the
-hypotheses it can discover.
+## Why this is needed
 
-## Proposed object
+`merkmal` can retain ABI compatibility while a feature inventory, geometry,
+resolver, tone grammar, or scorer changes a distance, alignment, cluster, or
+induced conditioning class. A system name such as `descriptive`, and even a
+package version, are therefore insufficient provenance for a stored result.
 
-The public API should expose an immutable `mk_semantic_fingerprint` for a
-fully specified computation, with a canonical text and SHA-256 digest. Its
-canonical payload must include:
+`cognator` calibrates thresholds on Merkmal's distance scale; `regulae` uses a
+chosen system's returned feature vocabulary to form conditioning hypotheses.
+Both need an identity that travels with their outputs.
+
+## v1 canonical payload
+
+The payload is canonical UTF-8 `key=value` text in this fixed order:
 
 | Field | Identifies |
 | --- | --- |
-| `schema` | Fingerprint serialization schema/version |
-| `system` | Selected model name and model semantic version |
-| `model_sha256` | Canonical source model payload after generation inputs are fixed |
-| `scorer` | Scorer identity and scorer semantic version (`leaf`, `scalar`, `valued`, or a future scorer) |
-| `geometry` | Geometry identity/version and canonical geometry hash, when used |
-| `weight_preset` | Requested preset and canonical resolved weights |
-| `resolver` | Resolver and normalization policy version, including diacritic data hash |
-| `tokenization_policy` | Orthographic, system-longest-match, or an explicit caller policy/version |
-| `tone_policy` | Current tone grammar/version and the selected tier policy |
-| `comparison_policy` | Missing-value and cross-tier policy, including whether coverage was requested |
+| `schema` | Serialization schema/version |
+| `system`, `system_kind` | Selected model and its declared kind |
+| `model_version`, `model_sha256` | Built model version and source-model inputs, or the canonical semantic runtime inventory |
+| `scorer` | Scorer selected by the system |
+| `geometry`, `geometry_sha256` | Current geometry and exact geometry input |
+| `diacritics_sha256` | Exact IPA/CLTS diacritic input |
+| `resolver_policy` | Resolver and normalization policy |
+| `tone_policy` | Chao-tone grammar/policy |
+| `comparison_policy` | Baseline segment-distance policy |
 
-The library should expose both the canonical UTF-8 payload and its digest. A
-digest alone is compact but not auditable; the payload alone is auditable but
-awkward as an identifier. Callers must not construct either independently.
+The digest is the lowercase SHA-256 hash of that full payload. Store both: the
+digest is a compact join key; the payload is what makes the key inspectable.
 
-## Scope rules
+For compiled models, `model_sha256` covers every regular model-source file
+except the human provenance note, in deterministic filename order. For runtime
+models, it covers the model name and a canonical inventory: rows are ordered
+by grapheme and each categorical feature set is ordered lexically. Thus a
+harmless reordering of the runtime text does not change its identity.
 
-- A bare system fingerprint may omit call-specific fields such as a weight
-  preset, but must identify every generated model/resolver/scorer input.
-- A computation fingerprint must include all fields in the table. Two results
-  are comparable only if their computation fingerprints match, unless a caller
-  explicitly declares which differences are harmless for its question.
-- Runtime models need the same canonicalization protocol. Their identity cannot
-  be their user-provided name alone.
-- A source-code change that cannot affect the canonical payload need not change
-  the fingerprint; an ABI bump is a separate concern.
+## Scope boundary
 
-## Integration contract
+This is intentionally a system fingerprint, not yet a full computation
+fingerprint. It does not include a requested non-default node-weight preset,
+the resolved weights, or a caller's tokenization/sequence-alignment policy.
+Those are part of the result's own provenance and callers must record them
+alongside this digest. A future operation-level interface can compose them
+without changing this small system-identity seam.
 
-`cognator` should record the computation fingerprint next to fitted thresholds,
-calibration data, and all detection outputs. `regulae` should record it next to
-the feature-system name in exported model provenance. Consumers should reject
-or prominently label attempts to compare, merge, or score cached results from
-different fingerprints.
+The currently deferred segmentation and tone design work therefore remains
+deferred: v1 names the existing resolver and Chao-tone policies precisely; it
+does not claim that their present semantics are final. Typological sampling
+design is likewise outside this system-level identity.
 
-## Deferred implementation
+## Consumer contract
 
-No C or Python API is added in this change. Implementation is deferred until a
-single canonical representation of generated model, geometry, resolver, and
-tone inputs is agreed and can be regression-tested across native and WASM
-builds.
+`cognator` should persist the payload and digest with calibration constants,
+fitted thresholds, and detection outputs, plus its tokenization and alignment
+settings. `regulae` should persist them beside the feature-system name in its
+exported model provenance, plus any non-default scoring configuration.
+Consumers should reject or prominently label direct comparisons, merges, or
+cache reuse across unequal fingerprints unless they explicitly state why a
+difference is harmless for the question.
