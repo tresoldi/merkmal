@@ -32,10 +32,9 @@ typedef struct scorer_case {
 } scorer_case;
 
 /* Every compiled-in system, and the scorer it is scored by. `distinctive` is
- * the only one carrying scalar dimensions of its own; the other two categorical
- * systems and every runtime model fall to leaf. */
+ * the only one carrying scalar dimensions of its own; the other categorical
+ * system and every runtime model fall to leaf. */
 static const scorer_case scorer_cases[] = {
-    { "broad", "leaf" },
     { "descriptive", "leaf" },
     { "distinctive", "scalar" },
     { "phoible", "valued" },
@@ -81,7 +80,7 @@ static void check_null_system_selects_leaf(void)
 }
 
 /* A runtime model declares no scalar dimensions, so it is scored by leaf like
- * the two compiled categorical systems that declare none. */
+ * the compiled categorical system that declares none. */
 static void check_runtime_model_selects_leaf(void)
 {
     static const char model[] =

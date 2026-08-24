@@ -91,10 +91,10 @@ consonant and vowel pairs asserted in
 *not* a claim that every C-C pair scores below every C-V pair; see the
 correction notice above.
 
-**Open:** `broad` and `descriptive` remain operationally identical — same
-inventory bytes, same feature sets, same distances. The review's options are to
-define and test a real broadening transform or to deprecate the name. Neither
-has been done; the README says so plainly rather than implying a choice exists.
+**Done:** `broad` was retired rather than preserving two names for one model.
+Historical results that name it remain interpretable as geometry-scored
+`descriptive` results from the release that produced them, but new analyses must
+use `descriptive` explicitly.
 
 ## Finding 2 (P0) — the valued score is a dissimilarity, not a metric
 

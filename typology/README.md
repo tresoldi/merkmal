@@ -8,7 +8,8 @@ import merkmal_typology as mt
 inventories = mt.inventories()          # 3,020 doculects
 languages = mt.languages()              # 2,186, with family and macroarea
 print(mt.segment_frequency())           # and the sample it came from
-mt.inventory_distance(a, b)             # symmetric, in [0, 1]
+mt.inventory_comparison(a, b)           # score plus readability and comparison coverage
+mt.inventory_distance(a, b)             # scalar compatibility convenience
 mt.feature_economy(inventory)           # segments per feature used
 ```
 
@@ -60,17 +61,21 @@ silently on a user's behalf.
 
 ## What is sample-independent
 
-`inventory_distance` and `feature_economy` compare or describe inventories
+`inventory_comparison` and `feature_economy` compare or describe inventories
 directly and ask nothing about how the sample was drawn. They are safe to use
 without engaging the question above.
 
-`inventory_distance` matches every segment of each inventory to its nearest
+`inventory_comparison` matches every segment of each inventory to its nearest
 counterpart in the other and averages both directions. An explicit size penalty
 was tried first and was wrong: charging for the difference in inventory size
 made English closer to Yue Chinese than to French, because those differ by one
 segment and six respectively — while French was twice as close by segment
 content. A similarity measure that is mostly a size measure is worse than
-useless, because it looks like the thing it is not.
+useless, because it looks like the thing it is not. Its result carries the
+unreadable segments on each side, the input readability rate, and the mean
+coverage/status of the selected nearest-neighbour comparisons. A bare scalar
+from `inventory_distance` is retained only for compatibility; new analyses must
+store the `InventoryComparison`.
 
 The result behaves: Mandarin and Yue Chinese are the closest pair tested
 (0.0060), English sits nearer German (0.0115) than French (0.0134), and the

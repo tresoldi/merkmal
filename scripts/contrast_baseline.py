@@ -48,7 +48,7 @@ ROOT = Path(__file__).resolve().parent.parent
 GEOMETRY = ROOT / "geometries" / "clements-hume.json"
 BASELINE = ROOT / "tests" / "golden" / "contrast_baseline.tsv"
 
-CATEGORICAL = ["broad", "descriptive", "distinctive"]
+CATEGORICAL = ["descriptive", "distinctive"]
 VALUED = ["pbase-hc", "pbase-jfh", "pbase-spe", "pbase-uftc", "phoible"]
 
 HEADER = ["SYSTEM", "KIND", "GRAPHEME_A", "GRAPHEME_B", "COUNT", "STATUS", "REASON"]

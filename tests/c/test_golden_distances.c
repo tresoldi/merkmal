@@ -89,7 +89,6 @@ int main(void)
     mk_registry *registry = NULL;
     int failed = 0;
     static const char *const systems[] = {
-        "broad",
         "descriptive",
         "distinctive",
         "pbase-hc",

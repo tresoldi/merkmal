@@ -19,7 +19,6 @@ def test_native_lists_expanded_systems() -> None:
     systems = merkmal.list_systems()
     assert systems == sorted(
         [
-            "broad",
             "descriptive",
             "distinctive",
             "pbase-hc",
@@ -484,14 +483,11 @@ def test_affricates_survive_inside_a_cluster() -> None:
     assert {"n2-affricate", "n2-post-alveolar"} <= merkmal.get_features("ntʃ")
 
     # The lookahead is one unit deep and consults only the inventory and the
-    # complex synthesizer, so a pair that is genuinely two segments stays two.
+    # complex synthesizer. /mb/ and /nd/ are explicit pre-nasalized-stop
+    # inventory entries, rather than evidence that the tokenizer inferred a
+    # two-segment analysis from the spelling.
     for token in ["mb", "nd"]:
-        parts = {
-            f.split("-", 1)[0]
-            for f in merkmal.get_features(token)
-            if len(f) > 1 and f[0] == "n" and f[1].isdigit()
-        }
-        assert parts == {"n1", "n2"}, token
+        assert "pre-nasalized" in merkmal.get_features(token)
 
 
 def test_doubled_spelling_is_not_charged_for_its_own_length() -> None:
@@ -758,7 +754,7 @@ def test_a_duplicate_system_name_is_refused() -> None:
 def test_cli_uses_native_wrapper(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["systems"]) == 0
     output = capsys.readouterr().out.splitlines()
-    assert "broad" in output
+    assert "descriptive" in output
 
     assert main(["--system", "phoible", "features", "bʰ"]) == 0
     output = capsys.readouterr().out.splitlines()
@@ -861,8 +857,9 @@ def test_system_aware_tokenizer_agrees_with_the_recognizer() -> None:
         "t͡ʃa", system="descriptive"
     ) == ["t͡ʃ", "a"]
 
-    # Tone attaches to its nucleus, and nothing over-merges.
-    assert merkmal.system_segment_ipa("tʰoŋ⁵⁵", system="descriptive") == ["tʰ", "o", "ŋ⁵⁵"]
+    # A standalone tone remains its own autosegment. Association is a
+    # prosodic analysis the segment tokenizer does not infer.
+    assert merkmal.system_segment_ipa("tʰoŋ⁵⁵", system="descriptive") == ["tʰ", "o", "ŋ", "⁵⁵"]
     assert merkmal.system_segment_ipa("papa", system="descriptive") == ["p", "a", "p", "a"]
 
     # Every emitted token that the system recognizes passes its own predicate.
@@ -896,7 +893,7 @@ def test_curated_contrast_suite_is_preserved() -> None:
         ("o", "o̜", "rounding: less-rounded"),
     ]
     for a, b, label in contrasts:
-        for system in ("broad", "descriptive", "distinctive"):
+        for system in ("descriptive", "distinctive"):
             assert merkmal.distance(a, b, system=system) > 0.0, f"{label} in {system}"
 
 

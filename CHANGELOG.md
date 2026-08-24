@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+### `broad` is retired
+
+**Breaking:** the deprecated `broad` built-in system, its source model, golden
+fixtures, and benchmark rows are removed. It was a pure duplicate of
+`descriptive`; use `descriptive` for the same geometry-scored analysis. Stored
+results that name `broad` remain historical records and must not be relabelled
+as a new run.
+
+### Inventory comparison now carries coverage
+
+`merkmal_typology.inventory_comparison()` returns an `InventoryComparison`
+instead of silently reducing a comparison to a number. It records readable and
+unreadable input segments, aggregate input readability, the coverage of the
+nearest-neighbour matches actually selected, and their comparability statuses.
+`inventory_distance()` remains as a scalar compatibility convenience; new
+analyses should retain the comparison object.
+
+### P-base extraction provenance is established as far as the source permits
+
+The P-base feature tables were manually extracted by Tiago Tresoldi in 2019
+from <https://pbase.phon.chass.ncsu.edu/>. P-base supplied no versioned release
+identifier for that extraction, and its exact retrieval date, machine-readable
+export, and step-by-step extraction log were not retained; the manifests now
+say so directly rather than labelling the whole provenance unknown.
+
+### Semantic fingerprint design recorded
+
+`docs/semantic-fingerprint.md` specifies the future provenance identity for a
+Merkmal computation: model, scorer, geometry, weights, resolver,
+tokenization/tone policy, and comparison policy. It is a design contract only;
+no public fingerprint API is introduced in this release.
+
 ### Strict validation stops being quadratic in the caller's text
 
 `mk_validate_strict_entries` compared every grapheme against every earlier one.

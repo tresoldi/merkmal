@@ -268,12 +268,11 @@ def bootstrap_delta(pairs, sub_a, gap_a, sub_b, gap_b):
 def run(bdpa: Path, record: bool) -> int:
     import merkmal
     pairs = gold_pairs(bdpa)
-    primary = "distinctive" if "distinctive" in merkmal.list_systems() else "broad"
+    primary = "distinctive"
 
     scorers = {
         "identity": identity_sub(),
         "lingpy-SCA": sca_sub(),
-        "merkmal:broad": merkmal_sub("broad"),
         "merkmal:distinctive": merkmal_sub("distinctive"),
     }
 
@@ -305,7 +304,7 @@ def run(bdpa: Path, record: bool) -> int:
             tuned[name] = (sub, gap)
             emit(f"  {name:22} {gap:5.2f} {100 * acc:10.2f}% {100 * perfect:8.2f}%")
         emit("  bootstrap 95% CI on column-accuracy difference from SCA:")
-        for name in ("merkmal:broad", "merkmal:distinctive"):
+        for name in ("merkmal:distinctive",):
             d, lo, hi = bootstrap_delta(test, *tuned[name], *tuned["lingpy-SCA"])
             verdict = "not significant" if lo < 0 < hi else "significant"
             emit(f"    {name:22} {100 * d:+6.2f}%  [{100 * lo:+.2f}, {100 * hi:+.2f}]  {verdict}")

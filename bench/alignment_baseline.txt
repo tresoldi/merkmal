@@ -14,18 +14,14 @@ ALL PAIRS
   scorer                   gap  column acc   perfect
   identity                0.80      85.85%    77.51%
   lingpy-SCA              0.30      96.35%    94.49%
-  merkmal:broad           0.50      94.54%    91.47%
   merkmal:distinctive     0.50      95.00%    92.18%
   bootstrap 95% CI on column-accuracy difference from SCA:
-    merkmal:broad           -1.59%  [-2.22, -0.88]  significant
     merkmal:distinctive     -1.19%  [-1.81, -0.45]  significant
 
 READABLE UNDER DISTINCTIVE (2098 of 2250, 93.2%)
   scorer                   gap  column acc   perfect
   identity                0.80      86.84%    78.84%
   lingpy-SCA              0.30      96.69%    94.66%
-  merkmal:broad           0.40      95.75%    93.04%
   merkmal:distinctive     0.40      96.18%    93.99%
   bootstrap 95% CI on column-accuracy difference from SCA:
-    merkmal:broad           -0.77%  [-1.37, -0.19]  significant
     merkmal:distinctive     -0.37%  [-0.93, +0.10]  not significant

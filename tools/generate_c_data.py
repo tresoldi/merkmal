@@ -14,7 +14,6 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 CATEGORICAL_SYSTEMS = [
-    "broad",
     "descriptive",
     "distinctive",
 ]

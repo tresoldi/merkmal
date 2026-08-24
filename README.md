@@ -69,7 +69,7 @@ Two things worth knowing before you build on the number:
   Gold alignments never put tone in a column with a segment; a pipeline should
   not either.
 - **`sound_distance` is the geometry scorer and takes no system.** It agrees
-  with `distance` only for the geometry-scored systems (`descriptive`, `broad`),
+  with `distance` only for the geometry-scored system (`descriptive`),
   not for the default.
 
 See [docs/review-response.md](docs/review-response.md) for the standing
@@ -113,11 +113,6 @@ Built-in C systems currently include:
   its own dimensions. Use it when you want the geometry's numbers, or when you
   want `sound_distance` on a feature set to agree with `distance` on a grapheme,
   which only holds for the geometry-scored systems.
-- `broad` — **deprecated, and now a pure duplicate of `descriptive`.** Not
-  merely "operationally identical": 0 differences in feature sets, 0 in
-  distances, and 0 in recognition across the whole corpus. Two public names for
-  one thing. It still resolves so nothing breaks; it will be removed in the next
-  major version. Do not start anything new on it.
 - `pbase-hc`
 - `pbase-jfh` — an *acoustic* feature set (Jakobson–Fant–Halle) mapped onto an
   articulatory tree for weighting; the mapping is a convenience, not a claim
@@ -363,7 +358,7 @@ every wheel:
 
 | Data | License |
 | --- | --- |
-| `broad`, `descriptive`, `distinctive` | CC BY 4.0 — derived from CLTS v1.4.1 |
+| `descriptive`, `distinctive` | CC BY 4.0 — derived from CLTS v1.4.1 |
 | `phoible` | CC BY 4.0 **by permission** (upstream: CC BY-SA 3.0) |
 | `pbase-hc`, `pbase-jfh`, `pbase-spe`, `pbase-uftc` | CC BY 4.0 **by permission** (upstream: CC BY-NC-SA 4.0) |
 | `classfeat` | MIT |

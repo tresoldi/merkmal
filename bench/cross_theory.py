@@ -60,9 +60,7 @@ SANITY = [
 
 
 def systems() -> list[str]:
-    # `broad` is a deprecated duplicate of `descriptive`; counting it twice
-    # would inflate agreement.
-    return [s for s in merkmal.list_systems() if s != "broad"]
+    return merkmal.list_systems()
 
 
 def votes(names: list[str], a: str, b: str, c: str, cache: dict) -> list[bool]:

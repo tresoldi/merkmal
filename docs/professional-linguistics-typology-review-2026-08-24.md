@@ -62,19 +62,20 @@ results with incompatible fingerprints by default. Regulae currently records
 the feature-system name and Merkmal package version, which is a useful start
 but not enough to reconstruct a conditioning vocabulary or a distance scale.
 
-### P1 — turn segmentation into an explicit analytical policy
+### Deferred — segmentation policy
 
 The separate orthographic and system-aware tokenizers are a sound design. But
 longest-match remains an analysis rather than neutral preprocessing for
 untied affricates, prenasalized/coarticulated stops, vowel sequences, and
 corpus-specific boundary conventions.
 
-Add selectable policies for these phenomena, diagnostics that expose plausible
-alternative tokenizations, and a policy identifier that downstream packages
-must store. For historical corpora, explicit user-supplied segmentation should
-remain the preferred, lossless input form.
+This work is deferred. When resumed, add selectable policies for these
+phenomena, diagnostics that expose plausible alternative tokenizations, and a
+policy identifier that downstream packages must store. For historical corpora,
+explicit user-supplied segmentation should remain the preferred, lossless input
+form.
 
-### P1 — represent tone as structured prosodic information
+### Deferred — structured tone representation
 
 The current Chao support correctly distinguishes tonal from toneless material,
 uses ordered pitch levels, accepts IPA tone letters, and rejects malformed
@@ -82,11 +83,12 @@ long contours atomically. Flat segment features nevertheless cannot preserve
 association, floating tones, register systems, tone sandhi, or the distinction
 between a pitch transcription and a language-specific tone-category label.
 
-Add an optional structured `Tone` representation retaining original spelling,
-register/contour, association domain, and declared interpretation. Models
-should declare `tone_support = none | categorical | contour`. Historical sound
-law tooling should treat a tone category with no asserted phonetic value as a
-category, not as a Chao pitch level.
+This work is deferred. When resumed, add an optional structured `Tone`
+representation retaining original spelling, register/contour, association
+domain, and declared interpretation. Models should declare `tone_support =
+none | categorical | contour`. Historical sound-law tooling should treat a tone
+category with no asserted phonetic value as a category, not as a Chao pitch
+level.
 
 ### P1 — make coverage travel with typological comparison results
 
@@ -107,11 +109,12 @@ Replace bare scalar returns with an `InventoryComparison` record containing:
 The same principle applies to `feature_economy`: report how much of an
 inventory contributed before presenting it as a property of that inventory.
 
-### P2 — add explicit, opt-in typological sampling designs
+### Deferred — typological sampling designs
 
 The typology companion correctly labels PHOIBLE aggregates as aggregates over
-PHOIBLE, not the world's languages. It should next offer reproducible sampling
-constructors, without selecting one silently:
+PHOIBLE, not the world's languages. This work is deferred. When resumed, it
+should offer reproducible sampling constructors, without selecting one
+silently:
 
 - one inventory per Glottocode;
 - family-balanced samples at a stated Glottolog classification level;
@@ -121,12 +124,10 @@ constructors, without selecting one silently:
 Every aggregate should retain the selected inventory IDs, weighting function,
 classification release, coordinate source, and sample composition.
 
-### P2 — complete public-system simplification
+### Completed — retire the duplicate `broad` system
 
-`broad` is documented as a deprecated duplicate of `descriptive`. Retire it in
-the next major version, or specify and test a genuinely different broadening
-transform. Keeping two indistinguishable public system names creates a false
-analytic choice and unnecessary researcher degrees of freedom.
+`broad` was retired in this branch. It was a duplicate of `descriptive` and
+created a false analytic choice without preserving a distinct analysis.
 
 ## Historical-linguistic boundary
 

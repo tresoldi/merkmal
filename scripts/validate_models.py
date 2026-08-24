@@ -563,21 +563,20 @@ def validate_cross_model_parity() -> None:
     print("\n[Cross-model parity checks]")
 
     inventories = {}
-    for name in ("descriptive", "broad", "distinctive"):
+    for name in ("descriptive", "distinctive"):
         path = MODELS_DIR / name / "inventory.tsv"
         if path.exists():
             _, rows = read_tsv(path)
             inventories[name] = set(r[0] for r in rows)
 
-    if len(inventories) == 3:
-        if inventories["descriptive"] == inventories["broad"] == inventories["distinctive"]:
-            ok(f"All 3 categorical models share {len(inventories['descriptive'])} graphemes")
+    if len(inventories) == 2:
+        if inventories["descriptive"] == inventories["distinctive"]:
+            ok(f"Both categorical models share {len(inventories['descriptive'])} graphemes")
         else:
             error("Categorical model inventories differ!")
-            for a, b in [("descriptive", "broad"), ("descriptive", "distinctive")]:
-                diff = inventories[a].symmetric_difference(inventories[b])
-                if diff:
-                    error(f"  {a} vs {b}: {len(diff)} differences")
+            diff = inventories["descriptive"].symmetric_difference(inventories["distinctive"])
+            if diff:
+                error(f"  descriptive vs distinctive: {len(diff)} differences")
 
 
 def main() -> None:

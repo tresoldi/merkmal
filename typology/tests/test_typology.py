@@ -60,6 +60,22 @@ def test_inventory_distance_is_symmetric_and_about_content() -> None:
     assert mt.inventory_distance(english, german) < mt.inventory_distance(english, french)
 
 
+def test_inventory_comparison_carries_readability_and_match_coverage() -> None:
+    a = mt.Inventory("a", "stan1293", ("p", "<?>", "a"))
+    b = mt.Inventory("b", "stan1293", ("p", "a"))
+
+    comparison = mt.inventory_comparison(a, b)
+
+    assert comparison.score == pytest.approx(0.0)
+    assert comparison.left.unreadable == ("<?>",)
+    assert comparison.left.coverage == pytest.approx(2 / 3)
+    assert comparison.right.coverage == pytest.approx(1.0)
+    assert comparison.input_coverage == pytest.approx(4 / 5)
+    assert comparison.selected_matches == 4
+    assert comparison.mean_match_coverage > 0.0
+    assert comparison.comparability == {"ok": 4}
+
+
 def test_feature_economy_rises_with_inventory_size() -> None:
     """Clements' observation: bigger inventories reuse features, not add them."""
     by_code = {i.glottocode: i for i in mt.inventories()}

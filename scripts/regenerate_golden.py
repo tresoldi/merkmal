@@ -39,7 +39,6 @@ GOLDEN = ROOT / "tests" / "golden"
 
 # classfeat is not part of the native C slice; its fixtures are historical.
 SYSTEMS = [
-    "broad",
     "descriptive",
     "distinctive",
     "pbase-hc",

@@ -47,7 +47,7 @@ difference costs the full weight for opposite poles, half for one pole against
 an unspecified value. A leaf may override the mechanical depth weight with an
 explicit `"weight"`.
 
-That rule has to hold on both categorical scorers. `broad` and `descriptive` are
+That rule has to hold on the geometry-scored categorical system. `descriptive` is
 scored by the *leaf* scorer, which reads these leaves; `distinctive` is scored
 by the *scalar* scorer, through the `scalar_dimensions` it declares in its own
 `model.json`, and never reads a geometry leaf at all. Which scorer a system

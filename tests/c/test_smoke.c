@@ -111,11 +111,11 @@ int main(void)
 
     failed |= expect_status(mk_registry_new_builtin(&registry), MK_OK, "registry");
     failed |= expect_status(mk_registry_list_systems(registry, &systems), MK_OK, "list systems");
-    if (mk_string_list_size(systems) != 8) {
-        fprintf(stderr, "systems: expected 8, got %zu\n", mk_string_list_size(systems));
+    if (mk_string_list_size(systems) != 7) {
+        fprintf(stderr, "systems: expected 7, got %zu\n", mk_string_list_size(systems));
         failed = 1;
     }
-    if (!list_contains(systems, "broad") ||
+    if (!list_contains(systems, "descriptive") ||
         !list_contains(systems, "distinctive") ||
         !list_contains(systems, "pbase-uftc")) {
         fprintf(stderr, "systems: missing expanded built-in names\n");
