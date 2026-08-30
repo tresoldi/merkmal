@@ -7,6 +7,7 @@ import hashlib
 import json
 import re
 from collections.abc import Mapping
+from pathlib import Path
 
 __version__ = "0.9.0"
 
@@ -73,6 +74,19 @@ sound_distance = _native.sound_distance
 system_segment_ipa = _native.system_segment_ipa
 system_fingerprint = _native.system_fingerprint
 split_tone = _native.split_tone
+from .geometry import Geometry, GeometryError
+
+
+def load_geometry(path: str | Path) -> Geometry:
+    """Load and validate a JSON geometry for experimental feature scoring."""
+    return Geometry.from_path(path)
+
+
+def geometry_distance(
+    a: str, b: str, *, geometry: Geometry, system: str | None = None, preset: str | None = None
+) -> float:
+    """Score two graphemes under an explicitly loaded experimental geometry."""
+    return geometry.distance(get_features(a, system=system), get_features(b, system=system), preset=preset)
 
 
 def _operation_fingerprint_from_payload(
@@ -254,13 +268,17 @@ __all__ = [
     "distance_with_coverage",
     "feature_distance",
     "fixed_space_distance",
+    "Geometry",
+    "GeometryError",
     "feature_vector",
     "get_features",
     "is_segment",
     "list_systems",
+    "load_geometry",
     "merge_tone_digits",
     "normalize",
     "operation_fingerprint",
+    "geometry_distance",
     "segment_ipa",
     "segment_ipa_merged",
     "sound_distance",

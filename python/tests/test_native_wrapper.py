@@ -506,6 +506,15 @@ def test_fixed_space_distance_is_distinct_from_compatibility_score() -> None:
     assert comparison.comparability == "no-shared-dimension"
 
 
+def test_alternative_geometry_is_explicit_and_fingerprinted() -> None:
+    geometry = merkmal.load_geometry(
+        Path(__file__).resolve().parents[2] / "geometries" / "deep-clements-hume.json"
+    )
+    assert geometry.name == "deep-clements-hume"
+    assert len(geometry.digest) == 64
+    assert merkmal.geometry_distance("p", "b", geometry=geometry, system="descriptive") > 0.0
+
+
 def test_diagnose_says_where_a_grapheme_went_wrong() -> None:
     """Checking transcriptions is the workflow a validated inventory should be
     best at, and there the diagnosis is the product. "Unknown grapheme" does not

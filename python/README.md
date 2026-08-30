@@ -17,6 +17,7 @@ The current wrapper covers the high-level native slice:
 - `Registry`
 - `operation_fingerprint`
 - `fixed_space_distance`
+- `load_geometry` and `geometry_distance` (experimental JSON geometry path)
 
 The package is intentionally native-only. The pre-C Python implementation has
 been removed from the active package; old tutorials, notebooks, and research

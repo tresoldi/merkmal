@@ -224,6 +224,9 @@ length conventions. Nasalisation now sits under `Manner` and ejectivity under
 
 ## `deep-clements-hume.json`
 
-A deeper variant, present as source data. It is not compiled into the C library
-and nothing loads it. It carries the same caveats and has not been updated with
-the coverage leaves above.
+A deeper variant, present as source data. It is not compiled into the native C
+library. Python callers may load it explicitly with
+`merkmal.load_geometry("geometries/deep-clements-hume.json")` and score already
+resolved feature sets with `geometry_distance(...)`; this path is experimental
+and deliberately separate from native `distance(...)`. It carries the same
+caveats and must be fingerprinted and calibrated independently.
