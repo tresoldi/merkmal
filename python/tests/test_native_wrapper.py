@@ -354,7 +354,6 @@ def test_native_registry_runtime_model() -> None:
             ]
         )
     )
-
     assert "toy" in registry.list_systems()
     assert registry.get_features("X", system="toy") == frozenset(
         {"consonant", "voiceless", "bilabial", "stop"}
@@ -363,6 +362,26 @@ def test_native_registry_runtime_model() -> None:
     assert math.isclose(
         registry.distance("X", "Y", system="toy"), 0.2777777777777778, abs_tol=1e-10
     )
+
+
+def test_operation_fingerprint_includes_result_options() -> None:
+    payload_a, digest_a = merkmal.operation_fingerprint(node_weights="flat")
+    payload_b, digest_b = merkmal.operation_fingerprint(node_weights="ignore-tone")
+    assert "merkmal-operation-fingerprint-v1" in payload_a
+    assert digest_a != digest_b
+    assert len(digest_a) == 64
+    registry = merkmal.Registry()
+    registry.add_model_text("@model toy\n@type categorical\ngrapheme X consonant stop\n")
+    _, runtime_digest = registry.operation_fingerprint(system="toy", node_weights="flat")
+    assert runtime_digest != digest_a
+
+def test_runtime_model_rejects_unavailable_geometry() -> None:
+    registry = merkmal.Registry()
+    with pytest.raises(NotImplementedError, match="unsupported runtime geometry"):
+        registry.add_model_text(
+            "@model toy\n@type categorical\n@geometry deep-clements-hume\n"
+            "grapheme X consonant stop\n"
+        )
 
 
 def test_registry_and_module_share_one_implementation() -> None:

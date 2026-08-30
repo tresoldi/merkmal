@@ -15,6 +15,7 @@ The current wrapper covers the high-level native slice:
 - `merge_tone_digits`
 - `segment_ipa_merged`
 - `Registry`
+- `operation_fingerprint`
 
 The package is intentionally native-only. The pre-C Python implementation has
 been removed from the active package; old tutorials, notebooks, and research

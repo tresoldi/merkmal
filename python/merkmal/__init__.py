@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Any, cast
+import hashlib
+import json
 
 __version__ = "0.9.0"
 
@@ -37,6 +39,59 @@ sound_distance = _native.sound_distance
 system_segment_ipa = _native.system_segment_ipa
 system_fingerprint = _native.system_fingerprint
 split_tone = _native.split_tone
+
+
+def _operation_fingerprint_from_payload(
+    system_payload: str,
+    *,
+    node_weights: str | None = None,
+    tokenization_policy: str = "default",
+    tone_policy: str = "default",
+    comparison_policy: str = "default",
+    missingness_policy: str = "default",
+    options: dict[str, Any] | None = None,
+) -> tuple[str, str]:
+    operation = {
+        "system_payload": system_payload,
+        "node_weights": node_weights,
+        "tokenization_policy": tokenization_policy,
+        "tone_policy": tone_policy,
+        "comparison_policy": comparison_policy,
+        "missingness_policy": missingness_policy,
+        "options": options or {},
+    }
+    payload = "schema=merkmal-operation-fingerprint-v1\n" + json.dumps(
+        operation, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ) + "\n"
+    return payload, hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def operation_fingerprint(
+    *,
+    system: str | None = None,
+    node_weights: str | None = None,
+    tokenization_policy: str = "default",
+    tone_policy: str = "default",
+    comparison_policy: str = "default",
+    missingness_policy: str = "default",
+    **options: Any,
+) -> tuple[str, str]:
+    """Return canonical provenance for one result-producing operation.
+
+    The system fingerprint identifies model data; this adds caller-selected
+    operation settings so cached distances and downstream analyses can be
+    compared safely. Extra options are serialized with sorted keys.
+    """
+    system_payload, _ = system_fingerprint(system=system)
+    return _operation_fingerprint_from_payload(
+        system_payload,
+        node_weights=node_weights,
+        tokenization_policy=tokenization_policy,
+        tone_policy=tone_policy,
+        comparison_policy=comparison_policy,
+        missingness_policy=missingness_policy,
+        options=options,
+    )
 
 
 class Registry:
@@ -107,6 +162,11 @@ class Registry:
             _native.system_fingerprint(system=system, registry=self._handle),
         )
 
+    def operation_fingerprint(self, *, system: str | None = None, **kwargs: Any) -> tuple[str, str]:
+        """Return operation provenance for a system in this registry."""
+        payload, _ = self.system_fingerprint(system=system)
+        return _operation_fingerprint_from_payload(payload, options=kwargs)
+
 __all__ = [
     "NativeError",
     "SourceMarkerError",
@@ -122,6 +182,7 @@ __all__ = [
     "list_systems",
     "merge_tone_digits",
     "normalize",
+    "operation_fingerprint",
     "segment_ipa",
     "segment_ipa_merged",
     "sound_distance",

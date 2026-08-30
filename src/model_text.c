@@ -400,8 +400,21 @@ mk_status mki_parse_model_text_n(
                     goto failed;
                 }
             } else if (strncmp(trimmed, "@geometry", 9) == 0 && isspace((unsigned char)trimmed[9])) {
-                /* Accepted for readability. The C implementation has one
-                 * compiled-in geometry, so there is nothing to select yet. */
+                char *cursor = trimmed + 9;
+                char *token = mk_next_token(&cursor);
+                /* Runtime geometry registration is not implemented yet. Do
+                 * not accept a name and silently score it with another
+                 * geometry: that makes a reproducibility declaration false. */
+                if (token == NULL || strcmp(token, "clements-hume") != 0) {
+                    mk_set_diagnostic(
+                        diagnostic,
+                        line_no,
+                        "unsupported runtime geometry (only 'clements-hume' is compiled)",
+                        token == NULL ? "(missing)" : token
+                    );
+                    status = MK_ERR_UNSUPPORTED_MODEL;
+                    goto failed;
+                }
             } else if (strncmp(trimmed, "feature", 7) == 0 && isspace((unsigned char)trimmed[7])) {
                 /* Readability rows. They carry no information the scorer uses,
                  * so they are accepted but never treated as a declaration. */

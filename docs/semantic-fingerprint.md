@@ -67,6 +67,12 @@ deferred: v1 names the existing resolver and Chao-tone policies precisely; it
 does not claim that their present semantics are final. Typological sampling
 design is likewise outside this system-level identity.
 
+Python also exposes `operation_fingerprint(...)`, which composes the system
+payload with caller-selected weights, tokenization, tone, comparison, and
+missingness policies plus arbitrary JSON-serializable options. Use this digest
+for cached distances and higher-level results; it is intentionally distinct
+from the stable system digest.
+
 ## Consumer contract
 
 `cognator` should persist the payload and digest with calibration constants,

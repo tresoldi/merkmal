@@ -23,10 +23,10 @@ Rules:
 - Fields are separated by ASCII whitespace.
 - `@model` is required and names the system in the registry.
 - `@type categorical` is required.
-- `@geometry clements-hume` is accepted for readability and future
-  compatibility. The current C implementation has one compiled-in geometry
-  (`merkmal-clements-hume-inspired-v1`, see [geometry.md](geometry.md)), so
-  there is nothing to select yet.
+- `@geometry clements-hume` selects the only geometry currently compiled into
+  the native library (`merkmal-clements-hume-inspired-v1`, see
+  [geometry.md](geometry.md)). Other geometry names are rejected; geometry
+  files are not loaded at runtime yet.
 - `@validation strict` (the default) or `@validation permissive` selects how
   the model is checked. See below.
 - `grapheme` rows are required. Each row supplies one UTF-8 grapheme and
