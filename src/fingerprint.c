@@ -191,7 +191,7 @@ static void mk_runtime_model_sha256(const mk_system *system, char out[65])
             }
         }
         if (next != NULL) {
-            mk_entry_view row;
+            mk_entry_view row = {NULL, NULL, 0};
             const char *features[MK_MAX_ENTRY_FEATURES];
             size_t j;
             for (j = 0; j < builtin->entry_count; j++) {
@@ -201,6 +201,12 @@ static void mk_runtime_model_sha256(const mk_system *system, char out[65])
                     row.feature_count = builtin->entries[j].feature_count;
                     break;
                 }
+            }
+            /* `next` comes from the same inventory, so this should be
+             * unreachable. Keep the invariant explicit for optimizers and
+             * for future changes to the lookup loop. */
+            if (row.grapheme == NULL || row.features == NULL) {
+                continue;
             }
             memcpy(features, row.features, row.feature_count * sizeof(*features));
             qsort(features, row.feature_count, sizeof(*features), mk_compare_strings);
