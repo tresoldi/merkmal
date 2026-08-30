@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any, NamedTuple, cast
 import hashlib
 import json
 import re
@@ -26,7 +26,35 @@ NativeError = _native.NativeError
 SourceMarkerError = _native.SourceMarkerError
 diagnose = _native.diagnose
 distance = _native.distance
-distance_with_coverage = _native.distance_with_coverage
+
+
+class Comparison(NamedTuple):
+    """A score plus the evidence needed to interpret it."""
+
+    score: float
+    coverage: float
+    comparability: str
+
+
+def distance_with_coverage(*args: Any, **kwargs: Any) -> Comparison:
+    """Return compatibility dissimilarity with coverage metadata."""
+    return Comparison(*_native.distance_with_coverage(*args, **kwargs))
+
+
+def fixed_space_distance(
+    a: str, b: str, *, system: str | None = None
+) -> float:
+    """Compare fixed-width feature vectors with an L1 mean.
+
+    This is a vector-space distance over the system's declared dimensions. A
+    zero vector value is treated as the model's neutral/unspecified state;
+    callers needing a different missingness policy must not use this helper.
+    """
+    left = feature_vector(a, system=system)
+    right = feature_vector(b, system=system)
+    if len(left) != len(right):
+        raise ValueError("feature vectors have different widths")
+    return sum(abs(x - y) for x, y in zip(left, right, strict=True)) / len(left)
 # Explicit name for the valued scorer's pairwise-complete semantics. This is
 # an alias rather than a new calculation: callers should not mistake the
 # coverage-normalized score for a fixed-space metric.
@@ -217,6 +245,7 @@ class Registry:
 __all__ = [
     "NativeError",
     "compatibility_dissimilarity",
+    "Comparison",
     "SourceMarkerError",
     "Registry",
     "__version__",
@@ -224,6 +253,7 @@ __all__ = [
     "distance",
     "distance_with_coverage",
     "feature_distance",
+    "fixed_space_distance",
     "feature_vector",
     "get_features",
     "is_segment",

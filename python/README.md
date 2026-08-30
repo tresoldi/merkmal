@@ -16,6 +16,7 @@ The current wrapper covers the high-level native slice:
 - `segment_ipa_merged`
 - `Registry`
 - `operation_fingerprint`
+- `fixed_space_distance`
 
 The package is intentionally native-only. The pre-C Python implementation has
 been removed from the active package; old tutorials, notebooks, and research

@@ -78,6 +78,12 @@ For valued systems, the existing pairwise-complete scorer is also available as
 `distance_with_coverage(...)`. It remains a compatibility dissimilarity, not a
 fixed-space metric; the latter requires a separately specified scorer.
 
+Python's `Comparison` result is tuple-compatible (`score`, `coverage`,
+`comparability`) but also exposes named fields. `fixed_space_distance(...)`
+provides the current experimental fixed-width vector-space L1 mean; it treats
+the vector's zero state as neutral/unspecified and must not be used when a
+different missingness policy is required.
+
 ## Consumer contract
 
 `cognator` should persist the payload and digest with calibration constants,

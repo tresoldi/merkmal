@@ -498,6 +498,14 @@ def test_coverage_separates_identical_from_incomparable() -> None:
     assert math.isclose(score, merkmal.distance("p", "b", system="descriptive"))
 
 
+def test_fixed_space_distance_is_distinct_from_compatibility_score() -> None:
+    value = merkmal.fixed_space_distance("p", "b", system="phoible")
+    assert value > 0.0
+    assert value == merkmal.fixed_space_distance("b", "p", system="phoible")
+    comparison = merkmal.compatibility_dissimilarity("˦˨", "d", system="phoible")
+    assert comparison.comparability == "no-shared-dimension"
+
+
 def test_diagnose_says_where_a_grapheme_went_wrong() -> None:
     """Checking transcriptions is the workflow a validated inventory should be
     best at, and there the diagnosis is the product. "Unknown grapheme" does not
