@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, NamedTuple, cast
 import hashlib
 import json
 import re
 from collections.abc import Mapping
-from pathlib import Path
+from pathlib import Path  # noqa: TC003
+from typing import Any, NamedTuple, cast
+
+from .geometry import Geometry, GeometryError
 
 __version__ = "0.9.0"
 
@@ -55,7 +57,7 @@ def fixed_space_distance(
     right = feature_vector(b, system=system)
     if len(left) != len(right):
         raise ValueError("feature vectors have different widths")
-    return sum(abs(x - y) for x, y in zip(left, right, strict=True)) / len(left)
+    return float(sum(abs(x - y) for x, y in zip(left, right, strict=True)) / len(left))
 # Explicit name for the valued scorer's pairwise-complete semantics. This is
 # an alias rather than a new calculation: callers should not mistake the
 # coverage-normalized score for a fixed-space metric.
@@ -74,7 +76,6 @@ sound_distance = _native.sound_distance
 system_segment_ipa = _native.system_segment_ipa
 system_fingerprint = _native.system_fingerprint
 split_tone = _native.split_tone
-from .geometry import Geometry, GeometryError
 
 
 def load_geometry(path: str | Path) -> Geometry:
@@ -83,10 +84,21 @@ def load_geometry(path: str | Path) -> Geometry:
 
 
 def geometry_distance(
-    a: str, b: str, *, geometry: Geometry, system: str | None = None, preset: str | None = None
+    a: str,
+    b: str,
+    *,
+    geometry: Geometry,
+    system: str | None = None,
+    preset: str | None = None,
 ) -> float:
     """Score two graphemes under an explicitly loaded experimental geometry."""
-    return geometry.distance(get_features(a, system=system), get_features(b, system=system), preset=preset)
+    return float(
+        geometry.distance(
+            get_features(a, system=system),
+            get_features(b, system=system),
+            preset=preset,
+        )
+    )
 
 
 def _operation_fingerprint_from_payload(

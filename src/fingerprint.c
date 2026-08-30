@@ -185,7 +185,8 @@ static void mk_runtime_model_sha256(const mk_system *system, char out[65])
         size_t i;
         for (i = 0; i < builtin->entry_count; i++) {
             const char *candidate = builtin->entries[i].grapheme;
-            if ((previous == NULL || strcmp(candidate, previous) > 0) &&
+            if (candidate != NULL &&
+                (previous == NULL || strcmp(candidate, previous) > 0) &&
                 (next == NULL || strcmp(candidate, next) < 0)) {
                 next = candidate;
             }
@@ -195,7 +196,8 @@ static void mk_runtime_model_sha256(const mk_system *system, char out[65])
             const char *features[MK_MAX_ENTRY_FEATURES];
             size_t j;
             for (j = 0; j < builtin->entry_count; j++) {
-                if (strcmp(builtin->entries[j].grapheme, next) == 0) {
+                if (builtin->entries[j].grapheme != NULL &&
+                    strcmp(builtin->entries[j].grapheme, next) == 0) {
                     row.grapheme = builtin->entries[j].grapheme;
                     row.features = (const char *const *)builtin->entries[j].features;
                     row.feature_count = builtin->entries[j].feature_count;

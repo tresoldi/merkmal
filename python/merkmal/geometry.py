@@ -7,11 +7,12 @@ alternative geometry, without implying that native ``distance`` selected it.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
 import json
+from collections.abc import Iterable  # noqa: TC003
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 
 class GeometryError(ValueError):
@@ -50,7 +51,7 @@ class Geometry:
         self.digest = hashlib.sha256(self.payload.encode("utf-8")).hexdigest()
 
     @classmethod
-    def from_path(cls, path: str | Path) -> "Geometry":
+    def from_path(cls, path: str | Path) -> Geometry:
         location = Path(path)
         return cls(json.loads(location.read_text(encoding="utf-8")), source=str(location))
 
@@ -71,14 +72,26 @@ class Geometry:
         positive = node.get("positive")
         if not isinstance(positive, str) or not positive:
             raise GeometryError(f"{self.source}: leaf {name!r} needs positive")
-        self._leaves.append(_Leaf(positive, parent or "", float(node.get("weight", 1.0 / max(depth, 1))), str(node.get("negative", ""))))
+        self._leaves.append(
+            _Leaf(
+                positive,
+                parent or "",
+                float(node.get("weight", 1.0 / max(depth, 1))),
+                str(node.get("negative", "")),
+            )
+        )
 
     def _validate_scales(self) -> None:
         seen: set[str] = set()
         for scale in self._scales:
             name = scale.get("name")
             levels = scale.get("levels")
-            if not isinstance(name, str) or name in seen or not isinstance(levels, list) or len(levels) < 2:
+            if (
+                not isinstance(name, str)
+                or name in seen
+                or not isinstance(levels, list)
+                or len(levels) < 2
+            ):
                 raise GeometryError(f"{self.source}: malformed ordinal scale")
             if len(set(levels)) != len(levels) or scale.get("node") not in self._nodes:
                 raise GeometryError(f"{self.source}: invalid ordinal scale {name!r}")
@@ -126,7 +139,11 @@ class Geometry:
                 if leaf.negative in b:
                     bv = False
             total += weight
-            difference += weight * (1.0 if av != bv and ((leaf.feature in a and leaf.negative in b) or (leaf.feature in b and leaf.negative in a)) else 0.5 if av != bv else 0.0)
+            opposite = (
+                (leaf.feature in a and leaf.negative in b)
+                or (leaf.feature in b and leaf.negative in a)
+            )
+            difference += weight * (1.0 if av != bv and opposite else 0.5 if av != bv else 0.0)
             scored.add(leaf.feature)
             if leaf.negative:
                 scored.add(leaf.negative)
@@ -144,4 +161,3 @@ class Geometry:
                 total += weight
                 difference += weight * abs(ia - ib) / (len(levels) - 1)
         return difference / total if total else 0.0
-

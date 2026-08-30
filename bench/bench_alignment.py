@@ -266,7 +266,6 @@ def bootstrap_delta(pairs, sub_a, gap_a, sub_b, gap_b):
 
 
 def run(bdpa: Path, record: bool) -> int:
-    import merkmal
     pairs = gold_pairs(bdpa)
     primary = "distinctive"
 
