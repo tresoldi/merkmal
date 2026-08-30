@@ -364,6 +364,24 @@ def test_native_registry_runtime_model() -> None:
     )
 
 
+def test_runtime_model_manifest_travels_with_operation_provenance() -> None:
+    registry = merkmal.Registry()
+    manifest = {
+        "name": "toy",
+        "version": "1.0",
+        "source": "test fixture",
+        "interpretation": "phonemic",
+        "license": "CC0-1.0",
+    }
+    registry.add_model_text(
+        "@model toy\n@type categorical\ngrapheme X consonant stop\n",
+        manifest=manifest,
+    )
+    assert registry.model_manifest(system="toy") == manifest
+    payload, _ = registry.operation_fingerprint(system="toy")
+    assert "model_manifest" in payload
+
+
 def test_operation_fingerprint_includes_result_options() -> None:
     payload_a, digest_a = merkmal.operation_fingerprint(node_weights="flat")
     payload_b, digest_b = merkmal.operation_fingerprint(node_weights="ignore-tone")

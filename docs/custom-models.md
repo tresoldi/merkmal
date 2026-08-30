@@ -33,6 +33,14 @@ and [geometry.md](geometry.md) for the feature names the geometry knows.
 Only categorical runtime models are public for now; the parser and C data model
 leave room for valued and class-feature formats later.
 
+The Python `Registry.add_model_text` method also accepts an optional `manifest`
+mapping. When supplied, it must include `name`, `version`, `source`,
+`interpretation`, and `license`; the name must match `@model`. The manifest is
+retained by that registry, returned by `model_manifest()`, and included in
+`operation_fingerprint()` so a custom inventory's scholarly context travels
+with cached results. The compact native C API remains available without this
+Python metadata layer.
+
 The pre-C Python directory-loader implementation is no longer part of the
 active codebase. Historical tutorials and scripts that referenced it are kept
 under `docs/legacy_python/` as reference material only.

@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any, cast
 import hashlib
 import json
+import re
+from collections.abc import Mapping
 
 __version__ = "0.9.0"
 
@@ -113,10 +115,26 @@ class Registry:
     def __init__(self) -> None:
         """Create a registry containing the built-in systems."""
         self._handle = _native.registry_new()
+        self._manifests: dict[str, dict[str, Any]] = {}
 
-    def add_model_text(self, model_text: str) -> None:
-        """Add a categorical model using the documented text format."""
+    def add_model_text(
+        self, model_text: str, *, manifest: Mapping[str, Any] | None = None
+    ) -> None:
+        """Add a categorical model, optionally with scholarly metadata."""
         _native.add_model_text(model_text, registry=self._handle)
+        if manifest is not None:
+            if not isinstance(manifest, Mapping):
+                raise TypeError("manifest must be a mapping")
+            required = {"name", "version", "source", "interpretation", "license"}
+            missing = sorted(required - set(manifest))
+            if missing:
+                raise ValueError("manifest missing required fields: " + ", ".join(missing))
+            match = re.search(r"(?m)^\s*@model\s+(\S+)", model_text)
+            if match is None or manifest["name"] != match.group(1):
+                raise ValueError("manifest name must match @model")
+            self._manifests[str(manifest["name"])] = json.loads(
+                json.dumps(manifest, ensure_ascii=False, sort_keys=True)
+            )
 
     def list_systems(self) -> list[str]:
         """Return the names of built-in and registered systems."""
@@ -179,6 +197,8 @@ class Registry:
     ) -> tuple[str, str]:
         """Return operation provenance for a system in this registry."""
         payload, _ = self.system_fingerprint(system=system)
+        if system is not None and system in self._manifests:
+            options = {**options, "model_manifest": self._manifests[system]}
         return _operation_fingerprint_from_payload(
             payload,
             node_weights=node_weights,
@@ -188,6 +208,11 @@ class Registry:
             missingness_policy=missingness_policy,
             options=options,
         )
+
+    def model_manifest(self, *, system: str) -> dict[str, Any] | None:
+        """Return a registered model's manifest, if one was supplied."""
+        manifest = self._manifests.get(system)
+        return None if manifest is None else json.loads(json.dumps(manifest))
 
 __all__ = [
     "NativeError",
