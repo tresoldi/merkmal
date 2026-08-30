@@ -73,6 +73,11 @@ missingness policies plus arbitrary JSON-serializable options. Use this digest
 for cached distances and higher-level results; it is intentionally distinct
 from the stable system digest.
 
+For valued systems, the existing pairwise-complete scorer is also available as
+`compatibility_dissimilarity(...)`, an explicit alias for
+`distance_with_coverage(...)`. It remains a compatibility dissimilarity, not a
+fixed-space metric; the latter requires a separately specified scorer.
+
 ## Consumer contract
 
 `cognator` should persist the payload and digest with calibration constants,

@@ -447,6 +447,9 @@ def test_coverage_separates_identical_from_incomparable() -> None:
     score, coverage, why = merkmal.distance_with_coverage("˦˨", "d", system="phoible")
     assert score == 0.0
     assert coverage == 0.0  # nothing was compared at all
+    assert merkmal.compatibility_dissimilarity("˦˨", "d", system="phoible") == (
+        score, coverage, why
+    )
     assert why == "no-shared-dimension"
 
     # Genuinely indistinguishable is a different thing, and now looks different:

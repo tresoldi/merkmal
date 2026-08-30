@@ -25,6 +25,10 @@ SourceMarkerError = _native.SourceMarkerError
 diagnose = _native.diagnose
 distance = _native.distance
 distance_with_coverage = _native.distance_with_coverage
+# Explicit name for the valued scorer's pairwise-complete semantics. This is
+# an alias rather than a new calculation: callers should not mistake the
+# coverage-normalized score for a fixed-space metric.
+compatibility_dissimilarity = distance_with_coverage
 feature_vector = _native.feature_vector
 vector_labels = _native.vector_labels
 feature_distance = _native.feature_distance
@@ -162,13 +166,32 @@ class Registry:
             _native.system_fingerprint(system=system, registry=self._handle),
         )
 
-    def operation_fingerprint(self, *, system: str | None = None, **kwargs: Any) -> tuple[str, str]:
+    def operation_fingerprint(
+        self,
+        *,
+        system: str | None = None,
+        node_weights: str | None = None,
+        tokenization_policy: str = "default",
+        tone_policy: str = "default",
+        comparison_policy: str = "default",
+        missingness_policy: str = "default",
+        **options: Any,
+    ) -> tuple[str, str]:
         """Return operation provenance for a system in this registry."""
         payload, _ = self.system_fingerprint(system=system)
-        return _operation_fingerprint_from_payload(payload, options=kwargs)
+        return _operation_fingerprint_from_payload(
+            payload,
+            node_weights=node_weights,
+            tokenization_policy=tokenization_policy,
+            tone_policy=tone_policy,
+            comparison_policy=comparison_policy,
+            missingness_policy=missingness_policy,
+            options=options,
+        )
 
 __all__ = [
     "NativeError",
+    "compatibility_dissimilarity",
     "SourceMarkerError",
     "Registry",
     "__version__",
