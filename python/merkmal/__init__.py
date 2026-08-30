@@ -117,6 +117,7 @@ def _operation_fingerprint_from_payload(
 def operation_fingerprint(
     *,
     system: str | None = None,
+    geometry: Geometry | None = None,
     node_weights: str | None = None,
     tokenization_policy: str = "default",
     tone_policy: str = "default",
@@ -131,6 +132,15 @@ def operation_fingerprint(
     compared safely. Extra options are serialized with sorted keys.
     """
     system_payload, _ = system_fingerprint(system=system)
+    if geometry is not None:
+        options = {
+            **options,
+            "geometry": {
+                "name": geometry.name,
+                "version": geometry.version,
+                "sha256": geometry.digest,
+            },
+        }
     return _operation_fingerprint_from_payload(
         system_payload,
         node_weights=node_weights,
@@ -230,6 +240,7 @@ class Registry:
         self,
         *,
         system: str | None = None,
+        geometry: Geometry | None = None,
         node_weights: str | None = None,
         tokenization_policy: str = "default",
         tone_policy: str = "default",
@@ -241,6 +252,15 @@ class Registry:
         payload, _ = self.system_fingerprint(system=system)
         if system is not None and system in self._manifests:
             options = {**options, "model_manifest": self._manifests[system]}
+        if geometry is not None:
+            options = {
+                **options,
+                "geometry": {
+                    "name": geometry.name,
+                    "version": geometry.version,
+                    "sha256": geometry.digest,
+                },
+            }
         return _operation_fingerprint_from_payload(
             payload,
             node_weights=node_weights,

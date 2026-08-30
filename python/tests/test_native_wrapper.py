@@ -513,6 +513,9 @@ def test_alternative_geometry_is_explicit_and_fingerprinted() -> None:
     assert geometry.name == "deep-clements-hume"
     assert len(geometry.digest) == 64
     assert merkmal.geometry_distance("p", "b", geometry=geometry, system="descriptive") > 0.0
+    payload, digest = merkmal.operation_fingerprint(system="descriptive", geometry=geometry)
+    assert geometry.digest in payload
+    assert len(digest) == 64
 
 
 def test_diagnose_says_where_a_grapheme_went_wrong() -> None:
