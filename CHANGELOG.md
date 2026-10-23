@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### `merkmal.HAVE_UTF8PROC` tells the two builds apart
+
+A build without libutf8proc falls back to built-in normalization, which can
+return a different string for the same input (a precomposed letter such as
+`ḛ` came back decomposed), under the same `__version__`. The new
+`merkmal.HAVE_UTF8PROC` (and `merkmal._native.HAVE_UTF8PROC`) says which build
+is loaded, so caches of merkmal output can key on it, and `setup.py` now warns
+on stderr when it falls back. Found when two machines built arcaverborum with
+the same merkmal commit and 250 of 7,304 varieties differed.
+
 ### `broad` is retired
 
 **Breaking:** the deprecated `broad` built-in system, its source model, golden

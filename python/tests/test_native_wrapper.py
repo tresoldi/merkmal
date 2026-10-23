@@ -1129,3 +1129,15 @@ def test_cluster_synthesis_defects() -> None:
     assert "geminate" in merkmal.get_features("mm")
     # A doubled vowel is one vowel written twice, not a glide from /a/ to /a/.
     assert "geminate" in merkmal.get_features("aa")
+
+
+def test_have_utf8proc_reports_the_build():
+    import merkmal
+    from merkmal import _native
+
+    assert isinstance(merkmal.HAVE_UTF8PROC, bool)
+    assert bool(_native.HAVE_UTF8PROC) is merkmal.HAVE_UTF8PROC
+    # A full build composes; the fallback may not. Either way the flag must
+    # agree with what normalize() actually does on a precomposed letter.
+    if merkmal.HAVE_UTF8PROC:
+        assert merkmal.normalize("ḛ") == "ḛ"

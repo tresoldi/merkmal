@@ -1261,5 +1261,15 @@ PyMODINIT_FUNC PyInit__native(void)
         Py_DECREF(module);
         return NULL;
     }
+    /* Whether NFC/NFD come from utf8proc or from the built-in fallback. The
+     * two can normalize the same input differently, so downstream build
+     * caches must be able to tell the builds apart (the version cannot). */
+#ifndef MK_HAVE_UTF8PROC
+#define MK_HAVE_UTF8PROC 0
+#endif
+    if (PyModule_AddIntConstant(module, "HAVE_UTF8PROC", MK_HAVE_UTF8PROC ? 1 : 0) < 0) {
+        Py_DECREF(module);
+        return NULL;
+    }
     return module;
 }

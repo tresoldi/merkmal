@@ -3,6 +3,7 @@ from __future__ import annotations
 import glob
 import os
 import subprocess
+import sys
 
 from setuptools import Extension, setup
 
@@ -51,6 +52,13 @@ def utf8proc_build_options() -> tuple[list[tuple[str, str]], list[str], list[str
                 "development headers, or unset the variable to build with the "
                 "IPA-focused fallback (development builds only)."
             ) from None
+        print(
+            "merkmal: WARNING: libutf8proc not found via pkg-config; building "
+            "with the IPA-focused fallback normalization. Output can differ "
+            "from a full build (merkmal.HAVE_UTF8PROC is False). Install "
+            "libutf8proc development headers for identical results.",
+            file=sys.stderr,
+        )
         return [("MK_HAVE_UTF8PROC", "0")], [], []
 
     cflags = subprocess.check_output(

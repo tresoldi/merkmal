@@ -27,6 +27,11 @@ NativeError = _native.NativeError
 # catches ValueError is unaffected; catch this one to skip the source's own
 # known gaps without also swallowing segments the library genuinely lacks.
 SourceMarkerError = _native.SourceMarkerError
+# False for a development build without libutf8proc, whose fallback
+# normalization can differ from a full build's on the same input (e.g. a
+# precomposed letter coming back decomposed). Same __version__ either way, so
+# anything that caches merkmal output should record this too.
+HAVE_UTF8PROC = bool(getattr(_native, "HAVE_UTF8PROC", 0))
 diagnose = _native.diagnose
 distance = _native.distance
 
@@ -304,6 +309,7 @@ __all__ = [
     "GeometryError",
     "feature_vector",
     "get_features",
+    "HAVE_UTF8PROC",
     "is_segment",
     "list_systems",
     "load_geometry",
