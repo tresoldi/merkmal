@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### Feature vectors carry every dimension the scorer reads
+
+**Breaking (vector width and columns):** `feature_vector` used to drop
+dimensions the scorer reads. In `distinctive`, the default system, 232 pairs
+of graphemes had identical vectors and non-zero distance: /a/ and /e/ were the
+same vector, because vowel height and backness are scored on the geometry's
+ordered scales and were not columns. In `descriptive`, 7 pairs (/l/ and /ɮ/,
+/r/ and /ɹ/) lost manner, which is scored as a node group. Now:
+
+- systems with scalar dimensions append the ordered scales (`distinctive`:
+  54 → 64 columns);
+- leaf-scored systems append one-hot node-group columns named `Node=label`,
+  where +1 means the label is present, −1 the node is set by another label,
+  and 0 the node is unset (`descriptive`: 62 → 68);
+- scale columns read the scale's unmarked default level as the scorer does.
+
+Valued systems are unchanged. Over every built-in grapheme, equal vectors now
+mean distance zero (`test_feature_vectors_are_lossless`). This is the basis of
+the abstract segments in `docs/abstract-segments.md`.
+
 ### `mk_sound_distance` refuses labels the geometry does not know
 
 **Breaking:** an unknown label used to be skipped, so `["consonant", "foo"]`

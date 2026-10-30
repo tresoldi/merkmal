@@ -334,6 +334,14 @@ static void mk_process_node_feature(
     }
 }
 
+int mki_is_node_group_feature(const char *feature)
+{
+    if (feature == NULL || mk_is_leaf_feature(feature) || mk_is_ordinal_level_feature(feature)) {
+        return 0;
+    }
+    return mk_feature_node(feature) != NULL;
+}
+
 /* Returns the entry's position on an ordered scale, or MK_ORDINAL_UNDEFINED
  * when it carries no label from the scale and the scale has no unmarked
  * default. The first matching level wins; the generator rejects entries
@@ -351,6 +359,11 @@ static int mk_ordinal_level(
         }
     }
     return scale->default_level;
+}
+
+int mki_ordinal_level(mk_feature_view view, const mk_ordinal_scale *scale)
+{
+    return mk_ordinal_level(view, scale);
 }
 
 static void mk_accumulate_ordinal_scales(

@@ -713,6 +713,23 @@ def test_source_conventions_cover_clts_lookalikes() -> None:
     assert merkmal.distance("ɫ", "lˠ", system="phoible") > 0.0
 
 
+def test_feature_vectors_are_lossless() -> None:
+    """Graphemes with equal vectors are at distance zero, in every system.
+
+    The vector used to omit dimensions the scorer reads: in `distinctive`, /a/
+    and /e/ had the same vector.
+    """
+    models = Path(__file__).resolve().parents[2] / "models"
+    for system in merkmal.list_systems():
+        rows = (models / system / "inventory.tsv").read_text(encoding="utf-8").splitlines()[1:]
+        by_vector: dict[tuple[float, ...], str] = {}
+        for grapheme in (row.split("\t")[0] for row in rows if row):
+            vector = tuple(merkmal.feature_vector(grapheme, system=system))
+            first = by_vector.setdefault(vector, grapheme)
+            assert merkmal.distance(first, grapheme, system=system) == 0.0, (system, first, grapheme)
+    assert merkmal.feature_vector("a") != merkmal.feature_vector("e")
+
+
 def test_sound_distance_refuses_unknown_labels() -> None:
     """A label the geometry does not know is an error, not a missing value.
 

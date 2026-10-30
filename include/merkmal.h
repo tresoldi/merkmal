@@ -417,10 +417,15 @@ MK_API mk_status mk_system_vector_width(const mk_system *system, size_t *out);
 
 /** Column names for a system's feature vectors, in order.
  *
- * The basis differs by system, because the systems do: a valued system's
- * columns are its own inventory columns, a system declaring scalar_dimensions
- * uses those, and the rest use the geometry they score through. Ask rather than
- * assume. Free with mk_string_list_free.
+ * The basis differs by system, because the systems do. The columns are exactly
+ * the dimensions the system's scorer reads, so graphemes with equal vectors
+ * are at distance zero:
+ * - a valued system: its own inventory columns;
+ * - a system declaring scalar_dimensions: those, then the geometry's ordered
+ *   scales (vowel height, backness, ...);
+ * - the rest: the geometry's leaves, its ordered scales, then one column per
+ *   node-group label, named `Node=label` (`Manner=fricative`).
+ * Ask rather than assume. Free with mk_string_list_free.
  */
 MK_API mk_status mk_system_vector_labels(const mk_system *system, mk_string_list **out);
 

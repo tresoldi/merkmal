@@ -188,10 +188,14 @@ value". A scale of *n* levels maps level *i* to *i/n*, so scale columns land in
 `(0, 1]` and `0` still means the scale does not apply. `vowel_height` is 0.14 for
 `/i/`, 0.43 for `/e/`, 1.0 for `/a/`, and 0 for `/p/`.
 
-**The basis differs by system**, because the systems differ: a valued system's
-columns are its own inventory columns, a system declaring `scalar_dimensions`
-uses those, and the rest use the geometry they score through. Widths today are
-54 for `distinctive`, 62 for `descriptive`, 38 for `phoible`, 23 for `pbase-hc`.
+**The basis differs by system**, because the systems differ, and it is exactly
+the dimensions the system's scorer reads, so equal vectors mean distance zero.
+A valued system's columns are its own inventory columns. A system declaring
+`scalar_dimensions` uses those, then the geometry's ordered scales. The rest use
+the geometry's leaves, its ordered scales, and one-hot node-group columns named
+`Node=label` (+1 the label is present, −1 the node is set by another label, 0
+the node is unset). Widths today are 64 for `distinctive`, 68 for
+`descriptive`, 38 for `phoible`, 23 for `pbase-hc`.
 Call `mk_system_vector_labels` rather than assuming either width or order; the
 labels are unique within a system, so a column is addressable by name.
 

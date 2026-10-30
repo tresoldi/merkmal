@@ -30,9 +30,11 @@
 #include "vector.h"
 
 #include "generated/builtin_data.h"
+#include "geometry.h"
 #include "resolver.h"
 #include "strings.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <string.h>
@@ -87,15 +89,36 @@ static int mk_vector_uses_scalar_dimensions(const mk_builtin_system *builtin)
     return builtin->scalar_dimensions != NULL && builtin->scalar_dimension_count > 0;
 }
 
+/* The columns are exactly the dimensions the system's scorer reads, so two
+ * graphemes with equal vectors are at distance zero. A valued system's columns
+ * are its own; a system with scalar dimensions has those plus the geometry's
+ * ordered scales; a leaf-scored system has the geometry's leaves, its ordered
+ * scales, and one column per node-group label. The scales and node groups used
+ * to be missing where the scorer read them, so in `distinctive` /a/ and /e/
+ * had the same vector, and in `descriptive` /l/ and /ɮ/. */
+static size_t mk_vector_node_group_count(void)
+{
+    size_t i;
+    size_t n = 0;
+
+    for (i = 0; i < mki_clements_hume_feature_to_node_count; i++) {
+        if (mki_is_node_group_feature(mki_clements_hume_feature_to_node[i].feature)) {
+            n++;
+        }
+    }
+    return n;
+}
+
 size_t mki_vector_width_of(const mk_builtin_system *builtin)
 {
     if (mk_vector_is_valued(builtin)) {
         return builtin->geometry_map_count;
     }
     if (mk_vector_uses_scalar_dimensions(builtin)) {
-        return builtin->scalar_dimension_count;
+        return builtin->scalar_dimension_count + mki_clements_hume_ordinal_scale_count;
     }
-    return mki_clements_hume_leaf_count + mki_clements_hume_ordinal_scale_count;
+    return mki_clements_hume_leaf_count + mki_clements_hume_ordinal_scale_count +
+        mk_vector_node_group_count();
 }
 
 mk_status mk_system_vector_width(const mk_system *system, size_t *out)
@@ -109,8 +132,8 @@ mk_status mk_system_vector_width(const mk_system *system, size_t *out)
 
 mk_status mk_system_vector_labels(const mk_system *system, mk_string_list **out)
 {
-    const char **names;
-    mk_status status;
+    char **names;
+    mk_status status = MK_OK;
     size_t width;
     size_t i;
     size_t n = 0;
@@ -120,32 +143,76 @@ mk_status mk_system_vector_labels(const mk_system *system, mk_string_list **out)
     }
     *out = NULL;
     width = mki_vector_width_of(system->builtin);
-    /* +1 so a zero-width system still gets a non-NULL allocation. */
-    names = (const char **)malloc((width + 1) * sizeof(*names));
+    /* +1 so a zero-width system still gets a non-NULL allocation. Every name is
+     * an owned copy, so node-group labels can be composed here. */
+    names = (char **)calloc(width + 1, sizeof(*names));
     if (names == NULL) {
         return MK_ERR_OOM;
     }
 
     if (mk_vector_is_valued(system->builtin)) {
-        for (i = 0; i < system->builtin->geometry_map_count; i++) {
-            names[n++] = system->builtin->geometry_map[i].feature;
-        }
-    } else if (mk_vector_uses_scalar_dimensions(system->builtin)) {
-        for (i = 0; i < system->builtin->scalar_dimension_count; i++) {
-            names[n++] = system->builtin->scalar_dimensions[i].name;
+        for (i = 0; i < system->builtin->geometry_map_count && status == MK_OK; i++) {
+            names[n] = mki_strdup_internal(system->builtin->geometry_map[i].feature);
+            status = names[n++] == NULL ? MK_ERR_OOM : MK_OK;
         }
     } else {
-        for (i = 0; i < mki_clements_hume_leaf_count; i++) {
-            names[n++] = mki_clements_hume_leaves[i].name;
+        if (mk_vector_uses_scalar_dimensions(system->builtin)) {
+            for (i = 0; i < system->builtin->scalar_dimension_count && status == MK_OK; i++) {
+                names[n] = mki_strdup_internal(system->builtin->scalar_dimensions[i].name);
+                status = names[n++] == NULL ? MK_ERR_OOM : MK_OK;
+            }
+        } else {
+            for (i = 0; i < mki_clements_hume_leaf_count && status == MK_OK; i++) {
+                names[n] = mki_strdup_internal(mki_clements_hume_leaves[i].name);
+                status = names[n++] == NULL ? MK_ERR_OOM : MK_OK;
+            }
         }
-        for (i = 0; i < mki_clements_hume_ordinal_scale_count; i++) {
-            names[n++] = mki_clements_hume_ordinal_scales[i].name;
+        for (i = 0; i < mki_clements_hume_ordinal_scale_count && status == MK_OK; i++) {
+            names[n] = mki_strdup_internal(mki_clements_hume_ordinal_scales[i].name);
+            status = names[n++] == NULL ? MK_ERR_OOM : MK_OK;
+        }
+        if (!mk_vector_uses_scalar_dimensions(system->builtin)) {
+            for (i = 0; i < mki_clements_hume_feature_to_node_count && status == MK_OK; i++) {
+                const mk_feature_node_map *map = &mki_clements_hume_feature_to_node[i];
+                size_t len;
+
+                if (!mki_is_node_group_feature(map->feature)) {
+                    continue;
+                }
+                /* "Manner=fricative": the node the scorer groups by, and the label. */
+                len = strlen(map->node) + 1 + strlen(map->feature) + 1;
+                names[n] = (char *)malloc(len);
+                if (names[n] == NULL) {
+                    status = MK_ERR_OOM;
+                    break;
+                }
+                snprintf(names[n++], len, "%s=%s", map->node, map->feature);
+            }
         }
     }
 
-    status = mk_string_list_new(names, n, out);
+    if (status == MK_OK) {
+        status = mk_string_list_new((const char *const *)names, n, out);
+    }
+    for (i = 0; i < n; i++) {
+        free(names[i]);
+    }
     free(names);
     return status;
+}
+
+/* An ordered scale's column: level i of n as i/n, so 0 keeps meaning "no value
+ * on this scale". Read exactly as the scorers read it, unmarked default
+ * included; ignoring the default made a vowel with no explicit level look
+ * like a segment the scale does not apply to. */
+static double mk_vector_scale_value(const mk_feature_view *view, const mk_ordinal_scale *scale)
+{
+    int level = mki_ordinal_level(*view, scale);
+
+    if (level == MK_ORDINAL_UNDEFINED) {
+        return 0.0;
+    }
+    return (double)(level + 1) / (double)scale->level_count;
 }
 
 /* Fill `values` from an already-resolved feature list. */
@@ -156,6 +223,7 @@ static void mk_vector_fill(
 )
 {
     size_t i;
+    size_t slot = 0;
 
     if (mk_vector_is_valued(builtin)) {
         for (i = 0; i < builtin->geometry_map_count; i++) {
@@ -174,41 +242,66 @@ static void mk_vector_fill(
             const mk_scalar_dimension *dim = &builtin->scalar_dimensions[i];
 
             if (mk_vector_has_any(view, dim->positive, dim->positive_count)) {
-                values[i] = 1.0;
+                values[slot++] = 1.0;
             } else if (mk_vector_has_any(view, dim->negative, dim->negative_count)) {
-                values[i] = -1.0;
+                values[slot++] = -1.0;
             } else {
-                values[i] = 0.0;
+                values[slot++] = 0.0;
             }
         }
-        return;
-    }
+    } else {
+        for (i = 0; i < mki_clements_hume_leaf_count; i++) {
+            const mk_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
 
-    for (i = 0; i < mki_clements_hume_leaf_count; i++) {
-        const mk_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
-
-        if (mk_vector_has(view, leaf->positive)) {
-            values[i] = 1.0;
-        } else if (mk_vector_has(view, leaf->negative)) {
-            values[i] = -1.0;
-        } else {
-            values[i] = 0.0;
+            if (leaf->positive[0] != '\0' && mk_vector_has(view, leaf->positive)) {
+                values[slot++] = 1.0;
+            } else if (leaf->negative[0] != '\0' && mk_vector_has(view, leaf->negative)) {
+                values[slot++] = -1.0;
+            } else {
+                values[slot++] = 0.0;
+            }
         }
     }
     for (i = 0; i < mki_clements_hume_ordinal_scale_count; i++) {
-        const mk_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
-        size_t slot = mki_clements_hume_leaf_count + i;
-        size_t level;
+        values[slot++] = mk_vector_scale_value(view, &mki_clements_hume_ordinal_scales[i]);
+    }
+    if (mk_vector_uses_scalar_dimensions(builtin)) {
+        return;
+    }
+    /* Node groups one-hot: +1 the label is present, -1 its node is set by
+     * another label, 0 the node is unset. Equal columns are equal label sets at
+     * the node, which is all the scorer asks of a group. */
+    for (i = 0; i < mki_clements_hume_feature_to_node_count; i++) {
+        const mk_feature_node_map *map = &mki_clements_hume_feature_to_node[i];
+        size_t k;
+        int touched = 0;
 
-        values[slot] = 0.0;
-        for (level = 0; level < scale->level_count; level++) {
-            if (mk_vector_has(view, scale->levels[level])) {
-                /* (0, 1], so 0 keeps meaning "no value on this scale" rather
-                 * than colliding with a middle level. */
-                values[slot] = (double)(level + 1) / (double)scale->level_count;
+        if (!mki_is_node_group_feature(map->feature)) {
+            continue;
+        }
+        if (mk_vector_has(view, map->feature)) {
+            values[slot++] = 1.0;
+            continue;
+        }
+        for (k = 0; k < view->count; k++) {
+            const char *other = view->features[k];
+            size_t m;
+
+            if (!mki_is_node_group_feature(other)) {
+                continue;
+            }
+            for (m = 0; m < mki_clements_hume_feature_to_node_count; m++) {
+                if (mki_streq(mki_clements_hume_feature_to_node[m].feature, other) &&
+                    mki_streq(mki_clements_hume_feature_to_node[m].node, map->node)) {
+                    touched = 1;
+                    break;
+                }
+            }
+            if (touched) {
                 break;
             }
         }
+        values[slot++] = touched ? -1.0 : 0.0;
     }
 }
 
