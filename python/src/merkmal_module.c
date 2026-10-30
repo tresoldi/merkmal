@@ -1170,7 +1170,319 @@ done:
     return result;
 }
 
+/* Abstract segments. A bundle crosses the boundary as its canonical text, so
+ * Python holds no C object: each call parses, works, and frees. */
+
+static const mk_system *py_bundle_system(
+    PyObject *system_obj,
+    PyObject *registry_obj,
+    py_utf8_args *bag,
+    const char *context
+)
+{
+    const char *system_name = default_system_name;
+    mk_registry *registry;
+
+    if (py_utf8_take_optional(bag, system_obj, "system", &system_name) < 0) {
+        return NULL;
+    }
+    registry = resolve_registry(registry_obj, context);
+    if (registry == NULL) {
+        return NULL;
+    }
+    return resolve_system(registry, system_name, context);
+}
+
+static PyObject *py_bundle_text_result(mk_bundle *bundle, const char *context)
+{
+    char *text = NULL;
+    mk_status status = mk_bundle_to_text(bundle, &text);
+    PyObject *result;
+
+    if (status != MK_OK) {
+        status_error(status, context);
+        return NULL;
+    }
+    result = PyUnicode_FromString(text);
+    mk_string_free(text);
+    return result;
+}
+
+static PyObject *py_bundle_columns(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *keywords[] = {"system", "registry", NULL};
+    PyObject *system_obj = Py_None;
+    PyObject *registry_obj = Py_None;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const mk_system *system;
+    mk_bundle *bundle = NULL;
+    PyObject *result = NULL;
+    size_t count = 0;
+    size_t i;
+    mk_status status;
+
+    (void)self;
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OO:bundle_columns", keywords,
+                                     &system_obj, &registry_obj)) {
+        return NULL;
+    }
+    system = py_bundle_system(system_obj, registry_obj, &bag, "bundle_columns");
+    if (system == NULL) {
+        goto done;
+    }
+    status = mk_bundle_new(system, &bundle);
+    if (status == MK_OK) {
+        status = mk_bundle_column_count(bundle, &count);
+    }
+    if (status != MK_OK) {
+        status_error(status, "bundle_columns");
+        goto done;
+    }
+    result = PyList_New((Py_ssize_t)count);
+    if (result == NULL) {
+        goto done;
+    }
+    for (i = 0; i < count; i++) {
+        const char *name = NULL;
+        mk_string_list *values = NULL;
+        PyObject *pair;
+        PyObject *as_list;
+
+        status = mk_bundle_column_name(bundle, i, &name);
+        if (status == MK_OK) {
+            status = mk_bundle_column_values(bundle, name, &values);
+        }
+        if (status != MK_OK) {
+            status_error(status, "bundle_columns");
+            Py_CLEAR(result);
+            goto done;
+        }
+        as_list = py_string_list_to_list(values);
+        mk_string_list_free(values);
+        if (as_list == NULL) {
+            Py_CLEAR(result);
+            goto done;
+        }
+        pair = Py_BuildValue("(sN)", name, as_list);
+        if (pair == NULL || py_list_set_steal(result, (Py_ssize_t)i, pair) < 0) {
+            Py_CLEAR(result);
+            goto done;
+        }
+    }
+done:
+    mk_bundle_free(bundle);
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
+/* bundle_parse(text, system=None, registry=None) -> canonical text. Also how a
+ * grapheme becomes a bundle: bundle_parse(grapheme, from_grapheme=True). */
+static PyObject *py_bundle_parse(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *keywords[] = {"text", "system", "registry", "from_grapheme", NULL};
+    PyObject *text_obj;
+    PyObject *system_obj = Py_None;
+    PyObject *registry_obj = Py_None;
+    int from_grapheme = 0;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *text = NULL;
+    const mk_system *system;
+    mk_bundle *bundle = NULL;
+    PyObject *result = NULL;
+    mk_status status;
+
+    (void)self;
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OOp:bundle_parse", keywords,
+                                     &text_obj, &system_obj, &registry_obj, &from_grapheme)) {
+        return NULL;
+    }
+    if (py_utf8_take(&bag, text_obj, "text", &text) < 0) {
+        goto done;
+    }
+    system = py_bundle_system(system_obj, registry_obj, &bag, "bundle_parse");
+    if (system == NULL) {
+        goto done;
+    }
+    status = from_grapheme ? mk_bundle_from_grapheme(system, text, &bundle)
+                           : mk_bundle_from_text(system, text, &bundle);
+    if (status != MK_OK) {
+        status_error(status, "bundle_parse");
+        goto done;
+    }
+    result = py_bundle_text_result(bundle, "bundle_parse");
+done:
+    mk_bundle_free(bundle);
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
+static const char *py_comparability_name(mk_comparability why)
+{
+    switch (why) {
+    case MK_CMP_OK:
+        return "ok";
+    case MK_CMP_CROSS_TIER:
+        return "cross_tier";
+    case MK_CMP_NO_SHARED_DIMENSION:
+        return "no_shared_dimension";
+    default:
+        return "unknown";
+    }
+}
+
+static PyObject *py_bundle_compare(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *keywords[] = {"a", "b", "system", "registry", "weights", NULL};
+    PyObject *a_obj;
+    PyObject *b_obj;
+    PyObject *system_obj = Py_None;
+    PyObject *registry_obj = Py_None;
+    PyObject *weights_obj = Py_None;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *a_text = NULL;
+    const char *b_text = NULL;
+    const char *weights = NULL;
+    const mk_system *system;
+    mk_bundle *a = NULL;
+    mk_bundle *b = NULL;
+    mk_bundle_comparison cmp;
+    PyObject *result = NULL;
+    mk_status status;
+
+    (void)self;
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|OOO:bundle_compare", keywords,
+                                     &a_obj, &b_obj, &system_obj, &registry_obj, &weights_obj)) {
+        return NULL;
+    }
+    if (py_utf8_take(&bag, a_obj, "a", &a_text) < 0 ||
+        py_utf8_take(&bag, b_obj, "b", &b_text) < 0 ||
+        py_utf8_take_optional(&bag, weights_obj, "weights", &weights) < 0) {
+        goto done;
+    }
+    system = py_bundle_system(system_obj, registry_obj, &bag, "bundle_compare");
+    if (system == NULL) {
+        goto done;
+    }
+    status = mk_bundle_from_text(system, a_text, &a);
+    if (status == MK_OK) {
+        status = mk_bundle_from_text(system, b_text, &b);
+    }
+    if (status == MK_OK) {
+        status = mk_bundle_compare(a, b, weights, &cmp);
+    }
+    if (status != MK_OK) {
+        status_error(status, "bundle_compare");
+        goto done;
+    }
+    result = Py_BuildValue("(ddddz)", cmp.distance, cmp.coverage, cmp.minimum, cmp.maximum,
+                           py_comparability_name(cmp.why));
+done:
+    mk_bundle_free(a);
+    mk_bundle_free(b);
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
+static PyObject *py_bundle_compatible(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *keywords[] = {"text", "grapheme", "system", "registry", NULL};
+    PyObject *text_obj;
+    PyObject *grapheme_obj;
+    PyObject *system_obj = Py_None;
+    PyObject *registry_obj = Py_None;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *text = NULL;
+    const char *grapheme = NULL;
+    const mk_system *system;
+    mk_bundle *bundle = NULL;
+    bool compatible = false;
+    PyObject *result = NULL;
+    mk_status status;
+
+    (void)self;
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|OO:bundle_compatible", keywords,
+                                     &text_obj, &grapheme_obj, &system_obj, &registry_obj)) {
+        return NULL;
+    }
+    if (py_utf8_take(&bag, text_obj, "text", &text) < 0 ||
+        py_utf8_take(&bag, grapheme_obj, "grapheme", &grapheme) < 0) {
+        goto done;
+    }
+    system = py_bundle_system(system_obj, registry_obj, &bag, "bundle_compatible");
+    if (system == NULL) {
+        goto done;
+    }
+    status = mk_bundle_from_text(system, text, &bundle);
+    if (status == MK_OK) {
+        status = mk_bundle_compatible(bundle, grapheme, &compatible);
+    }
+    if (status != MK_OK) {
+        status_error(status, "bundle_compatible");
+        goto done;
+    }
+    result = PyBool_FromLong(compatible ? 1 : 0);
+done:
+    mk_bundle_free(bundle);
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
+static PyObject *py_bundle_compatible_graphemes(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *keywords[] = {"text", "system", "registry", "weights", NULL};
+    PyObject *text_obj;
+    PyObject *system_obj = Py_None;
+    PyObject *registry_obj = Py_None;
+    PyObject *weights_obj = Py_None;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *text = NULL;
+    const char *weights = NULL;
+    const mk_system *system;
+    mk_bundle *bundle = NULL;
+    mk_string_list *graphemes = NULL;
+    PyObject *result = NULL;
+    mk_status status;
+
+    (void)self;
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OOO:bundle_compatible_graphemes", keywords,
+                                     &text_obj, &system_obj, &registry_obj, &weights_obj)) {
+        return NULL;
+    }
+    if (py_utf8_take(&bag, text_obj, "text", &text) < 0 ||
+        py_utf8_take_optional(&bag, weights_obj, "weights", &weights) < 0) {
+        goto done;
+    }
+    system = py_bundle_system(system_obj, registry_obj, &bag, "bundle_compatible_graphemes");
+    if (system == NULL) {
+        goto done;
+    }
+    status = mk_bundle_from_text(system, text, &bundle);
+    if (status == MK_OK) {
+        status = mk_bundle_compatible_graphemes(bundle, weights, &graphemes);
+    }
+    if (status != MK_OK) {
+        status_error(status, "bundle_compatible_graphemes");
+        goto done;
+    }
+    result = py_string_list_to_list(graphemes);
+done:
+    mk_string_list_free(graphemes);
+    mk_bundle_free(bundle);
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
 static PyMethodDef methods[] = {
+    {"bundle_columns", (PyCFunction)py_bundle_columns, METH_VARARGS | METH_KEYWORDS,
+     "bundle_columns(system=None, registry=None) -> list[tuple[str, list[str]]]"},
+    {"bundle_parse", (PyCFunction)py_bundle_parse, METH_VARARGS | METH_KEYWORDS,
+     "bundle_parse(text, system=None, registry=None, from_grapheme=False) -> str"},
+    {"bundle_compare", (PyCFunction)py_bundle_compare, METH_VARARGS | METH_KEYWORDS,
+     "bundle_compare(a, b, system=None, registry=None, weights=None) -> (distance, coverage, minimum, maximum, why)"},
+    {"bundle_compatible", (PyCFunction)py_bundle_compatible, METH_VARARGS | METH_KEYWORDS,
+     "bundle_compatible(text, grapheme, system=None, registry=None) -> bool"},
+    {"bundle_compatible_graphemes", (PyCFunction)py_bundle_compatible_graphemes, METH_VARARGS | METH_KEYWORDS,
+     "bundle_compatible_graphemes(text, system=None, registry=None, weights=None) -> list[str]"},
     {"list_systems", (PyCFunction)py_list_systems, METH_VARARGS | METH_KEYWORDS,
      "List the systems in a registry."},
     {"diagnose", (PyCFunction)py_diagnose, METH_VARARGS | METH_KEYWORDS,

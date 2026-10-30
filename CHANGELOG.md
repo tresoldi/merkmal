@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Abstract segments: `mk_bundle_*` and `merkmal.AbstractSegment`
+
+A feature bundle with no grapheme as identity, for reconstructed segments that
+no attested language keeps. Each cell holds the values the segment may have:
+
+- `0`: does not apply;
+- `?`: unknown, applies;
+- `*`: unknown, may not apply;
+- a sign, a level or a range on an ordered scale, or node-group labels.
+
+A comparison returns the system's own distance over the dimensions both sides
+specify, its coverage, and the exact minimum and maximum over all completions.
+Compatibility with a grapheme and a ranked list of compatible graphemes are for
+display only. A bundle from a grapheme scores exactly as the grapheme (checked
+on 21,000 pairs across the seven systems), and the bounds equal brute-force
+enumeration. Design and decisions: `docs/abstract-segments.md`.
+
 ### PHOIBLE model 2.0.0: "does not apply" and "unknown" are kept apart
 
 PHOIBLE's `0` (the feature does not apply), a missing vector, a per-phase

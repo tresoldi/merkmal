@@ -40,6 +40,14 @@ int mki_is_node_group_feature(const char *feature);
  * MK_ORDINAL_UNDEFINED. */
 int mki_ordinal_level(mk_feature_view view, const mk_ordinal_scale *scale);
 
+/* The weighting the scorers use, for code that scores outside a feature view
+ * (abstract segments, bundle.c). Same functions, so a bundle made from a
+ * grapheme weighs each dimension exactly as the scorer does. */
+mk_status mki_resolve_weight_preset(const char *name, const mk_node_weight_preset **out);
+double mki_dimension_weight(const mk_node_weight_preset *preset, const char *node, double base_weight);
+double mki_node_depth_value(const char *node);
+const char *mki_feature_node(const char *feature);
+
 /* Non-zero when a feature set holds two values of one ordered scale. */
 int mki_ordinal_conflict(
     const char *const *features,

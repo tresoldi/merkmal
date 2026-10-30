@@ -742,6 +742,106 @@ def test_phoible_keeps_inapplicable_and_unknown_apart() -> None:
     assert "?" in {cell.split("=")[1] for cell in merkmal.get_features("ai", system="phoible")}
 
 
+def _inventory(system: str) -> list[str]:
+    models = Path(__file__).resolve().parents[2] / "models"
+    rows = (models / system / "inventory.tsv").read_text(encoding="utf-8").splitlines()[1:]
+    return [row.split("\t")[0] for row in rows if row]
+
+
+def test_abstract_segment_from_grapheme_scores_as_the_grapheme() -> None:
+    """A bundle made from a grapheme reproduces the scorer, coverage included."""
+    import random
+
+    rng = random.Random(20261030)
+    for system in merkmal.list_systems():
+        graphemes = _inventory(system)
+        for _ in range(150):
+            a, b = rng.choice(graphemes), rng.choice(graphemes)
+            got = merkmal.AbstractSegment.from_grapheme(a, system=system).compare(b)
+            score, coverage, _ = merkmal.distance_with_coverage(a, b, system=system)
+            assert math.isclose(got.distance, score, abs_tol=1e-12), (system, a, b)
+            assert math.isclose(got.coverage, coverage, abs_tol=1e-12), (system, a, b)
+            assert got.minimum - 1e-12 <= got.distance <= got.maximum + 1e-12
+
+
+def _completions(values: list[str], cell: str, binary: bool) -> list[str]:
+    applicable = [v for v in values if not (binary and v == "n")]
+    out: list[str] = []
+    for part in cell.split("|"):
+        if part == "0":
+            out.append("0")
+        elif part == "?":
+            out += applicable
+        elif part == "*":
+            out += [*applicable, "0"]
+        elif ".." in part:
+            lo, hi = part.split("..")
+            out += values[values.index(lo) : values.index(hi) + 1]
+        else:
+            out.append(part)
+    return sorted(set(out))
+
+
+def test_abstract_segment_bounds_are_exact() -> None:
+    """minimum and maximum equal brute-force enumeration of the completions."""
+    import itertools
+    import random
+
+    rng = random.Random(7)
+    for system in merkmal.list_systems():
+        columns = dict(merkmal.AbstractSegment.columns(system=system))
+        graphemes = [
+            g for g in _inventory(system)
+            if all(v not in ("?", "*") for v in merkmal.AbstractSegment.from_grapheme(g, system=system).cells.values())
+        ]
+        checked = 0
+        while checked < 12:
+            base = merkmal.AbstractSegment.from_grapheme(rng.choice(graphemes), system=system)
+            other = rng.choice(graphemes)
+            names = rng.sample(sorted(columns), 3)
+            edits = {}
+            for name in names:
+                values = [v for v in columns[name] if v != "n"]
+                draw = rng.random()
+                edits[name] = "?" if draw < 0.4 else "*" if draw < 0.6 else "|".join(rng.sample(values, min(2, len(values))))
+            segment = base.with_cells(**edits)
+            got = segment.compare(other)
+            options = [
+                _completions(columns[n], segment.cells[n], set(columns[n]) <= {"+", "-", "n"})
+                for n in names
+            ]
+            scores = [
+                segment.with_cells(**dict(zip(names, combo, strict=True))).compare(other).distance
+                for combo in itertools.product(*options)
+            ]
+            assert math.isclose(got.minimum, min(scores), abs_tol=1e-12), (system, edits, other)
+            assert math.isclose(got.maximum, max(scores), abs_tol=1e-12), (system, edits, other)
+            checked += 1
+
+
+def test_abstract_segment_laryngeal() -> None:
+    """A guttural fricative with voice and place open: the laryngeal case."""
+    h = merkmal.AbstractSegment.from_grapheme("ħ", system="descriptive").with_cells(
+        voice="?", guttural_place="?"
+    )
+    assert h.compatible("ʕ") and h.compatible("h") and not h.compatible("k")
+    assert set(h.compatible_graphemes()) >= {"ħ", "ʕ", "h"}
+    c = h.compare("ʕ")
+    assert c.distance == 0.0 and c.minimum == 0.0 and c.maximum > 0.0 and c.coverage < 1.0
+    assert merkmal.AbstractSegment(h.text, system="descriptive") == h
+
+
+def test_abstract_segment_errors() -> None:
+    blank = merkmal.AbstractSegment(system="distinctive")
+    assert set(blank.cells.values()) == {"*"}
+    with pytest.raises(ValueError):
+        blank.with_cells(no_such_column="+")
+    with pytest.raises(merkmal.NativeError):
+        blank.with_cells(voice="maybe")
+    with pytest.raises(NotImplementedError):
+        merkmal.AbstractSegment.from_grapheme("ai", system="descriptive")
+
+
 def test_sound_distance_refuses_unknown_labels() -> None:
     """A label the geometry does not know is an error, not a missing value.
 

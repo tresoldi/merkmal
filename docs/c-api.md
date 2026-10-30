@@ -205,6 +205,27 @@ There is no call that vectorizes a token list. It is a loop over
 operations; the library deliberately supplies segment-level costs, not
 sequence-level alignment.
 
+## Abstract segments
+
+```c
+mk_status mk_bundle_new(const mk_system *system, mk_bundle **out);
+mk_status mk_bundle_from_grapheme(const mk_system *system, const char *g, mk_bundle **out);
+mk_status mk_bundle_from_text(const mk_system *system, const char *text, mk_bundle **out);
+mk_status mk_bundle_set(mk_bundle *b, const char *column, const char *cell);
+mk_status mk_bundle_compare(const mk_bundle *a, const mk_bundle *b, const char *weights,
+                            mk_bundle_comparison *out);
+mk_status mk_bundle_compatible(const mk_bundle *b, const char *g, bool *out);
+mk_status mk_bundle_compatible_graphemes(const mk_bundle *b, const char *weights,
+                                         mk_string_list **out);
+```
+
+A feature bundle with no grapheme as identity: one cell per dimension the
+system's scorer reads, each holding the values the segment may have. The
+comparison gives the scorer's distance over the dimensions both sides specify,
+its coverage, and the exact minimum and maximum over every completion. Cell
+grammar and semantics: `docs/abstract-segments.md`. A bundle borrows its
+system; free it before the registry.
+
 ## Status Codes
 
 `mk_status` values are:

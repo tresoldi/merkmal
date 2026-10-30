@@ -293,7 +293,82 @@ class Registry:
         manifest = self._manifests.get(system)
         return None if manifest is None else json.loads(json.dumps(manifest))
 
+class BundleComparison(NamedTuple):
+    """An abstract segment against another: point distance and exact bounds."""
+
+    distance: float
+    coverage: float
+    minimum: float
+    maximum: float
+    why: str
+
+
+class AbstractSegment:
+    """A feature bundle with no grapheme as identity (`docs/abstract-segments.md`).
+
+    Identity is the system and the canonical cell text. Cells are written as in
+    the C API: `0` does not apply, `?` unknown and applies, `*` unknown and may
+    not apply; `+`/`-` for binary columns; a level or `lo..hi` on an ordered
+    scale; a label, `l1|l2` (one of them) or `l1&l2` (one exact set) for a node
+    group; `|0` adds "may not apply".
+    """
+
+    __slots__ = ("system", "text")
+
+    def __init__(self, text: str = "", *, system: str | None = None) -> None:
+        self.system = system or "distinctive"
+        self.text = _native.bundle_parse(text, system=self.system)
+
+    @classmethod
+    def from_grapheme(cls, grapheme: str, *, system: str | None = None) -> AbstractSegment:
+        segment = cls.__new__(cls)
+        segment.system = system or "distinctive"
+        segment.text = _native.bundle_parse(grapheme, system=segment.system, from_grapheme=True)
+        return segment
+
+    @staticmethod
+    def columns(*, system: str | None = None) -> list[tuple[str, list[str]]]:
+        """Column names and the values each can take, in order."""
+        return _native.bundle_columns(system=system)
+
+    @property
+    def cells(self) -> dict[str, str]:
+        return dict(item.split("=", 1) for item in self.text.split(";"))
+
+    def with_cells(self, **cells: str) -> AbstractSegment:
+        """A copy with some cells replaced (keyword names are column names)."""
+        merged = self.cells | cells
+        return AbstractSegment(";".join(f"{k}={v}" for k, v in merged.items()), system=self.system)
+
+    def compare(self, other: AbstractSegment | str, *, weights: str | None = None) -> BundleComparison:
+        if isinstance(other, str):
+            other = AbstractSegment.from_grapheme(other, system=self.system)
+        if other.system != self.system:
+            raise ValueError("compare: abstract segments of different systems")
+        return BundleComparison(*_native.bundle_compare(self.text, other.text, system=self.system, weights=weights))
+
+    def compatible(self, grapheme: str) -> bool:
+        """Whether the grapheme is one of this bundle's completions."""
+        return bool(_native.bundle_compatible(self.text, grapheme, system=self.system))
+
+    def compatible_graphemes(self, *, weights: str | None = None) -> list[str]:
+        """Compatible graphemes, nearest first. For display, never identity."""
+        return _native.bundle_compatible_graphemes(self.text, system=self.system, weights=weights)
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, AbstractSegment) and (self.system, self.text) == (other.system, other.text)
+
+    def __hash__(self) -> int:
+        return hash((self.system, self.text))
+
+    def __repr__(self) -> str:
+        specified = {k: v for k, v in self.cells.items() if v != "*"}
+        return f"AbstractSegment(system={self.system!r}, cells={specified!r})"
+
+
 __all__ = [
+    "AbstractSegment",
+    "BundleComparison",
     "NativeError",
     "compatibility_dissimilarity",
     "Comparison",

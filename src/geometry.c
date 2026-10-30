@@ -736,3 +736,23 @@ mk_status mk_sound_distance(
     }
     return mki_scorer_for(NULL)(NULL, a, b, node_weights, out, NULL);
 }
+
+mk_status mki_resolve_weight_preset(const char *name, const mk_node_weight_preset **out)
+{
+    return mk_resolve_weight_preset(name, out);
+}
+
+double mki_dimension_weight(const mk_node_weight_preset *preset, const char *node, double base_weight)
+{
+    return mk_dimension_weight(preset, node, base_weight);
+}
+
+double mki_node_depth_value(const char *node)
+{
+    return mk_node_depth_value(node);
+}
+
+const char *mki_feature_node(const char *feature)
+{
+    return mk_feature_node(feature);
+}

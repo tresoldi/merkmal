@@ -1,6 +1,7 @@
 # Abstract segments
 
-**Status: design, 2026-10-30. Not implemented yet.** Requested for the
+**Status: implemented, 2026-10-30** (C API `mk_bundle_*` in `merkmal.h`;
+Python `merkmal.AbstractSegment`; WASM not yet). Requested for the
 historical-inference work (`tresoldi/framework`, `08_latent_elements.md`;
 constitution v0.2.0 §6.8). There, an ancestral segment that no daughter keeps
 (a "laryngeal") is reported as a feature bundle whose identity is never a
@@ -45,8 +46,8 @@ grapheme, with features the evidence does not decide left unspecified.
      value, and reports coverage.
    * Exact minimum and maximum distances are given over all completions.
    * A predicate says whether a grapheme is compatible with a bundle.
-   * No probability is invented; a per-column `p(+)` may be stored but is not
-     used by any score.
+   * No probability is invented. (A per-column `p(+)` was considered and left
+     out: nothing would read it.)
 5. **The data are split where the source says:** PHOIBLE `0` becomes
    inapplicable, and an empty cell or a contour becomes unknown.
 6. **C core and Python** now, WASM afterwards. The silent-ignore bug is fixed
@@ -89,7 +90,40 @@ exhaustively in CI.
   Ranking is not identity; it never decides anything.
 
 `0` against a value is skipped, as it is today for valued systems, so the data
-split does not change any point distance between graphemes.
+split does not change any point distance between graphemes. In categorical
+systems, "does not apply" is the absence of both labels, and the scorer
+compares it with a value; bundles keep that rule, which is what lets a bundle
+from a grapheme score exactly as the grapheme.
+
+For a partial bundle, the point score is computed over the dimensions both
+sides fix. It is not itself a completion, so it can lie outside
+`[minimum, maximum]`. Against /a/, the laryngeal-like bundle below scores
+0.615, with bounds [0.649, 0.649]. Report the bounds when the question is
+"how far could it be"; report the point score with its coverage when the
+question is "how far is it on what we know".
+
+## As built
+
+* **Columns and text.** `vowel_height=close-mid..open`, `Manner=fricative|approximant`
+  (one of them), `Manner=affricate&fricative` (one exact set), `voice=?`,
+  `round=0`, `*` for unknown and possibly inapplicable, and `|0` to add "may not
+  apply". A whole bundle is `column=cell;...`; columns left out are `*`, and
+  `mk_bundle_to_text` writes every column in order.
+* **Clusters and tones.** These are refused (`MK_ERR_UNSUPPORTED_MODEL`). A
+  synthesized cluster has no single feature set, and a tone has no
+  segmental dimension.
+* **Checked:**
+  * every grapheme of every built-in system makes a bundle;
+  * on 21,000 random pairs, bundle distance and coverage equal the scorer's
+    (≤ 1e-12), and the suite keeps 150 pairs per system;
+  * on 420 partial bundles, the bounds equal brute-force enumeration exactly,
+    and the suite keeps 12 per system;
+  * the C suite passes under AddressSanitizer.
+* **The laryngeal case** (`descriptive`): /ħ/ with `voice=?` and
+  `guttural_place=?`.
+  * It is compatible with /h ħ ɦ ʕ ʜ ʢ/, not with /ʔ/ (continuant is still
+    fixed) nor with /k/.
+  * Against /ʕ/: distance 0 at coverage 0.66, bounds [0, 0.34].
 
 ## Open
 
