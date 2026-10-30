@@ -75,7 +75,15 @@ typedef enum mk_status {
      *
      * Appended to the enum rather than inserted, so existing values keep their
      * numbers. */
-    MK_ERR_NO_TREE_PATH
+    MK_ERR_NO_TREE_PATH,
+    /** A caller-supplied feature label the geometry does not know.
+     *
+     * mk_sound_distance used to skip such a label, so `foo` or `-voice` scored
+     * exactly like no label at all and a typo passed as a measurement.
+     *
+     * Appended to the enum rather than inserted, so existing values keep their
+     * numbers. */
+    MK_ERR_UNKNOWN_FEATURE
 } mk_status;
 
 /** Returns the stable English label for a status code. */
@@ -238,7 +246,11 @@ MK_API mk_status mk_feature_distance(
  * compiled geometry with no system, registry, or grapheme involved.
  *
  * `node_weights` names a weight preset, or is NULL for the default. An unknown
- * preset returns MK_ERR_INVALID_ARGUMENT rather than a score. */
+ * preset returns MK_ERR_INVALID_ARGUMENT rather than a score.
+ *
+ * A label the geometry does not know, scored or metadata, returns
+ * MK_ERR_UNKNOWN_FEATURE. Labels are privative: a negative value is the
+ * opposite label (`voiceless`), never a sign (`-voice`). */
 MK_API mk_status mk_sound_distance(
     mk_feature_view a,
     mk_feature_view b,

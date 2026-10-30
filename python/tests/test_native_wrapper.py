@@ -713,6 +713,21 @@ def test_source_conventions_cover_clts_lookalikes() -> None:
     assert merkmal.distance("ɫ", "lˠ", system="phoible") > 0.0
 
 
+def test_sound_distance_refuses_unknown_labels() -> None:
+    """A label the geometry does not know is an error, not a missing value.
+
+    `foo` and `-voice` used to score exactly like the empty set (0.554 against
+    /p/), so a typo or a signed label passed as a measurement.
+    """
+    p = sorted(merkmal.get_features("p", system="descriptive"))
+    for bad in (["consonant", "foo"], ["consonant", "-voice"]):
+        with pytest.raises(ValueError, match="unknown to the geometry"):
+            merkmal.sound_distance(bad, p)
+        with pytest.raises(ValueError, match="unknown to the geometry"):
+            merkmal.sound_distance(p, bad)
+    assert merkmal.sound_distance([], p) > 0.0
+
+
 def test_sound_distance_scores_bare_feature_sets() -> None:
     """The one scorer reachable without a system, a registry, or a grapheme.
 

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### `mk_sound_distance` refuses labels the geometry does not know
+
+**Breaking:** an unknown label used to be skipped, so `["consonant", "foo"]`
+and `["consonant", "-voice"]` scored 0.554 against /p/, exactly what the empty
+set scores, and a typo or a signed label passed as a measurement. Such a label
+now returns the new status `MK_ERR_UNKNOWN_FEATURE` (Python: `ValueError`).
+Labels are privative: the negative of `voiced` is `voiceless`, not `-voice`.
+Metadata labels the geometry declares are still accepted. Found while
+designing abstract segments (`docs/abstract-segments.md`).
+
 ### `merkmal.HAVE_UTF8PROC` tells the two builds apart
 
 A build without libutf8proc falls back to built-in normalization, which can

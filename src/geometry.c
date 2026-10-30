@@ -701,10 +701,23 @@ mk_status mk_sound_distance(
     double *out
 )
 {
+    size_t i;
+
     if (out == NULL ||
         (a.count > 0 && a.features == NULL) ||
         (b.count > 0 && b.features == NULL)) {
         return MK_ERR_INVALID_ARGUMENT;
+    }
+    *out = 0.0;
+    for (i = 0; i < a.count; i++) {
+        if (!mki_geometry_knows_feature(a.features[i])) {
+            return MK_ERR_UNKNOWN_FEATURE;
+        }
+    }
+    for (i = 0; i < b.count; i++) {
+        if (!mki_geometry_knows_feature(b.features[i])) {
+            return MK_ERR_UNKNOWN_FEATURE;
+        }
     }
     return mki_scorer_for(NULL)(NULL, a, b, node_weights, out, NULL);
 }
