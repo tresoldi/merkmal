@@ -16,20 +16,26 @@ check. This script applies one rule to every cell instead:
 
     +           -> +
     -           -> -
-    0           -> .    the feature does not apply to this segment
-    N           -> .    upstream has no feature vector at all (2 segments)
-    a,b[,c]     -> .    a contour; a single-valued cell cannot hold one
-    (empty)     -> .
+    0           -> 0    the feature does not apply to this segment
+    N           -> ?    upstream has no feature vector at all (2 segments)
+    a,b[,c]     -> ?    a contour; a single-valued cell cannot hold one
+    (empty)     -> ?    the source does not say
 
-Contours collapse rather than resolve because picking one phase of `+,-` invents
-a claim the source does not make. `.` says "this table cannot represent it",
-which is true, and `mk_system_segment_distance_ex` now reports the coverage cost
-of saying so.
+`0` and `?` are different claims and are kept apart: `0` says the feature does
+not apply, `?` that its value is not known here. Both used to be written `.`.
+Neither is compared in a point distance, so splitting them moves no score; they
+differ for abstract segments (`docs/abstract-segments.md`), where `?` can be
+completed and `0` cannot.
+
+Contours become `?` rather than one phase because picking one phase of `+,-`
+invents a claim the source does not make. `mk_system_segment_distance_ex`
+reports the coverage cost.
 
 Only rows whose grapheme matches upstream are touched. The row *sets* also
 differ -- 17 graphemes here that v2.0.1 lacks, 58 there that this inventory
 lacks -- and reconciling those is a separate question about which release's
-segment list to carry, not a cell-level defect.
+segment list to carry, not a cell-level defect. Their old `.` cells cannot be
+told apart, so they become `?`: the source for them does not say.
 
     scripts/rebuild_phoible_inventory.py <path-to-cldf/parameters.csv>
     scripts/rebuild_phoible_inventory.py <path> --check
@@ -54,11 +60,10 @@ def fold(grapheme: str) -> str:
 
 def cell(value: str) -> str:
     value = (value or "").strip()
-    if value in {"+", "-"}:
+    if value in {"+", "-", "0"}:
         return value
-    # Everything else says, in one way or another, that there is no single
-    # value here: not applicable, no vector, a contour, or nothing at all.
-    return "."
+    # No single value here: no vector, a contour, or nothing at all.
+    return "?"
 
 
 def main() -> int:
@@ -88,13 +93,20 @@ def main() -> int:
         source = upstream.get(fold(row[0]))
         if source is None:
             unmatched += 1
-            out_rows.append(row)
+            kept = [row[0]] + ["?" if value == "." else value for value in row[1:]]
+            changed_cells += sum(a != b for a, b in zip(row, kept))
+            changed_rows += kept != row
+            out_rows.append(kept)
             continue
         new = [row[0]]
         row_changed = False
         for index, name in enumerate(features, start=1):
             if name not in source:
-                new.append(row[index])
+                kept = "?" if row[index] == "." else row[index]
+                if kept != row[index]:
+                    changed_cells += 1
+                    row_changed = True
+                new.append(kept)
                 continue
             value = cell(source[name])
             if value != row[index]:

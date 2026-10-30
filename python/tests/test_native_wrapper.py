@@ -730,6 +730,18 @@ def test_feature_vectors_are_lossless() -> None:
     assert merkmal.feature_vector("a") != merkmal.feature_vector("e")
 
 
+def test_phoible_keeps_inapplicable_and_unknown_apart() -> None:
+    """`0` (does not apply) and `?` (unknown) were both written `.`."""
+    labels = merkmal.vector_labels(system="phoible")
+    states = {cell.split("=")[1] for cell in merkmal.get_features("p", system="phoible")}
+    assert "." not in states and "0" in states
+    vector = merkmal.feature_vector("p", system="phoible")
+    assert vector[labels.index("anterior")] == 0.0
+    # A diphthong's per-phase contours (`+,-`) are unknown as a single value.
+    assert any(math.isnan(v) for v in merkmal.feature_vector("ai", system="phoible"))
+    assert "?" in {cell.split("=")[1] for cell in merkmal.get_features("ai", system="phoible")}
+
+
 def test_sound_distance_refuses_unknown_labels() -> None:
     """A label the geometry does not know is an error, not a missing value.
 

@@ -592,7 +592,9 @@ static int mk_label_value(
         const char *label = view.features[i];
         if (strncmp(label, feature, feature_len) == 0 && label[feature_len] == '=') {
             char state = label[feature_len + 1];
-            if (state == '.') {
+            /* Not compared: '0' the feature does not apply, '?' its value is
+             * unknown here, '.' a table that does not say which of the two. */
+            if (state == '.' || state == '0' || state == '?') {
                 return 0;
             }
             if (state == '+') {

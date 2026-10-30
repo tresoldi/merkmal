@@ -440,7 +440,9 @@ MK_API mk_status mk_system_vector_labels(const mk_system *system, mk_string_list
  *
  * - `+1` the feature is present
  * - `-1` it applies to this kind of segment and is absent
- * - `0` it does not apply, or the source does not say
+ * - `0` it does not apply (or, in a table that does not distinguish the two,
+ *   it does not apply or the source does not say)
+ * - `NaN` a valued system's `?`: the value is not known here
  *
  * Ordered scales cannot use `0` for a middle level, since `0` already means "no
  * value". A scale of n levels maps level i to i/n, so scale columns land in

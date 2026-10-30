@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### PHOIBLE model 2.0.0: "does not apply" and "unknown" are kept apart
+
+PHOIBLE's `0` (the feature does not apply), a missing vector, a per-phase
+contour and an empty cell were all written `.`. They are different claims, so
+the cells now say which: `0` for does not apply (28,031 cells) and `?` for not
+known here (5,886 cells, including the old `.` of graphemes upstream v2.0.1
+lacks). `scripts/rebuild_phoible_inventory.py --check` passes against the
+pinned table. Neither state is compared in a point distance, so **no distance
+moved**: every distance fixture is unchanged, and only `phoible_features.tsv`
+was regenerated. What changes is the feature labels (`anterior=0`,
+`anterior=?`) and the vector, where `?` is now `NaN` rather than `0`. The
+P-base tables keep `.`, `n`, `o` and `x`: the meaning of their codes is not
+recorded, so they are not split (`docs/abstract-segments.md`, Open).
+
 ### Feature vectors carry every dimension the scorer reads
 
 **Breaking (vector width and columns):** `feature_vector` used to drop

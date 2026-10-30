@@ -34,6 +34,7 @@
 #include "resolver.h"
 #include "strings.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -229,10 +230,19 @@ static void mk_vector_fill(
         for (i = 0; i < builtin->geometry_map_count; i++) {
             char state = mk_vector_valued_state(view, builtin->geometry_map[i].feature);
 
-            /* '+' and '-' are the only states that assert anything. The P-base
-             * tables also write 'n', 'o' and 'x', and PHOIBLE writes '.', all of
-             * which say the cell has no value rather than a negative one. */
-            values[i] = state == '+' ? 1.0 : (state == '-' ? -1.0 : 0.0);
+            /* '+' and '-' assert a value. '?' says the value is unknown, which
+             * is not "does not apply", so it is NaN rather than 0. '0' (does not
+             * apply), the P-base 'n', 'o' and 'x', and '.' (a table that does
+             * not say which) are 0. */
+            if (state == '+') {
+                values[i] = 1.0;
+            } else if (state == '-') {
+                values[i] = -1.0;
+            } else if (state == '?') {
+                values[i] = NAN;
+            } else {
+                values[i] = 0.0;
+            }
         }
         return;
     }

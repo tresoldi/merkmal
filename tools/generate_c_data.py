@@ -585,13 +585,13 @@ def load_valued(name: str, geometry: dict[str, object]) -> tuple[str, list[tuple
         values: dict[str, str] = {}
         for index, feature in enumerate(feature_names):
             raw_value = row[index + 1].strip().strip('"') if index + 1 < len(row) else "."
-            values[feature] = raw_value if raw_value in {"+", "-", "n", ".", "o", "x"} else "."
+            values[feature] = raw_value if raw_value in {"+", "-", "0", "?", "n", ".", "o", "x"} else "."
         existing = table.get(grapheme)
         if existing is None:
             table[grapheme] = values
         elif existing != values:
             table[grapheme] = {
-                key: existing[key] if existing[key] == values[key] else "."
+                key: existing[key] if existing[key] == values[key] else "?"
                 for key in existing
             }
 

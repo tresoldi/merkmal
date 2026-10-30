@@ -177,7 +177,8 @@ numbers mean what the rest of the ecosystem means by them:
 | ---: | --- |
 | `+1` | the feature is present |
 | `-1` | it applies to this kind of segment and is absent |
-| `0` | it does not apply, or the source does not say |
+| `0` | it does not apply (or, in a table that does not distinguish the two, the source does not say) |
+| `NaN` | a valued system's `?`: the value is not known here (PHOIBLE since model 2.0.0) |
 
 That last row is why this is worth having in the library rather than in each
 caller: a valued system writes `anterior=.` for "no value" and `anterior=-` for
