@@ -326,6 +326,49 @@ class AbstractSegment:
         segment.text = _native.bundle_parse(grapheme, system=segment.system, from_grapheme=True)
         return segment
 
+    @classmethod
+    def covering(cls, graphemes: list[str], *, system: str | None = None) -> AbstractSegment:
+        """The smallest bundle whose completions include every grapheme given.
+
+        Per column, the union of the graphemes' values. A node group whose
+        members carry several labels at once cannot be written as alternatives
+        of single labels, so it becomes `?`. Graphemes the system cannot make a
+        bundle of (unknown, clusters, tones) raise.
+        """
+        if not graphemes:
+            raise ValueError("covering: no graphemes")
+        system = system or "distinctive"
+        values = dict(cls.columns(system=system))
+        members = [cls.from_grapheme(g, system=system).cells for g in graphemes]
+        cells: dict[str, str] = {}
+        for column, domain in values.items():
+            applies: set[str] = set()
+            na = unknown = multi = False
+            for member in members:
+                for part in member[column].split("|"):
+                    if part == "0":
+                        na = True
+                    elif part in ("?", "*"):
+                        unknown = True
+                        na = na or part == "*"
+                    elif ".." in part:
+                        lo, hi = part.split("..")
+                        applies.update(domain[domain.index(lo) : domain.index(hi) + 1])
+                    elif "&" in part:
+                        multi = True
+                    else:
+                        applies.add(part)
+            if unknown or multi:
+                cell = "?"
+            elif applies:
+                cell = "|".join(v for v in domain if v in applies)
+            else:
+                cell = ""
+            if na:
+                cell = f"{cell}|0" if cell else "0"
+            cells[column] = cell
+        return cls(";".join(f"{k}={v}" for k, v in cells.items()), system=system)
+
     @staticmethod
     def columns(*, system: str | None = None) -> list[tuple[str, list[str]]]:
         """Column names and the values each can take, in order."""

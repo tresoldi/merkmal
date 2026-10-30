@@ -831,6 +831,15 @@ def test_abstract_segment_laryngeal() -> None:
     assert merkmal.AbstractSegment(h.text, system="descriptive") == h
 
 
+def test_abstract_segment_covering() -> None:
+    """The covering bundle is compatible with every member and nothing it excludes."""
+    members = ["ħ", "ʕ", "h"]
+    cover = merkmal.AbstractSegment.covering(members, system="descriptive")
+    assert all(cover.compatible(g) for g in members)
+    assert not cover.compatible("a") and not cover.compatible("k")
+    assert merkmal.AbstractSegment.covering(["p"], system="phoible") == merkmal.AbstractSegment.from_grapheme("p", system="phoible")
+
+
 def test_abstract_segment_errors() -> None:
     blank = merkmal.AbstractSegment(system="distinctive")
     assert set(blank.cells.values()) == {"*"}
