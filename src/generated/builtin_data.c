@@ -6490,6 +6490,18 @@ const mk_decomposition mki_default_decompositions[] = {
 const size_t mki_default_decomposition_count =
     sizeof(mki_default_decompositions) / sizeof(mki_default_decompositions[0]);
 
+const mk_place_class mki_default_place_classes[] = {
+    {.place = "alveolar", .anterior = "anterior", .distributed = "non-distributed"},
+    {.place = "alveolo-palatal", .anterior = "non-anterior", .distributed = "distributed"},
+    {.place = "dental", .anterior = "anterior", .distributed = "distributed"},
+    {.place = "linguolabial", .anterior = "anterior", .distributed = "distributed"},
+    {.place = "post-alveolar", .anterior = "non-anterior", .distributed = "distributed"},
+    {.place = "retroflex", .anterior = "non-anterior", .distributed = "non-distributed"},
+};
+
+const size_t mki_default_place_class_count =
+    sizeof(mki_default_place_classes) / sizeof(mki_default_place_classes[0]);
+
 static const unsigned int descriptive_entry_graphemes[] = {
     4475, 4477, 4485, 4487, 4490, 4494, 4498, 4500, 4505, 4509, 4511, 4514, 4519, 4526, 4535, 4544,
     4553, 4560, 4569, 4578, 4587, 4594, 4603, 4612, 4621, 4632, 4641, 4648, 4657, 4668, 4679, 4690,

@@ -1190,3 +1190,42 @@ def test_precomposed_rhotic_vowels_read_as_their_diacritic_spelling(system: str)
         )
     # The tokenizer reports what the caller wrote.
     assert merkmal.segment_ipa("bɝd") == ["b", "ɝ", "d"]
+
+
+@pytest.mark.parametrize("system", ["descriptive", "distinctive"])
+def test_a_place_diacritic_replaces_the_base_place(system: str) -> None:
+    # Diacritic synthesis was purely additive, so `n` + dental U+032A sat at two
+    # points of the coronal scale and was refused. `n̪` read only because it is
+    # an inventory row; stacks the inventory does not list failed.
+    for token in ("ɹ̪", "d̪̤", "n̪̊", "n̪̊ʰ", "t̪ʲʰ", "t̪ˠʰ", "ɾ̪"):
+        features = merkmal.get_features(token, system=system)
+        assert "dental" in features, token
+        assert "alveolar" not in features, token
+        assert {"anterior", "distributed"} <= features, token
+        assert "non-distributed" not in features, token
+
+    # Synthesis must agree with the inventory wherever both can answer. Ring
+    # above and ring below are the same diacritic, and no row spells dental
+    # plus ring above, so each such spelling of a row goes through synthesis.
+    inventory = Path(__file__).resolve().parents[2] / "models" / system / "inventory.tsv"
+    checked = 0
+    for line in inventory.read_text(encoding="utf-8").splitlines()[1:]:
+        row = line.partition("\t")[0]
+        if "̪̥" not in row:
+            continue
+        respelled = row.replace("̪̥", "̪̊")
+        assert merkmal.get_features(respelled, system=system) == merkmal.get_features(
+            row, system=system
+        ), row
+        checked += 1
+    assert checked >= 5
+
+    # A base with no coronal place keeps the additive reading: p̪ is labiodental.
+    assert "labio-dental" in merkmal.get_features("p̪", system=system)
+
+
+@pytest.mark.parametrize("token", ["s̪̩̯", "ts̪̻̺", "a̟̠", "e̝̞", "ɔ̹̜", "e̘̙"])
+def test_contradictory_diacritics_are_refused(token: str) -> None:
+    # Opposite values of one property are a contradiction, not a combination.
+    # They used to resolve and score 0.0 against the segment with either mark.
+    assert not merkmal.is_segment(token, system="distinctive")

@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+### A place diacritic moves the segment, and contradictory marks are refused
+
+Diacritic synthesis in the categorical systems was purely additive. That is
+right for `ʰ` and wrong for a place: `n` is alveolar, so `n` plus dental U+032A
+sat at two points of the coronal scale and the ordinal guard refused it as a
+parse error. `n̪` read only because it is an inventory row, so every stack the
+inventory does not list failed in `descriptive` and `distinctive` while the
+valued systems read it: `n̪̊`, `n̪̊ʰ`, `t̪ʲʰ`, `t̪ˠʰ`, `d̪̤`, `ɹ̪`, `ɾ̪`, `ʃ̪`.
+
+A place diacritic now replaces the base's level on the same scale, and the
+`anterior`/`distributed` labels are re-derived from the new place using a table
+the generator emits from the same sets it derives inventory rows with, so the
+two derivations cannot drift. Where both can answer they agree: every row
+spelled with dental plus ring below gives identical features when respelled
+with ring above, which only synthesis can read. A base with no coronal place
+keeps the old reading, so `p̪` is still labiodental. Ten more Lexibank segment
+types read.
+
+Diacritics asserting opposite values of one property — syllabic and
+non-syllabic, apical and laminal, advanced and retracted, raised and lowered,
+more and less rounded, ATR and RTR — are refused, as a breve plus a length mark
+already was. They used to resolve and score 0.0 against either mark alone.
+
+### Every zero in the contrast baseline has a reason
+
+The baseline carried 56 categorical pairs as `UNDECLARED`. All were one base
+with the same diacritics reordered or repeated (`t̪ʷʰ`~`t̪ʰʷ`, `t̪ʰ`~`t̪ʰʰ`). The
+audit now recognises that class as `modifier-equivalent`, keeping marks before
+the base apart from marks after it and counting length marks rather than
+collecting them, so `ʰt`~`tʰ` and `aː`~`aːː` are never matched. The baseline has
+no `UNDECLARED` row left.
+
 ### `ʏ` can be part of a diphthong, and `ɚ`/`ɝ` read (#2)
 
 German `ɔʏ`, `ɔʏ̯` (*Freude*, *heute*) and `ʏɐ` (*Gürtel*) were unknown while

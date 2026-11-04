@@ -999,6 +999,42 @@ def emit_decompositions(diacritics: dict[str, object]) -> str:
     return "\n".join(lines)
 
 
+def emit_place_classes() -> str:
+    """The coronal class features each place implies, for runtime synthesis.
+
+    The generator derives `anterior` and `distributed` from place when it builds
+    an inventory row. A place diacritic applied at lookup time -- `ɹ̪`, `n̪̊` --
+    moves the segment to another place, and the derived labels have to move with
+    it, or the result would be dental and `non-distributed` at once. Emitting
+    the generator's own sets keeps the two derivations from drifting apart.
+    """
+    places = sorted(ANTERIOR_PLACES | NON_ANTERIOR_PLACES)
+    lines = ["const mk_place_class mki_default_place_classes[] = {"]
+    for place in places:
+        anterior = "anterior" if place in ANTERIOR_PLACES else "non-anterior"
+        if place in DISTRIBUTED_PLACES:
+            distributed = "distributed"
+        elif place in NON_DISTRIBUTED_PLACES:
+            distributed = "non-distributed"
+        else:
+            raise SystemExit(f"place {place!r} has no distributed value")
+        lines.append(
+            "    " + c_struct("mk_place_class", {
+                "place": c_string(place),
+                "anterior": c_string(anterior),
+                "distributed": c_string(distributed),
+            }) + ","
+        )
+    lines.append("};")
+    lines.append("")
+    lines.append(
+        "const size_t mki_default_place_class_count =\n"
+        "    sizeof(mki_default_place_classes) / sizeof(mki_default_place_classes[0]);"
+    )
+    lines.append("")
+    return "\n".join(lines)
+
+
 def emit_metadata_features(geometry: dict[str, object]) -> str:
     """Labels a model may carry that deliberately do not score.
 
@@ -1237,6 +1273,7 @@ def generate(output: Path) -> None:
     chunks.append(emit_cluster_policy(geometry))
     chunks.append(emit_diacritics(diacritics))
     chunks.append(emit_decompositions(diacritics))
+    chunks.append(emit_place_classes())
     chunks.extend(system_chunks)
 
     chunks.append("const mk_builtin_system mki_builtin_systems[] = {")

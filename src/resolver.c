@@ -1102,6 +1102,142 @@ static int mk_admits_synthesized_clusters(const mk_system *system)
         system->builtin->kind == MK_SYSTEM_CATEGORICAL;
 }
 
+/* Diacritics that assert opposite values of one property. A segment carrying
+ * both is a contradiction, not a combination: `s̪̩̯` is syllabic and
+ * non-syllabic, `ts̪̻̺` apical and laminal. Without this the scorer saw the two
+ * labels cancel or overlap and returned 0.0 against the segment with either
+ * mark alone, which the contrast audit recorded as a collapse. Refused the way
+ * a breve plus a length mark is. Inventory rows are looked up before synthesis,
+ * so no row is affected. */
+static const char *const mk_contradictory_modifiers[][2] = {
+    { "syllabic", "non-syllabic" },
+    { "apical", "laminal" },
+    { "advanced", "retracted" },
+    { "raised", "lowered" },
+    { "more-rounded", "less-rounded" },
+    { "advanced-tongue-root", "retracted-tongue-root" }
+};
+
+static int mk_modifiers_contradict(const char *const *features, size_t count)
+{
+    size_t i;
+
+    for (i = 0; i < sizeof(mk_contradictory_modifiers) / sizeof(mk_contradictory_modifiers[0]); i++) {
+        if (mki_features_contain(features, count, mk_contradictory_modifiers[i][0]) &&
+            mki_features_contain(features, count, mk_contradictory_modifiers[i][1])) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Removes one owned label, keeping the order of the rest. */
+static void mk_remove_owned_feature(char **items, size_t *count, const char *feature)
+{
+    size_t i;
+
+    for (i = 0; i < *count; i++) {
+        if (mki_streq(items[i], feature)) {
+            free(items[i]);
+            memmove(&items[i], &items[i + 1], (*count - i - 1) * sizeof(*items));
+            (*count)--;
+            return;
+        }
+    }
+}
+
+static const mk_place_class *mk_find_place_class(const char *place)
+{
+    size_t i;
+
+    for (i = 0; i < mki_default_place_class_count; i++) {
+        if (mki_streq(mki_default_place_classes[i].place, place)) {
+            return &mki_default_place_classes[i];
+        }
+    }
+    return NULL;
+}
+
+/* Applies a categorical modifier that names a place, such as dental U+032A.
+ *
+ * Diacritic synthesis is otherwise additive, which is right for "aspirated" and
+ * wrong for a place: `n` is alveolar, and adding "dental" to it put the segment
+ * at two points of the coronal scale, which the ordinal guard then refused as a
+ * parse error. So `n̪` read only because it happens to be an inventory row, and
+ * every stack the inventory does not list -- `n̪̊`, `t̪ʲʰ`, `ɹ̪`, `d̪̤`, `ɾ̪` --
+ * failed in the categorical systems while the valued ones read it.
+ *
+ * A place diacritic restates where the segment is made, so it replaces the
+ * base's level on the same scale. The coronal class labels the generator
+ * derived from the old place are re-derived from the new one, but only when the
+ * base carried them: a system that does not use them is not given them. A base
+ * with no level on that scale (`p̪`) keeps the additive behaviour. */
+static mk_status mk_apply_place_modifier(
+    char ***features,
+    size_t *count,
+    size_t *cap,
+    const char *modifier,
+    int *applied
+)
+{
+    const mk_place_class *target = mk_find_place_class(modifier);
+    int had_anterior;
+    int had_distributed;
+    size_t i;
+    size_t j;
+    int replaced = 0;
+    mk_status status;
+
+    *applied = 0;
+    if (target == NULL) {
+        return MK_OK;
+    }
+    for (i = 0; i < mki_clements_hume_ordinal_scale_count; i++) {
+        const mk_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
+        int on_scale = 0;
+
+        for (j = 0; j < scale->level_count; j++) {
+            if (mki_streq(scale->levels[j], modifier)) {
+                on_scale = 1;
+            }
+        }
+        if (!on_scale) {
+            continue;
+        }
+        for (j = 0; j < scale->level_count; j++) {
+            if (!mki_streq(scale->levels[j], modifier) &&
+                mk_feature_list_contains(
+                    (const char *const *)*features, *count, scale->levels[j])) {
+                mk_remove_owned_feature(*features, count, scale->levels[j]);
+                replaced = 1;
+            }
+        }
+    }
+    if (!replaced) {
+        return MK_OK;
+    }
+
+    had_anterior =
+        mk_feature_list_contains((const char *const *)*features, *count, "anterior") ||
+        mk_feature_list_contains((const char *const *)*features, *count, "non-anterior");
+    had_distributed =
+        mk_feature_list_contains((const char *const *)*features, *count, "distributed") ||
+        mk_feature_list_contains((const char *const *)*features, *count, "non-distributed");
+    mk_remove_owned_feature(*features, count, "anterior");
+    mk_remove_owned_feature(*features, count, "non-anterior");
+    mk_remove_owned_feature(*features, count, "distributed");
+    mk_remove_owned_feature(*features, count, "non-distributed");
+    status = mk_add_owned_feature(features, count, cap, modifier);
+    if (status == MK_OK && had_anterior) {
+        status = mk_add_owned_feature(features, count, cap, target->anterior);
+    }
+    if (status == MK_OK && had_distributed) {
+        status = mk_add_owned_feature(features, count, cap, target->distributed);
+    }
+    *applied = 1;
+    return status;
+}
+
 static mk_status mk_synthesize_from_diacritics(
     const mk_system *system,
     const char *normalized,
@@ -2102,7 +2238,13 @@ static mk_status mk_synthesize_from_diacritics(
         }
     } else {
         for (i = 0; i < modifier_count; i++) {
-            status = mk_add_owned_feature(&features, &count, &cap, modifiers[i]);
+            int applied = 0;
+
+            status = mk_apply_place_modifier(
+                &features, &count, &cap, modifiers[i], &applied);
+            if (status == MK_OK && !applied) {
+                status = mk_add_owned_feature(&features, &count, &cap, modifiers[i]);
+            }
             if (status != MK_OK) {
                 goto finish;
             }
@@ -2123,7 +2265,8 @@ static mk_status mk_synthesize_from_diacritics(
     /* A breve plus a length mark asserts both `ultra-short` and `long`. Nothing
      * downstream can act on a segment that is at two points of one scale, and
      * silently keeping whichever came first would be arbitrary. */
-    if (mki_ordinal_conflict((const char *const *)features, count, NULL, NULL, NULL)) {
+    if (mki_ordinal_conflict((const char *const *)features, count, NULL, NULL, NULL) ||
+        mk_modifiers_contradict((const char *const *)features, count)) {
         status = MK_ERR_PARSE;
         goto finish;
     }

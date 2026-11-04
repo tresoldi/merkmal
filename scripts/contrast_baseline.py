@@ -40,6 +40,7 @@ import argparse
 import csv
 import itertools
 import json
+import unicodedata
 from pathlib import Path
 
 import merkmal
@@ -163,6 +164,51 @@ def spelling_equivalent(a: str, b: str) -> bool:
     """Whether two graphemes are the same tone written differently."""
     contour_a = chao_contour(a)
     return contour_a is not None and contour_a == chao_contour(b)
+
+
+# Spellings of one mark. Ring above is the IPA's ring below for letters with a
+# descender; the apostrophe is a common stand-in for the ejective mark.
+MARK_EQUIVALENTS = {"\u030a": "\u0325", "\u2019": "\u02bc", "'": "\u02bc"}
+
+
+def _is_mark(char: str) -> bool:
+    return unicodedata.category(char) in {"Mn", "Lm", "Sk"} or char in MARK_EQUIVALENTS
+
+
+def _marks(token: str) -> tuple[frozenset[str], str, frozenset[str], int] | None:
+    """(prefix marks, base letters, suffix marks, length marks), or None."""
+    chars = unicodedata.normalize("NFD", token)
+    start = 0
+    while start < len(chars) and _is_mark(chars[start]):
+        start += 1
+    end = len(chars)
+    base_chars: list[str] = []
+    suffix: set[str] = set()
+    for index in range(start, end):
+        char = chars[index]
+        if _is_mark(char):
+            suffix.add(MARK_EQUIVALENTS.get(char, char))
+        elif suffix:
+            return None  # a letter after a mark: not one base with marks
+        else:
+            base_chars.append(char)
+    if not base_chars:
+        return None
+    prefix = frozenset(MARK_EQUIVALENTS.get(c, c) for c in chars[:start])
+    return prefix, "".join(base_chars), frozenset(suffix - {"\u02d0"}), chars.count("\u02d0")
+
+
+def modifier_equivalent(a: str, b: str) -> bool:
+    """Whether two graphemes are one base with the same diacritics, reordered or repeated.
+
+    `t̪ʷʰ` and `t̪ʰʷ`, or `t̪ʰ` and `t̪ʰʰ`, write the same set of marks on the same
+    base. Diacritic order carries no contrast in IPA and a repeated mark adds
+    nothing. Length marks are counted rather than collected, because `ːː` is
+    overlong and not a repeated `ː`; marks before the base are kept apart from
+    marks after it, because `ʰt` is pre-aspirated and `tʰ` is aspirated.
+    """
+    marks_a, marks_b = _marks(a), _marks(b)
+    return marks_a is not None and marks_a == marks_b
 
 
 def composed_forms(system: str, bases: list[str]) -> list[str]:
@@ -390,8 +436,15 @@ def main() -> int:
         if system in CATEGORICAL:
             for a, b in found:
                 key = (system, "pair", a, b)
-                if key in baseline:
+                if key in baseline and baseline[key][1] != "UNDECLARED":
                     _, status, reason = baseline[key]
+                elif modifier_equivalent(a, b):
+                    status = "modifier-equivalent"
+                    reason = (
+                        "one base with the same diacritics, written in another "
+                        "order or with a mark repeated; diacritic order carries "
+                        "no contrast in IPA and a repeated mark adds nothing"
+                    )
                 elif spelling_equivalent(a, b):
                     # The same tone written differently. Chao's notation is
                     # redundant by design -- a level tone may be one, two or
