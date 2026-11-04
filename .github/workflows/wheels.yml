@@ -8,6 +8,10 @@ name: Wheels
 # who need a build without PHOIBLE and P-base compile it themselves with
 # MERKMAL_DATA_PROFILE=cc-by; see docs/distribution.md.
 #
+# Each runner builds its native architecture only: x86_64 and aarch64 Linux
+# (manylinux and musllinux) and arm64 macOS. Intel macOS has no current runner
+# image; those users build from the sdist, which needs no system library.
+#
 # Publishing uses PyPI trusted publishing: before the first tag, create the
 # environment `pypi` here and a trusted publisher for this workflow on PyPI.
 
@@ -23,13 +27,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-14, macos-13]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-14]
     steps:
       - uses: actions/checkout@v4
-      - uses: pypa/cibuildwheel@v2.21.3
+      - uses: pypa/cibuildwheel@v4.3.5
         env:
           CIBW_BUILD: "cp312-*"
-          CIBW_SKIP: "*-musllinux_i686"
+          CIBW_ARCHS: native
           CIBW_TEST_REQUIRES: pytest
           CIBW_TEST_COMMAND: python -m pytest {project}/python/tests -q
       - uses: actions/upload-artifact@v4
