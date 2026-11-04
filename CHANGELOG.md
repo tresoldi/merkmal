@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.0 (unreleased)
+## 0.9.0 (2026-11-04)
 
 The first release of the C core and the native Python wrapper. Everything
 from here down to 0.6.0 belongs to it; 0.6.0 and earlier were the retired
