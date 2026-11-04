@@ -56,10 +56,11 @@ this session did not have.
    project, with the environments `pypi-full` and `pypi-cc-by` that
    `wheels.yml` names. Still open for 1.0: a valued system under permissive
    terms, so `merkmal-cc-by` users have one too (see §3).
-3. **Rebuild the web demo (owner, needs emcc).** `web/merkmal.wasm` was built
-   from `cc02289`, before this work and much else. Run `web/build-wasm.sh`,
-   commit, and let `pages.yml` deploy. `tests/wasm/run_node_smoke.sh` should
-   pass first; neither could run here.
+3. **Web demo — rebuilt** from `2db12b6` with emcc 6.0.13; the node smoke
+   test passes and the page loads cleanly. It goes live when the branch
+   reaches `master` (`pages.yml` deploys on changes under `web/`). Rebuild
+   with `source <emsdk>/emsdk_env.sh && ./web/build-wasm.sh` after any later
+   change under `src/` or `include/`.
 4. **Provenance gap — done.** PHOIBLE's retrieval date is recorded as
    2026-08-01, on the maintainer's word, and the manifest says so.
 5. **`BRANCH_LOCAL_ONLY.md` — decided.** The review being public is fine;
