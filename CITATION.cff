@@ -9,6 +9,7 @@ authors:
     given-names: Tiago
     affiliation: Uppsala University
 version: 0.9.0
+date-released: "2026-11-04"
 repository-code: "https://github.com/tresoldi/merkmal"
 license:
   - MIT
