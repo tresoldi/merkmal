@@ -1239,3 +1239,22 @@ def test_contradictory_diacritics_are_refused(token: str) -> None:
     # Opposite values of one property are a contradiction, not a combination.
     # They used to resolve and score 0.0 against the segment with either mark.
     assert not merkmal.is_segment(token, system="distinctive")
+
+
+@pytest.mark.parametrize("system", ["descriptive", "distinctive"])
+def test_a_tie_bar_reaches_the_complex_segment_synthesizer(system: str) -> None:
+    # The inventory lookup stripped tie bars and the synthesizer did not, so
+    # `tʂ` read and `t͡ʂ` did not.
+    for tied in ("t͡ʂ", "d͡ʐ", "k͡p", "ɡ͡b", "t͡ʂʰ"):
+        untied = tied.replace("͡", "")
+        assert merkmal.get_features(tied, system=system) == merkmal.get_features(
+            untied, system=system
+        ), tied
+
+
+@pytest.mark.parametrize(
+    ("written", "canonical"),
+    [("aˁ", "aˤ"), ("xˁ", "xˤ"), ("aːˁ", "aːˤ"), ("ε", "ɛ"), ("εː", "ɛː")],
+)
+def test_lookalike_spellings_read_as_the_ipa_letter(written: str, canonical: str) -> None:
+    assert merkmal.get_features(written) == merkmal.get_features(canonical)

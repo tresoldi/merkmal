@@ -2022,7 +2022,35 @@ finish:
     return status;
 }
 
+static mk_status mk_synthesize_untied_complex(
+    const mk_system *system,
+    const char *normalized,
+    mk_resolution *out
+);
+
+/* A tie bar asserts one segment, which is what this synthesizer builds, so it
+ * matches the spelling with the ties removed. The inventory lookup already
+ * did that for rows; the synthesizer did not, so `tʂ` read and `t͡ʂ` did not.
+ * The cluster grammars never see the tie-stripped form: a tie bar must not be
+ * read as licensing a two-segment cluster. */
 static mk_status mk_synthesize_descriptive_complex(
+    const mk_system *system,
+    const char *normalized,
+    mk_resolution *out
+)
+{
+    char *untied = mk_remove_tie_bars(normalized);
+    mk_status status;
+
+    if (untied == NULL) {
+        return MK_ERR_OOM;
+    }
+    status = mk_synthesize_untied_complex(system, untied, out);
+    free(untied);
+    return status;
+}
+
+static mk_status mk_synthesize_untied_complex(
     const mk_system *system,
     const char *normalized,
     mk_resolution *out

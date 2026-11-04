@@ -6,6 +6,23 @@ The first release of the C core and the native Python wrapper. Everything
 from here down to 0.6.0 belongs to it; 0.6.0 and earlier were the retired
 pure-Python and Go implementation.
 
+### Tie-barred complex segments, `ˁ` and `ε`
+
+- `t͡ʂ`, `d͡ʐ`, `t͡ʂʰ` and the other tie-barred spellings of segments the library
+  synthesizes rather than lists now read. The inventory lookup stripped tie
+  bars and the complex-segment synthesizer did not, so `tʂ` read and `t͡ʂ` did
+  not. The cluster grammars still never see a tie-stripped form, because a tie
+  bar asserts one segment.
+- `ˁ` (U+02C1), the pharyngealization mark of Semitist and Arabic-dialect
+  transcription, reads as `ˤ` (U+02E4); Greek `ε` reads as `ɛ`, as `ǝ` already
+  read as `ə`.
+
+Together with the changes above, `descriptive` and `distinctive` read 7,059 of
+Lexibank's 7,396 segment types, up from 7,027, and the coverage floors are
+raised to hold the gain. Of what remains unread, most is the sources' own CLDF
+and CLTS markup: in `williamsonbenuecongo`, the one dataset under 90% token
+coverage, every one of the top unread tokens is `<?>` or `<<…>>`.
+
 ### A place diacritic moves the segment, and contradictory marks are refused
 
 Diacritic synthesis in the categorical systems was purely additive. That is

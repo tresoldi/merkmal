@@ -2,12 +2,12 @@
   "note": "Floors recorded from a deliberate regeneration. bench_coverage.py --check fails below them. Raise them when coverage improves so the gain cannot be silently lost; lowering one is an argued change.",
   "systems": {
     "descriptive": {
-      "types_pct": 94.7,
-      "tokens_pct": 99.71
+      "types_pct": 95.44,
+      "tokens_pct": 99.72
     },
     "distinctive": {
-      "types_pct": 94.7,
-      "tokens_pct": 99.71
+      "types_pct": 95.44,
+      "tokens_pct": 99.72
     },
     "pbase-hc": {
       "types_pct": 73.82,

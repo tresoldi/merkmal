@@ -93,7 +93,14 @@ static const mk_decomposition mk_source_conventions[] = {
      * PHOIBLE carries "ɚ" as a row of its own, and the inventory-first lookup
      * keeps it so. */
     { "ɚ", "ə˞" },
-    { "ɝ", "ɜ˞" }
+    { "ɝ", "ɜ˞" },
+    /* U+02C1 MODIFIER LETTER REVERSED GLOTTAL STOP is how Semitist and much
+     * Arabic-dialect literature writes pharyngealization; the IPA letter is
+     * U+02E4, which every bundled system reads. */
+    { "ˁ", "ˤ" },
+    /* U+03B5 GREEK SMALL LETTER EPSILON, a lookalike reached for in place of
+     * U+025B, as U+01DD is for schwa. */
+    { "ε", "ɛ" }
 };
 
 /* Decompose a token using the compiled table.
