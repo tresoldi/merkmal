@@ -326,7 +326,7 @@ jobs:
       # start. The Python wrapper job does not need this: it builds with
       # isolation, where pip provides the backend itself.
       - name: Install the build backend
-        run: python -m pip install "setuptools>=61.0" wheel
+        run: python -m pip install "setuptools>=77" "packaging>=24.2" wheel
       - name: Build the extension with AddressSanitizer
         run: MERKMAL_SANITIZE=address python -m pip install -e ".[dev]" --no-build-isolation
       - name: Test
