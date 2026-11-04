@@ -89,7 +89,14 @@ static const mk_decomposition mk_source_conventions[] = {
      * system actually has. `ɫ` resolves for the categorical systems, which lack
      * it, and stays its own segment in PHOIBLE, which has it. */
     { "ɫ", "lˠ" },
-    { "ǝ", "ə" }
+    { "ǝ", "ə" },
+    /* U+025A and U+025D are the IPA's precomposed rhotacized central vowels,
+     * the usual spelling of American English "butter" and "bird". CLTS v1.4.1
+     * names them as it names "ə˞" and "ɜ˞", which every bundled system reads.
+     * PHOIBLE carries "ɚ" as a row of its own, and the inventory-first lookup
+     * keeps it so. */
+    { "ɚ", "ə˞" },
+    { "ɝ", "ɜ˞" }
 };
 
 /* Decompose a token using the compiled table.

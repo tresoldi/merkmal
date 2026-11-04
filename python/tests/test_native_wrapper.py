@@ -1141,3 +1141,52 @@ def test_have_utf8proc_reports_the_build():
     # agree with what normalize() actually does on a precomposed letter.
     if merkmal.HAVE_UTF8PROC:
         assert merkmal.normalize("ḛ") == "ḛ"
+
+
+def _one_letter_vowels(system: str) -> list[str]:
+    """Every vowel the system's inventory spells with a single code point."""
+    inventory = Path(__file__).resolve().parents[2] / "models" / system / "inventory.tsv"
+    vowels = []
+    for line in inventory.read_text(encoding="utf-8").splitlines()[1:]:
+        grapheme, _, name = line.partition("\t")
+        if len(grapheme) == 1 and name.endswith(" vowel"):
+            vowels.append(grapheme)
+    return vowels
+
+
+@pytest.mark.parametrize("system", ["descriptive", "distinctive"])
+def test_every_vowel_letter_can_be_part_of_a_vowel_cluster(system: str) -> None:
+    # Issue #2: German ɔʏ̯ and ʏɐ were unknown while ɔɪ̯ and ɪɐ read, because
+    # ʏ was missing from the list of letters that may open a vowel component.
+    # The defect is a class, not three graphemes, so test the class: any
+    # one-letter vowel the inventory has must work as either element of a
+    # two-vowel cluster and as a non-syllabic offglide.
+    vowels = _one_letter_vowels(system)
+    assert {"ʏ", "ʮ", "ʯ", "ɿ", "ʅ"} <= set(vowels)
+    missing = [
+        token
+        for first in vowels
+        for second in vowels
+        for token in (first + second, first + second + "̯")
+        if not merkmal.is_segment(token, system=system)
+    ]
+    assert missing == []
+
+
+def test_german_front_rounded_diphthongs() -> None:
+    for token in ("ɔʏ", "ɔʏ̯", "ʏɐ"):
+        assert merkmal.is_segment(token), token
+        assert "diphthong" in merkmal.get_features(token), token
+    # A closing diphthong with a rounded offglide sits next to its unrounded twin.
+    assert merkmal.distance("ɔʏ̯", "ɔɪ̯") < merkmal.distance("ɔʏ̯", "aɪ̯")
+
+
+@pytest.mark.parametrize("system", merkmal.list_systems())
+def test_precomposed_rhotic_vowels_read_as_their_diacritic_spelling(system: str) -> None:
+    for letter, spelled in (("ɚ", "ə˞"), ("ɝ", "ɜ˞")):
+        assert merkmal.is_segment(letter, system=system), letter
+        assert merkmal.get_features(letter, system=system) == merkmal.get_features(
+            spelled, system=system
+        )
+    # The tokenizer reports what the caller wrote.
+    assert merkmal.segment_ipa("bɝd") == ["b", "ɝ", "d"]

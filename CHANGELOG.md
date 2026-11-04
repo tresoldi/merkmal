@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### `ʏ` can be part of a diphthong, and `ɚ`/`ɝ` read (#2)
+
+German `ɔʏ`, `ɔʏ̯` (*Freude*, *heute*) and `ʏɐ` (*Gürtel*) were unknown while
+`ɔɪ̯` and `ɪɐ` read. The cause was not the inventory but the list of letters
+allowed to open a vowel component: it named 29 vowel letters and missed `ʏ`,
+along with the Sinological apical vowels `ʮ` and `ʯ`, whose siblings `ɿ` and
+`ʅ` were listed. Every one-letter vowel in the categorical inventories is now
+tested as either element of a two-vowel cluster and as a non-syllabic offglide,
+so the next missing letter fails the suite rather than a user's corpus.
+
+`ɚ` and `ɝ` (U+025A, U+025D), the IPA's precomposed rhotacized central vowels,
+are read as `ə˞` and `ɜ˞` by every system. PHOIBLE's own `ɚ` row is untouched:
+the inventory is consulted before the conventions are.
+
 ### `merkmal.HAVE_UTF8PROC` tells the two builds apart
 
 A build without libutf8proc falls back to built-in normalization, which can
