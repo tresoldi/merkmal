@@ -73,8 +73,8 @@ jobs:
 
   c-cc-by:
     name: C build, cc-by data profile
-    # The profile merkmal-cc-by ships: descriptive and distinctive only. The
-    # tests skip the systems it does not carry, and only in this profile.
+    # The cc-by build profile: descriptive and distinctive only. The tests
+    # skip the systems it does not carry, and only in this profile.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -94,30 +94,24 @@ jobs:
         run: ctest --test-dir build/c-cc-by --output-on-failure
 
   python-cc-by:
-    name: Python distribution merkmal-cc-by
+    name: Python extension, cc-by data profile
+    # merkmal is published as one package, the full build. This checks the
+    # documented way to build it without the PHOIBLE and P-base tables.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Prepare the cc-by source tree
-        run: python scripts/prepare_distribution.py cc-by
-      - name: Build
-        run: python -m pip install build && python -m build --sdist --wheel
-      - name: No share-alike or non-commercial table in the artifacts
-        # Checked explicitly: under `set -e` a command negated with `!` cannot
-        # fail the step.
+      - name: Build and install with the cc-by profile
+        run: MERKMAL_DATA_PROFILE=cc-by python -m pip install . pytest
+      - name: The compiled extension carries only the cc-by systems
         run: |
-          if tar tzf dist/*.tar.gz | grep -E "/models/(pbase-|phoible)"; then
-            echo "the sdist carries an excluded model" >&2; exit 1
-          fi
-          if tar xzOf dist/*.tar.gz --wildcards "*/src/generated/builtin_data.c" |
-              grep -E '\.name = "(pbase-|phoible)'; then
-            echo "the sdist's table carries an excluded system" >&2; exit 1
-          fi
-          python -m pip install dist/*.whl pytest
           python -c "import merkmal; assert merkmal.DATA_PROFILE == 'cc-by'; assert merkmal.list_systems() == ['descriptive', 'distinctive']"
+          native=$(python -c "import merkmal._native as n; print(n.__file__)")
+          if strings "$native" | grep -E "^(pbase-(hc|jfh|spe|uftc)|phoible)$"; then
+            echo "the cc-by extension carries an excluded system" >&2; exit 1
+          fi
       - name: Test
         run: python -m pytest python/tests -q
 
