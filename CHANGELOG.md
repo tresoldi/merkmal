@@ -6,21 +6,20 @@ The first release of the C core and the native Python wrapper. Everything
 from here down to 0.6.0 belongs to it; 0.6.0 and earlier were the retired
 pure-Python and Go implementation.
 
-### A distribution without the share-alike and non-commercial tables
+### A build without the share-alike and non-commercial tables
 
 `pip install merkmal` carries the four P-base tables (CC-BY-NC-SA-4.0) and
 PHOIBLE (CC-BY-SA-3.0), so anyone who could not accept a non-commercial clause
-could not use the library at all, even for the two systems that are CC-BY-4.0.
+had no way to use even the two systems that are CC-BY-4.0.
 
-- Added: **`merkmal-cc-by`**, a second distribution of the same code and the
-  same `merkmal` package carrying only `distinctive` (the default) and
-  `descriptive`. Its wheels and sdist contain no PHOIBLE or P-base data, and it
-  declares `MIT AND CC-BY-4.0`. `scripts/prepare_distribution.py cc-by` builds
-  its source tree; CI checks the artifacts for excluded data.
 - Added: `MERKMAL_DATA_PROFILE` (`full` or `cc-by`) for CMake and `setup.py`,
-  and `merkmal.DATA_PROFILE`. Profiles are selected by the license each
-  manifest declares, so a relicensed or new system lands in the right profile
-  without a code change.
+  and `merkmal.DATA_PROFILE`. A `cc-by` build compiles in only `distinctive`
+  (the default) and `descriptive`, and the resulting library contains no
+  PHOIBLE or P-base data. Profiles are selected by the license each manifest
+  declares, so a relicensed or new system lands in the right profile without a
+  code change.
+- merkmal is published as one package, the full one. The cc-by profile is a
+  build option, not a second distribution.
 - The tests skip a system only when the build is the cc-by profile and the
   system is absent from it, so a system missing from a full build still fails.
 - PHOIBLE's retrieval date is recorded (2026-08-01), the last `UNVERIFIED`

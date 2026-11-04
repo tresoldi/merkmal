@@ -19,9 +19,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 # MERKMAL_DATA_PROFILE=cc-by builds the extension with only the CC-BY-4.0
 # tables (descriptive, distinctive), leaving out PHOIBLE (CC-BY-SA-3.0) and
-# P-base (CC-BY-NC-SA-4.0). For a distributable package use
-# scripts/prepare_distribution.py, which also removes the excluded data from
-# the source tree and sets the package name and license expression.
+# P-base (CC-BY-NC-SA-4.0). The published package is always the full build;
+# this is for users who compile merkmal themselves.
 DATA_PROFILE = os.environ.get("MERKMAL_DATA_PROFILE", "full")
 PROFILE_DATA = {
     "full": "src/generated/builtin_data.c",

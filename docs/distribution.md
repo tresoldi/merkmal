@@ -60,12 +60,18 @@ declares, not by name, and each is a committed table:
 (regenerate with `tools/generate_c_data.py --profile cc-by`). A system the
 profile omits is `MK_ERR_UNKNOWN_SYSTEM`, exactly as an unknown name is.
 
-For Python, `MERKMAL_DATA_PROFILE=cc-by pip install .` builds the extension
-with the cc-by table. The published `merkmal-cc-by` distribution is built from
-a tree prepared by `scripts/prepare_distribution.py cc-by`, which also removes
-the excluded data from the source distribution: the full table shares one
-string pool across systems, so selecting a profile at compile time is not
-enough to keep the excluded data out of an sdist.
+For Python, build from source with the variable set:
+
+```sh
+MERKMAL_DATA_PROFILE=cc-by pip install --no-binary merkmal merkmal   # from PyPI
+MERKMAL_DATA_PROFILE=cc-by pip install .                             # from a checkout
+```
+
+merkmal is published as a single package, built with the full profile. The
+cc-by profile is a build option for users who need it, not a second
+distribution. Note what it does and does not change: the compiled library
+carries only the cc-by tables, but the source distribution you build it from
+still contains the full table file, as every merkmal source tree does.
 
 ## Unicode normalization
 

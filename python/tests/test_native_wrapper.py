@@ -15,7 +15,7 @@ pytestmark = pytest.mark.skipif(
     reason="native extension is not built",
 )
 
-# The cc-by data profile (merkmal-cc-by) carries descriptive and distinctive
+# The cc-by data profile (MERKMAL_DATA_PROFILE=cc-by) carries descriptive and distinctive
 # only. Tests that need PHOIBLE or P-base are skipped there and nowhere else.
 requires_full_data = pytest.mark.skipif(
     merkmal.DATA_PROFILE != "full",
