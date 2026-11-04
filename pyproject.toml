@@ -1,5 +1,8 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+# setuptools 77 and packaging 24.2 are the first to accept an SPDX license
+# expression in `license`, which this file uses. An older pair fails while
+# reading the metadata, before anything is compiled.
+requires = ["setuptools>=77", "packaging>=24.2", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]

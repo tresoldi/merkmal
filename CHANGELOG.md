@@ -6,6 +6,14 @@ The first release of the C core and the native Python wrapper. Everything
 from here down to 0.6.0 belongs to it; 0.6.0 and earlier were the retired
 pure-Python and Go implementation.
 
+### The build declares the setuptools it actually needs
+
+`pyproject.toml` asked for `setuptools>=61.0` but declares its license as an
+SPDX expression, which only setuptools 77 with packaging 24.2 can read. A build
+environment that resolved an older `packaging` failed while reading the
+metadata, which is how the first macOS wheel build failed. The build now
+requires `setuptools>=77` and `packaging>=24.2`.
+
 ### A build without the share-alike and non-commercial tables
 
 `pip install merkmal` carries the four P-base tables (CC-BY-NC-SA-4.0) and
