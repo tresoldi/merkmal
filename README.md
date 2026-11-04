@@ -373,18 +373,18 @@ product or service built on a wheel that bundles them inherits those terms.
 Every bundled table also requires attribution: credit the upstream project each
 manifest names and say that changes were made.
 
-If the non-commercial or share-alike terms are a problem for you, install
-**`merkmal-cc-by`** instead. It is the same code and the same `merkmal`
-package, built with only the CC BY 4.0 tables — `distinctive` (the default)
-and `descriptive` — and its wheels and source distribution contain no PHOIBLE
-or P-base data at all, so it declares `MIT AND CC-BY-4.0`:
+If the non-commercial or share-alike terms are a problem for you, build merkmal
+from source with only the CC BY 4.0 tables — `distinctive` (the default) and
+`descriptive`. The compiled library then contains no PHOIBLE or P-base data:
 
 ```sh
-pip install merkmal-cc-by     # instead of merkmal; the two cannot coexist
+MERKMAL_DATA_PROFILE=cc-by pip install --no-binary merkmal merkmal
+cmake -S . -B build -DMERKMAL_DATA_PROFILE=cc-by     # the C library
 ```
 
-`merkmal.DATA_PROFILE` says which one is loaded (`"full"` or `"cc-by"`). C
-builds select the same profile with `-DMERKMAL_DATA_PROFILE=cc-by`.
+`merkmal.DATA_PROFILE` says which build is loaded (`"full"` or `"cc-by"`). The
+published package is always the full one; see
+[docs/distribution.md](docs/distribution.md#data-profiles).
 
 See [NOTICE](NOTICE), generated from `models/*/provenance.json`.
 

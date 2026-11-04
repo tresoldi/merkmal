@@ -32,7 +32,7 @@ SourceMarkerError = _native.SourceMarkerError
 # __version__ and UNICODE_VERSION is keyed on everything that can move it.
 UNICODE_VERSION: str = _native.UNICODE_VERSION
 # Which built-in data this build carries: "full", or "cc-by" for the build
-# (distributed as merkmal-cc-by) without the PHOIBLE and P-base tables, whose
+# built with MERKMAL_DATA_PROFILE=cc-by, without the PHOIBLE and P-base tables, whose
 # share-alike and non-commercial terms some users cannot accept. See NOTICE.
 DATA_PROFILE: str = _native.DATA_PROFILE
 # Deprecated, and True in every build. It used to say whether libutf8proc was

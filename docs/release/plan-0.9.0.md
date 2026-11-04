@@ -49,13 +49,12 @@ this session did not have.
    `git apply docs/release/workflows.patch`, check it, push, delete the patch.
    `wheels.yml` has not run anywhere: check the runner labels and the
    cibuildwheel version on its first `workflow_dispatch`.
-2. **Two distributions — done.** `merkmal` carries every table; the new
-   `merkmal-cc-by` carries only the CC-BY-4.0 systems (`distinctive`,
-   `descriptive`), with no PHOIBLE or P-base data in its wheels or sdist. On
-   PyPI, create the project `merkmal-cc-by` and a trusted publisher for each
-   project, with the environments `pypi-full` and `pypi-cc-by` that
-   `wheels.yml` names. Still open for 1.0: a valued system under permissive
-   terms, so `merkmal-cc-by` users have one too (see §3).
+2. **One package, two build profiles — done.** PyPI gets a single package,
+   `merkmal`, built with every table. Users who cannot accept the PHOIBLE or
+   P-base terms build from source with `MERKMAL_DATA_PROFILE=cc-by`, which
+   compiles in only the CC-BY-4.0 systems. A second published distribution was
+   tried and dropped as confusing. Still open for 1.0: a valued system under
+   permissive terms, so cc-by builds have one too (see §3).
 3. **Web demo — rebuilt** from `2db12b6` with emcc 6.0.13; the node smoke
    test passes and the page loads cleanly. It goes live when the branch
    reaches `master` (`pages.yml` deploys on changes under `web/`). Rebuild
