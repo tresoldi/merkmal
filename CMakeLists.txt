@@ -21,6 +21,19 @@ option(MERKMAL_USE_UTF8PROC "Use system utf8proc as a normalization test oracle 
 option(MERKMAL_WERROR "Treat compiler warnings as errors (intended for CI)" OFF)
 option(MERKMAL_BUILD_FUZZERS "Build the libFuzzer harnesses (Clang only)" OFF)
 option(MERKMAL_BUILD_EXAMPLES "Build the examples" ON)
+# Which built-in systems the library carries. `full` is every bundled table.
+# `cc-by` carries only the tables without share-alike or non-commercial terms
+# (descriptive and distinctive, CC-BY-4.0), dropping PHOIBLE (CC-BY-SA-3.0)
+# and the four P-base systems (CC-BY-NC-SA-4.0). See NOTICE.
+set(MERKMAL_DATA_PROFILE "full" CACHE STRING "Built-in data profile: full or cc-by")
+set_property(CACHE MERKMAL_DATA_PROFILE PROPERTY STRINGS full cc-by)
+if(MERKMAL_DATA_PROFILE STREQUAL "full")
+    set(MERKMAL_BUILTIN_DATA src/generated/builtin_data.c)
+elseif(MERKMAL_DATA_PROFILE STREQUAL "cc-by")
+    set(MERKMAL_BUILTIN_DATA src/generated/cc-by/builtin_data.c)
+else()
+    message(FATAL_ERROR "MERKMAL_DATA_PROFILE must be full or cc-by")
+endif()
 set(MERKMAL_ENABLE_SANITIZER "" CACHE STRING "Enable sanitizer: address or undefined")
 set_property(CACHE MERKMAL_ENABLE_SANITIZER PROPERTY STRINGS "" address undefined)
 
@@ -65,7 +78,7 @@ set(MERKMAL_SOURCES
     src/tone.c
     src/unicode_norm.c
     src/utf8.c
-    src/generated/builtin_data.c
+    ${MERKMAL_BUILTIN_DATA}
     src/generated/unicode_data.c
 )
 
@@ -281,6 +294,9 @@ if(MERKMAL_BUILD_TESTS)
         test_unicode
     )
         target_compile_options(${target} PRIVATE ${MERKMAL_C_WARNINGS})
+        if(MERKMAL_DATA_PROFILE STREQUAL "cc-by")
+            target_compile_definitions(${target} PRIVATE MERKMAL_TEST_DATA_PROFILE_CC_BY)
+        endif()
     endforeach()
 
     # That the archive exports the 31 public symbols and no more. Needs nm and a

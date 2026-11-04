@@ -373,10 +373,18 @@ product or service built on a wheel that bundles them inherits those terms.
 Every bundled table also requires attribution: credit the upstream project each
 manifest names and say that changes were made.
 
-If the non-commercial clause is a problem for you, the default system
-(`distinctive`) and `descriptive` are CC BY 4.0 and do not depend on the P-base
-or PHOIBLE tables; what you cannot do today is install a wheel without those
-tables in it.
+If the non-commercial or share-alike terms are a problem for you, install
+**`merkmal-cc-by`** instead. It is the same code and the same `merkmal`
+package, built with only the CC BY 4.0 tables — `distinctive` (the default)
+and `descriptive` — and its wheels and source distribution contain no PHOIBLE
+or P-base data at all, so it declares `MIT AND CC-BY-4.0`:
+
+```sh
+pip install merkmal-cc-by     # instead of merkmal; the two cannot coexist
+```
+
+`merkmal.DATA_PROFILE` says which one is loaded (`"full"` or `"cc-by"`). C
+builds select the same profile with `-DMERKMAL_DATA_PROFILE=cc-by`.
 
 See [NOTICE](NOTICE), generated from `models/*/provenance.json`.
 

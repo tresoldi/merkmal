@@ -1,6 +1,7 @@
 #include "merkmal.h"
 
 #include "golden_support.h"
+#include "profile.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -106,6 +107,9 @@ int main(void)
 
     for (i = 0; i < sizeof(systems) / sizeof(systems[0]); i++) {
         char path[256];
+        if (profile_lacks_system(registry, systems[i])) {
+            continue;
+        }
         snprintf(path, sizeof(path), "tests/golden/%s_distances.tsv", systems[i]);
         failed |= check_file(registry, systems[i], path);
     }

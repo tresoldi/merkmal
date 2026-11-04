@@ -10,10 +10,12 @@ import unicodedata
 from pathlib import Path
 
 
-def regenerate(root: Path, script: str, committed: Path, directory: str) -> bool:
-    generated = Path(directory) / committed.name
+def regenerate(
+    root: Path, script: str, committed: Path, directory: str, extra: list[str] | None = None
+) -> bool:
+    generated = Path(directory) / f"{committed.parent.name}-{committed.name}"
     subprocess.run(
-        [sys.executable, str(root / "tools" / script), "--output", str(generated)],
+        [sys.executable, str(root / "tools" / script), *(extra or []), "--output", str(generated)],
         check=True,
     )
     if generated.read_bytes() != committed.read_bytes():
@@ -34,6 +36,13 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory() as directory:
         ok &= regenerate(root, "generate_c_data.py", builtin, directory)
+        ok &= regenerate(
+            root,
+            "generate_c_data.py",
+            root / "src" / "generated" / "cc-by" / "builtin_data.c",
+            directory,
+            ["--profile", "cc-by"],
+        )
 
         # The Unicode tables are a function of the interpreter's unicodedata,
         # so they can only be reproduced by an interpreter with the same

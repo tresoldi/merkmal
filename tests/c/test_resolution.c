@@ -9,6 +9,7 @@
 
 #include "inventory.h"
 #include "resolver.h"
+#include "profile.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -313,6 +314,9 @@ int main(void)
     }
 
     for (i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        if (profile_lacks_system(registry, cases[i].system)) {
+            continue;
+        }
         failed |= run_case(registry, &cases[i]);
     }
     failed |= check_clear_is_total();

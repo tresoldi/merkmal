@@ -41,6 +41,32 @@ cmake -S . -B build/static -DBUILD_SHARED_LIBS=OFF
 The public header uses `MK_API` for exported symbols. Consumers normally do not
 need to define anything manually when they use the installed CMake target.
 
+## Data profiles
+
+`MERKMAL_DATA_PROFILE` chooses which built-in systems the library carries:
+
+| Profile | Systems | Data licenses |
+| --- | --- | --- |
+| `full` (default) | all seven | CC-BY-4.0, CC-BY-SA-3.0, CC-BY-NC-SA-4.0 |
+| `cc-by` | `descriptive`, `distinctive` | CC-BY-4.0 |
+
+```sh
+cmake -S . -B build/cc-by -DMERKMAL_DATA_PROFILE=cc-by
+```
+
+The profiles are chosen by the license each system's provenance manifest
+declares, not by name, and each is a committed table:
+`src/generated/builtin_data.c` and `src/generated/cc-by/builtin_data.c`
+(regenerate with `tools/generate_c_data.py --profile cc-by`). A system the
+profile omits is `MK_ERR_UNKNOWN_SYSTEM`, exactly as an unknown name is.
+
+For Python, `MERKMAL_DATA_PROFILE=cc-by pip install .` builds the extension
+with the cc-by table. The published `merkmal-cc-by` distribution is built from
+a tree prepared by `scripts/prepare_distribution.py cc-by`, which also removes
+the excluded data from the source distribution: the full table shares one
+string pool across systems, so selecting a profile at compile time is not
+enough to keep the excluded data out of an sdist.
+
 ## Unicode normalization
 
 The library has no external dependency. NFC and NFD are compiled in from

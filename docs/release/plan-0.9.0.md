@@ -49,29 +49,22 @@ this session did not have.
    `git apply docs/release/workflows.patch`, check it, push, delete the patch.
    `wheels.yml` has not run anywhere: check the runner labels and the
    cibuildwheel version on its first `workflow_dispatch`.
-2. **Decide what the default wheel bundles (owner).** It embeds the four
-   P-base tables under CC-BY-NC-SA-4.0 and PHOIBLE under CC-BY-SA-3.0, so any
-   commercial user of `pip install merkmal` inherits a non-commercial clause
-   for data they may never touch. The documentation now says so plainly. For
-   0.9.0 this can ship as declared. Before 1.0 I would add a build-time
-   selection of systems and publish a CC-BY-only default, with the valued
-   systems in a separate distribution. That needs the valued systems
-   expressible outside the compiled tables, which the runtime model format
-   does not support yet (it is categorical only).
+2. **Two distributions — done.** `merkmal` carries every table; the new
+   `merkmal-cc-by` carries only the CC-BY-4.0 systems (`distinctive`,
+   `descriptive`), with no PHOIBLE or P-base data in its wheels or sdist. On
+   PyPI, create the project `merkmal-cc-by` and a trusted publisher for each
+   project, with the environments `pypi-full` and `pypi-cc-by` that
+   `wheels.yml` names. Still open for 1.0: a valued system under permissive
+   terms, so `merkmal-cc-by` users have one too (see §3).
 3. **Rebuild the web demo (owner, needs emcc).** `web/merkmal.wasm` was built
    from `cc02289`, before this work and much else. Run `web/build-wasm.sh`,
    commit, and let `pages.yml` deploy. `tests/wasm/run_node_smoke.sh` should
    pass first; neither could run here.
-4. **Close the last provenance gap (owner).** One field remains `UNVERIFIED`:
-   `models/phoible/provenance.json` → `retrieved`. The release policy says it
-   must be established, not guessed.
-5. **Decide on `BRANCH_LOCAL_ONLY.md` (owner).** It says its branch
-   (`local-only/professional-linguistics-review-2026-08-24`) must never be
-   pushed, but it and
-   `docs/professional-linguistics-typology-review-2026-08-24.md` are on
-   `origin/master`. Either the instruction is obsolete and the marker file
-   should go, or the review was published by mistake. Only the owner knows
-   which. Nothing in the sdist or wheel includes either file.
+4. **Provenance gap — done.** PHOIBLE's retrieval date is recorded as
+   2026-08-01, on the maintainer's word, and the manifest says so.
+5. **`BRANCH_LOCAL_ONLY.md` — decided.** The review being public is fine;
+   parts of it will be folded elsewhere later. Nothing in the sdist or wheel
+   includes either file.
 6. **Answer #2 and #3** when the branch merges, so Arca Verborum and regulae
    know that `HAVE_UTF8PROC` stays `True` in every build and that
    `UNICODE_VERSION` is the thing to key caches on. Arca's CI workaround

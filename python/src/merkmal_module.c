@@ -5,6 +5,10 @@
 
 #include "generated/unicode_data.h"
 
+/* Declared in generated/builtin_data.h, which this file does not otherwise
+ * need; repeating the one declaration keeps the module off the table layout. */
+extern const char *const mki_data_profile;
+
 /* The registry every module-level call uses when the caller names none. It is
  * built once and never mutated, which is what makes sharing it safe: adding a
  * model requires an explicit Registry, so no call can change what another
@@ -1266,6 +1270,10 @@ PyMODINIT_FUNC PyInit__native(void)
     /* Normalization is compiled in, so every build carries complete NFC and
      * NFD at the Unicode version recorded here. That is the value a cache of
      * merkmal output should key on alongside __version__. */
+    if (PyModule_AddStringConstant(module, "DATA_PROFILE", mki_data_profile) < 0) {
+        Py_DECREF(module);
+        return NULL;
+    }
     if (PyModule_AddStringConstant(module, "UNICODE_VERSION", mki_unicode_version) < 0) {
         Py_DECREF(module);
         return NULL;

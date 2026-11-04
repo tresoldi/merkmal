@@ -1,5 +1,5 @@
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index 2d88f87..cfcf1d7 100644
+index 2d88f87..73ae4a3 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
 @@ -43,15 +43,16 @@ jobs:
@@ -24,7 +24,64 @@ index 2d88f87..cfcf1d7 100644
      runs-on: ubuntu-latest
      steps:
        - uses: actions/checkout@v4
-@@ -159,22 +160,18 @@ jobs:
+@@ -70,6 +71,56 @@ jobs:
+       - name: Test
+         run: ctest --test-dir build/c-fallback --output-on-failure
+ 
++  c-cc-by:
++    name: C build, cc-by data profile
++    # The profile merkmal-cc-by ships: descriptive and distinctive only. The
++    # tests skip the systems it does not carry, and only in this profile.
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - name: Install dependencies
++        run: |
++          sudo apt-get update
++          sudo apt-get install -y cmake
++      - name: Configure
++        run: >
++          cmake -S . -B build/c-cc-by
++          -DCMAKE_BUILD_TYPE=Debug
++          -DMERKMAL_DATA_PROFILE=cc-by
++          -DMERKMAL_WERROR=ON
++      - name: Build
++        run: cmake --build build/c-cc-by
++      - name: Test
++        run: ctest --test-dir build/c-cc-by --output-on-failure
++
++  python-cc-by:
++    name: Python distribution merkmal-cc-by
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-python@v5
++        with:
++          python-version: "3.12"
++      - name: Prepare the cc-by source tree
++        run: python scripts/prepare_distribution.py cc-by
++      - name: Build
++        run: python -m pip install build && python -m build --sdist --wheel
++      - name: No share-alike or non-commercial table in the artifacts
++        # Checked explicitly: under `set -e` a command negated with `!` cannot
++        # fail the step.
++        run: |
++          if tar tzf dist/*.tar.gz | grep -E "/models/(pbase-|phoible)"; then
++            echo "the sdist carries an excluded model" >&2; exit 1
++          fi
++          if tar xzOf dist/*.tar.gz --wildcards "*/src/generated/builtin_data.c" |
++              grep -E '\.name = "(pbase-|phoible)'; then
++            echo "the sdist's table carries an excluded system" >&2; exit 1
++          fi
++          python -m pip install dist/*.whl pytest
++          python -c "import merkmal; assert merkmal.DATA_PROFILE == 'cc-by'; assert merkmal.list_systems() == ['descriptive', 'distinctive']"
++      - name: Test
++        run: python -m pytest python/tests -q
++
+   c-clang:
+     name: C build and tests under Clang
+     # Every other job that compiles the library uses the runner's GCC; Clang
+@@ -159,22 +210,18 @@ jobs:
            done
  
    c-sanitizers:
@@ -54,7 +111,7 @@ index 2d88f87..cfcf1d7 100644
      steps:
        - uses: actions/checkout@v4
        - name: Install dependencies
-@@ -185,7 +182,7 @@ jobs:
+@@ -185,7 +232,7 @@ jobs:
          run: >
            cmake -S . -B build/c-sanitizer
            -DCMAKE_BUILD_TYPE=Debug
@@ -63,7 +120,7 @@ index 2d88f87..cfcf1d7 100644
            -DMERKMAL_WERROR=ON
            -DMERKMAL_ENABLE_SANITIZER=${{ matrix.sanitizer }}
        - name: Build
-@@ -225,10 +222,6 @@ jobs:
+@@ -225,10 +272,6 @@ jobs:
        - uses: actions/setup-python@v5
          with:
            python-version: "3.12"
@@ -74,7 +131,7 @@ index 2d88f87..cfcf1d7 100644
        - name: Install package
          run: python -m pip install -e ".[dev]"
        - name: Test
-@@ -256,11 +249,18 @@ jobs:
+@@ -256,11 +299,18 @@ jobs:
          # CMake build.
          run: python scripts/regenerate_golden.py --check
        - name: Build source distribution and wheel
@@ -94,7 +151,7 @@ index 2d88f87..cfcf1d7 100644
        - name: Lint maintained Python code
          run: python -m ruff check python/merkmal python/tests scripts tools bench typology setup.py
        - name: Type-check maintained Python code
-@@ -274,10 +274,6 @@ jobs:
+@@ -274,10 +324,6 @@ jobs:
        - uses: actions/setup-python@v5
          with:
            python-version: "3.12"
@@ -107,18 +164,19 @@ index 2d88f87..cfcf1d7 100644
        # runner's Python 3.12 no longer ships setuptools, so the backend named
 diff --git a/.github/workflows/wheels.yml b/.github/workflows/wheels.yml
 new file mode 100644
-index 0000000..58f39dd
+index 0000000..22cc4ec
 --- /dev/null
 +++ b/.github/workflows/wheels.yml
-@@ -0,0 +1,64 @@
+@@ -0,0 +1,84 @@
 +name: Wheels
 +
 +# Builds the release artifacts. The extension uses the CPython Limited API
 +# (cp312-abi3), so one wheel per platform serves every CPython from 3.12, and
 +# since normalization is compiled in there is no system library to provide.
 +#
-+# Publishing uses PyPI trusted publishing: configure the `pypi` environment and
-+# a trusted publisher for this repository on PyPI before the first tag.
++# Publishing uses PyPI trusted publishing: before the first tag, create the
++# environments `pypi-full` and `pypi-cc-by` here and a trusted publisher for
++# this workflow on each of the PyPI projects merkmal and merkmal-cc-by.
 +
 +on:
 +  push:
@@ -127,14 +185,21 @@ index 0000000..58f39dd
 +
 +jobs:
 +  wheels:
-+    name: Wheel (${{ matrix.os }})
++    name: Wheel (${{ matrix.distribution }}, ${{ matrix.os }})
 +    runs-on: ${{ matrix.os }}
 +    strategy:
 +      fail-fast: false
 +      matrix:
 +        os: [ubuntu-latest, ubuntu-24.04-arm, macos-14, macos-13]
++        # merkmal carries every bundled table. merkmal-cc-by leaves out
++        # PHOIBLE (CC-BY-SA-3.0) and P-base (CC-BY-NC-SA-4.0); see
++        # scripts/prepare_distribution.py.
++        distribution: [full, cc-by]
 +    steps:
 +      - uses: actions/checkout@v4
++      - name: Prepare the cc-by source tree
++        if: matrix.distribution == 'cc-by'
++        run: python3 scripts/prepare_distribution.py cc-by
 +      - uses: pypa/cibuildwheel@v2.21.3
 +        env:
 +          CIBW_BUILD: "cp312-*"
@@ -143,35 +208,47 @@ index 0000000..58f39dd
 +          CIBW_TEST_COMMAND: python -m pytest {project}/python/tests -q
 +      - uses: actions/upload-artifact@v4
 +        with:
-+          name: wheels-${{ matrix.os }}
++          name: wheels-${{ matrix.distribution }}-${{ matrix.os }}
 +          path: wheelhouse/*.whl
 +
 +  sdist:
-+    name: Source distribution
++    name: Source distribution (${{ matrix.distribution }})
 +    runs-on: ubuntu-latest
++    strategy:
++      matrix:
++        distribution: [full, cc-by]
 +    steps:
 +      - uses: actions/checkout@v4
 +      - uses: actions/setup-python@v5
 +        with:
 +          python-version: "3.12"
++      - name: Prepare the cc-by source tree
++        if: matrix.distribution == 'cc-by'
++        run: python scripts/prepare_distribution.py cc-by
 +      - run: python -m pip install build
 +      - run: python -m build --sdist
 +      - uses: actions/upload-artifact@v4
 +        with:
-+          name: sdist
++          name: sdist-${{ matrix.distribution }}
 +          path: dist/*.tar.gz
 +
++  # Two PyPI projects, merkmal and merkmal-cc-by, each with a trusted
++  # publisher for this workflow and its own environment.
 +  publish:
-+    name: Publish to PyPI
++    name: Publish ${{ matrix.distribution }} to PyPI
 +    if: startsWith(github.ref, 'refs/tags/v')
 +    needs: [wheels, sdist]
 +    runs-on: ubuntu-latest
-+    environment: pypi
++    strategy:
++      matrix:
++        distribution: [full, cc-by]
++    environment: pypi-${{ matrix.distribution }}
 +    permissions:
 +      id-token: write
 +    steps:
 +      - uses: actions/download-artifact@v4
 +        with:
++          pattern: "*-${{ matrix.distribution }}*"
 +          path: dist
 +          merge-multiple: true
 +      - uses: pypa/gh-action-pypi-publish@release/v1

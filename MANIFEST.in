@@ -11,6 +11,7 @@ include src/*.c
 include src/*.h
 include src/generated/builtin_data.c
 include src/generated/builtin_data.h
+include src/generated/cc-by/builtin_data.c
 include src/generated/unicode_data.c
 include src/generated/unicode_data.h
 include python/src/merkmal_module.c

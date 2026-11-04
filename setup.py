@@ -16,11 +16,26 @@ from setuptools import Extension, setup
 # meant remembering three places; the one that gets forgotten fails at link
 # time in whichever build nobody ran locally. Sorted for reproducible builds.
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+# MERKMAL_DATA_PROFILE=cc-by builds the extension with only the CC-BY-4.0
+# tables (descriptive, distinctive), leaving out PHOIBLE (CC-BY-SA-3.0) and
+# P-base (CC-BY-NC-SA-4.0). For a distributable package use
+# scripts/prepare_distribution.py, which also removes the excluded data from
+# the source tree and sets the package name and license expression.
+DATA_PROFILE = os.environ.get("MERKMAL_DATA_PROFILE", "full")
+PROFILE_DATA = {
+    "full": "src/generated/builtin_data.c",
+    "cc-by": "src/generated/cc-by/builtin_data.c",
+}
+if DATA_PROFILE not in PROFILE_DATA:
+    raise SystemExit(f"merkmal: MERKMAL_DATA_PROFILE must be one of {sorted(PROFILE_DATA)}")
+
 SOURCES = ["python/src/merkmal_module.c"] + sorted(
     os.path.relpath(path, HERE)
     for pattern in ("src/*.c", "src/generated/*.c")
     for path in glob.glob(os.path.join(HERE, pattern))
-)
+    if os.path.relpath(path, HERE) != PROFILE_DATA["full"]
+) + [PROFILE_DATA[DATA_PROFILE]]
 
 # Unicode normalization is compiled in from src/generated/unicode_data.c, so
 # the extension has no system dependency and every build normalizes alike.

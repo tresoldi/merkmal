@@ -31,6 +31,10 @@ SourceMarkerError = _native.SourceMarkerError
 # commit normalizes identically, so a cache of merkmal output keyed on
 # __version__ and UNICODE_VERSION is keyed on everything that can move it.
 UNICODE_VERSION: str = _native.UNICODE_VERSION
+# Which built-in data this build carries: "full", or "cc-by" for the build
+# (distributed as merkmal-cc-by) without the PHOIBLE and P-base tables, whose
+# share-alike and non-commercial terms some users cannot accept. See NOTICE.
+DATA_PROFILE: str = _native.DATA_PROFILE
 # Deprecated, and True in every build. It used to say whether libutf8proc was
 # linked, because a build without it could normalize differently; since
 # normalization was compiled in, none does. Kept so that code refusing a
@@ -315,6 +319,7 @@ __all__ = [
     "get_features",
     "HAVE_UTF8PROC",
     "UNICODE_VERSION",
+    "DATA_PROFILE",
     "is_segment",
     "list_systems",
     "load_geometry",

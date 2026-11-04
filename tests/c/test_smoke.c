@@ -113,6 +113,16 @@ int main(void)
 
     failed |= expect_status(mk_registry_new_builtin(&registry), MK_OK, "registry");
     failed |= expect_status(mk_registry_list_systems(registry, &systems), MK_OK, "list systems");
+#ifdef MERKMAL_TEST_DATA_PROFILE_CC_BY
+    /* The cc-by profile carries only the CC-BY-4.0 tables. */
+    if (mk_string_list_size(systems) != 2 ||
+        !list_contains(systems, "descriptive") ||
+        !list_contains(systems, "distinctive")) {
+        fprintf(stderr, "systems: expected descriptive and distinctive only, got %zu\n",
+            mk_string_list_size(systems));
+        failed = 1;
+    }
+#else
     if (mk_string_list_size(systems) != 7) {
         fprintf(stderr, "systems: expected 7, got %zu\n", mk_string_list_size(systems));
         failed = 1;
@@ -123,6 +133,7 @@ int main(void)
         fprintf(stderr, "systems: missing expanded built-in names\n");
         failed = 1;
     }
+#endif
     mk_string_list_free(systems);
 
     failed |= expect_status(
@@ -130,11 +141,20 @@ int main(void)
         MK_OK,
         "get descriptive"
     );
+#ifdef MERKMAL_TEST_DATA_PROFILE_CC_BY
+    failed |= expect_status(
+        mk_registry_get_system(registry, "phoible", &phoible),
+        MK_ERR_UNKNOWN_SYSTEM,
+        "phoible is absent from the cc-by profile"
+    );
+    phoible = NULL;
+#else
     failed |= expect_status(
         mk_registry_get_system(registry, "phoible", &phoible),
         MK_OK,
         "get phoible"
     );
+#endif
 
     failed |= expect_status(
         mk_system_semantic_fingerprint(descriptive, &fingerprint_payload, &fingerprint_digest),
@@ -229,30 +249,32 @@ int main(void)
     mk_string_list_free(features);
     features = NULL;
 
-    failed |= expect_status(
-        mk_system_grapheme_features(phoible, "b", &features),
-        MK_OK,
-        "features phoible b"
-    );
-    if (mk_string_list_size(features) != 38) {
-        fprintf(stderr, "features phoible b: expected 38, got %zu\n", mk_string_list_size(features));
-        failed = 1;
-    }
-    mk_string_list_free(features);
-    features = NULL;
+    if (phoible != NULL) {
+        failed |= expect_status(
+            mk_system_grapheme_features(phoible, "b", &features),
+            MK_OK,
+            "features phoible b"
+        );
+        if (mk_string_list_size(features) != 38) {
+            fprintf(stderr, "features phoible b: expected 38, got %zu\n", mk_string_list_size(features));
+            failed = 1;
+        }
+        mk_string_list_free(features);
+        features = NULL;
 
-    failed |= expect_status(
-        mk_system_grapheme_features(phoible, "bʰ", &features),
-        MK_OK,
-        "features synthesized phoible bʰ"
-    );
-    if (!list_contains(features, "periodicGlottalSource=+") ||
-        !list_contains(features, "spreadGlottis=+")) {
-        fprintf(stderr, "features phoible bʰ: expected preserved voice and applied aspiration\n");
-        failed = 1;
+        failed |= expect_status(
+            mk_system_grapheme_features(phoible, "bʰ", &features),
+            MK_OK,
+            "features synthesized phoible bʰ"
+        );
+        if (!list_contains(features, "periodicGlottalSource=+") ||
+            !list_contains(features, "spreadGlottis=+")) {
+            fprintf(stderr, "features phoible bʰ: expected preserved voice and applied aspiration\n");
+            failed = 1;
+        }
+        mk_string_list_free(features);
+        features = NULL;
     }
-    mk_string_list_free(features);
-    features = NULL;
 
     failed |= expect_status(
         mk_system_is_segment(descriptive, "not-ipa", &is_segment),
@@ -748,23 +770,27 @@ int main(void)
             "unknown preset cluster"
         );
         distance = -1.0;
-        failed |= expect_status(
-            mk_system_segment_distance_with_weights(
-                phoible, "p", "b", "no-such-preset", &distance),
-            MK_ERR_INVALID_ARGUMENT,
-            "unknown preset valued"
-        );
+        if (phoible != NULL) {
+            failed |= expect_status(
+                mk_system_segment_distance_with_weights(
+                    phoible, "p", "b", "no-such-preset", &distance),
+                MK_ERR_INVALID_ARGUMENT,
+                "unknown preset valued"
+            );
+        }
     }
 
     /* A valued system reaches the same seam. */
-    failed |= expect_status(
-        mk_system_segment_distance_with_weights(phoible, "p", "b", "flat", &distance),
-        MK_OK,
-        "distance phoible p b flat"
-    );
-    if (!(distance > 0.0 && distance < 1.0)) {
-        fprintf(stderr, "distance phoible p b flat: expected intermediate value, got %.10f\n", distance);
-        failed = 1;
+    if (phoible != NULL) {
+        failed |= expect_status(
+            mk_system_segment_distance_with_weights(phoible, "p", "b", "flat", &distance),
+            MK_OK,
+            "distance phoible p b flat"
+        );
+        if (!(distance > 0.0 && distance < 1.0)) {
+            fprintf(stderr, "distance phoible p b flat: expected intermediate value, got %.10f\n", distance);
+            failed = 1;
+        }
     }
 
     failed |= expect_status(mk_normalize_grapheme("g", &normalized), MK_OK, "normalize g");
@@ -1046,12 +1072,14 @@ int main(void)
 
         /* The one pair where the kinds differ, which is the distinction the
          * function exists to report. */
-        failed |= expect_status(
-            mk_registry_get_system(registry, "phoible", &valued), MK_OK, "get phoible");
-        failed |= expect_status(mk_system_kind(valued, &kind), MK_OK, "valued system kind");
-        if (kind == NULL || strcmp(kind, "valued") != 0) {
-            printf("FAIL: phoible is a %s system\n", kind ? kind : "(null)");
-            failed = 1;
+        if (phoible != NULL) {
+            failed |= expect_status(
+                mk_registry_get_system(registry, "phoible", &valued), MK_OK, "get phoible");
+            failed |= expect_status(mk_system_kind(valued, &kind), MK_OK, "valued system kind");
+            if (kind == NULL || strcmp(kind, "valued") != 0) {
+                printf("FAIL: phoible is a %s system\n", kind ? kind : "(null)");
+                failed = 1;
+            }
         }
 
         failed |= expect_status(

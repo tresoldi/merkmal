@@ -211,6 +211,10 @@ typedef struct mk_builtin_system {
     size_t scalar_dimension_count;
 } mk_builtin_system;
 
+/* Which data profile this build carries: "full", or "cc-by" for the build
+ * restricted to tables without share-alike or non-commercial terms. */
+extern const char *const mki_data_profile;
+
 extern const mk_builtin_system mki_builtin_systems[];
 extern const size_t mki_builtin_system_count;
 /* Hashes of the data inputs shared by every built-in fingerprint. */
