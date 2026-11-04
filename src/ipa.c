@@ -18,7 +18,9 @@ int mki_is_vowel_letter(const char *p)
         mki_has_prefix(p, "ø") || mki_has_prefix(p, "ɘ") ||
         mki_has_prefix(p, "ɜ") || mki_has_prefix(p, "ɞ") ||
         mki_has_prefix(p, "ɒ") || mki_has_prefix(p, "ɶ") ||
-        mki_has_prefix(p, "ɿ") || mki_has_prefix(p, "ʅ");
+        mki_has_prefix(p, "ʏ") || mki_has_prefix(p, "ɿ") ||
+        mki_has_prefix(p, "ʅ") || mki_has_prefix(p, "ʮ") ||
+        mki_has_prefix(p, "ʯ");
 }
 
 int mki_is_boundary(const char *p)

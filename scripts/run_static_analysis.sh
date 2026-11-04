@@ -20,7 +20,7 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 cd "$root"
 
 status=0
-flags="-std=c99 -Iinclude -Isrc -DMK_HAVE_UTF8PROC=0"
+flags="-std=c99 -Iinclude -Isrc"
 
 if command -v gcc >/dev/null 2>&1; then
     printf '## gcc -fanalyzer\n'

@@ -15,7 +15,6 @@ mkdir -p "$build_dir"
 
 emcc \
     -std=c99 \
-    -DMK_HAVE_UTF8PROC=0 \
     -Iinclude \
     -Isrc \
     src/*.c \

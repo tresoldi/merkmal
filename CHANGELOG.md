@@ -1,16 +1,125 @@
 # Changelog
 
-## Unreleased
+## 0.9.0 (unreleased)
 
-### `merkmal.HAVE_UTF8PROC` tells the two builds apart
+The first release of the C core and the native Python wrapper. Everything
+from here down to 0.6.0 belongs to it; 0.6.0 and earlier were the retired
+pure-Python and Go implementation.
 
-A build without libutf8proc falls back to built-in normalization, which can
-return a different string for the same input (a precomposed letter such as
-`ḛ` came back decomposed), under the same `__version__`. The new
-`merkmal.HAVE_UTF8PROC` (and `merkmal._native.HAVE_UTF8PROC`) says which build
-is loaded, so caches of merkmal output can key on it, and `setup.py` now warns
-on stderr when it falls back. Found when two machines built arcaverborum with
-the same merkmal commit and 250 of 7,304 varieties differed.
+### A distribution without the share-alike and non-commercial tables
+
+`pip install merkmal` carries the four P-base tables (CC-BY-NC-SA-4.0) and
+PHOIBLE (CC-BY-SA-3.0), so anyone who could not accept a non-commercial clause
+could not use the library at all, even for the two systems that are CC-BY-4.0.
+
+- Added: **`merkmal-cc-by`**, a second distribution of the same code and the
+  same `merkmal` package carrying only `distinctive` (the default) and
+  `descriptive`. Its wheels and sdist contain no PHOIBLE or P-base data, and it
+  declares `MIT AND CC-BY-4.0`. `scripts/prepare_distribution.py cc-by` builds
+  its source tree; CI checks the artifacts for excluded data.
+- Added: `MERKMAL_DATA_PROFILE` (`full` or `cc-by`) for CMake and `setup.py`,
+  and `merkmal.DATA_PROFILE`. Profiles are selected by the license each
+  manifest declares, so a relicensed or new system lands in the right profile
+  without a code change.
+- The tests skip a system only when the build is the cc-by profile and the
+  system is absent from it, so a system missing from a full build still fails.
+- PHOIBLE's retrieval date is recorded (2026-08-01), the last `UNVERIFIED`
+  provenance field.
+
+### Tie-barred complex segments, `ˁ` and `ε`
+
+- `t͡ʂ`, `d͡ʐ`, `t͡ʂʰ` and the other tie-barred spellings of segments the library
+  synthesizes rather than lists now read. The inventory lookup stripped tie
+  bars and the complex-segment synthesizer did not, so `tʂ` read and `t͡ʂ` did
+  not. The cluster grammars still never see a tie-stripped form, because a tie
+  bar asserts one segment.
+- `ˁ` (U+02C1), the pharyngealization mark of Semitist and Arabic-dialect
+  transcription, reads as `ˤ` (U+02E4); Greek `ε` reads as `ɛ`, as `ǝ` already
+  read as `ə`.
+
+Together with the changes above, `descriptive` and `distinctive` read 7,059 of
+Lexibank's 7,396 segment types, up from 7,027, and the coverage floors are
+raised to hold the gain. Of what remains unread, most is the sources' own CLDF
+and CLTS markup: in `williamsonbenuecongo`, the one dataset under 90% token
+coverage, every one of the top unread tokens is `<?>` or `<<…>>`.
+
+### A place diacritic moves the segment, and contradictory marks are refused
+
+Diacritic synthesis in the categorical systems was purely additive. That is
+right for `ʰ` and wrong for a place: `n` is alveolar, so `n` plus dental U+032A
+sat at two points of the coronal scale and the ordinal guard refused it as a
+parse error. `n̪` read only because it is an inventory row, so every stack the
+inventory does not list failed in `descriptive` and `distinctive` while the
+valued systems read it: `n̪̊`, `n̪̊ʰ`, `t̪ʲʰ`, `t̪ˠʰ`, `d̪̤`, `ɹ̪`, `ɾ̪`, `ʃ̪`.
+
+A place diacritic now replaces the base's level on the same scale, and the
+`anterior`/`distributed` labels are re-derived from the new place using a table
+the generator emits from the same sets it derives inventory rows with, so the
+two derivations cannot drift. Where both can answer they agree: every row
+spelled with dental plus ring below gives identical features when respelled
+with ring above, which only synthesis can read. A base with no coronal place
+keeps the old reading, so `p̪` is still labiodental. Ten more Lexibank segment
+types read.
+
+Diacritics asserting opposite values of one property — syllabic and
+non-syllabic, apical and laminal, advanced and retracted, raised and lowered,
+more and less rounded, ATR and RTR — are refused, as a breve plus a length mark
+already was. They used to resolve and score 0.0 against either mark alone.
+
+### Every zero in the contrast baseline has a reason
+
+The baseline carried 56 categorical pairs as `UNDECLARED`. All were one base
+with the same diacritics reordered or repeated (`t̪ʷʰ`~`t̪ʰʷ`, `t̪ʰ`~`t̪ʰʰ`). The
+audit now recognises that class as `modifier-equivalent`, keeping marks before
+the base apart from marks after it and counting length marks rather than
+collecting them, so `ʰt`~`tʰ` and `aː`~`aːː` are never matched. The baseline has
+no `UNDECLARED` row left.
+
+### `ʏ` can be part of a diphthong, and `ɚ`/`ɝ` read (#2)
+
+German `ɔʏ`, `ɔʏ̯` (*Freude*, *heute*) and `ʏɐ` (*Gürtel*) were unknown while
+`ɔɪ̯` and `ɪɐ` read. The cause was not the inventory but the list of letters
+allowed to open a vowel component: it named 29 vowel letters and missed `ʏ`,
+along with the Sinological apical vowels `ʮ` and `ʯ`, whose siblings `ɿ` and
+`ʅ` were listed. Every one-letter vowel in the categorical inventories is now
+tested as either element of a two-vowel cluster and as a non-syllabic offglide,
+so the next missing letter fails the suite rather than a user's corpus.
+
+`ɚ` and `ɝ` (U+025A, U+025D), the IPA's precomposed rhotacized central vowels,
+are read as `ə˞` and `ɜ˞` by every system. PHOIBLE's own `ɚ` row is untouched:
+the inventory is consulted before the conventions are.
+
+### Normalization is compiled in, and every build agrees (#3)
+
+NFC and NFD came from libutf8proc when it was installed and from a 45-pair
+hand list when it was not. The two disagreed — `gỹnh` came back with `ỹ`
+decomposed from a build on a runner without utf8proc — under one commit and one
+`__version__`. Found when two machines built arcaverborum from the same merkmal
+commit and 250 of 7,304 varieties differed. Two utf8proc builds could disagree
+too, whenever their utf8proc versions carried different Unicode versions.
+
+The library now carries complete Unicode canonical normalization — full
+decomposition, canonical reordering, composition with blocking and the
+exclusions, Hangul — as tables generated from the Unicode Character Database
+(`tools/generate_unicode_data.py`, Unicode 15.1.0) and about 300 lines of C.
+Every build runs it: CMake, the Python extension, WebAssembly. The `unicode`
+ctest compares it with utf8proc over all 1,112,064 scalar values and 400,000
+generated mark sequences, and agrees on every one; CI runs that comparison
+under ASan and UBSan as well. Bytes that are not well-formed UTF-8 pass through
+unchanged instead of making utf8proc builds report `MK_ERR_OOM`.
+
+- **The library has no external dependency.** The installed CMake package and
+  `merkmal.pc` no longer require utf8proc, and `setup.py` no longer looks for
+  it. `MERKMAL_USE_UTF8PROC` and `MERKMAL_REQUIRE_UTF8PROC` now only control
+  the test oracle; the `MERKMAL_REQUIRE_UTF8PROC` environment variable is
+  accepted and ignored by `setup.py`.
+- Added: `merkmal.UNICODE_VERSION`. With `__version__`, it identifies
+  everything that can change a normalized string.
+- `merkmal.HAVE_UTF8PROC`, added earlier in this release to tell the two builds
+  apart, is kept for compatibility and is `True` in every build: there is no
+  degraded build left to detect.
+- Costs 44 KB of read-only data; code is 126 bytes smaller
+  ([bench/baseline.txt](bench/baseline.txt)).
 
 ### `broad` is retired
 
@@ -482,7 +591,15 @@ PHOIBLE, which has it. Both at once, with a test asserting each half.
 No golden fixture moves — the extra lookup changes which spelling wins, not what
 any segment scores.
 
-### One license for the data, and what it rests on
+### One license for the data, and what it rests on — withdrawn
+
+> **Withdrawn on 2026-08-20 (2279c83).** The permission this entry rests on was
+> never evidenced, so PHOIBLE is back under CC-BY-SA-3.0 and the four P-base
+> models under CC-BY-NC-SA-4.0, their upstream terms, and the distribution
+> declares `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`. The
+> README and `docs/release-policy.md` went on repeating the relicensed terms
+> until the release preparation corrected them. The entry is kept as the record
+> of what was claimed.
 
 **No bundled table now carries a non-commercial or share-alike restriction.**
 The distribution declares `MIT AND CC-BY-4.0`, down from
@@ -1058,10 +1175,12 @@ of those statements was wrong.
   on PyPI declare `MIT` and ship CLTS-derived data. Those releases are being
   left in place; the correction is to be disclosed on the project page.
 
-## 1.0.0
+## Earlier development (versioned 1.0.0 in the tree, never released)
 
-The public C API is stable from here. Three breaking changes are batched into
-this release and nothing else changes behavior; see the migration table in
+This work carried the version 1.0.0 until 2026-08-20 (3529398), when it was
+stepped back to 0.9.0 before any release. Nothing was published as 1.0.0, and
+the C API is not yet promised stable: that promise is for 1.0.0 proper. Three
+breaking changes were batched here; see the migration table in
 [docs/c-api.md](docs/c-api.md).
 
 - **Breaking (C):** `mk_free_string` is now `mk_string_free`. A rename only. It

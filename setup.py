@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import glob
 import os
-import subprocess
-import sys
 
 from setuptools import Extension, setup
 
@@ -18,61 +16,31 @@ from setuptools import Extension, setup
 # meant remembering three places; the one that gets forgotten fails at link
 # time in whichever build nobody ran locally. Sorted for reproducible builds.
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+# MERKMAL_DATA_PROFILE=cc-by builds the extension with only the CC-BY-4.0
+# tables (descriptive, distinctive), leaving out PHOIBLE (CC-BY-SA-3.0) and
+# P-base (CC-BY-NC-SA-4.0). For a distributable package use
+# scripts/prepare_distribution.py, which also removes the excluded data from
+# the source tree and sets the package name and license expression.
+DATA_PROFILE = os.environ.get("MERKMAL_DATA_PROFILE", "full")
+PROFILE_DATA = {
+    "full": "src/generated/builtin_data.c",
+    "cc-by": "src/generated/cc-by/builtin_data.c",
+}
+if DATA_PROFILE not in PROFILE_DATA:
+    raise SystemExit(f"merkmal: MERKMAL_DATA_PROFILE must be one of {sorted(PROFILE_DATA)}")
+
 SOURCES = ["python/src/merkmal_module.c"] + sorted(
     os.path.relpath(path, HERE)
     for pattern in ("src/*.c", "src/generated/*.c")
     for path in glob.glob(os.path.join(HERE, pattern))
-)
+    if os.path.relpath(path, HERE) != PROFILE_DATA["full"]
+) + [PROFILE_DATA[DATA_PROFILE]]
 
-# Distribution builds must not silently fall back to the built-in Unicode
-# path. Set this in any environment that produces artifacts for other people
-# (cibuildwheel does, via CIBW_ENVIRONMENT) so a missing libutf8proc fails the
-# build instead of shipping degraded normalization to every installer.
-REQUIRE_UTF8PROC = os.environ.get("MERKMAL_REQUIRE_UTF8PROC", "").lower() in {
-    "1",
-    "on",
-    "true",
-    "yes",
-}
-
-
-def utf8proc_build_options() -> tuple[list[tuple[str, str]], list[str], list[str]]:
-    try:
-        subprocess.run(
-            ["pkg-config", "--exists", "libutf8proc"],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except (OSError, subprocess.CalledProcessError):
-        if REQUIRE_UTF8PROC:
-            raise SystemExit(
-                "merkmal: libutf8proc not found via pkg-config, and "
-                "MERKMAL_REQUIRE_UTF8PROC is set. Install libutf8proc "
-                "development headers, or unset the variable to build with the "
-                "IPA-focused fallback (development builds only)."
-            ) from None
-        print(
-            "merkmal: WARNING: libutf8proc not found via pkg-config; building "
-            "with the IPA-focused fallback normalization. Output can differ "
-            "from a full build (merkmal.HAVE_UTF8PROC is False). Install "
-            "libutf8proc development headers for identical results.",
-            file=sys.stderr,
-        )
-        return [("MK_HAVE_UTF8PROC", "0")], [], []
-
-    cflags = subprocess.check_output(
-        ["pkg-config", "--cflags", "libutf8proc"],
-        text=True,
-    ).split()
-    libs = subprocess.check_output(
-        ["pkg-config", "--libs", "libutf8proc"],
-        text=True,
-    ).split()
-    return [("MK_HAVE_UTF8PROC", "1")], cflags, libs
-
-
-utf8proc_macros, utf8proc_cflags, utf8proc_ldflags = utf8proc_build_options()
+# Unicode normalization is compiled in from src/generated/unicode_data.c, so
+# the extension has no system dependency and every build normalizes alike.
+# MERKMAL_REQUIRE_UTF8PROC, which made a missing libutf8proc fatal, is accepted
+# and ignored so that existing build scripts keep working.
 
 # The same warning set the CMake build enforces, minus two that the CPython API
 # forces on any extension:
@@ -113,16 +81,14 @@ setup(
             include_dirs=["include", "src"],
             define_macros=[
                 ("Py_LIMITED_API", "0x030C0000"),
-                *utf8proc_macros,
             ],
             py_limited_api=True,
             extra_compile_args=[
                 "-std=c99",
                 *WARNINGS,
                 *SANITIZE_FLAGS,
-                *utf8proc_cflags,
             ],
-            extra_link_args=[*SANITIZE_FLAGS, *utf8proc_ldflags],
+            extra_link_args=[*SANITIZE_FLAGS],
         )
     ],
 )

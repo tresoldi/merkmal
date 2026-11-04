@@ -14,6 +14,7 @@
 #include "geometry.h"
 #include "merkmal.h"
 #include "system.h"
+#include "profile.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -52,6 +53,9 @@ static void check_selection(mk_registry *registry)
         const mk_system *system = NULL;
         const char *got;
 
+        if (profile_lacks_system(registry, scorer_cases[i].system)) {
+            continue;
+        }
         if (mk_registry_get_system(registry, scorer_cases[i].system, &system) != MK_OK) {
             fail(scorer_cases[i].system, "system not found");
             continue;
@@ -120,6 +124,10 @@ static void check_coverage(mk_registry *registry)
     double coverage;
     mk_comparability why;
 
+    /* Every case below involves PHOIBLE; the full build runs them. */
+    if (profile_lacks_system(registry, "phoible")) {
+        return;
+    }
     if (mk_registry_get_system(registry, "phoible", &phoible) != MK_OK ||
         mk_registry_get_system(registry, "descriptive", &descriptive) != MK_OK ||
         mk_registry_get_system(registry, "distinctive", &distinctive) != MK_OK) {

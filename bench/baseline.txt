@@ -99,3 +99,20 @@ only a cluster pays it and most tokens are not clusters. The pair figure is the
 one the change was for. Both differ from the numbers above, which were recorded
 on other hardware; what is comparable is the before-and-after pair, taken
 together.
+
+## After normalization was compiled in
+
+NFC and NFD used to come from libutf8proc when it was installed and from a
+45-pair hand list when it was not, so one commit normalized differently from
+machine to machine (issue #3). They are now generated tables plus a small
+implementation of UAX #15, in every build. Measured with GCC 13.3, -O2:
+
+unicode_data.c   +44,047 rodata    combining classes, decompositions, composites
+unicode_norm.c    +2,290 text      decomposition, reordering, composition
+normalize.c       -2,416 text      the hand list and its utf8proc branches
+                    -171 rodata
+
+Code is 126 bytes smaller; the tables are the price, about 8% of the library's
+read-only data. In exchange the library has no external dependency, and the
+WebAssembly build, which never had utf8proc, now normalizes like every other.
+The rows above were recorded with another compiler and are left as they were.

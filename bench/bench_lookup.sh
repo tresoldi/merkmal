@@ -16,7 +16,7 @@ mkdir -p "$build_dir"
 root=$(cd "$(dirname "$0")/.." && pwd)
 cd "$root"
 
-$cc -std=c99 -O2 -DNDEBUG -DMK_HAVE_UTF8PROC=0 \
+$cc -std=c99 -O2 -DNDEBUG \
     -Iinclude -Isrc \
     bench/bench_lookup.c src/*.c src/generated/*.c \
     -o "$build_dir/bench_lookup"

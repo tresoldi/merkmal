@@ -22,13 +22,10 @@ emcmake cmake -S . -B build/wasm \
 cmake --build build/wasm
 ```
 
-The fallback Unicode path is used for this first spike. Native distribution
-builds require system `utf8proc`, but the WebAssembly path keeps
-`MERKMAL_USE_UTF8PROC=OFF` until the Emscripten packaging story is worth
-formalizing. The `c-fallback` CI job runs the full C suite against that same
-profile, so it is tested rather than merely built. A later WebAssembly release can either vendor/build `utf8proc`
-inside the Emscripten toolchain or document the fallback as the supported
-browser profile.
+Normalization is compiled in, so the WebAssembly build normalizes exactly as
+the native library and the Python wheel do; `MERKMAL_USE_UTF8PROC=OFF` only
+stops CMake looking for the test oracle. The `c-fallback` CI job runs the full
+C suite on a runner without utf8proc, which is the same configuration.
 
 ## Node Smoke Test
 

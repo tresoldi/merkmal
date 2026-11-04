@@ -3,9 +3,10 @@
 
 /* Turning a written grapheme into the spelling the inventories are keyed by.
  *
- * Decomposition is driven by the compiled table rather than by utf8proc, so
- * that lookup accepts the same graphemes whether or not utf8proc is installed.
- * utf8proc, when present, only adds a final NFC or NFD pass. */
+ * Decomposition for lookup is driven by a table restricted to letters whose
+ * marks the feature system understands. The final NFC or NFD pass is full
+ * Unicode normalization from compiled tables (unicode_norm.h), the same in
+ * every build. */
 
 #include "merkmal.h"
 

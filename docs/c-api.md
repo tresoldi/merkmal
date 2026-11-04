@@ -5,10 +5,11 @@ It is C99-compatible and uses explicit status codes instead of exceptions.
 Public functions are annotated with `MK_API` so shared-library builds export
 only the supported ABI surface.
 
-## Migrating to 1.0
+## Migrating from the pre-release 1.0 surface
 
-Three breaking changes, all of them mechanical. They are batched into this one
-release; the surface is stable from here.
+Three breaking changes, all of them mechanical, made while the tree was
+versioned 1.0.0 (it was stepped back to 0.9.0 before any release). The surface
+is not yet promised stable; that promise is for 1.0.0.
 
 | before | after |
 |---|---|
@@ -455,10 +456,9 @@ compared equal to `a⁵⁵`. Those systems now return `MK_ERR_UNSUPPORTED_MODEL`
 for a tone-bearing grapheme rather than a zero that would read as established
 tonal equality.
 
-`mk_normalize_grapheme` uses `utf8proc` when available. The fallback path
-covers the IPA normalization cases used by the built-in models and tests.
-Release builds should enable `utf8proc`; see
-[release-policy.md](release-policy.md).
+`mk_normalize_grapheme` returns NFC and the tokenizers work in NFD, both from
+compiled Unicode tables, identically in every build; see
+[distribution.md](distribution.md#unicode-normalization).
 
 ## Containers
 

@@ -142,6 +142,15 @@ typedef struct mk_decomposition {
     const char *decomposed;
 } mk_decomposition;
 
+/* The coronal class features a place implies, as the generator derives them
+ * for inventory rows. Runtime synthesis uses it when a place diacritic moves a
+ * segment to another place. */
+typedef struct mk_place_class {
+    const char *place;
+    const char *anterior;
+    const char *distributed;
+} mk_place_class;
+
 typedef struct mk_tone_mark {
     const char *mark;
     const char *const *features;
@@ -202,6 +211,10 @@ typedef struct mk_builtin_system {
     size_t scalar_dimension_count;
 } mk_builtin_system;
 
+/* Which data profile this build carries: "full", or "cc-by" for the build
+ * restricted to tables without share-alike or non-commercial terms. */
+extern const char *const mki_data_profile;
+
 extern const mk_builtin_system mki_builtin_systems[];
 extern const size_t mki_builtin_system_count;
 /* Hashes of the data inputs shared by every built-in fingerprint. */
@@ -238,6 +251,8 @@ extern const mk_diacritic_map mki_default_suffix_diacritics[];
 extern const size_t mki_default_suffix_diacritic_count;
 extern const mk_diacritic_map mki_default_prefix_diacritics[];
 extern const size_t mki_default_prefix_diacritic_count;
+extern const mk_place_class mki_default_place_classes[];
+extern const size_t mki_default_place_class_count;
 extern const char *const mki_default_metadata_features[];
 extern const size_t mki_default_metadata_feature_count;
 extern const mk_decomposition mki_default_decompositions[];

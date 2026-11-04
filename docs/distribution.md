@@ -41,26 +41,55 @@ cmake -S . -B build/static -DBUILD_SHARED_LIBS=OFF
 The public header uses `MK_API` for exported symbols. Consumers normally do not
 need to define anything manually when they use the installed CMake target.
 
-## utf8proc
+## Data profiles
 
-`utf8proc` is discovered with pkg-config.
+`MERKMAL_DATA_PROFILE` chooses which built-in systems the library carries:
 
-Two options, and they answer different questions.
+| Profile | Systems | Data licenses |
+| --- | --- | --- |
+| `full` (default) | all seven | CC-BY-4.0, CC-BY-SA-3.0, CC-BY-NC-SA-4.0 |
+| `cc-by` | `descriptive`, `distinctive` | CC-BY-4.0 |
 
-- `MERKMAL_USE_UTF8PROC` (default `ON`) decides whether to look for it at all.
-  `OFF` selects the IPA-focused fallback even on a machine that has
-  `libutf8proc` installed, which is the only way to build and test the profile
-  WebAssembly ships.
-- `MERKMAL_REQUIRE_UTF8PROC` (default `OFF`) decides what happens when it is
-  not found. `ON` fails configuration; `OFF` falls back silently.
+```sh
+cmake -S . -B build/cc-by -DMERKMAL_DATA_PROFILE=cc-by
+```
 
-`MERKMAL_REQUIRE_UTF8PROC=OFF` on its own does not select the fallback — it
-only permits it, and a machine with `libutf8proc` installed still gets
-`utf8proc`. Use `MERKMAL_USE_UTF8PROC=OFF` to select it.
+The profiles are chosen by the license each system's provenance manifest
+declares, not by name, and each is a committed table:
+`src/generated/builtin_data.c` and `src/generated/cc-by/builtin_data.c`
+(regenerate with `tools/generate_c_data.py --profile cc-by`). A system the
+profile omits is `MK_ERR_UNKNOWN_SYSTEM`, exactly as an unknown name is.
 
-Distribution builds should use `MERKMAL_REQUIRE_UTF8PROC=ON`.
-See [release-policy.md](release-policy.md) for the current release dependency
-policy.
+For Python, `MERKMAL_DATA_PROFILE=cc-by pip install .` builds the extension
+with the cc-by table. The published `merkmal-cc-by` distribution is built from
+a tree prepared by `scripts/prepare_distribution.py cc-by`, which also removes
+the excluded data from the source distribution: the full table shares one
+string pool across systems, so selecting a profile at compile time is not
+enough to keep the excluded data out of an sdist.
+
+## Unicode normalization
+
+The library has no external dependency. NFC and NFD are compiled in from
+`src/generated/unicode_data.c`, which `tools/generate_unicode_data.py` writes
+from the Unicode Character Database of the generating Python. Every build —
+static, shared, Python, WebAssembly — normalizes identically, at the version in
+`mki_unicode_version` (exposed to Python as `merkmal.UNICODE_VERSION`).
+
+Earlier versions used `libutf8proc` when it was installed and an IPA-focused
+approximation when it was not, and the two returned different strings for the
+same input. That distinction is gone, and the installed CMake package and
+`merkmal.pc` no longer name utf8proc.
+
+`libutf8proc` survives only as a test oracle:
+
+- `MERKMAL_USE_UTF8PROC` (default `ON`) looks for it, and if found the
+  `unicode` test compares the built-in normalizer with it over every code
+  point and 400,000 generated mark sequences. When utf8proc carries a
+  different Unicode version than the tables, the test reports a skip.
+- `MERKMAL_REQUIRE_UTF8PROC` (default `OFF`) makes its absence a configuration
+  error, for CI jobs that must run the oracle.
+
+Neither option changes the library that is built.
 
 ## CMake Consumers
 

@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: >-
+  If you use merkmal, please cite it as below, and also cite the upstream
+  feature data each system you used is derived from (see NOTICE).
+title: "merkmal: versioned phonological feature systems and segment dissimilarities"
+type: software
+authors:
+  - family-names: Tresoldi
+    given-names: Tiago
+    affiliation: Uppsala University
+version: 0.9.0
+repository-code: "https://github.com/tresoldi/merkmal"
+license:
+  - MIT
+  - CC-BY-4.0
+  - CC-BY-SA-3.0
+  - CC-BY-NC-SA-4.0
+keywords:
+  - phonology
+  - phonological features
+  - feature geometry
+  - IPA
+  - historical linguistics
+  - sequence alignment

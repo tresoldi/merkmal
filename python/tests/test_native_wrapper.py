@@ -15,9 +15,20 @@ pytestmark = pytest.mark.skipif(
     reason="native extension is not built",
 )
 
+# The cc-by data profile (merkmal-cc-by) carries descriptive and distinctive
+# only. Tests that need PHOIBLE or P-base are skipped there and nowhere else.
+requires_full_data = pytest.mark.skipif(
+    merkmal.DATA_PROFILE != "full",
+    reason="needs the PHOIBLE and P-base tables, absent from the cc-by profile",
+)
+
 
 def test_native_lists_expanded_systems() -> None:
     systems = merkmal.list_systems()
+    if merkmal.DATA_PROFILE == "cc-by":
+        assert systems == ["descriptive", "distinctive"]
+        return
+    assert merkmal.DATA_PROFILE == "full"
     assert systems == sorted(
         [
             "descriptive",
@@ -31,6 +42,7 @@ def test_native_lists_expanded_systems() -> None:
     )
 
 
+@requires_full_data
 def test_semantic_fingerprint_is_auditable_and_stable() -> None:
     payload, digest = merkmal.system_fingerprint(system="descriptive")
 
@@ -58,6 +70,7 @@ def test_native_wrapper_surface_is_small() -> None:
     assert "Registry" in merkmal.__all__
 
 
+@requires_full_data
 def test_native_features_and_validity() -> None:
     # `consonantal`, `obstruent` and `non-continuant` are derived by the
     # generator: the inventory NAME never says them, so the geometry leaves for
@@ -268,6 +281,7 @@ def test_native_descriptive_broadened_source_tokens() -> None:
             merkmal.get_features(token, system="descriptive")
 
 
+@requires_full_data
 def test_native_distance_matches_golden_probe() -> None:
     # The default is `distinctive`, which scores through its own
     # scalar_dimensions rather than the geometry tree. Naming the system keeps
@@ -454,6 +468,7 @@ def test_feature_distance_takes_no_system() -> None:
         merkmal.feature_distance("voiced", "voiceless", system="phoible")  # type: ignore[call-arg]
 
 
+@requires_full_data
 def test_coverage_separates_identical_from_incomparable() -> None:
     """A valued 0.0 used to mean either "the same" or "nothing to compare".
 
@@ -498,6 +513,7 @@ def test_coverage_separates_identical_from_incomparable() -> None:
     assert math.isclose(score, merkmal.distance("p", "b", system="descriptive"))
 
 
+@requires_full_data
 def test_fixed_space_distance_is_distinct_from_compatibility_score() -> None:
     value = merkmal.fixed_space_distance("p", "b", system="phoible")
     assert value > 0.0
@@ -608,6 +624,7 @@ def test_labial_velars_are_one_series() -> None:
     assert merkmal.distance("ŋm", "m") < 0.25
 
 
+@requires_full_data
 def test_feature_vectors_are_fixed_width_and_labelled() -> None:
     """Numbers for the models that want numbers, with the columns named.
 
@@ -698,6 +715,7 @@ def test_source_markup_is_distinguishable_from_an_unsupported_sound() -> None:
         assert not isinstance(caught.value, merkmal.SourceMarkerError), token
 
 
+@requires_full_data
 def test_source_conventions_cover_clts_lookalikes() -> None:
     """U+01DD TURNED E is a source spelling of schwa, and now resolves."""
     assert merkmal.normalize("ǝ") == "ə"
@@ -786,6 +804,7 @@ def test_geometry_cases_cover_every_fixture_row() -> None:
             assert b in cases, f"{name}: {b} is not in geometry_cases.tsv"
 
 
+@requires_full_data
 def test_error_messages_come_from_the_c_library() -> None:
     """The wrapper used to restate mk_status_string's text in its own words."""
     with pytest.raises(KeyError, match="unknown system"):
@@ -833,6 +852,7 @@ def test_a_duplicate_system_name_is_refused() -> None:
     assert registry.get_features("p", system="descriptive")
 
 
+@requires_full_data
 def test_cli_uses_native_wrapper(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["systems"]) == 0
     output = capsys.readouterr().out.splitlines()
@@ -849,7 +869,9 @@ def test_cli_uses_native_wrapper(capsys: pytest.CaptureFixture[str]) -> None:
         (["features", "not-ipa"], "unknown grapheme"),
         (["--system", "nope", "features", "p"], "unknown system"),
         (["distance", "p", "xyz"], "unknown grapheme"),
-        (["--system", "phoible", "features", "³³"], "unsupported"),
+        pytest.param(
+            ["--system", "phoible", "features", "³³"], "unsupported", marks=requires_full_data
+        ),
     ],
 )
 def test_cli_reports_user_mistakes_without_a_traceback(
@@ -917,6 +939,7 @@ def test_overlong_chao_runs_are_rejected_atomically() -> None:
         assert merkmal.is_segment(token, system="descriptive"), token
 
 
+@requires_full_data
 def test_valued_systems_report_tone_as_unsupported() -> None:
     """Silently dropping tone made a¹¹ and a⁵⁵ compare equal in these systems."""
     for system in ("pbase-hc", "pbase-jfh", "pbase-spe", "pbase-uftc", "phoible"):
@@ -992,6 +1015,7 @@ def test_major_class_dominates_within_class_differences() -> None:
         assert merkmal.distance(a, b, system="descriptive") < across
 
 
+@requires_full_data
 def test_valued_scorer_is_documented_as_nonmetric() -> None:
     """Guards the README's claim rather than the implementation.
 
@@ -1131,13 +1155,130 @@ def test_cluster_synthesis_defects() -> None:
     assert "geminate" in merkmal.get_features("aa")
 
 
-def test_have_utf8proc_reports_the_build():
-    import merkmal
+def test_normalization_is_the_same_in_every_build() -> None:
+    # Issue #3: a build without libutf8proc returned precomposed letters
+    # decomposed. Normalization is compiled in now, and checked against
+    # Python's own unicodedata wherever the Unicode versions agree.
+    import unicodedata
+
     from merkmal import _native
 
-    assert isinstance(merkmal.HAVE_UTF8PROC, bool)
-    assert bool(_native.HAVE_UTF8PROC) is merkmal.HAVE_UTF8PROC
-    # A full build composes; the fallback may not. Either way the flag must
-    # agree with what normalize() actually does on a precomposed letter.
-    if merkmal.HAVE_UTF8PROC:
-        assert merkmal.normalize("ḛ") == "ḛ"
+    assert merkmal.HAVE_UTF8PROC is True
+    assert bool(_native.HAVE_UTF8PROC)
+    assert merkmal.UNICODE_VERSION == _native.UNICODE_VERSION
+    assert merkmal.normalize("ḛ") == "ḛ"
+    assert merkmal.normalize("y\u0303") == "ỹ"
+    assert merkmal.normalize("gỹnh") == "ɡỹnh"
+    # Tokens come back in NFD, the tokenizer's form, in every build.
+    assert merkmal.segment_ipa("gỹnh") == ["g", "y\u0303", "n", "h"]
+    assert merkmal.normalize("u\u0308\u0324") == unicodedata.normalize("NFC", "u\u0308\u0324")
+    if unicodedata.unidata_version == merkmal.UNICODE_VERSION:
+        for text in ("ǘ", "ṏ", "ȫ", "ệ", "a\u0323\u0302", "ɔ\u0303\u0301", "가"):
+            assert merkmal.normalize(text) == unicodedata.normalize("NFC", text), text
+
+
+def _one_letter_vowels(system: str) -> list[str]:
+    """Every vowel the system's inventory spells with a single code point."""
+    inventory = Path(__file__).resolve().parents[2] / "models" / system / "inventory.tsv"
+    vowels = []
+    for line in inventory.read_text(encoding="utf-8").splitlines()[1:]:
+        grapheme, _, name = line.partition("\t")
+        if len(grapheme) == 1 and name.endswith(" vowel"):
+            vowels.append(grapheme)
+    return vowels
+
+
+@pytest.mark.parametrize("system", ["descriptive", "distinctive"])
+def test_every_vowel_letter_can_be_part_of_a_vowel_cluster(system: str) -> None:
+    # Issue #2: German ɔʏ̯ and ʏɐ were unknown while ɔɪ̯ and ɪɐ read, because
+    # ʏ was missing from the list of letters that may open a vowel component.
+    # The defect is a class, not three graphemes, so test the class: any
+    # one-letter vowel the inventory has must work as either element of a
+    # two-vowel cluster and as a non-syllabic offglide.
+    vowels = _one_letter_vowels(system)
+    assert {"ʏ", "ʮ", "ʯ", "ɿ", "ʅ"} <= set(vowels)
+    missing = [
+        token
+        for first in vowels
+        for second in vowels
+        for token in (first + second, first + second + "̯")
+        if not merkmal.is_segment(token, system=system)
+    ]
+    assert missing == []
+
+
+def test_german_front_rounded_diphthongs() -> None:
+    for token in ("ɔʏ", "ɔʏ̯", "ʏɐ"):
+        assert merkmal.is_segment(token), token
+        assert "diphthong" in merkmal.get_features(token), token
+    # A closing diphthong with a rounded offglide sits next to its unrounded twin.
+    assert merkmal.distance("ɔʏ̯", "ɔɪ̯") < merkmal.distance("ɔʏ̯", "aɪ̯")
+
+
+@pytest.mark.parametrize("system", merkmal.list_systems())
+def test_precomposed_rhotic_vowels_read_as_their_diacritic_spelling(system: str) -> None:
+    for letter, spelled in (("ɚ", "ə˞"), ("ɝ", "ɜ˞")):
+        assert merkmal.is_segment(letter, system=system), letter
+        assert merkmal.get_features(letter, system=system) == merkmal.get_features(
+            spelled, system=system
+        )
+    # The tokenizer reports what the caller wrote.
+    assert merkmal.segment_ipa("bɝd") == ["b", "ɝ", "d"]
+
+
+@pytest.mark.parametrize("system", ["descriptive", "distinctive"])
+def test_a_place_diacritic_replaces_the_base_place(system: str) -> None:
+    # Diacritic synthesis was purely additive, so `n` + dental U+032A sat at two
+    # points of the coronal scale and was refused. `n̪` read only because it is
+    # an inventory row; stacks the inventory does not list failed.
+    for token in ("ɹ̪", "d̪̤", "n̪̊", "n̪̊ʰ", "t̪ʲʰ", "t̪ˠʰ", "ɾ̪"):
+        features = merkmal.get_features(token, system=system)
+        assert "dental" in features, token
+        assert "alveolar" not in features, token
+        assert {"anterior", "distributed"} <= features, token
+        assert "non-distributed" not in features, token
+
+    # Synthesis must agree with the inventory wherever both can answer. Ring
+    # above and ring below are the same diacritic, and no row spells dental
+    # plus ring above, so each such spelling of a row goes through synthesis.
+    inventory = Path(__file__).resolve().parents[2] / "models" / system / "inventory.tsv"
+    checked = 0
+    for line in inventory.read_text(encoding="utf-8").splitlines()[1:]:
+        row = line.partition("\t")[0]
+        if "̪̥" not in row:
+            continue
+        respelled = row.replace("̪̥", "̪̊")
+        assert merkmal.get_features(respelled, system=system) == merkmal.get_features(
+            row, system=system
+        ), row
+        checked += 1
+    assert checked >= 5
+
+    # A base with no coronal place keeps the additive reading: p̪ is labiodental.
+    assert "labio-dental" in merkmal.get_features("p̪", system=system)
+
+
+@pytest.mark.parametrize("token", ["s̪̩̯", "ts̪̻̺", "a̟̠", "e̝̞", "ɔ̹̜", "e̘̙"])
+def test_contradictory_diacritics_are_refused(token: str) -> None:
+    # Opposite values of one property are a contradiction, not a combination.
+    # They used to resolve and score 0.0 against the segment with either mark.
+    assert not merkmal.is_segment(token, system="distinctive")
+
+
+@pytest.mark.parametrize("system", ["descriptive", "distinctive"])
+def test_a_tie_bar_reaches_the_complex_segment_synthesizer(system: str) -> None:
+    # The inventory lookup stripped tie bars and the synthesizer did not, so
+    # `tʂ` read and `t͡ʂ` did not.
+    for tied in ("t͡ʂ", "d͡ʐ", "k͡p", "ɡ͡b", "t͡ʂʰ"):
+        untied = tied.replace("͡", "")
+        assert merkmal.get_features(tied, system=system) == merkmal.get_features(
+            untied, system=system
+        ), tied
+
+
+@pytest.mark.parametrize(
+    ("written", "canonical"),
+    [("aˁ", "aˤ"), ("xˁ", "xˤ"), ("aːˁ", "aːˤ"), ("ε", "ɛ"), ("εː", "ɛː")],
+)
+def test_lookalike_spellings_read_as_the_ipa_letter(written: str, canonical: str) -> None:
+    assert merkmal.get_features(written) == merkmal.get_features(canonical)

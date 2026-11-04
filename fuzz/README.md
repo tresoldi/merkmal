@@ -30,9 +30,10 @@ finding is reported rather than silently tolerated.
 CI runs each for 60 seconds, which checks that the harnesses still build and
 that the seed corpus survives. It is not a campaign; run those by hand.
 
-Build with `-DMERKMAL_USE_UTF8PROC=ON` as well when changing normalization —
-utf8proc adds an NFC/NFD pass that the fallback profile does not have, so the
-two profiles are different code.
+Normalization is compiled in and is the same code in every build, so there is
+no second Unicode profile to fuzz. When changing it, also run the `unicode`
+ctest with `libutf8proc` installed: it compares every code point and 400,000
+generated mark sequences against utf8proc.
 
 ## Corpus
 

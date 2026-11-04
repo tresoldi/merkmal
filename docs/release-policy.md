@@ -4,8 +4,12 @@ This policy applies to the C library, source tarballs, and Python wheels.
 
 ## Dependency Policy
 
-Release and distribution builds require `libutf8proc` discovered through
-pkg-config:
+The C library and the Python extension have no external dependency. Unicode
+normalization is compiled in (see
+[distribution.md](distribution.md#unicode-normalization)), so a release
+artifact normalizes identically wherever it is built.
+
+Release CI must run the normalization oracle, which needs `libutf8proc`:
 
 ```sh
 cmake -S . -B build/release \
@@ -13,21 +17,11 @@ cmake -S . -B build/release \
   -DMERKMAL_REQUIRE_UTF8PROC=ON
 ```
 
-The built-in IPA-focused Unicode fallback remains available for local
-development, bootstrap builds, and early WebAssembly experiments:
-
-```sh
-cmake -S . -B build/dev -DMERKMAL_USE_UTF8PROC=OFF
-```
-
-`MERKMAL_USE_UTF8PROC=OFF` selects the fallback outright.
-`MERKMAL_REQUIRE_UTF8PROC=OFF` only tolerates it when `libutf8proc` is absent,
-so it does not reproduce the fallback on a developer machine that has the
-library installed.
-
-The project does not vendor `utf8proc` in the native C distribution. For
-WebAssembly, vendoring or `FetchContent` can be reconsidered if the Emscripten
-toolchain path makes system pkg-config integration too brittle.
+Moving to a new Unicode version is a data change: regenerate
+`src/generated/unicode_data.c` with an interpreter carrying that version, run
+the oracle against a utf8proc of the same version, and record it in the
+changelog, because `merkmal.UNICODE_VERSION` is part of what identifies a
+result.
 
 ## Supported C Toolchains
 
@@ -95,13 +89,13 @@ numbers even when no code changed.
   miscopied cells were found, so run it rather than trusting that the table
   still says what upstream says.
 - Never describe a distribution bundling the data tables as MIT-only. The
-  current expression is `MIT AND CC-BY-4.0`.
-- PHOIBLE and the four P-base models are redistributed under CC-BY-4.0 by
-  permission, not under their upstream terms (`CC-BY-SA-3.0` and
-  `CC-BY-NC-SA-4.0`). Those terms do not allow that relicense unilaterally, so
-  the permission is what the declaration rests on. Each manifest carries a
-  `relicensed` block whose `grantor`, `granted_on` and `evidence` are still
-  `UNVERIFIED`; establish them before the next data release, the same way the
-  CLTS derivation was established rather than assumed.
+  current expression is
+  `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`, and it must agree
+  in `pyproject.toml`, `setup.py`, `NOTICE` and the README.
+- PHOIBLE and the four P-base models are redistributed under their upstream
+  terms, `CC-BY-SA-3.0` and `CC-BY-NC-SA-4.0`. A relicensing to CC-BY-4.0 was
+  declared on 2026-08-13 and withdrawn on 2026-08-20, because the permission
+  it rested on was never evidenced. Do not reintroduce it without a recorded
+  grant.
 - Fields marked `UNVERIFIED` in a provenance manifest must be established
   before the next data release, not guessed from filenames.

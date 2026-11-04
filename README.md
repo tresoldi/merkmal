@@ -134,9 +134,12 @@ cmake --build build/c-debug
 ctest --test-dir build/c-debug --output-on-failure
 ```
 
-`utf8proc` is detected with `pkg-config` when available. Development
-builds can use the built-in IPA-focused fallback. To require the system
-library:
+The library has no external dependency. Unicode normalization (NFC and NFD)
+is compiled in from generated tables, so every build of a given commit —
+CMake, the Python wheel, WebAssembly — returns the same strings, at the Unicode
+version `merkmal.UNICODE_VERSION` reports. If `libutf8proc` is installed, the
+`unicode` test uses it as an independent oracle over every code point; to make
+that test mandatory:
 
 ```sh
 cmake -S . -B build/c-debug -DMERKMAL_REQUIRE_UTF8PROC=ON
@@ -167,7 +170,7 @@ cc example.c $(pkg-config --cflags --libs merkmal) -o example
 ```
 
 See [docs/distribution.md](docs/distribution.md) for static/shared builds,
-custom prefixes, and `utf8proc` dependency notes. See
+custom prefixes, and the normalization notes. See
 [docs/release-policy.md](docs/release-policy.md) for release dependency and
 validation policy. See [docs/webassembly.md](docs/webassembly.md) for the
 initial Emscripten and Node smoke-test path.
@@ -359,22 +362,29 @@ every wheel:
 | Data | License |
 | --- | --- |
 | `descriptive`, `distinctive` | CC BY 4.0 — derived from CLTS v1.4.1 |
-| `phoible` | CC BY 4.0 **by permission** (upstream: CC BY-SA 3.0) |
-| `pbase-hc`, `pbase-jfh`, `pbase-spe`, `pbase-uftc` | CC BY 4.0 **by permission** (upstream: CC BY-NC-SA 4.0) |
+| `phoible` | CC BY-SA 3.0 (upstream terms) |
+| `pbase-hc`, `pbase-jfh`, `pbase-spe`, `pbase-uftc` | CC BY-NC-SA 4.0 (upstream terms) |
 | `classfeat` | MIT |
 
-The distribution declares `MIT AND CC-BY-4.0`. **There is no non-commercial or
-share-alike restriction on anything bundled here**, which is the practical
-answer to "can my institution use this".
+The distribution declares
+`MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`. **The P-base tables
+carry a non-commercial clause, and PHOIBLE and P-base carry share-alike.** A
+product or service built on a wheel that bundles them inherits those terms.
+Every bundled table also requires attribution: credit the upstream project each
+manifest names and say that changes were made.
 
-Two things to know before relying on that. Attribution is still required: credit
-the upstream project each manifest names and say that changes were made. And
-PHOIBLE and P-base are carried under CC-BY-4.0 **by permission**, not under
-their own terms — CC-BY-SA-3.0 and CC-BY-NC-SA-4.0 do not allow dropping
-share-alike or the non-commercial clause unilaterally, so the declaration rests
-on a grant. Each manifest has a `relicensed` block whose grantor, date and
-evidence are still `UNVERIFIED`; they must be established before the next data
-release, the same way the CLTS derivation was established rather than assumed.
+If the non-commercial or share-alike terms are a problem for you, install
+**`merkmal-cc-by`** instead. It is the same code and the same `merkmal`
+package, built with only the CC BY 4.0 tables — `distinctive` (the default)
+and `descriptive` — and its wheels and source distribution contain no PHOIBLE
+or P-base data at all, so it declares `MIT AND CC-BY-4.0`:
+
+```sh
+pip install merkmal-cc-by     # instead of merkmal; the two cannot coexist
+```
+
+`merkmal.DATA_PROFILE` says which one is loaded (`"full"` or `"cc-by"`). C
+builds select the same profile with `-DMERKMAL_DATA_PROFILE=cc-by`.
 
 See [NOTICE](NOTICE), generated from `models/*/provenance.json`.
 
