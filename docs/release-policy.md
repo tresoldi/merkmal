@@ -89,13 +89,13 @@ numbers even when no code changed.
   miscopied cells were found, so run it rather than trusting that the table
   still says what upstream says.
 - Never describe a distribution bundling the data tables as MIT-only. The
-  current expression is `MIT AND CC-BY-4.0`.
-- PHOIBLE and the four P-base models are redistributed under CC-BY-4.0 by
-  permission, not under their upstream terms (`CC-BY-SA-3.0` and
-  `CC-BY-NC-SA-4.0`). Those terms do not allow that relicense unilaterally, so
-  the permission is what the declaration rests on. Each manifest carries a
-  `relicensed` block whose `grantor`, `granted_on` and `evidence` are still
-  `UNVERIFIED`; establish them before the next data release, the same way the
-  CLTS derivation was established rather than assumed.
+  current expression is
+  `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`, and it must agree
+  in `pyproject.toml`, `setup.py`, `NOTICE` and the README.
+- PHOIBLE and the four P-base models are redistributed under their upstream
+  terms, `CC-BY-SA-3.0` and `CC-BY-NC-SA-4.0`. A relicensing to CC-BY-4.0 was
+  declared on 2026-08-13 and withdrawn on 2026-08-20, because the permission
+  it rested on was never evidenced. Do not reintroduce it without a recorded
+  grant.
 - Fields marked `UNVERIFIED` in a provenance manifest must be established
   before the next data release, not guessed from filenames.

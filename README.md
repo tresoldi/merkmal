@@ -362,22 +362,21 @@ every wheel:
 | Data | License |
 | --- | --- |
 | `descriptive`, `distinctive` | CC BY 4.0 — derived from CLTS v1.4.1 |
-| `phoible` | CC BY 4.0 **by permission** (upstream: CC BY-SA 3.0) |
-| `pbase-hc`, `pbase-jfh`, `pbase-spe`, `pbase-uftc` | CC BY 4.0 **by permission** (upstream: CC BY-NC-SA 4.0) |
+| `phoible` | CC BY-SA 3.0 (upstream terms) |
+| `pbase-hc`, `pbase-jfh`, `pbase-spe`, `pbase-uftc` | CC BY-NC-SA 4.0 (upstream terms) |
 | `classfeat` | MIT |
 
-The distribution declares `MIT AND CC-BY-4.0`. **There is no non-commercial or
-share-alike restriction on anything bundled here**, which is the practical
-answer to "can my institution use this".
+The distribution declares
+`MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`. **The P-base tables
+carry a non-commercial clause, and PHOIBLE and P-base carry share-alike.** A
+product or service built on a wheel that bundles them inherits those terms.
+Every bundled table also requires attribution: credit the upstream project each
+manifest names and say that changes were made.
 
-Two things to know before relying on that. Attribution is still required: credit
-the upstream project each manifest names and say that changes were made. And
-PHOIBLE and P-base are carried under CC-BY-4.0 **by permission**, not under
-their own terms — CC-BY-SA-3.0 and CC-BY-NC-SA-4.0 do not allow dropping
-share-alike or the non-commercial clause unilaterally, so the declaration rests
-on a grant. Each manifest has a `relicensed` block whose grantor, date and
-evidence are still `UNVERIFIED`; they must be established before the next data
-release, the same way the CLTS derivation was established rather than assumed.
+If the non-commercial clause is a problem for you, the default system
+(`distinctive`) and `descriptive` are CC BY 4.0 and do not depend on the P-base
+or PHOIBLE tables; what you cannot do today is install a wheel without those
+tables in it.
 
 See [NOTICE](NOTICE), generated from `models/*/provenance.json`.
 

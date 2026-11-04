@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.9.0 (unreleased)
+
+The first release of the C core and the native Python wrapper. Everything
+from here down to 0.6.0 belongs to it; 0.6.0 and earlier were the retired
+pure-Python and Go implementation.
 
 ### A place diacritic moves the segment, and contradictory marks are refused
 
@@ -550,7 +554,15 @@ PHOIBLE, which has it. Both at once, with a test asserting each half.
 No golden fixture moves — the extra lookup changes which spelling wins, not what
 any segment scores.
 
-### One license for the data, and what it rests on
+### One license for the data, and what it rests on — withdrawn
+
+> **Withdrawn on 2026-08-20 (2279c83).** The permission this entry rests on was
+> never evidenced, so PHOIBLE is back under CC-BY-SA-3.0 and the four P-base
+> models under CC-BY-NC-SA-4.0, their upstream terms, and the distribution
+> declares `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`. The
+> README and `docs/release-policy.md` went on repeating the relicensed terms
+> until the release preparation corrected them. The entry is kept as the record
+> of what was claimed.
 
 **No bundled table now carries a non-commercial or share-alike restriction.**
 The distribution declares `MIT AND CC-BY-4.0`, down from
@@ -1126,10 +1138,12 @@ of those statements was wrong.
   on PyPI declare `MIT` and ship CLTS-derived data. Those releases are being
   left in place; the correction is to be disclosed on the project page.
 
-## 1.0.0
+## Earlier development (versioned 1.0.0 in the tree, never released)
 
-The public C API is stable from here. Three breaking changes are batched into
-this release and nothing else changes behavior; see the migration table in
+This work carried the version 1.0.0 until 2026-08-20 (3529398), when it was
+stepped back to 0.9.0 before any release. Nothing was published as 1.0.0, and
+the C API is not yet promised stable: that promise is for 1.0.0 proper. Three
+breaking changes were batched here; see the migration table in
 [docs/c-api.md](docs/c-api.md).
 
 - **Breaking (C):** `mk_free_string` is now `mk_string_free`. A rename only. It
