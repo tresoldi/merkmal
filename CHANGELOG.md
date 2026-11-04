@@ -48,15 +48,37 @@ so the next missing letter fails the suite rather than a user's corpus.
 are read as `ə˞` and `ɜ˞` by every system. PHOIBLE's own `ɚ` row is untouched:
 the inventory is consulted before the conventions are.
 
-### `merkmal.HAVE_UTF8PROC` tells the two builds apart
+### Normalization is compiled in, and every build agrees (#3)
 
-A build without libutf8proc falls back to built-in normalization, which can
-return a different string for the same input (a precomposed letter such as
-`ḛ` came back decomposed), under the same `__version__`. The new
-`merkmal.HAVE_UTF8PROC` (and `merkmal._native.HAVE_UTF8PROC`) says which build
-is loaded, so caches of merkmal output can key on it, and `setup.py` now warns
-on stderr when it falls back. Found when two machines built arcaverborum with
-the same merkmal commit and 250 of 7,304 varieties differed.
+NFC and NFD came from libutf8proc when it was installed and from a 45-pair
+hand list when it was not. The two disagreed — `gỹnh` came back with `ỹ`
+decomposed from a build on a runner without utf8proc — under one commit and one
+`__version__`. Found when two machines built arcaverborum from the same merkmal
+commit and 250 of 7,304 varieties differed. Two utf8proc builds could disagree
+too, whenever their utf8proc versions carried different Unicode versions.
+
+The library now carries complete Unicode canonical normalization — full
+decomposition, canonical reordering, composition with blocking and the
+exclusions, Hangul — as tables generated from the Unicode Character Database
+(`tools/generate_unicode_data.py`, Unicode 15.1.0) and about 300 lines of C.
+Every build runs it: CMake, the Python extension, WebAssembly. The `unicode`
+ctest compares it with utf8proc over all 1,112,064 scalar values and 400,000
+generated mark sequences, and agrees on every one; CI runs that comparison
+under ASan and UBSan as well. Bytes that are not well-formed UTF-8 pass through
+unchanged instead of making utf8proc builds report `MK_ERR_OOM`.
+
+- **The library has no external dependency.** The installed CMake package and
+  `merkmal.pc` no longer require utf8proc, and `setup.py` no longer looks for
+  it. `MERKMAL_USE_UTF8PROC` and `MERKMAL_REQUIRE_UTF8PROC` now only control
+  the test oracle; the `MERKMAL_REQUIRE_UTF8PROC` environment variable is
+  accepted and ignored by `setup.py`.
+- Added: `merkmal.UNICODE_VERSION`. With `__version__`, it identifies
+  everything that can change a normalized string.
+- `merkmal.HAVE_UTF8PROC`, added earlier in this release to tell the two builds
+  apart, is kept for compatibility and is `True` in every build: there is no
+  degraded build left to detect.
+- Costs 44 KB of read-only data; code is 126 bytes smaller
+  ([bench/baseline.txt](bench/baseline.txt)).
 
 ### `broad` is retired
 

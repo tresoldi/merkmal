@@ -1131,16 +1131,26 @@ def test_cluster_synthesis_defects() -> None:
     assert "geminate" in merkmal.get_features("aa")
 
 
-def test_have_utf8proc_reports_the_build():
-    import merkmal
+def test_normalization_is_the_same_in_every_build() -> None:
+    # Issue #3: a build without libutf8proc returned precomposed letters
+    # decomposed. Normalization is compiled in now, and checked against
+    # Python's own unicodedata wherever the Unicode versions agree.
+    import unicodedata
+
     from merkmal import _native
 
-    assert isinstance(merkmal.HAVE_UTF8PROC, bool)
-    assert bool(_native.HAVE_UTF8PROC) is merkmal.HAVE_UTF8PROC
-    # A full build composes; the fallback may not. Either way the flag must
-    # agree with what normalize() actually does on a precomposed letter.
-    if merkmal.HAVE_UTF8PROC:
-        assert merkmal.normalize("ḛ") == "ḛ"
+    assert merkmal.HAVE_UTF8PROC is True
+    assert bool(_native.HAVE_UTF8PROC)
+    assert merkmal.UNICODE_VERSION == _native.UNICODE_VERSION
+    assert merkmal.normalize("ḛ") == "ḛ"
+    assert merkmal.normalize("y\u0303") == "ỹ"
+    assert merkmal.normalize("gỹnh") == "ɡỹnh"
+    # Tokens come back in NFD, the tokenizer's form, in every build.
+    assert merkmal.segment_ipa("gỹnh") == ["g", "y\u0303", "n", "h"]
+    assert merkmal.normalize("u\u0308\u0324") == unicodedata.normalize("NFC", "u\u0308\u0324")
+    if unicodedata.unidata_version == merkmal.UNICODE_VERSION:
+        for text in ("ǘ", "ṏ", "ȫ", "ệ", "a\u0323\u0302", "ɔ\u0303\u0301", "가"):
+            assert merkmal.normalize(text) == unicodedata.normalize("NFC", text), text
 
 
 def _one_letter_vowels(system: str) -> list[str]:

@@ -1,5 +1,3 @@
 @PACKAGE_INIT@
 
-@MERKMAL_CONFIG_UTF8PROC@
-
 include("${CMAKE_CURRENT_LIST_DIR}/merkmal-targets.cmake")

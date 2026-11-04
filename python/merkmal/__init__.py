@@ -27,11 +27,15 @@ NativeError = _native.NativeError
 # catches ValueError is unaffected; catch this one to skip the source's own
 # known gaps without also swallowing segments the library genuinely lacks.
 SourceMarkerError = _native.SourceMarkerError
-# False for a development build without libutf8proc, whose fallback
-# normalization can differ from a full build's on the same input (e.g. a
-# precomposed letter coming back decomposed). Same __version__ either way, so
-# anything that caches merkmal output should record this too.
-HAVE_UTF8PROC = bool(getattr(_native, "HAVE_UTF8PROC", 0))
+# The Unicode version of the compiled-in NFC/NFD tables. Every build of one
+# commit normalizes identically, so a cache of merkmal output keyed on
+# __version__ and UNICODE_VERSION is keyed on everything that can move it.
+UNICODE_VERSION: str = _native.UNICODE_VERSION
+# Deprecated, and True in every build. It used to say whether libutf8proc was
+# linked, because a build without it could normalize differently; since
+# normalization was compiled in, none does. Kept so that code refusing a
+# degraded build keeps importing. Key caches on UNICODE_VERSION instead.
+HAVE_UTF8PROC = True
 diagnose = _native.diagnose
 distance = _native.distance
 
@@ -310,6 +314,7 @@ __all__ = [
     "feature_vector",
     "get_features",
     "HAVE_UTF8PROC",
+    "UNICODE_VERSION",
     "is_segment",
     "list_systems",
     "load_geometry",

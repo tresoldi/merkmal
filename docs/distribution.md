@@ -41,26 +41,29 @@ cmake -S . -B build/static -DBUILD_SHARED_LIBS=OFF
 The public header uses `MK_API` for exported symbols. Consumers normally do not
 need to define anything manually when they use the installed CMake target.
 
-## utf8proc
+## Unicode normalization
 
-`utf8proc` is discovered with pkg-config.
+The library has no external dependency. NFC and NFD are compiled in from
+`src/generated/unicode_data.c`, which `tools/generate_unicode_data.py` writes
+from the Unicode Character Database of the generating Python. Every build —
+static, shared, Python, WebAssembly — normalizes identically, at the version in
+`mki_unicode_version` (exposed to Python as `merkmal.UNICODE_VERSION`).
 
-Two options, and they answer different questions.
+Earlier versions used `libutf8proc` when it was installed and an IPA-focused
+approximation when it was not, and the two returned different strings for the
+same input. That distinction is gone, and the installed CMake package and
+`merkmal.pc` no longer name utf8proc.
 
-- `MERKMAL_USE_UTF8PROC` (default `ON`) decides whether to look for it at all.
-  `OFF` selects the IPA-focused fallback even on a machine that has
-  `libutf8proc` installed, which is the only way to build and test the profile
-  WebAssembly ships.
-- `MERKMAL_REQUIRE_UTF8PROC` (default `OFF`) decides what happens when it is
-  not found. `ON` fails configuration; `OFF` falls back silently.
+`libutf8proc` survives only as a test oracle:
 
-`MERKMAL_REQUIRE_UTF8PROC=OFF` on its own does not select the fallback — it
-only permits it, and a machine with `libutf8proc` installed still gets
-`utf8proc`. Use `MERKMAL_USE_UTF8PROC=OFF` to select it.
+- `MERKMAL_USE_UTF8PROC` (default `ON`) looks for it, and if found the
+  `unicode` test compares the built-in normalizer with it over every code
+  point and 400,000 generated mark sequences. When utf8proc carries a
+  different Unicode version than the tables, the test reports a skip.
+- `MERKMAL_REQUIRE_UTF8PROC` (default `OFF`) makes its absence a configuration
+  error, for CI jobs that must run the oracle.
 
-Distribution builds should use `MERKMAL_REQUIRE_UTF8PROC=ON`.
-See [release-policy.md](release-policy.md) for the current release dependency
-policy.
+Neither option changes the library that is built.
 
 ## CMake Consumers
 

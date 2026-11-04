@@ -12,11 +12,12 @@ include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
 option(MERKMAL_BUILD_TESTS "Build merkmal C tests" ON)
-option(MERKMAL_REQUIRE_UTF8PROC "Fail configuration if system utf8proc is missing" OFF)
-# REQUIRE only decides what happens when utf8proc is absent. USE decides whether
-# to look for it at all, so that the fallback profile -- the one WebAssembly
-# ships -- can be selected and tested on a machine that has utf8proc installed.
-option(MERKMAL_USE_UTF8PROC "Use system utf8proc when available" ON)
+# utf8proc is no longer a dependency of the library: NFC and NFD are compiled
+# in from the Unicode tables, identically in every build. It is used only as
+# an independent oracle by the `unicode` test. USE decides whether to look for
+# it; REQUIRE makes its absence fatal, for CI jobs that must run the oracle.
+option(MERKMAL_REQUIRE_UTF8PROC "Fail configuration if utf8proc (the test oracle) is missing" OFF)
+option(MERKMAL_USE_UTF8PROC "Use system utf8proc as a normalization test oracle when available" ON)
 option(MERKMAL_WERROR "Treat compiler warnings as errors (intended for CI)" OFF)
 option(MERKMAL_BUILD_FUZZERS "Build the libFuzzer harnesses (Clang only)" OFF)
 option(MERKMAL_BUILD_EXAMPLES "Build the examples" ON)
@@ -41,7 +42,7 @@ if(MERKMAL_REQUIRE_UTF8PROC AND NOT MERKMAL_USE_UTF8PROC)
 endif()
 
 if(MERKMAL_REQUIRE_UTF8PROC AND NOT UTF8PROC_FOUND)
-    message(FATAL_ERROR "libutf8proc was not found. Install it or disable MERKMAL_REQUIRE_UTF8PROC for development builds.")
+    message(FATAL_ERROR "libutf8proc was not found. It is only needed for the normalization oracle test; install it or disable MERKMAL_REQUIRE_UTF8PROC.")
 endif()
 
 set(MERKMAL_SOURCES
@@ -62,8 +63,10 @@ set(MERKMAL_SOURCES
     src/vector.c
     src/tokenize.c
     src/tone.c
+    src/unicode_norm.c
     src/utf8.c
     src/generated/builtin_data.c
+    src/generated/unicode_data.c
 )
 
 add_library(merkmal ${MERKMAL_SOURCES})
@@ -91,13 +94,6 @@ target_include_directories(merkmal
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-
-if(UTF8PROC_FOUND)
-    target_compile_definitions(merkmal PRIVATE MK_HAVE_UTF8PROC=1)
-    target_link_libraries(merkmal PUBLIC PkgConfig::UTF8PROC)
-else()
-    target_compile_definitions(merkmal PRIVATE MK_HAVE_UTF8PROC=0)
-endif()
 
 # The first-party sources are clean at this set; it is enforced rather than
 # aspirational. -Werror is opt-in so that CI can gate on it without imposing it
@@ -202,12 +198,6 @@ if(MERKMAL_BUILD_TESTS)
             ${CMAKE_CURRENT_SOURCE_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
-    if(UTF8PROC_FOUND)
-        target_compile_definitions(test_resolution PRIVATE MK_HAVE_UTF8PROC=1)
-        target_link_libraries(test_resolution PRIVATE PkgConfig::UTF8PROC)
-    else()
-        target_compile_definitions(test_resolution PRIVATE MK_HAVE_UTF8PROC=0)
-    endif()
     if(MERKMAL_ENABLE_SANITIZER)
         target_compile_options(test_resolution
             PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
@@ -224,12 +214,6 @@ if(MERKMAL_BUILD_TESTS)
             ${CMAKE_CURRENT_SOURCE_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
-    if(UTF8PROC_FOUND)
-        target_compile_definitions(test_scoring PRIVATE MK_HAVE_UTF8PROC=1)
-        target_link_libraries(test_scoring PRIVATE PkgConfig::UTF8PROC)
-    else()
-        target_compile_definitions(test_scoring PRIVATE MK_HAVE_UTF8PROC=0)
-    endif()
     if(MERKMAL_ENABLE_SANITIZER)
         target_compile_options(test_scoring
             PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
@@ -246,12 +230,6 @@ if(MERKMAL_BUILD_TESTS)
             ${CMAKE_CURRENT_SOURCE_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
-    if(UTF8PROC_FOUND)
-        target_compile_definitions(test_cluster PRIVATE MK_HAVE_UTF8PROC=1)
-        target_link_libraries(test_cluster PRIVATE PkgConfig::UTF8PROC)
-    else()
-        target_compile_definitions(test_cluster PRIVATE MK_HAVE_UTF8PROC=0)
-    endif()
     if(MERKMAL_ENABLE_SANITIZER)
         target_compile_options(test_cluster
             PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
@@ -259,6 +237,32 @@ if(MERKMAL_BUILD_TESTS)
         target_link_options(test_cluster PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
     endif()
     add_test(NAME cluster COMMAND test_cluster)
+
+    # The built-in NFC and NFD. With utf8proc found, the test also compares
+    # every code point and generated mark sequences against it; utf8proc is a
+    # test oracle here, never a dependency of the library.
+    add_executable(test_unicode tests/c/test_unicode.c src/unicode_norm.c src/generated/unicode_data.c)
+    target_include_directories(test_unicode
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+    if(UTF8PROC_FOUND)
+        target_compile_definitions(test_unicode PRIVATE MK_HAVE_UTF8PROC=1)
+        target_link_libraries(test_unicode PRIVATE PkgConfig::UTF8PROC)
+    else()
+        target_compile_definitions(test_unicode PRIVATE MK_HAVE_UTF8PROC=0)
+    endif()
+    if(MERKMAL_ENABLE_SANITIZER)
+        target_compile_options(test_unicode
+            PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
+        )
+        target_link_options(test_unicode PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
+    endif()
+    add_test(NAME unicode COMMAND test_unicode)
+    # A utf8proc carrying another Unicode version than the tables cannot serve
+    # as the oracle; the test exits 77 and ctest reports a skip.
+    set_tests_properties(unicode PROPERTIES SKIP_RETURN_CODE 77)
 
     # The tests are first-party sources and compile under the library's warning
     # set too. Previously only test_header and test_resolution did, which meant
@@ -274,6 +278,7 @@ if(MERKMAL_BUILD_TESTS)
         test_resolution
         test_scoring
         test_cluster
+        test_unicode
     )
         target_compile_options(${target} PRIVATE ${MERKMAL_C_WARNINGS})
     endforeach()
@@ -323,12 +328,6 @@ if(MERKMAL_BUILD_FUZZERS)
             PRIVATE -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer -g
         )
         target_link_options(fuzz_${target} PRIVATE -fsanitize=fuzzer,address,undefined)
-        if(UTF8PROC_FOUND)
-            target_compile_definitions(fuzz_${target} PRIVATE MK_HAVE_UTF8PROC=1)
-            target_link_libraries(fuzz_${target} PRIVATE PkgConfig::UTF8PROC)
-        else()
-            target_compile_definitions(fuzz_${target} PRIVATE MK_HAVE_UTF8PROC=0)
-        endif()
     endforeach()
 endif()
 
@@ -341,16 +340,8 @@ if(Python3_Interpreter_FOUND)
     )
 endif()
 
-if(UTF8PROC_FOUND)
-    set(MERKMAL_PC_REQUIRES_PRIVATE "libutf8proc")
-    set(MERKMAL_CONFIG_UTF8PROC
-"include(CMakeFindDependencyMacro)
-find_dependency(PkgConfig)
-pkg_check_modules(UTF8PROC REQUIRED IMPORTED_TARGET libutf8proc)")
-else()
-    set(MERKMAL_PC_REQUIRES_PRIVATE "")
-    set(MERKMAL_CONFIG_UTF8PROC "")
-endif()
+# The library has no external dependency: normalization is compiled in.
+set(MERKMAL_PC_REQUIRES_PRIVATE "")
 
 configure_package_config_file(
     cmake/merkmal-config.cmake.in

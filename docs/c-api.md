@@ -455,10 +455,9 @@ compared equal to `a⁵⁵`. Those systems now return `MK_ERR_UNSUPPORTED_MODEL`
 for a tone-bearing grapheme rather than a zero that would read as established
 tonal equality.
 
-`mk_normalize_grapheme` uses `utf8proc` when available. The fallback path
-covers the IPA normalization cases used by the built-in models and tests.
-Release builds should enable `utf8proc`; see
-[release-policy.md](release-policy.md).
+`mk_normalize_grapheme` returns NFC and the tokenizers work in NFD, both from
+compiled Unicode tables, identically in every build; see
+[distribution.md](distribution.md#unicode-normalization).
 
 ## Containers
 

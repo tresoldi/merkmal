@@ -21,7 +21,7 @@ cd "$root"
 
 printf '# merkmal footprint report\n'
 printf '# compiler: %s\n' "$($cc --version 2>/dev/null | head -1)"
-printf '# flags: -std=c99 -O2 -DNDEBUG -DMK_HAVE_UTF8PROC=0\n'
+printf '# flags: -std=c99 -O2 -DNDEBUG\n'
 printf '\n'
 
 # --- native objects -------------------------------------------------------
@@ -35,7 +35,7 @@ total_relocs=0
 
 for source in src/*.c src/generated/*.c; do
     object="$build_dir/$(echo "$source" | tr '/' '_').o"
-    $cc -std=c99 -O2 -DNDEBUG -DMK_HAVE_UTF8PROC=0 \
+    $cc -std=c99 -O2 -DNDEBUG \
         -Iinclude -Isrc -c "$source" -o "$object"
 
     text=$(size -A "$object" | awk '$1 == ".text" { print $2 }')
@@ -83,7 +83,7 @@ emcc \
     -std=c99 \
     -O2 \
     -DNDEBUG \
-    -DMK_HAVE_UTF8PROC=0 \
+    \
     -Iinclude \
     -Isrc \
     src/*.c \

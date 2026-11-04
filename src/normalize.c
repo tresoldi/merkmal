@@ -4,14 +4,11 @@
 
 #include "generated/builtin_data.h"
 #include "strings.h"
+#include "unicode_norm.h"
 #include "utf8.h"
 
 #include <stdlib.h>
 #include <string.h>
-
-#if MK_HAVE_UTF8PROC
-#include <utf8proc.h>
-#endif
 
 static const char *mk_resolve_slash(const char *s)
 {
@@ -105,8 +102,8 @@ static const mk_decomposition mk_source_conventions[] = {
  * a source writing "ʧ" means the same segment as one writing "tʃ" -- while the
  * tokenizer must not, because it reports the token as the caller wrote it.
  *
- * Decomposition is driven by the table rather than by utf8proc, so lookup
- * accepts the same graphemes whether or not utf8proc is installed. The table
+ * Decomposition is driven by this table rather than by full NFD, so lookup
+ * never decomposes a letter into a mark it would then misread. The table
  * covers only letters whose combining marks the feature system can interpret,
  * so an unsupported source letter is still rejected rather than silently
  * reinterpreted. */
@@ -199,134 +196,6 @@ mk_status mki_normalize_input_grapheme_literal(
     );
 }
 
-static const char *mk_compose_known_pair(const char *base, const char *mark)
-{
-    if (mki_streq(base, "a") && mki_streq(mark, "̃")) {
-        return "ã";
-    }
-    if (mki_streq(base, "e") && mki_streq(mark, "̃")) {
-        return "ẽ";
-    }
-    if (mki_streq(base, "i") && mki_streq(mark, "̃")) {
-        return "ĩ";
-    }
-    if (mki_streq(base, "o") && mki_streq(mark, "̃")) {
-        return "õ";
-    }
-    if (mki_streq(base, "u") && mki_streq(mark, "̃")) {
-        return "ũ";
-    }
-    if (mki_streq(base, "v") && mki_streq(mark, "̃")) {
-        return "ṽ";
-    }
-    if (mki_streq(base, "a") && mki_streq(mark, "̈")) {
-        return "ä";
-    }
-    if (mki_streq(base, "e") && mki_streq(mark, "̈")) {
-        return "ë";
-    }
-    if (mki_streq(base, "i") && mki_streq(mark, "̈")) {
-        return "ï";
-    }
-    if (mki_streq(base, "o") && mki_streq(mark, "̈")) {
-        return "ö";
-    }
-    if (mki_streq(base, "y") && mki_streq(mark, "̈")) {
-        return "ÿ";
-    }
-    if (mki_streq(base, "a") && mki_streq(mark, "̆")) {
-        return "ă";
-    }
-    if (mki_streq(base, "e") && mki_streq(mark, "̆")) {
-        return "ĕ";
-    }
-    if (mki_streq(base, "i") && mki_streq(mark, "̆")) {
-        return "ĭ";
-    }
-    if (mki_streq(base, "o") && mki_streq(mark, "̆")) {
-        return "ŏ";
-    }
-    if (mki_streq(base, "u") && mki_streq(mark, "̆")) {
-        return "ŭ";
-    }
-    if (mki_streq(base, "c") && mki_streq(mark, "̧")) {
-        return "ç";
-    }
-    if (mki_streq(base, "a") && mki_streq(mark, "́")) {
-        return "á";
-    }
-    if (mki_streq(base, "e") && mki_streq(mark, "́")) {
-        return "é";
-    }
-    if (mki_streq(base, "i") && mki_streq(mark, "́")) {
-        return "í";
-    }
-    if (mki_streq(base, "o") && mki_streq(mark, "́")) {
-        return "ó";
-    }
-    if (mki_streq(base, "u") && mki_streq(mark, "́")) {
-        return "ú";
-    }
-    if (mki_streq(base, "a") && mki_streq(mark, "̀")) {
-        return "à";
-    }
-    if (mki_streq(base, "e") && mki_streq(mark, "̀")) {
-        return "è";
-    }
-    if (mki_streq(base, "i") && mki_streq(mark, "̀")) {
-        return "ì";
-    }
-    if (mki_streq(base, "o") && mki_streq(mark, "̀")) {
-        return "ò";
-    }
-    if (mki_streq(base, "u") && mki_streq(mark, "̀")) {
-        return "ù";
-    }
-    if (mki_streq(base, "a") && mki_streq(mark, "̂")) {
-        return "â";
-    }
-    if (mki_streq(base, "e") && mki_streq(mark, "̂")) {
-        return "ê";
-    }
-    if (mki_streq(base, "i") && mki_streq(mark, "̂")) {
-        return "î";
-    }
-    if (mki_streq(base, "o") && mki_streq(mark, "̂")) {
-        return "ô";
-    }
-    if (mki_streq(base, "u") && mki_streq(mark, "̂")) {
-        return "û";
-    }
-    if (mki_streq(base, "u") && mki_streq(mark, "̈")) {
-        return "ü";
-    }
-    if (mki_streq(base, "u") && mki_streq(mark, "̤")) {
-        return "ṳ";
-    }
-    if (mki_streq(base, "i") && mki_streq(mark, "̰")) {
-        return "ḭ";
-    }
-    if (mki_streq(base, "u") && mki_streq(mark, "̰")) {
-        return "ṵ";
-    }
-    if (mki_streq(base, "a") && mki_streq(mark, "̄")) {
-        return "ā";
-    }
-    if (mki_streq(base, "e") && mki_streq(mark, "̄")) {
-        return "ē";
-    }
-    if (mki_streq(base, "i") && mki_streq(mark, "̄")) {
-        return "ī";
-    }
-    if (mki_streq(base, "o") && mki_streq(mark, "̄")) {
-        return "ō";
-    }
-    if (mki_streq(base, "u") && mki_streq(mark, "̄")) {
-        return "ū";
-    }
-    return NULL;
-}
-
 mk_status mk_normalize_grapheme(
     const char *utf8_in,
     char **utf8_out
@@ -335,6 +204,7 @@ mk_status mk_normalize_grapheme(
     const char *p;
     char *tmp;
     char *out;
+    char *composed = NULL;
     size_t len;
     size_t cap;
     mk_status status;
@@ -349,46 +219,22 @@ mk_status mk_normalize_grapheme(
         return status;
     }
 
+    /* The script g is the IPA letter; the source conventions above folded it
+     * to ASCII for lookup, and the caller gets it back. */
     out = NULL;
     len = 0;
     cap = 0;
-    p = tmp;
-    while (*p != '\0') {
-        size_t base_len = mki_utf8_step(p);
-        if (p[base_len] != '\0') {
-            char base[5];
-            char mark[5];
-            size_t mark_len = mki_utf8_step(p + base_len);
-            const char *composed;
-
-            memcpy(base, p, base_len);
-            base[base_len] = '\0';
-            memcpy(mark, p + base_len, mark_len);
-            mark[mark_len] = '\0';
-            composed = mk_compose_known_pair(base, mark);
-            if (composed != NULL) {
-                status = mki_append_text(&out, &len, &cap, composed);
-                p += base_len + mark_len;
-            } else if (*p == 'g') {
-                status = mki_append_text(&out, &len, &cap, "ɡ");
-                p++;
-            } else {
-                char one[5];
-                size_t n = mki_utf8_step(p);
-                memcpy(one, p, n);
-                one[n] = '\0';
-                status = mki_append_text(&out, &len, &cap, one);
-                p += n;
-            }
-        } else if (*p == 'g') {
+    for (p = tmp; *p != '\0'; ) {
+        if (*p == 'g') {
             status = mki_append_text(&out, &len, &cap, "ɡ");
             p++;
         } else {
             char one[5];
-            memcpy(one, p, base_len);
-            one[base_len] = '\0';
+            size_t n = mki_utf8_step(p);
+            memcpy(one, p, n);
+            one[n] = '\0';
             status = mki_append_text(&out, &len, &cap, one);
-            p += base_len;
+            p += n;
         }
         if (status != MK_OK) {
             free(tmp);
@@ -398,25 +244,16 @@ mk_status mk_normalize_grapheme(
     }
     free(tmp);
 
-    if (out == NULL) {
-        out = mki_strdup_internal("");
-        if (out == NULL) {
-            return MK_ERR_OOM;
-        }
+    /* NFC from the compiled tables, in every build. This used to be utf8proc
+     * when it was installed and a 45-pair hand list when it was not, so the
+     * same commit returned `ỹ` composed on one machine and decomposed on
+     * another (issue #3). */
+    status = mki_unicode_nfc(out == NULL ? "" : out, &composed);
+    free(out);
+    if (status != MK_OK) {
+        return status;
     }
-
-#if MK_HAVE_UTF8PROC
-    {
-        utf8proc_uint8_t *nfc = utf8proc_NFC((const utf8proc_uint8_t *)out);
-        free(out);
-        if (nfc == NULL) {
-            return MK_ERR_OOM;
-        }
-        out = (char *)nfc;
-    }
-#endif
-
-    *utf8_out = out;
+    *utf8_out = composed;
     return MK_OK;
 }
 
@@ -435,25 +272,23 @@ mk_status mki_segmentation_nfd(
 
     /* The same table lookup uses, so the tokenizer and the recognizer agree on
      * which precomposed letters decompose. This used to be a separate
-     * hand-written list of twenty-one letters against the table's 386, which
-     * only mattered when utf8proc was absent -- exactly the build that has no
-     * second chance to get it right. The source conventions are not applied
-     * here: a token is reported as the caller wrote it. */
+     * hand-written list of twenty-one letters against the table's 386. The
+     * source conventions are not applied here: a token is reported as the
+     * caller wrote it. Full NFD follows, from the compiled Unicode tables. */
     status = mk_decompose(utf8_in, 0, &tmp);
     if (status != MK_OK) {
         return status;
     }
 
-#if MK_HAVE_UTF8PROC
     {
-        utf8proc_uint8_t *normalized = utf8proc_NFD((const utf8proc_uint8_t *)tmp);
+        char *normalized = NULL;
+        status = mki_unicode_nfd(tmp, &normalized);
         free(tmp);
-        if (normalized == NULL) {
-            return MK_ERR_OOM;
+        if (status != MK_OK) {
+            return status;
         }
-        tmp = (char *)normalized;
+        tmp = normalized;
     }
-#endif
 
     if (tmp == NULL) {
         tmp = mki_strdup_internal("");

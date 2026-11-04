@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import glob
 import os
-import subprocess
-import sys
 
 from setuptools import Extension, setup
 
@@ -24,55 +22,10 @@ SOURCES = ["python/src/merkmal_module.c"] + sorted(
     for path in glob.glob(os.path.join(HERE, pattern))
 )
 
-# Distribution builds must not silently fall back to the built-in Unicode
-# path. Set this in any environment that produces artifacts for other people
-# (cibuildwheel does, via CIBW_ENVIRONMENT) so a missing libutf8proc fails the
-# build instead of shipping degraded normalization to every installer.
-REQUIRE_UTF8PROC = os.environ.get("MERKMAL_REQUIRE_UTF8PROC", "").lower() in {
-    "1",
-    "on",
-    "true",
-    "yes",
-}
-
-
-def utf8proc_build_options() -> tuple[list[tuple[str, str]], list[str], list[str]]:
-    try:
-        subprocess.run(
-            ["pkg-config", "--exists", "libutf8proc"],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except (OSError, subprocess.CalledProcessError):
-        if REQUIRE_UTF8PROC:
-            raise SystemExit(
-                "merkmal: libutf8proc not found via pkg-config, and "
-                "MERKMAL_REQUIRE_UTF8PROC is set. Install libutf8proc "
-                "development headers, or unset the variable to build with the "
-                "IPA-focused fallback (development builds only)."
-            ) from None
-        print(
-            "merkmal: WARNING: libutf8proc not found via pkg-config; building "
-            "with the IPA-focused fallback normalization. Output can differ "
-            "from a full build (merkmal.HAVE_UTF8PROC is False). Install "
-            "libutf8proc development headers for identical results.",
-            file=sys.stderr,
-        )
-        return [("MK_HAVE_UTF8PROC", "0")], [], []
-
-    cflags = subprocess.check_output(
-        ["pkg-config", "--cflags", "libutf8proc"],
-        text=True,
-    ).split()
-    libs = subprocess.check_output(
-        ["pkg-config", "--libs", "libutf8proc"],
-        text=True,
-    ).split()
-    return [("MK_HAVE_UTF8PROC", "1")], cflags, libs
-
-
-utf8proc_macros, utf8proc_cflags, utf8proc_ldflags = utf8proc_build_options()
+# Unicode normalization is compiled in from src/generated/unicode_data.c, so
+# the extension has no system dependency and every build normalizes alike.
+# MERKMAL_REQUIRE_UTF8PROC, which made a missing libutf8proc fatal, is accepted
+# and ignored so that existing build scripts keep working.
 
 # The same warning set the CMake build enforces, minus two that the CPython API
 # forces on any extension:
@@ -113,16 +66,14 @@ setup(
             include_dirs=["include", "src"],
             define_macros=[
                 ("Py_LIMITED_API", "0x030C0000"),
-                *utf8proc_macros,
             ],
             py_limited_api=True,
             extra_compile_args=[
                 "-std=c99",
                 *WARNINGS,
                 *SANITIZE_FLAGS,
-                *utf8proc_cflags,
             ],
-            extra_link_args=[*SANITIZE_FLAGS, *utf8proc_ldflags],
+            extra_link_args=[*SANITIZE_FLAGS],
         )
     ],
 )

@@ -134,9 +134,12 @@ cmake --build build/c-debug
 ctest --test-dir build/c-debug --output-on-failure
 ```
 
-`utf8proc` is detected with `pkg-config` when available. Development
-builds can use the built-in IPA-focused fallback. To require the system
-library:
+The library has no external dependency. Unicode normalization (NFC and NFD)
+is compiled in from generated tables, so every build of a given commit —
+CMake, the Python wheel, WebAssembly — returns the same strings, at the Unicode
+version `merkmal.UNICODE_VERSION` reports. If `libutf8proc` is installed, the
+`unicode` test uses it as an independent oracle over every code point; to make
+that test mandatory:
 
 ```sh
 cmake -S . -B build/c-debug -DMERKMAL_REQUIRE_UTF8PROC=ON
@@ -167,7 +170,7 @@ cc example.c $(pkg-config --cflags --libs merkmal) -o example
 ```
 
 See [docs/distribution.md](docs/distribution.md) for static/shared builds,
-custom prefixes, and `utf8proc` dependency notes. See
+custom prefixes, and the normalization notes. See
 [docs/release-policy.md](docs/release-policy.md) for release dependency and
 validation policy. See [docs/webassembly.md](docs/webassembly.md) for the
 initial Emscripten and Node smoke-test path.
