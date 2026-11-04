@@ -4,9 +4,12 @@ name: Wheels
 # (cp312-abi3), so one wheel per platform serves every CPython from 3.12, and
 # since normalization is compiled in there is no system library to provide.
 #
+# merkmal is published as one package, built with every bundled table. Users
+# who need a build without PHOIBLE and P-base compile it themselves with
+# MERKMAL_DATA_PROFILE=cc-by; see docs/distribution.md.
+#
 # Publishing uses PyPI trusted publishing: before the first tag, create the
-# environments `pypi-full` and `pypi-cc-by` here and a trusted publisher for
-# this workflow on each of the PyPI projects merkmal and merkmal-cc-by.
+# environment `pypi` here and a trusted publisher for this workflow on PyPI.
 
 on:
   push:
@@ -15,21 +18,14 @@ on:
 
 jobs:
   wheels:
-    name: Wheel (${{ matrix.distribution }}, ${{ matrix.os }})
+    name: Wheel (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, ubuntu-24.04-arm, macos-14, macos-13]
-        # merkmal carries every bundled table. merkmal-cc-by leaves out
-        # PHOIBLE (CC-BY-SA-3.0) and P-base (CC-BY-NC-SA-4.0); see
-        # scripts/prepare_distribution.py.
-        distribution: [full, cc-by]
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare the cc-by source tree
-        if: matrix.distribution == 'cc-by'
-        run: python3 scripts/prepare_distribution.py cc-by
       - uses: pypa/cibuildwheel@v2.21.3
         env:
           CIBW_BUILD: "cp312-*"
@@ -38,47 +34,35 @@ jobs:
           CIBW_TEST_COMMAND: python -m pytest {project}/python/tests -q
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.distribution }}-${{ matrix.os }}
+          name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
 
   sdist:
-    name: Source distribution (${{ matrix.distribution }})
+    name: Source distribution
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        distribution: [full, cc-by]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Prepare the cc-by source tree
-        if: matrix.distribution == 'cc-by'
-        run: python scripts/prepare_distribution.py cc-by
       - run: python -m pip install build
       - run: python -m build --sdist
       - uses: actions/upload-artifact@v4
         with:
-          name: sdist-${{ matrix.distribution }}
+          name: sdist
           path: dist/*.tar.gz
 
-  # Two PyPI projects, merkmal and merkmal-cc-by, each with a trusted
-  # publisher for this workflow and its own environment.
   publish:
-    name: Publish ${{ matrix.distribution }} to PyPI
+    name: Publish to PyPI
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [wheels, sdist]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        distribution: [full, cc-by]
-    environment: pypi-${{ matrix.distribution }}
+    environment: pypi
     permissions:
       id-token: write
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: "*-${{ matrix.distribution }}*"
           path: dist
           merge-multiple: true
       - uses: pypa/gh-action-pypi-publish@release/v1
