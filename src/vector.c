@@ -32,6 +32,9 @@
 #include "generated/builtin_data.h"
 #include "resolver.h"
 #include "strings.h"
+#include "inventory.h"
+#include "string_list.h"
+#include "system.h"
 
 #include <stdlib.h>
 
@@ -246,4 +249,32 @@ mk_status mk_system_feature_vector(
     mki_resolution_clear(&entry);
     *written = width;
     return MK_OK;
+}
+
+mk_status mk_system_inventory(const mk_system *system, mk_string_list **out)
+{
+    const char *scratch[MK_MAX_ENTRY_FEATURES];
+    const char **items;
+    mk_entry_view row;
+    size_t count;
+    size_t i;
+    mk_status status;
+
+    if (system == NULL || system->builtin == NULL || out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *out = NULL;
+    count = system->builtin->entry_count;
+    /* +1 so an empty inventory still gets a non-NULL allocation. */
+    items = (const char **)malloc((count + 1) * sizeof(*items));
+    if (items == NULL) {
+        return MK_ERR_OOM;
+    }
+    for (i = 0; i < count; i++) {
+        mki_inventory_row(system->builtin, i, scratch, &row);
+        items[i] = row.grapheme;
+    }
+    status = mki_string_list_from_borrowed(items, count, out);
+    free(items);
+    return status;
 }

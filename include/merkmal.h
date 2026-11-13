@@ -412,6 +412,33 @@ MK_API mk_status mk_system_vector_width(const mk_system *system, size_t *out);
  */
 MK_API mk_status mk_system_vector_labels(const mk_system *system, mk_string_list **out);
 
+/**
+ * Lists the graphemes of a system's own inventory, in the order the system
+ * stores them (UTF-8 byte order for a compiled-in system, file order for a
+ * runtime model). Graphemes the resolver would synthesize from a base and
+ * diacritics are not included: that set is unbounded. Free with
+ * mk_string_list_free.
+ */
+MK_API mk_status mk_system_inventory(const mk_system *system, mk_string_list **out);
+
+/** Unicode canonical normalization forms for mk_unicode_normalize. */
+typedef enum mk_normalization_form {
+    MK_NFD = 0,
+    MK_NFC = 1
+} mk_normalization_form;
+
+/**
+ * Plain Unicode canonical normalization (UAX #15) of a NUL-terminated UTF-8
+ * string, at the Unicode version merkmal's tables carry. Unlike
+ * mk_normalize_grapheme it applies no IPA rewrites. Malformed bytes pass
+ * through unchanged. Returns an owned string; free with mk_string_free.
+ */
+MK_API mk_status mk_unicode_normalize(
+    const char *utf8_in,
+    mk_normalization_form form,
+    char **utf8_out
+);
+
 /** Writes a fixed-width numeric vector for a grapheme.
  *
  * `values` must have room for mk_system_vector_width entries; on

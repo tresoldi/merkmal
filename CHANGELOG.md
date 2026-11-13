@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Two calls for alteruphono 2.0: the inventory, and plain Unicode normalization
+
+`mk_system_inventory` lists a system's own inventory graphemes, in storage
+order, so that a consumer can render a feature set back to a grapheme by exact
+lookup instead of relying on `mk_bundle_compatible_graphemes`-style display
+rankings. Synthesized base+diacritic graphemes are not listed: that set is
+unbounded. `mk_unicode_normalize` exposes the compiled-in NFD/NFC without the
+IPA rewrites of `mk_normalize_grapheme` (which maps `g` to `ɡ` and returns NFC);
+alteruphono's rule notation is defined on NFD. Both are additions; nothing
+existing changes. Tested in `tests/c/test_inventory.c`.
+
 ## 0.9.0 (2026-11-04)
 
 The first release of the C core and the native Python wrapper. Everything

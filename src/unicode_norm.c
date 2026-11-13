@@ -348,3 +348,18 @@ mk_status mki_unicode_nfc(const char *utf8_in, char **utf8_out)
 {
     return mk_normalize(utf8_in, 1, utf8_out);
 }
+
+mk_status mk_unicode_normalize(
+    const char *utf8_in,
+    mk_normalization_form form,
+    char **utf8_out
+)
+{
+    if (form != MK_NFD && form != MK_NFC) {
+        if (utf8_out != NULL) {
+            *utf8_out = NULL;
+        }
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    return mk_normalize(utf8_in, form == MK_NFC, utf8_out);
+}
