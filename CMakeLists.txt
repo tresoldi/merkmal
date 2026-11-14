@@ -167,6 +167,10 @@ if(MERKMAL_BUILD_TESTS)
     target_link_libraries(test_smoke PRIVATE merkmal)
     add_test(NAME smoke COMMAND test_smoke)
 
+    add_executable(test_inventory tests/c/test_inventory.c)
+    target_link_libraries(test_inventory PRIVATE merkmal)
+    add_test(NAME inventory COMMAND test_inventory)
+
     # Compiling the header alone is the test: one that needs the caller to
     # have included <stddef.h> first passes everywhere inside this project and
     # fails for the first consumer who includes it before anything else.
