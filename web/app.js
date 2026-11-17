@@ -11,7 +11,28 @@ const $ = id => document.getElementById(id);
 
 let mk = null;
 
+/* ccall hands every "string" argument to C as a NUL-terminated copy, so a
+ * U+0000 inside the input would end it there: "p\0junk" was answered as "p",
+ * and a pasted model registered as whatever preceded the NUL, with strict
+ * validation never seeing the rest. The C side cannot tell, so the refusal is
+ * here, shaped like the adapter's own errors so renderError shows it. The
+ * Python binding refuses the same input with ValueError. */
+function nulArgumentError(types, args) {
+  for (let i = 0; i < types.length; i++) {
+    if (types[i] === "string" && typeof args[i] === "string" && args[i].includes("\u0000")) {
+      return {
+        ok: false,
+        error: "invalid argument",
+        detail: "the input contains a NUL character (U+0000), which cannot be passed on",
+      };
+    }
+  }
+  return null;
+}
+
 function call(name, types, ...args) {
+  const refused = nulArgumentError(types, args);
+  if (refused) return refused;
   const ptr = mk.ccall(name, "number", types, args);
   const json = mk.UTF8ToString(ptr);
   mk.ccall("merkmal_free", null, ["number"], [ptr]);
