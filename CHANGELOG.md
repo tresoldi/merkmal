@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Web demo: an embedded NUL is refused instead of truncating the input
+
+The demo passes every string to the library through Emscripten's `ccall`,
+which hands C a NUL-terminated copy, so a U+0000 ended the input there:
+`p\u0000junk` was answered as `p`, and a pasted model registered up to the
+NUL with strict validation never reading the rest. `call()` in `web/app.js`
+now refuses such input with an "invalid argument" error, as the Python binding
+does with `ValueError`. Only `app.js` changes; the WebAssembly build is the
+same. `tests/wasm/app_nul_test.cjs` runs the demo's own wrapper against the
+committed module in Node.
+
 ### Running out of memory no longer crashes segmentation or leaks clusters
 
 `mk_system_segment_ipa` freed its intermediate token list twice when its last
