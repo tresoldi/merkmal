@@ -1,106 +1,127 @@
-# merkmal-typology
+# merkmal_typology
 
-Language-indexed phonological typology, built on `merkmal`'s segment distances.
+`merkmal_typology` is a companion Python package that provides the phoneme
+inventories of PHOIBLE 2.0 (Moran and McCloy 2019), indexed by language, and
+functions that compare and describe inventories with merkmal's segment
+distances. It is kept apart from the core library, which describes segment
+types and records no languages, genealogy or areal grouping; the bundled data
+are not part of the `merkmal` distribution.
+
+The package is not distributed separately. It is used from a checkout, with
+`python/typology` on `sys.path` and `merkmal` installed:
 
 ```python
 import merkmal_typology as mt
 
-inventories = mt.inventories()          # 3,020 doculects
-languages = mt.languages()              # 2,186, with family and macroarea
-print(mt.segment_frequency())           # and the sample it came from
-mt.inventory_comparison(a, b)           # score plus readability and comparison coverage
-mt.inventory_distance(a, b)             # scalar compatibility convenience
+inventories = mt.inventories()          # tuple of Inventory, one per doculect
+languages = mt.languages()              # dict of Language, keyed by Glottocode
+frequency = mt.segment_frequency()      # Frequency, with its sample attached
+mt.inventory_comparison(a, b)           # InventoryComparison
+mt.inventory_distance(a, b)             # the score of inventory_comparison only
 mt.feature_economy(inventory)           # segments per feature used
 ```
 
-## Why this is a separate package
+## Contents
 
-The core library has spent its life refusing to have opinions about sampling
-weight, genealogy and areal membership — the README's disclaimer about segment
-*types* rather than languages is load-bearing, not decorative. Adding a language
-column to the C core would have quietly ended that.
+| Name | Provides |
+| --- | --- |
+| `languages()` | `Language` records: Glottocode, name, family, macroarea, latitude, longitude |
+| `inventories()` | `Inventory` records: PHOIBLE inventory id, Glottocode, segments |
+| `Inventory.readability(system)` | `InventoryReadability`: the segments `system` can and cannot score |
+| `sample_composition(sample)` | `SampleComposition`: inventories, languages, families and macroareas of a sample |
+| `segment_frequency(sample)` | `Frequency`: the number of inventories containing each segment, with the `SampleComposition` of the sample |
+| `inventory_comparison(a, b, system)` | `InventoryComparison`: a score with the readability of both inputs and the coverage of the matches |
+| `inventory_distance(a, b, system)` | The score of `inventory_comparison` alone |
+| `feature_economy(inventory, system)` | Inventory size over the number of features used |
 
-Keeping it here means the discipline survives the addition. It also keeps 500 KB
-of share-alike data out of a 544 KB library whose distribution terms would
-otherwise have to grow to carry it.
+`sample` defaults to all inventories and `system` to `phoible`.
 
-## The sample is not the world
+An `Inventory` is a doculect, not a language: `Inventory.inventory` is
+PHOIBLE's contribution identifier, and several inventories may share a
+Glottocode.
 
-PHOIBLE is not a balanced sample of the world's languages and was never meant to
-be:
+## Sampling
+
+PHOIBLE is not a balanced sample of the world's languages. The composition of
+the bundled data, as computed by `sample_composition()`:
 
 | | |
 | --- | ---: |
 | inventories | 3,020 |
-| languages | 2,186 |
-| languages with more than one doculect | 531 (up to 11) |
+| languages (Glottocodes) | 2,186 |
+| languages with more than one inventory | 531 (at most 11) |
 | Atlantic-Congo | 17.0% of inventories |
-| Pama-Nyungan | 10.7% |
-| Africa | 29.3% |
-| Papunesia | 7.4% |
+| Pama-Nyungan | 10.7% of inventories |
+| Africa | 29.3% of inventories |
+| Papunesia | 7.4% of inventories |
 
-**Every cross-language number here is unweighted, and the package will not let
-you see one without its sample.** `segment_frequency()` returns a `Frequency`
-that carries its own `SampleComposition`, and printing it prints both:
+All cross-language figures computed by the package are unweighted counts over
+inventories, not over languages. `segment_frequency()` returns a `Frequency`
+that carries the `SampleComposition` of its sample, and its string form prints
+both:
 
-```
+```text
 m 96%, i 92%, k 90%, j 90%, u 88%
-  over 3020 inventories over 2186 languages (834 extra doculects);
-  largest families Atlantic-Congo 17.0%, Pama-Nyungan 10.7%, Indo-European 9.2%;
-  largest areas Africa 29.3%, Eurasia 27.0%, South America 15.7%.
-  Unweighted: this is PHOIBLE's composition, not the world's.
+  over 3020 inventories over 2186 languages (834 extra doculects); largest families Atlantic-Congo 17.0%, Pama-Nyungan 10.7%, Indo-European 9.2%; largest areas Africa 29.3%, Eurasia 27.0%, South America 15.7%. Unweighted: this is PHOIBLE's composition, not the world's.
 ```
 
-That /m/ is in 96% of PHOIBLE's inventories is a real and useful fact. It is not
-the same claim as "/m/ is in 96% of the world's languages", and the difference
-is not a technicality when two families are 28% of the sample.
+That /m/ occurs in 96% of PHOIBLE's inventories is a statement about this
+sample; it is not an estimate of the share of the world's languages that have
+/m/. The package provides no weighting scheme. A weighting requires a choice of
+genealogy and of the level at which to weight, which is a decision of the
+analysis, not of the package.
 
-No weighting scheme is provided. Choosing one is a research decision — pick a
-genealogy, pick a level, defend it — and not something a library should do
-silently on a user's behalf.
+## Inventory comparison
 
-## What is sample-independent
+`inventory_comparison` and `feature_economy` describe individual inventories or
+pairs of inventories and do not depend on the composition of the sample.
 
-`inventory_comparison` and `feature_economy` compare or describe inventories
-directly and ask nothing about how the sample was drawn. They are safe to use
-without engaging the question above.
+`inventory_comparison` matches each segment of each inventory to its nearest
+segment in the other, under merkmal's segment distance, and averages the mean
+nearest-neighbour distance of the two directions. Differences in inventory size
+enter only through these matches: a segment without a close counterpart in the
+other inventory contributes its distance to the nearest one. There is no
+separate size term, because such a term makes inventories of similar size
+appear similar regardless of their content. The matching is greedy rather than an
+optimal assignment, and the result is not a metric.
 
-`inventory_comparison` matches every segment of each inventory to its nearest
-counterpart in the other and averages both directions. An explicit size penalty
-was tried first and was wrong: charging for the difference in inventory size
-made English closer to Yue Chinese than to French, because those differ by one
-segment and six respectively — while French was twice as close by segment
-content. A similarity measure that is mostly a size measure is worse than
-useless, because it looks like the thing it is not. Its result carries the
-unreadable segments on each side, the input readability rate, and the mean
-coverage/status of the selected nearest-neighbour comparisons. A bare scalar
-from `inventory_distance` is retained only for compatibility; new analyses must
-store the `InventoryComparison`. It also carries Merkmal's semantic-system
-fingerprint, so comparison results remain tied to the feature model that
-produced them.
+The score is computed over the segments the system can read. The returned
+`InventoryComparison` therefore also carries the readable and unreadable
+segments of each inventory, the share of input segments that could be read,
+the mean coverage of the selected matches, the comparability status of each
+match, and the semantic fingerprint of the system used
+([docs/method/semantic-fingerprint.md](../../docs/method/semantic-fingerprint.md)).
+A low score with low coverage indicates a weak comparison, not similar
+inventories. `inventory_distance` returns the score alone; results that are
+kept should store the `InventoryComparison`.
 
-The result behaves: Mandarin and Yue Chinese are the closest pair tested
-(0.0060), English sits nearer German (0.0115) than French (0.0134), and the
-inventories furthest from English in a random sample of 120 are all Australian.
+## Feature economy
 
-`feature_economy` is Clements' ratio, inventory size over the number of features
-any of its segments takes a value on. Hawaiian, at 13 segments, is the least
-economical in the first 400 inventories (0.36); Hindi at 94 segments the most
-(2.54). It counts *features*, not (feature, value) pairs — the first version
-counted pairs, which roughly halves the figure and is not the quantity Clements
-defines. The absolute value depends on the feature system, so it compares
-inventories within one system rather than across systems.
+`feature_economy` is inventory size divided by the number of features on which
+at least one of the inventory's readable segments has a value, after Clements
+(2003). It counts features, not feature-value pairs. The number of features
+depends on the system, so values are comparable between inventories within one
+system but not across systems.
 
 ## Data
 
-`data/` carries the reshaped PHOIBLE tables with their own
-[`provenance.json`](data/provenance.json), pinned to `cldf-datasets/phoible`
-v2.0.1 (`f36deac7f80b`). **CC-BY-4.0 by permission** — upstream PHOIBLE is
-CC-BY-SA-3.0, and the share-alike clause is lifted by a grant whose grantor and
-date the manifest still marks `UNVERIFIED`. Attribution to PHOIBLE is required
-regardless.
+`data/inventories.tsv` (one row per inventory, segments separated by spaces)
+and `data/languages.tsv` (one row per Glottocode) are reshaped from
+`cldf/values.csv`, `cldf/languages.csv` and `cldf/contributions.csv` of
+`cldf-datasets/phoible` v2.0.1 (commit `f36deac7f80b`). The transformation,
+input hashes and sampling note are recorded in
+[`data/provenance.json`](data/provenance.json).
 
-That clause was one of two reasons this layer is a separate package. It is gone;
-the other one — keeping sampling weight and genealogy out of a core that has
-spent its life refusing them — is the one that actually mattered, and it still
-holds.
+The manifest records the license of these files as CC-BY-4.0, by permission,
+in place of the upstream CC-BY-SA-3.0. The grantor, date and evidence of that
+permission are marked `UNVERIFIED` in the manifest. The PHOIBLE model compiled
+into the core library is distributed under CC-BY-SA-3.0
+([docs/development/release-policy.md, Data releases](../../docs/development/release-policy.md#data-releases)).
+Attribution to PHOIBLE is required in either case.
+
+## References
+
+- Clements, G. N. 2003. Feature economy in sound systems. *Phonology* 20(3).
+  287–333.
+- Moran, Steven and Daniel McCloy (eds.). 2019. PHOIBLE 2.0. Jena: Max Planck
+  Institute for the Science of Human History. https://phoible.org/

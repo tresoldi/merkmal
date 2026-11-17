@@ -19,14 +19,14 @@
     <a href="https://github.com/tresoldi/merkmal">Source</a>
   </div>
 
-  <p class="tagline">A small C library for phonological features and segment distances.</p>
+  <p class="tagline">A C99 library for phonological features and segment distances.</p>
 
   <p class="status-banner">
-    This page lets you try merkmal without installing anything.
-    It runs locally in your browser via WebAssembly &mdash; nothing is
-    sent to a server. Several feature systems are built in
-    (PHOIBLE, BIPA/CLTS, P-base variants, and others); you can also
-    paste your own model.
+    This page runs merkmal in the browser, compiled to WebAssembly; the
+    input is not sent to a server. It provides the built-in feature
+    systems (distinctive and descriptive from CLTS, phoible from PHOIBLE,
+    and four P-base feature sets) and accepts categorical models in
+    merkmal&rsquo;s text format.
   </p>
 
   <div class="boundary">
@@ -34,19 +34,19 @@
       <h2>Scope</h2>
       <p>
         Given an IPA grapheme and a feature system, merkmal returns the
-        feature bundle for that segment. Given two segments, it computes
-        a distance based on their features. It can also tokenize IPA
-        strings and produce pairwise distance matrices.
+        features of that segment. Given two segments, it computes a
+        distance from their features. It also segments IPA transcriptions
+        and computes matrices of pairwise distances.
       </p>
     </section>
     <section class="is-not">
       <h2>Limitations</h2>
       <p>
-        merkmal does not align sequences &mdash; for that, see
-        <a href="https://github.com/tresoldi/regulae">regulae</a>.
-        It does not reconstruct proto-forms, and it cannot tell you which
-        feature system is appropriate for your data; that is a theoretical
-        choice the researcher makes.
+        merkmal does not align sequences (see
+        <a href="https://github.com/tresoldi/regulae">regulae</a>)
+        and does not reconstruct proto-forms. It does not determine which
+        feature system is appropriate for a dataset; that is a theoretical
+        choice of the analysis.
       </p>
     </section>
   </div>
