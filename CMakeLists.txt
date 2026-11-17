@@ -292,6 +292,8 @@ if(MERKMAL_BUILD_TESTS)
     # do the most pointer arithmetic -- were the least checked code in the tree.
     foreach(target
         test_smoke
+        test_inventory
+        test_bundle
         test_header
         test_malformed
         test_golden_distances

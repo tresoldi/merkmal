@@ -748,6 +748,7 @@ def test_feature_vectors_are_lossless() -> None:
     assert merkmal.feature_vector("a") != merkmal.feature_vector("e")
 
 
+@requires_full_data
 def test_phoible_keeps_inapplicable_and_unknown_apart() -> None:
     """`0` (does not apply) and `?` (unknown) were both written `.`."""
     labels = merkmal.vector_labels(system="phoible")
@@ -855,7 +856,10 @@ def test_abstract_segment_covering() -> None:
     cover = merkmal.AbstractSegment.covering(members, system="descriptive")
     assert all(cover.compatible(g) for g in members)
     assert not cover.compatible("a") and not cover.compatible("k")
-    assert merkmal.AbstractSegment.covering(["p"], system="phoible") == merkmal.AbstractSegment.from_grapheme("p", system="phoible")
+    if merkmal.DATA_PROFILE == "full":  # PHOIBLE is not in the cc-by profile
+        assert merkmal.AbstractSegment.covering(["p"], system="phoible") == (
+            merkmal.AbstractSegment.from_grapheme("p", system="phoible")
+        )
 
 
 def test_abstract_segment_errors() -> None:

@@ -3,6 +3,7 @@
  * bounds equal brute-force enumeration -- run in the Python suite, which can
  * walk the inventories; this one pins the contract a C consumer sees. */
 #include "merkmal.h"
+#include "profile.h"
 
 #include <math.h>
 #include <stdbool.h>
@@ -59,12 +60,17 @@ int main(void)
     check(mk_registry_new_builtin(&registry) == MK_OK, "registry");
     check(mk_registry_get_system(registry, "descriptive", &descriptive) == MK_OK, "descriptive");
     check(mk_registry_get_system(registry, "distinctive", &distinctive) == MK_OK, "distinctive");
-    check(mk_registry_get_system(registry, "phoible", &phoible) == MK_OK, "phoible");
+    /* PHOIBLE is CC-BY-SA, so the cc-by data profile does not carry it. */
+    if (!profile_lacks_system(registry, "phoible")) {
+        check(mk_registry_get_system(registry, "phoible", &phoible) == MK_OK, "phoible");
+    }
 
     check_grapheme_parity(descriptive, "p", "b");
     check_grapheme_parity(descriptive, "l", "ɮ");
     check_grapheme_parity(distinctive, "a", "e");
-    check_grapheme_parity(phoible, "p", "t");
+    if (phoible != NULL) {
+        check_grapheme_parity(phoible, "p", "t");
+    }
 
     /* A laryngeal-like segment: a guttural fricative, voice and place open. */
     check(mk_bundle_from_grapheme(descriptive, "ħ", &h) == MK_OK, "ħ");
