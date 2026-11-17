@@ -46,6 +46,8 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- The WebAssembly adapter wrote an unknown feature value (NaN) as `nan`, which is
+  not JSON; it now writes `null`, and the demonstration shows it as `?`.
 - Tone merging dropped the tone of a syllabic consonant marked with U+030D
   above (`ŋ̍²¹` gave `ŋ̍`); the mark is now treated like U+0329 below.
 - The contrast baseline counted no zero-distance pair as having "no comparable
