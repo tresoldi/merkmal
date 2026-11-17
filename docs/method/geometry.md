@@ -1,231 +1,306 @@
 # The feature geometry
 
-`data/geometries/clements-hume.json` describes a tree of phonological nodes and
-leaves that the scorer walks to turn a feature-set difference into a number.
+The categorical systems are scored through a feature geometry: a tree of
+phonological nodes whose leaves, ordered scales and node groups turn the
+difference between two feature sets into a number in `[0, 1]`. The tree is
+defined in `data/geometries/clements-hume.json` and compiled into the library.
 
-**It is inspired by Clements & Hume (1995), not an implementation of it.** The
-file keeps the name `clements-hume` as a compatibility identifier (models still
-say `"default_geometry": "clements-hume"`, and `@geometry clements-hume` is
-still accepted in runtime models), but its identity is
-`merkmal-clements-hume-inspired-v1` and its `theory_fidelity` field says
-`inspired-by`.
-
-The distinction matters because "Clements–Hume distance" would attribute this
-project's numerical choices to those authors. Clements and Hume propose a
-theory of how features are organized, how they spread, and how complex and
-contour segments are represented. They propose no similarity measure and no
-sound-change cost.
+The tree is derived from the proposal of Clements and Hume (1995) but does not
+implement it. Its identity is `merkmal-clements-hume-inspired-v1`, and its
+`theory_fidelity` field is `inspired-by`. The name `clements-hume` is kept as a
+compatibility identifier: models declare `"default_geometry": "clements-hume"`,
+and runtime models select it with `@geometry clements-hume`. Clements and Hume
+describe how features are organized, how they spread, and how complex and
+contour segments are represented; they propose no similarity measure and no
+cost of sound change. The numerical choices described here are this library's,
+and a distance computed with them should not be described as a Clements–Hume
+distance.
 
 ## Departures from the source theory
 
-The `departures` field in the JSON is the authoritative list; it is validated
-to be non-empty. In summary:
+The `departures` field of the geometry file is the authoritative list; the
+validator requires it to be non-empty. In summary, the geometry:
 
-1. **A `Prosodic` node.** Length, nasalization, secondary articulations,
-   ejectivity, and stress are grouped under one node. The source theory does
-   not place these in the feature tree this way.
-2. **A `Tonal` node** with `TonalOnset` / `TonalMid` / `TonalOffset` subtrees
-   encoding Chao levels. This decomposition is a merkmal design, not a
-   Clements–Hume proposal.
-3. **The tree is used as a numerical aggregation structure.** Base weights are
-   derived mechanically as `1 / depth` (see below). The source theory implies
-   no such mapping.
-4. **Structural distinctions are collapsed.** Spreading, multiple association,
-   and contour timing are represented structurally in the theory; here they are
-   either flattened into leaves or not represented at all.
-5. **Extra leaves for coverage.** Major class, release, articulatory shift, the
-   length series, and secondary articulations were added so that every label
-   the bundled models can return reaches the score. See below.
+1. adds a `Prosodic` node, with `Length` and `Secondary` (secondary
+   articulation) beneath it; nasalization is placed under `Manner` and
+   ejectivity under `Laryngeal`, so that discarding the suprasegmental
+   dimensions does not also discard segmental contrasts;
+2. adds a `Tonal` node with `TonalOnset`, `TonalMid` and `TonalOffset`
+   subtrees for Chao (1930) tone levels, a decomposition that is not part of
+   the source theory;
+3. uses the tree as a numerical aggregation structure, with base weights
+   derived from depth (below);
+4. flattens the structural distinctions of the theory (spreading, multiple
+   association, contour timing) into leaves, or does not represent them;
+5. adds leaves for major class, release, articulatory shift and secondary
+   articulation, and the privative articulator features (labial, coronal,
+   dorsal, guttural), so that every label the bundled models return can reach
+   the score;
+6. scores ordered properties (vowel height and backness, place series,
+   duration, tone level) on ordered scales rather than as independent
+   privative features;
+7. does not represent stress: the normalizer strips a leading stress mark,
+   because stress is a property of the syllable rather than of the segment.
 
-## The scoring rule
+## Scoring
 
-There are three kinds of scoring dimension.
+### The distance
 
-**Leaves** are privative or binary. A leaf has a positive pole, optionally a
-negative pole, and a base weight of `1 / depth` where `Root` is depth 1. A
-difference costs the full weight for opposite poles, half for one pole against
-an unspecified value. A leaf may override the mechanical depth weight with an
-explicit `"weight"`.
+Each scorer computes a weighted mean of per-dimension differences:
 
-That rule has to hold on the geometry-scored categorical system. `descriptive` is
-scored by the *leaf* scorer, which reads these leaves; `distinctive` is scored
-by the *scalar* scorer, through the `scalar_dimensions` it declares in its own
-`model.json`, and never reads a geometry leaf at all. Which scorer a system
-reaches is decided in one place, `mki_scorer_for` in `src/geometry.c`. Where a
-dimension shares a name with a leaf, the two must cost the same, or this table
-describes neither of them. They did not: an explicit `"weight"` was dropped on
-the scalar path, so `vocoid` was declared 0.8 here and cost 1.0 in
-`distinctive` — a 25% overweight on major class in the system this table is
-most often read for. `tools/validate_models.py` now asks the generator what
-weight it will emit and fails if it disagrees with the leaf.
+  d(a, b) = Σ w_i δ_i(a, b) / Σ w_i,
 
-**Ordered scales** (`ordinal_scales`) are for properties where the difference
-between two values is a quantity rather than a mismatch. Cost is
-`|level_a - level_b| / (level_count - 1) * weight`, so one step on the
-seven-point vowel-height scale costs a sixth of the full range.
+where the sums run over the dimensions on which at least one of the two
+segments has a value, w_i is the weight of dimension i, and δ_i is in
+`[0, 1]`. A dimension on which neither segment has a value contributes nothing
+to either sum. If no dimension qualifies, the score is 0 and the coverage is 0
+(see [coverage](#coverage-and-comparability)).
 
-| scale | node | levels | weight |
+The leaf scorer reads three kinds of dimension.
+
+**Leaves** are privative (a positive pole only) or binary (a positive and a
+negative pole). The base weight of a leaf is `1 / depth` of the node it hangs
+from, with `Root` at depth 1, unless the leaf declares an explicit `weight`.
+`vocoid` (major class, directly under `Root`) is set to 0.8 rather than the
+depth-derived 1.0, and the four articulator leaves under `Place` to 0.4 each
+rather than 0.5. For a binary leaf, opposite poles cost the
+full weight and one pole against no value costs half of it; for a privative
+leaf, presence against absence costs the full weight.
+
+**Ordered scales** (`ordinal_scales`) represent properties whose values are
+ordered, so that the difference between two values is a number of steps. The
+cost of a pair is `|level_a − level_b| / (level_count − 1) × weight`; one step
+on the seven-level vowel-height scale costs one sixth of the scale's weight.
+
+| Scale | Node | Levels | Weight |
 | --- | --- | --- | ---: |
-| `vowel_height` | Dorsal | close … open (7) | 1.0 |
-| `vowel_backness` | Dorsal | front … back (5) | 0.8 |
-| `dorsal_place` | Dorsal | palatal … uvular (4) | 0.5 |
-| `coronal_place` | Coronal | linguolabial … alveolo-palatal (6) | 0.5 |
-| `labial_place` | Labial | bilabial, labio-dental | 0.3 |
-| `guttural_place` | Pharyngeal | pharyngeal, epiglottal, glottal | 0.4 |
-| `duration` | Prosodic | ultra-short … ultra-long (5) | 0.5 |
-| `tone_{onset,mid,offset}_level` | Tonal* | Chao 1–5 | 0.4 each |
+| `vowel_height` | `Dorsal` | close … open (7) | 1.0 |
+| `vowel_backness` | `Dorsal` | front … back (5) | 0.8 |
+| `dorsal_place` | `Dorsal` | palatal … uvular (6) | 0.5 |
+| `coronal_place` | `Coronal` | linguolabial … alveolo-palatal (6) | 0.5 |
+| `labial_place` | `Labial` | bilabial, labio-dental (2) | 0.3 |
+| `guttural_place` | `Pharyngeal` | pharyngeal, epiglottal, glottal (3) | 0.4 |
+| `duration` | `Length` | ultra-short … ultra-long (5) | 0.5 |
+| `tone_onset_level`, `tone_mid_level`, `tone_offset_level` | `TonalOnset`, `TonalMid`, `TonalOffset` | Chao levels 1–5 (5) | 0.4 each |
 
 A scale is skipped for a pair when either segment has no value on it, because
-the property does not apply: a consonant has no vowel height, and a toneless
-segment no tone level. Major class and `tone-present` carry those differences.
-`duration` is the exception — it has a `default_level` of `short`, because a
-segment with no length mark is short rather than of undefined length.
+the property does not apply: a consonant has no vowel height and a toneless
+segment no tone level. Those differences are carried by the major-class leaf
+and by `tone_presence`. `duration` is the exception: its `default_level` is
+`short`, because a segment without a length mark is short rather than of
+undefined length.
 
-These exist because the previous flag encoding lost the ordering, with results
-that were not defensible: `/i/` scored further from `/e/` than from `/a/`, a
-half-long vowel was further from a long one than a plain vowel was, and the
-two-bit Chao code made levels 2 and 4 as far apart as 1 and 5.
+**Node groups** are the remaining case. A feature that `feature_to_node` maps
+to a node, and that belongs to no leaf and no scale, contributes to a single
+boolean for that node: if the two segments differ on any such feature under
+the node, the node's weight, `1 / depth`, is charged once. This is coarse by
+construction; properties whose individual differences matter are leaves or
+scales. For the same reason, release and secondary articulation have subtrees
+of their own (`Manner > Release`, `Prosodic > Secondary`) whose members are
+leaves, rather than being grouped under `Manner` and `Prosodic`, where several
+differences would cost the same as one.
 
-**Node groups** are the fallback. A feature listed in `feature_to_node` but
-owned by no leaf or scale contributes a single boolean per node: if the two
-segments differ on *any* feature under that node, the node's weight is charged
-once. This is coarse by construction, which is why the properties that matter
-are leaves or scales.
+### Which scorer a system uses
 
-### The weights are stipulated, not fitted
+The scorer is selected in one place, `mki_scorer_for` in `src/geometry.c`, and
+is part of the system's [semantic fingerprint](semantic-fingerprint.md).
 
-Depth-derived weights, the explicit overrides, and the scale weights were not
-derived from contrast data, perceptual judgments, or observed sound changes.
-They encode one assumption: that a difference higher in the tree separates two
-segments more than a difference lower down, and that a bigger step on a scale
-costs more than a smaller one. Both are plausible and untested.
+- **leaf**: `descriptive` and categorical models registered at run time. It
+  reads the leaves, scales and node groups above.
+- **scalar**: `distinctive`, which declares its own `scalar_dimensions` in
+  `data/models/distinctive/model.json`, each attached to a geometry node. It
+  reads those dimensions and the geometry's ordered scales, and no geometry
+  leaf. A dimension with the same name as a geometry leaf takes that leaf's
+  weight, explicit or derived; `tools/validate_models.py` fails if the weight
+  the generator emits for such a dimension differs from the leaf's. A
+  dimension without a namesake leaf is weighted `1 / (d + 1)`, where d is the
+  depth of its node.
+- **valued**: `phoible` and the four `pbase-*` systems. Each declared feature
+  is mapped to a geometry node and weighted `1 / depth` of that node. A
+  feature is compared only when both segments have a value on it (`+`, `−`, or
+  the third value P-base writes `n`, `o` or `x`, read as 0); `0` (does not
+  apply), `?` (unknown) and `.` are not compared, nor is a feature on which
+  both segments have the third value. The difference is `|a − b| / 2`, so `+`
+  against `−` costs the full weight and either against the third value half.
 
-A scorer must not infer weights from depth unless its own specification says so.
-Renaming or restructuring the tree for documentation purposes must not change
-numbers; changing weights requires a new scorer version.
+Weight presets apply to all three scorers through the node each dimension is
+attached to.
 
-Weight presets (`ignore-tone`, `segmental`, `tone-only`, `flat`, …) multiply node
-weights along the path to `Root`, so setting `Tonal: 0.0` zeroes every tonal
-leaf and scale beneath it.
+### Coverage and comparability
 
-## Phonetic distance is not diachronic probability
+Every comparison can also return a coverage and a comparability
+(`mk_system_segment_distance_ex`; `distance_with_coverage` in Python). For a
+valued system, coverage is the share of the declared features that were
+compared. For a categorical system it is 1 when any dimension was compared and
+0 otherwise. A pair with no dimension in common is reported as
+`no-shared-dimension`, and its score of 0 means that nothing was compared, not
+that the segments are identical.
 
-A property worth stating plainly, because the library is aimed at historical
-work: **this score does not track how likely a sound change is.** Measured over
-segment pairs drawn from named sound laws, frequent changes are on average
-*further* apart than rare ones. `d(k, tʃ)` is far larger than `d(k, q)`, though
-velar palatalisation is among the commonest changes in the world and
-unconditioned uvularisation is rare. `d(s, h)` exceeds `d(s, ʃ)`.
+A tone and a segment are not compared on a shared scale. Their distance is the
+geometry's declared `tier_policy.cross_tier_cost`, 1.0, with coverage 0 and
+comparability `cross-tier`. The geometry would otherwise assign such a pair a
+cost that depends on how many features the segment carries rather than on any
+property of the tone; a caller who needs a finite cost reads the comparability
+and supplies one. The value is data rather than code
+([ADR 0007](../development/adr/0007-scoring-policy-is-data.md)).
 
-This is not a bug to be tuned away. Phonetic similarity and diachronic
-probability are different quantities, and hand-fitting the tree until a chosen
-list of sound laws came out cheap would manufacture a sound-change model with no
-data behind it — precisely the failure the first review warned about. Use this
-as a segment prior for alignment and candidate generation; use recurrent
-correspondence patterns, estimated from language-pair data, for anything that
-claims to be about change.
+### Segments written as more than one part
 
-## Why the extra leaves exist
+A diphthong, a geminate, or an affricate written without a tie bar is scored
+through its parts, with the five shares of `cluster_policy` in the geometry
+file. The score is `component_share` (0.8) of a part-by-part score plus
+`segment_share` (0.2) of the two scored as single segments, capped at 1.
+Against a plain segment, the part-by-part score gives the cluster's first part
+`nucleus_share` (0.7) and the remaining parts, averaged, `offglide_share`
+(0.3), and adds `length_penalty` (0.15) for each part beyond the first, except
+when the cluster is a geminate and the other segment carries a length feature.
+Between two clusters, it is the mean score of corresponding parts plus
+`length_penalty` for each part without a counterpart. The rules are in
+`src/cluster.c`; the numbers are stipulated, like the node weights.
 
-A label that reaches no leaf and no `feature_to_node` entry contributes nothing
-to any distance. It is still parsed, still stored, and still returned to
-callers — it simply cannot change a number. Thirty-three labels were in that
-state, including `devoiced`, `apical`, `laminal`, `unreleased`,
-`pre-nasalized`, `velarized`, `ultra-long`, and — most consequentially —
-`consonant` and `vowel`.
+## Reachability of the labels
 
-The practical effect was that `p`~`p̥`, `t`~`t̺`, `k`~`k̚`, and `y`~`yːː` all
-scored exactly zero, and that a consonant–vowel comparison was barely further
-apart than a stop–fricative one. `tools/contrast_baseline.py` now fails if
-any label a system can return is unable to affect a distance, and
-`tools/validate_models.py` fails if an inventory label reaches no scoring
-dimension.
+A label that reaches no leaf, scale or node group is still parsed, stored and
+returned, but cannot change any distance. Every label a bundled system can
+return either reaches a scoring dimension or is a declared metadata feature.
+Two checks enforce this: `tools/validate_models.py` fails if an inventory
+label reaches no scoring dimension, and `tools/contrast_baseline.py` fails if
+a label cannot affect any distance or if a scoring dimension can no longer be
+reached by any segment.
 
-Since then, `sonorant`, `continuant`, `anterior`, `distributed` and
-`consonantal` have also been made real. The problem there was not the tree: the
-inventory NAME strings never say those words, so the leaves existed and no
-grapheme could activate them, and every manner distinction collapsed into a
-single `Manner` boolean. The generator now derives them from the manner and
-place labels — the same derivation `data/models/distinctive/model.json` already
-spelled out in its `scalar_dimensions`. `tools/contrast_baseline.py` fails if
-any scoring dimension becomes unreachable again.
+The CLTS feature names of the inventories do not contain the major-class and
+manner features, so the generator derives them from the manner and place
+labels, with the same rules that `distinctive` states in its
+`scalar_dimensions`:
 
-`vocoid` is derived rather than read from the `vowel` / `consonant` labels, and
-covers the four cardinal glides as well as vowels, since /w/ and /j/ are
-[-consonantal]. Without that, /w/ scored as far from /u/ as a glottal stop does
-from /a/, and w~u and j~i alternations are among the most common things in
-historical phonology. `consonant` and `vowel` remain in the feature output as
-declared `metadata_features`: readable, and deliberately not scored, because
-`vocoid` already scores that distinction.
+- `vocoid` for vowels and for approximants at a palatal, labio-palatal,
+  labio-velar or velar place (the glides /j ɥ w ɰ/, which are
+  [−consonantal]); `consonantal` otherwise;
+- `sonorant` or `obstruent`, `continuant` or `non-continuant`, from the manner;
+- `anterior` or `non-anterior`, `distributed` or `non-distributed`, from the
+  coronal place;
+- the articulator features `labial`, `coronal`, `dorsal` and `guttural`, from
+  the place. Each place scale is defined within one articulator only, so these
+  carry the difference between articulators.
 
-Placements added for that reason:
-
-`Tonal` carries `tone_neutral` (`tone-neutral`) beside `tone_presence`. Chao's
-neutral tone `⁰` marks a syllable with no tone in a language that otherwise has
-tone, so it is not a pitch level: it activates this leaf and none of the ordered
-scales. Folding it into level 3 would assert it is mid and level 1 that it is
-low; it is neither, and the ordinal scales are skipped when one side has no
-value on them. Without the leaf `⁰` scored zero against every level tone, which
-is the collapse `tools/contrast_baseline.py` exists to catch — and did.
-
-`tonal-autosegment` is a `metadata_feature`: carried on every bare tone token,
-readable, and deliberately **not scored**. It marks a token that is a tone and
-nothing else, as CLTS writes it. What a tone should cost against a segment is
-an open question — the geometry's own answer of roughly 0.50 against a vowel is
-a placeholder the project does not defend — and encoding
-that cost as a scoring leaf was tried, reviewed, and rejected.
+The leaves added for this purpose, beyond those of the source theory, are:
 
 | Node | Leaves | Labels |
 | --- | --- | --- |
-| `Root` | `vocoid` | `vowel` / `consonant` |
-| `Laryngeal` | `voice_shift`, `pre_aspiration`, `pre_glottalization`, `strength` | `revoiced`/`devoiced`, `pre-aspirated`, `pre-glottalized`, `strong` |
+| `Root` | `vocoid` | `vocoid` / `consonantal` |
+| `Laryngeal` | `voice_shift`, `pre_aspiration`, `pre_glottalization`, `strength` | `revoiced` / `devoiced`, `pre-aspirated`, `pre-glottalized`, `strong` |
 | `Manner` | `pre_nasalization`, `nasal_click` | `pre-nasalized`, `nasal-click` |
 | `Manner > Release` | four leaves | `unreleased`, `with-nasal-release`, `with-lateral-release`, `with-frication` |
-| `Place > Shift` | four leaves | `advanced`/`retracted`, `raised`/`lowered`, `centralized`, `mid-centralized` |
+| `Place` | four articulator leaves | `labial`, `coronal`, `dorsal`, `guttural` |
+| `Place > Shift` | four leaves | `advanced` / `retracted`, `raised` / `lowered`, `centralized`, `mid-centralized` |
 | `Place > Coronal` | `tongue_blade` | `apical` / `laminal` |
 | `Place > Labial` | `rounding_degree` | `more-rounded` / `less-rounded` |
-| `Prosodic > Length` | four leaves | `long`, `mid-long`, `ultra-long`, `ultra-short` |
 | `Prosodic > Secondary` | eight leaves | `labialized`, `palatalized`, `pharyngealized`, `velarized`, `labio-palatalized`, `rhotacized`, `pre-labialized`, `pre-palatalized` |
-| `Tonal` | `tone_presence` | `tone-present` |
-| `Tonal > Tonal{Onset,Mid,Offset}` | `tone_*_mid_level` | `tone-*-mid-level` |
+| `Tonal` | `tone_presence`, `tone_neutral` | `tone-present`, `tone-neutral` |
 
-Release and the secondary articulations were given their own subtrees rather
-than being added as siblings under `Manner` and `Prosodic`, because features
-sharing a `feature_to_node` group are compared as a single boolean: several
-differences within one node would otherwise cost the same as one.
+Length (`ultra-short`, `mid-long`, `long`, `ultra-long`) and the Chao levels
+(`tone-onset-1` … `tone-offset-5`) are levels of the ordered scales `duration`
+and `tone_*_level`, not leaves.
 
-## Consequences for stored numbers
+`tone_neutral` represents `⁰`, the neutral tone of Chao-style transcription: a
+syllable without tone in a language that otherwise has tone. It is not a pitch
+level, so it activates this leaf and none of the level scales. Treating it as
+level 3 would assert that it is mid, and as level 1 that it is low.
 
-These placements changed observable output. Any distances, alignments,
-clusters, or thresholds computed with an earlier build must be recomputed; do
-not mix cached scores across the change. See `CHANGELOG.md`.
+Some labels are returned to callers but deliberately not scored; they are
+listed, with the reason for each, in `metadata_features` and
+`metadata_feature_prefixes` of the geometry file:
 
-The library does not offer a parallel scorer that reproduces the older numbers;
-that would require shipping two geometries and a scorer selector.
+- `consonant` and `vowel`, readable duplicates of the derived `consonantal`
+  and `vocoid`, which carry the distinction;
+- `tonal-autosegment`, which marks a token that is a tone and nothing else, as
+  CLTS writes it;
+- structural labels (`diphthong`, `triphthong`, `complex`, `geminate`,
+  `consonant-cluster`) and the per-component prefixes `n1-`, `n2-`, `n3-` and
+  `move-`, since a cluster is scored through its parts.
 
-## Weight presets
+## Weights
 
-| preset | zeroes |
+The depth-derived weights, the explicit overrides and the scale weights are
+stipulated. They are not estimated from contrast data, perceptual judgements
+or observed sound changes. They encode two assumptions: that a difference
+higher in the tree separates two segments more than a difference lower down,
+and that a larger step on an ordered scale costs more than a smaller one.
+Neither assumption has been tested against such data.
+
+Because the weights follow from the structure, a change to the tree can change
+distances even when it is meant only to rename or regroup nodes. Any change to
+the geometry file changes `geometry_sha256` in the semantic fingerprint, and a
+change that moves a distance is a data release
+([release policy](../development/release-policy.md)). Distances, alignments,
+clusters or thresholds computed under one geometry version should not be
+combined with those computed under another; the library provides no scorer
+that reproduces an earlier geometry.
+
+### Weight presets
+
+A preset multiplies the weight of every dimension by the factors given for the
+nodes on its path to `Root`, so that `Tonal: 0.0` removes every tonal leaf and
+scale.
+
+| Preset | Effect |
 | --- | --- |
-| `ignore-tone` | `Tonal` |
-| `ignore-length` | `Length` |
-| `ignore-secondary` | `Secondary` |
-| `ignore-prosodic` | `Prosodic` (length, secondary articulation) |
-| `segmental` | `Tonal` and `Length` |
-| `tone-only` | everything except `Tonal` |
-| `flat` | uses weight 1 for every dimension |
+| `ignore-tone` | `Tonal` × 0 |
+| `ignore-length` | `Length` × 0 |
+| `ignore-secondary` | `Secondary` × 0 |
+| `ignore-prosodic` | `Prosodic` × 0 (length and secondary articulation) |
+| `segmental` | `Tonal` × 0 and `Length` × 0 |
+| `tone-heavy` | `Tonal` × 2 |
+| `tone-only` | `Laryngeal`, `Manner`, `Place`, `TongueRoot` and `Prosodic` × 0; the `vocoid` leaf under `Root` is still scored |
+| `flat` | weight 1 for every dimension |
 
-`segmental` used to zero the whole `Prosodic` node, which also removed
-nasalisation and ejectivity — phonemic contrasts in French, Portuguese, Hindi,
-Yoruba and much of Amazonia — for anyone reaching for it to normalise away
-length conventions. Nasalisation now sits under `Manner` and ejectivity under
-`Laryngeal`, where they belong, and `segmental` names only what it drops.
+Because the distance is a weighted mean, a preset changes the share of the
+score that each node's differences take, not the scale of the score: under
+`tone-heavy`, tonal differences weigh more and non-tonal differences less. A preset that is not the default is not part of the system
+fingerprint and must be recorded with the result
+([semantic fingerprints](semantic-fingerprint.md#scope-boundary)).
 
-## `deep-clements-hume.json`
+## Phonetic distance and sound change
 
-A deeper variant, present as source data. It is not compiled into the native C
-library. Python callers may load it explicitly with
-`merkmal.load_geometry("data/geometries/deep-clements-hume.json")` and score already
-resolved feature sets with `geometry_distance(...)`; this path is experimental
-and deliberately separate from native `distance(...)`. It carries the same
-caveats and must be fingerprinted and calibrated independently.
+The score measures phonetic dissimilarity under the geometry, not the
+probability of a sound change. The two diverge systematically. In the default
+system, d(k, tʃ) = 0.37 and d(k, q) = 0.06, although velar palatalization is
+among the most frequently attested changes and unconditioned uvularization is
+rare; likewise d(s, h) = 0.28 exceeds d(s, ʃ) = 0.15, although s > h is a
+common change. Adjusting the tree until a chosen list of sound laws became
+cheap would produce a model of sound change with no data behind it. The score
+is suited to use as a segment prior in alignment and candidate generation;
+claims about change require correspondence patterns estimated from language
+data.
+
+## The deep variant
+
+`data/geometries/deep-clements-hume.json` is a deeper variant of the tree. It
+is not compiled into the C library. Python callers can load it with
+`merkmal.load_geometry(path)` and score already resolved feature sets with
+`merkmal.geometry_distance(...)`; this path is experimental and separate from
+`merkmal.distance(...)`. Its results are subject to the same caveats, and a
+result computed with it must be identified by that geometry (as
+`operation_fingerprint(geometry=...)` does) and calibrated separately.
+
+## Open problems
+
+- The weights are stipulated (see [Weights](#weights)); no estimate from
+  perceptual, contrastive or diachronic data is available.
+- The cost of a tone against a segment is not derived from the geometry; the
+  library declares such pairs incomparable.
+- In `distinctive`, the 18 scalar dimensions that have no geometry leaf of the
+  same name (among them `labialized`, `ejective`, `fricative` and the
+  articulator dimensions `labial`, `coronal`, `dorsal` and `guttural`) are
+  weighted `1 / (d + 1)` of their node, while a leaf under the same node in
+  `descriptive` is weighted `1 / d` or carries an explicit weight. The two
+  categorical systems therefore weight these properties differently.
+- Stress is not represented.
+
+## References
+
+- Chao, Yuen Ren. 1930. A system of tone-letters. *Le Maître Phonétique*
+  45: 24–27.
+- Clements, G. N. and Elizabeth V. Hume. 1995. The internal organization of
+  speech sounds. In John A. Goldsmith (ed.), *The handbook of phonological
+  theory*, 245–306. Oxford: Blackwell.

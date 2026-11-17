@@ -16,12 +16,26 @@ compiler extensions outside the `MK_API` visibility macro in `merkmal.h`.
 | --- | --- |
 | `include/merkmal.h` | The entire public API. The only header that is installed. |
 | `src/*.c`, `src/*.h` | One module per `.c`; its header, if any, is internal. |
-| `src/generated/` | Tables generated from `data/models/`, `data/geometries/` and `data/diacritics/`. Never edit by hand. |
-| `python/src/merkmal_module.c` | The CPython extension. Uses `merkmal.h` only. |
-| `web/merkmal_wasm.c` | The WebAssembly adapter (JSON in, JSON out). Uses `merkmal.h` only. |
-| `tests/c/` | C tests. Most link the public library; the internal-seam tests link `merkmal_internal`. |
+| `src/generated/` | Tables generated from `data/`. Never edit by hand. |
+| `data/models/` | One directory per feature system: `model.json`, `inventory.tsv`, `provenance.json`, and for categorical systems their feature and class tables. |
+| `data/geometries/` | The feature geometry compiled into the library, and the deeper variant loadable from Python. |
+| `data/diacritics/` | The IPA/CLTS diacritic table the resolver composes with. |
+| `data/typologies/` | Source data for direction-sensitive scoring; not read by the C library. |
+| `data/schemas/` | JSON Schemas describing the formats of the files above. |
+| `tools/` | Generators for `src/generated/`, `NOTICE` and the golden fixtures, and the checks: generated data, public symbols, formatting, static analysis, model validation, the contrast baseline. Their tests are in `tools/tests/`. |
+| `tests/c/` | C tests. Most link the public library; the internal-seam tests link `merkmal_internal`. `header/` and `install_consumer/` test the header alone and an installed package. |
+| `tests/golden/` | Golden fixtures of features and distances per system, and the contrast baseline. Generated; see `tests/golden/README.md`. |
+| `tests/wasm/` | Smoke tests of the WebAssembly build under Node. |
 | `tests/fuzz/` | libFuzzer harnesses and their corpora. |
-| `tools/` | Generators for `src/generated/`, and the checks: generated data, public symbols, formatting, static analysis, model validation. |
+| `python/merkmal/` | The Python package and its command line (`cli.py`). |
+| `python/src/merkmal_module.c` | The CPython extension. Uses `merkmal.h` only. |
+| `python/tests/` | Tests of the Python package. |
+| `python/typology/` | `merkmal-typology`, a separate package of language-indexed inventories, with its data and tests. |
+| `web/` | The WebAssembly adapter `merkmal_wasm.c` (JSON in, JSON out; uses `merkmal.h` only), its build script, the committed build, and the browser demo. |
+| `bench/` | Benchmarks and their committed baselines; see `bench/README.md`. |
+| `examples/` | Example programs, built and run as tests. |
+| `cmake/` | Templates for the installed CMake package configuration and `merkmal.pc`. |
+| `docs/` | User guides (`guide/`), method (`method/`) and development documentation (`development/`); see `docs/README.md`. |
 
 Modules, from the bottom up. Each depends only on the layers below it, and
 there are no include cycles:
@@ -102,8 +116,9 @@ The rule is in the signature:
 - A function holding more than one resource cleans up through a single
   `goto cleanup` (or `fail`/`finish`) label. Initialize every owned pointer to
   `NULL` first, so the label can free all of them on every path.
-- A magic value is not an error channel. `mk_feature_distance` used to write
-  999 and return `MK_OK`; it now returns `MK_ERR_NO_TREE_PATH`.
+- A magic value is not an error channel. `mk_feature_distance` returns
+  `MK_ERR_NO_TREE_PATH` for a feature off the tree rather than a sentinel
+  distance that would look like a real one.
 
 ## Strings, buffers and allocation
 
@@ -254,7 +269,7 @@ CI runs each of these, so run the ones your change touches:
 | cc-by data profile | `-DMERKMAL_DATA_PROFILE=cc-by` |
 | Shared library | `-DBUILD_SHARED_LIBS=ON` |
 | Formatting | `tools/check_format.sh` (`--fix` to apply) |
-| Static analysis | `tools/run_static_analysis.sh` (GCC `-fanalyzer` and `clang --analyze`; any output beyond the headers is a new finding) |
+| Static analysis | `tools/run_static_analysis.sh` (GCC `-fanalyzer` and `clang --analyze`; any finding other than those the script lists as accepted is new) |
 | Fuzzing | `CC=clang cmake -S . -B build-fuzz -DMERKMAL_BUILD_FUZZERS=ON -DMERKMAL_BUILD_TESTS=OFF`, then `build-fuzz/fuzz_<target> tests/fuzz/corpus/<target>` |
 | Python | `pip install . pytest && python -m pytest python/tests -q` |
 
@@ -263,7 +278,7 @@ and every test compile clean under it with GCC and Clang. `-Werror` is opt-in
 (`MERKMAL_WERROR`) so that downstream builds are not held to it.
 
 `tests/c/test_alloc_failure.c` fails every allocation in turn inside the main
-entry points (Linux only). A new code path that allocates should be reachable
+entry points (built on Linux only). A new code path that allocates should be reachable
 from it; under ASan it catches a leak or a double free on a failure path that
 no ordinary input reaches.
 

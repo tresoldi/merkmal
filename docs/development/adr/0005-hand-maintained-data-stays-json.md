@@ -11,8 +11,10 @@ allows comments. merkmal's hand-maintained structured data is JSON:
 
 This project departs from the default: the files stay JSON.
 
-- They are validated against published JSON Schemas (`data/schemas/*.json`) by
-  `tools/validate_models.py`, and the schemas are the contract.
+- Their formats are described by JSON Schemas (`data/schemas/*.json`), and
+  `tools/validate_models.py` checks the geometry and model files (required
+  fields, identifiers, coverage, provenance). The validator applies its own
+  rules; it does not read the schemas.
 - The semantic fingerprint hashes the source files' bytes (`geometry_sha256`,
   `diacritics_sha256`, `model_sha256`; docs/method/semantic-fingerprint.md), so
   converting them would change every system's fingerprint without any change

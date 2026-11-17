@@ -45,7 +45,7 @@ touches; docs/development/style.md, Building and checking, has the full table.
   fails on a leak.
 - Canonical data lives in `data/models/`, `data/geometries/` and `data/diacritics/`. Changing
   it changes distances, golden fixtures and semantic fingerprints; follow
-  docs/development/release-policy.md, Data Releases.
+  docs/development/release-policy.md, Data releases.
 
 ## Generated files: never edit by hand
 

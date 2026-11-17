@@ -19,7 +19,9 @@ public header too.
 ## Consequences
 
 - `tools/check_public_symbols.sh` (the `public_symbols` test) fails if the
-  library exports anything outside the public set.
+  library exports an `mk_` symbol that `merkmal.h` does not declare, does not
+  export one it declares, or exports a symbol with neither the `mk_` nor the
+  `mki_` prefix.
 - A feature a binding needs is first a public C function, with its contract in
   the header and a C test.
 - Tests of internal modules link `merkmal_internal`, a static build of the

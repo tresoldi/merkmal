@@ -8,7 +8,7 @@ package's (`python/merkmal/cli.py`), installed by pip.
 
 ## Decision
 
-The command line stays in the Python package for now. It calls the C library
+The command line stays in the Python package. It calls the C library
 through the extension, so the computation is still the C core's (ADR 0001).
 Its stable contract is the `--json`, `--jsonl` and `--tsv` modes and the exit
 status (python/README.md, Command line); the default human output may change.

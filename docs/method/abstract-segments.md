@@ -1,132 +1,147 @@
 # Abstract segments
 
-**Status: implemented, 2026-10-30** (C API `mk_bundle_*` in `merkmal.h`;
-Python `merkmal.AbstractSegment`; WASM not yet). Requested for the
-historical-inference work (`tresoldi/framework`, `08_latent_elements.md`;
-constitution v0.2.0 §6.8). There, an ancestral segment that no daughter keeps
-(a "laryngeal") is reported as a feature bundle whose identity is never a
-grapheme, with features the evidence does not decide left unspecified.
+An abstract segment is a feature bundle whose identity is not a grapheme. Its
+values on some dimensions may be unspecified, restricted to a set of
+alternatives, or declared inapplicable. Abstract segments serve historical
+reconstruction, where a proto-segment that no daughter language preserves is
+described by the features the evidence supports, with the remaining features
+left open.
 
-## What the library does today (measured at 7bb6e3e)
+The interface is `mk_bundle_*` in `include/merkmal.h` and
+`merkmal.AbstractSegment` in Python. It is not available in the WebAssembly
+build.
 
-* **No grapheme-free segment.** Every entry point takes a grapheme, except
-  `mk_sound_distance`, which compares two label lists through the geometry.
-* **Underspecification scores as difference.** A guttural fricative with
-  place and voice left open is 0.068 from each of ħ, ʕ and h in `descriptive`.
-  It is never 0 from any of them, and there is no way to ask whether a grapheme
-  is consistent with it.
-* **Unknown labels are ignored silently.** `sound_distance(["consonant",
-  "foo"], p)` and `["consonant", "-voice"]` both score 0.554, exactly what the
-  empty set scores.
-* **"Does not apply" and "unknown" share one value.** PHOIBLE's `0`, empty
-  cells and per-phase contours were all written `.`. `feature_vector` documents
-  `0` as "does not apply, or the source does not say".
-* **The vector loses what the scorer reads.** Graphemes with identical vectors
-  but non-zero distance: `distinctive` 232 pairs (`a` and `e`: height and
-  backness are scored on the geometry's ordinal scales but are not columns),
-  `descriptive` 7 pairs (`l`/`ɮ`, `r`/`ɹ`: manner is scored as a node group and
-  is not a column). The five valued systems lose nothing.
+## Design
 
-## Decisions (author, 2026-10-30)
+Grapheme-based comparison cannot express such a segment, for three reasons.
+A feature left open is scored as a difference, so an underspecified segment is
+never at distance 0 from any of the segments it could be, and there is no test
+of whether a given grapheme is consistent with it. A single "no value" state
+conflates a feature that does not apply with one whose value is unknown.
+Finally, a feature vector that omits dimensions the scorer reads cannot
+represent the segment the scorer sees. The design addresses each of these.
 
-1. **Basis:** one typed state per column of the system's vector basis. A
-   bundle's identity is the system (with its semantic fingerprint) and its
-   states, never a grapheme.
-2. **The vector is made lossless**, rather than given a separate bundle basis:
-   the columns become exactly the dimensions the system's scorer reads. This is
-   a breaking change to `feature_vector` and `vector_labels`.
-3. **Typed column states.**
-   * Binary columns: `+`, `−`.
-   * Ordinal columns: a level, or an interval of levels.
-   * Node-group columns: a label, or a set of alternative labels.
-   * Every column also allows `0` (does not apply) and `?` (unspecified among
-     the values that apply).
-4. **Scoring is compatibility plus bounds.**
-   * The point score skips every column where either side is not a single
-     value, and reports coverage.
-   * Exact minimum and maximum distances are given over all completions.
-   * A predicate says whether a grapheme is compatible with a bundle.
-   * No probability is invented. (A per-column `p(+)` was considered and left
-     out: nothing would read it.)
-5. **The data are split where the source says:** PHOIBLE `0` becomes
-   inapplicable, and an empty cell or a contour becomes unknown.
-6. **C core and Python** now, WASM afterwards. The silent-ignore bug is fixed
-   in the same series.
+1. **Basis.** A bundle has one typed cell per dimension of the system's
+   feature vector. Its identity is the system, recorded with its
+   [semantic fingerprint](semantic-fingerprint.md), and its cells.
+2. **The feature vector is lossless.** Its columns (`feature_vector`,
+   `vector_labels`) are exactly the dimensions the system's scorer reads, so
+   bundles need no basis of their own.
+3. **Typed cells.** Each cell holds the set of values the segment may take,
+   and may also allow "does not apply" (`0`). "Unknown among the values that
+   apply" (`?`) is distinct from "does not apply".
+4. **Compatibility and bounds, without probabilities.** A comparison returns a
+   point score over the dimensions both sides fix, with its coverage, and the
+   exact minimum and maximum over all completions. A predicate states whether
+   a grapheme is a completion of the bundle. No probability is assigned to
+   the alternatives in a cell.
+5. **Source data keep the distinction.** PHOIBLE's `0` is read as "does not
+   apply"; an empty cell, or a per-phase contour such as `+,-`, as unknown
+   (`?`).
 
 ## Columns per scorer
 
-Each scorer is a weighted mean of per-dimension differences, so the columns
-are its dimensions:
+Each [scorer](geometry.md#which-scorer-a-system-uses) is a weighted mean of
+per-dimension differences, so its dimensions are the columns:
 
-| scorer (systems) | columns |
-|---|---|
-| `scalar` (`distinctive`) | its scalar dimensions (binary) + the geometry's ordinal scales |
-| `leaf` (`descriptive`, runtime categorical models) | geometry leaves (binary) + one node-group column per geometry node that labels map to + ordinal scales |
-| `valued` (`phoible`, `pbase-*`) | its declared dimensions (binary, with `0` and `?`) |
+| Scorer (systems) | Columns |
+| --- | --- |
+| `scalar` (`distinctive`) | its scalar dimensions (binary) and the geometry's ordered scales |
+| `leaf` (`descriptive`, runtime categorical models) | geometry leaves (binary), one node-group column per geometry node that labels map to, and the ordered scales |
+| `valued` (`phoible`, `pbase-*`) | its declared features (binary, with `0` and `?`, and the P-base third value `n`) |
 
-In the numeric vector, a node-group column is written one-hot: one column per
-label, `+1` if present, `−1` if the node is set to another label, and `0` if
-the node is unset. A bundle holds the group as one typed column.
+In the numeric feature vector, a node-group column is written one-hot: one
+column per label, `+1` if the label is present, `−1` if the node holds another
+label, and `0` if the node holds none. A bundle holds the group as one cell.
 
-Acceptance: over every grapheme of every built-in system, graphemes with equal
-vectors have distance 0, and a bundle made from a grapheme scores exactly as
-the grapheme does against every other grapheme. Both are checked
-exhaustively in CI.
+Two properties hold over every grapheme of every built-in system: graphemes
+with equal vectors are at distance 0, and every grapheme yields a bundle.
+A bundle made from a grapheme scores as that grapheme does against any other;
+the Python suite checks this, with its coverage, on 150 random pairs per
+system.
+
+## Cell grammar
+
+| Cell | Meaning |
+| --- | --- |
+| `0` | the dimension does not apply |
+| `?` | unknown; the dimension applies |
+| `*` | unknown; the dimension may not apply |
+| `+`, `-` (and `n` in valued systems) | a binary value |
+| a level, or `lo..hi` | an ordinal level, or a range of levels (`vowel_height=close-mid..open`) |
+| a label | a node-group label (`Manner=fricative`) |
+| `a\|b` | alternatives: exactly one of them (`Manner=fricative\|approximant`) |
+| `l1&l2` | a node group holding exactly this set of labels |
+| `…\|0` | adds "may not apply" to any cell |
+
+A bundle is written `column=cell;column=cell;…`; a column left out is `*`.
+`mk_bundle_to_text` writes every column in order. An unknown column is
+`MK_ERR_UNKNOWN_FEATURE` and a cell that does not parse `MK_ERR_PARSE`.
+
+Clusters synthesized by the resolver and tones cannot be made into bundles
+(`MK_ERR_UNSUPPORTED_MODEL`): a synthesized cluster has no single feature set,
+and a tone has no segmental dimension.
 
 ## Scoring a bundle
 
-* **Point score:** the system's own formula over the columns where both
-  sides hold a single value, with that scorer's skip rules unchanged.
-  Coverage is the share of weight compared, among the columns either side
-  sets.
-* **Bounds:** the minimum and maximum of the same ratio over all completions
-  of the partial columns. Each column's choice is independent, and the score is
-  `Σ w·d / Σ w`, so the extremes are found exactly by Dinkelbach iteration
-  (choose per column the option minimising `w·(d − λ)`, update `λ`, repeat),
-  without enumerating completions.
-* **Compatible:** the grapheme's value lies in the bundle's allowed set on
-  every column, and `0` matches only `0`.
-* **Display:** compatible graphemes of the system, ranked by point distance.
-  Ranking is not identity; it never decides anything.
+- **Point score:** the system's own formula over the columns on which both
+  sides hold a single value, with that scorer's skip rules. For a valued
+  system, coverage is the share of declared features compared, as for
+  graphemes; for a categorical system, it is the compared weight over the
+  compared weight plus the weight left unspecified.
+- **Bounds:** the minimum and maximum of the same ratio over all completions
+  of the unspecified cells. The choice in each column is independent and the
+  score has the form `Σ w·d / Σ w`, so both extremes are found exactly by
+  Dinkelbach's (1967) method for fractional programming: choose in each column
+  the option minimizing (or maximizing) `w·(d − λ)`, update `λ` to the
+  resulting ratio, and repeat until it is stable. Completions are not
+  enumerated. The Python suite checks the bounds against brute-force
+  enumeration on 12 random partial bundles per system.
+- **Compatibility:** a grapheme is compatible when its value lies in the
+  bundle's allowed set on every column; `0` matches only `0`.
+- **Display:** `mk_bundle_compatible_graphemes` lists the compatible graphemes
+  of the system, nearest first. The ranking is for display and does not
+  decide identity. In Python, `AbstractSegment.covering(graphemes)` returns the
+  smallest bundle compatible with every grapheme given.
 
-`0` against a value is skipped, as it is today for valued systems, so the data
-split does not change any point distance between graphemes. In categorical
-systems, "does not apply" is the absence of both labels, and the scorer
-compares it with a value; bundles keep that rule, which is what lets a bundle
-from a grapheme score exactly as the grapheme.
+`0` against a value is not compared, as for graphemes in valued systems, so
+reading PHOIBLE's `0` as "does not apply" leaves every point distance between
+graphemes unchanged. In categorical systems, "does not apply" is the absence
+of both poles of a dimension, which the scorers compare with a value; bundles
+keep that rule, which is what makes a bundle from a grapheme score as the
+grapheme.
 
-For a partial bundle, the point score is computed over the dimensions both
-sides fix. It is not itself a completion, so it can lie outside
-`[minimum, maximum]`. Against /a/, the laryngeal-like bundle below scores
-0.615, with bounds [0.649, 0.649]. Report the bounds when the question is
-"how far could it be"; report the point score with its coverage when the
-question is "how far is it on what we know".
+The point score of a partial bundle is computed over the dimensions both
+sides fix. It is not itself the score of a completion, and can therefore lie
+outside `[minimum, maximum]`. The bounds answer "how far could it be"; the
+point score with its coverage answers "how far is it on what is known".
 
-## As built
+## Example
 
-* **Columns and text.** `vowel_height=close-mid..open`, `Manner=fricative|approximant`
-  (one of them), `Manner=affricate&fricative` (one exact set), `voice=?`,
-  `round=0`, `*` for unknown and possibly inapplicable, and `|0` to add "may not
-  apply". A whole bundle is `column=cell;...`; columns left out are `*`, and
-  `mk_bundle_to_text` writes every column in order.
-* **Clusters and tones.** These are refused (`MK_ERR_UNSUPPORTED_MODEL`). A
-  synthesized cluster has no single feature set, and a tone has no
-  segmental dimension.
-* **Checked:**
-  * every grapheme of every built-in system makes a bundle;
-  * on 21,000 random pairs, bundle distance and coverage equal the scorer's
-    (≤ 1e-12), and the suite keeps 150 pairs per system;
-  * on 420 partial bundles, the bounds equal brute-force enumeration exactly,
-    and the suite keeps 12 per system;
-  * the C suite passes under AddressSanitizer.
-* **The laryngeal case** (`descriptive`): /ħ/ with `voice=?` and
-  `guttural_place=?`.
-  * It is compatible with /h ħ ɦ ʕ ʜ ʢ/, not with /ʔ/ (continuant is still
-    fixed) nor with /k/.
-  * Against /ʕ/: distance 0 at coverage 0.66, bounds [0, 0.34].
+In `descriptive`, a laryngeal-like segment can be written as /ħ/ with
+`voice=?` and `guttural_place=?`: a voiceless or voiced guttural fricative at
+an unspecified guttural place.
 
-## Open
+- It is compatible with /h ħ ɦ ʕ ʜ ʢ/, and not with /ʔ/ (it is still
+  continuant) or /k/.
+- Against /ʕ/, the point distance is 0 at coverage 0.78, with bounds
+  [0, 0.22].
+- Against /a/, the point distance is 0.670, with bounds [0.649, 0.649]: every
+  completion is at the same distance, and the point score, computed on fewer
+  dimensions, lies outside it.
 
-* **P-base cell codes.** The tables use `n`, `o` and `x`, scored today as a
-  third value, and `.`, scored as missing. The 2019 extraction kept no record of
-  what they mean, so they are not split until that is known.
+These values are computed by `AbstractSegment.compare` with the data of this
+release; `test_abstract_segment_laryngeal` in `python/tests` checks the
+compatibility and the point distance against /ʕ/.
+
+## Open problems
+
+- **P-base cell codes.** The P-base tables use `n`, `o` and `x`, scored as a
+  third value, and `.`, scored as missing. What these codes denote in the
+  source extraction is not recorded, so they are not split into "does not
+  apply" and "unknown" as PHOIBLE's are.
+
+## References
+
+- Dinkelbach, Werner. 1967. On nonlinear fractional programming. *Management
+  Science* 13(7): 492–498.

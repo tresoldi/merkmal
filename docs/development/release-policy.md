@@ -1,15 +1,16 @@
 # Release policy
 
-This policy applies to the C library, source tarballs, and Python wheels.
+This policy applies to the C library, source distributions and Python
+wheels.
 
-## Dependency Policy
+## Dependency policy
 
 The C library and the Python extension have no external dependency. Unicode
-normalization is compiled in (see
-[distribution.md](../guide/installation.md#unicode-normalization)), so a release
+normalization is compiled in ([installation guide](../guide/installation.md#unicode-normalization);
+[ADR 0002](adr/0002-unicode-normalization-is-compiled-in.md)), so a release
 artifact normalizes identically wherever it is built.
 
-Release CI must run the normalization oracle, which needs `libutf8proc`:
+Release CI runs the normalization oracle, which needs `libutf8proc`:
 
 ```sh
 cmake -S . -B build/release \
@@ -17,35 +18,34 @@ cmake -S . -B build/release \
   -DMERKMAL_REQUIRE_UTF8PROC=ON
 ```
 
-Moving to a new Unicode version is a data change: regenerate
-`src/generated/unicode_data.c` with an interpreter carrying that version, run
-the oracle against a utf8proc of the same version, and record it in the
-changelog, because `merkmal.UNICODE_VERSION` is part of what identifies a
-result.
+A move to a new Unicode version is a data change: `src/generated/unicode_data.c`
+is regenerated with an interpreter carrying that version, the oracle is run
+against a utf8proc of the same version, and the change is recorded in the
+changelog. The Unicode version (`merkmal.UNICODE_VERSION`) is part of what
+identifies a result, and is not included in the semantic fingerprint.
 
-## Supported C Toolchains
+## Supported C toolchains
 
 The C core is C99 and is expected to build with:
 
-- GCC 11 or newer on Linux
-- Clang 14 or newer on Linux and macOS
-- Apple Clang from supported macOS/Xcode releases
+- GCC 11 or newer on Linux;
+- Clang 14 or newer on Linux and macOS;
+- Apple Clang from supported macOS and Xcode releases.
 
-MSVC is not a release target yet. The source avoids C extensions, but Windows
-packaging and DLL import/export testing still need a dedicated pass.
+MSVC is not a release target. The source uses no C extensions, but Windows
+packaging and DLL import and export are not tested.
 
-## Release Artifacts
+## Release artifacts
 
-Planned release artifacts:
+- A source distribution, which includes the generated tables in
+  `src/generated/`, so that building the C library needs no Python
+  ([ADR 0003](adr/0003-generated-artifacts-are-committed.md)).
+- The native C install tree, through the CMake install rules.
+- Python wheels for the stable ABI from CPython 3.12 (`cp312-abi3`), built
+  for Linux on x86-64 and AArch64 (`.github/workflows/wheels.yml`); other
+  platforms install from the source distribution.
 
-- source tarball containing generated C data
-- native C install tree via CMake install rules
-- Python `cp312-abi3` wheels
-
-Source releases should include generated `src/generated/builtin_data.c` so
-users do not need Python tooling to build the C library.
-
-## Version Numbers
+## Version numbers
 
 A release bumps the version in five places: `project(VERSION ...)` in
 `CMakeLists.txt`, `MK_VERSION_*` in `include/merkmal.h`, `pyproject.toml`,
@@ -53,57 +53,54 @@ A release bumps the version in five places: `project(VERSION ...)` in
 header and CMake disagree, and the Python tests fail if `__version__` and the
 linked library disagree.
 
-## Validation Gates
+## Validation gates
 
-Before tagging a release:
+Before a release is tagged, the following pass:
 
-- C tests pass with `MERKMAL_REQUIRE_UTF8PROC=ON`
-- C tests pass for shared-library builds
-- install-tree CMake consumer smoke test passes
-- install-tree pkg-config consumer smoke test passes
-- sanitizer CI passes for the C library
-- Python wrapper tests pass
-- Python wheel builds and contains only the native wrapper package files
-- `python tools/validate_models.py` passes (schema, exact identifier
-  matching, feature coverage, geometry node resolution, provenance)
-- `python tools/contrast_baseline.py --check` passes: no undeclared
-  zero-distance pair, no label unable to affect a distance
-- `python tools/generate_notice.py --check` passes, so `NOTICE` matches the
-  provenance manifests
-- `python tools/regenerate_golden.py --check` passes
+- the C tests with `MERKMAL_REQUIRE_UTF8PROC=ON`;
+- the C tests of a shared-library build;
+- the CMake and pkg-config consumer tests against an installed tree;
+- the C library under the sanitizers;
+- the Python tests;
+- the wheel build, and the wheel contains only the package files;
+- `python tools/validate_models.py` (required fields, exact identifier
+  matching, feature coverage, geometry node resolution, provenance);
+- `python tools/contrast_baseline.py --check`: no undeclared zero-distance
+  pair, and no label unable to affect a distance;
+- `python tools/generate_notice.py --check`, so that `NOTICE` matches the
+  provenance manifests;
+- `python tools/regenerate_golden.py --check`.
 
-## Data Releases
+## Data releases
 
 A data release is separate from a code release, because it changes observable
 numbers even when no code changed.
 
-- Any change to `data/models/`, `data/geometries/`, or `data/diacritics/` that moves a
-  distance or a feature set is a **major** model version, not a patch. Say so
-  in `CHANGELOG.md` with what moved and why.
-- Regenerate golden fixtures with `tools/regenerate_golden.py` and read the
-  diff. Do not accept a regenerated fixture without reviewing it: those values
-  are the library's contract.
-- Re-stamp `data/models/*/provenance.json` (the input hashes are checked) and
-  regenerate `NOTICE`.
-- If PHOIBLE data is touched, re-verify it against the release its manifest
-  pins:
+- Any change to `data/models/`, `data/geometries/` or `data/diacritics/` that
+  moves a distance or a feature set is a **major** model version, not a patch.
+  `CHANGELOG.md` states what moved and why.
+- Golden fixtures are regenerated with `tools/regenerate_golden.py`, and the
+  diff is reviewed before it is accepted: those values are the library's
+  contract.
+- `data/models/*/provenance.json` is re-stamped (the input hashes are
+  checked; `tools/generate_notice.py --restamp`) and `NOTICE` regenerated.
+- A change to the PHOIBLE data is re-verified against the release its
+  manifest pins:
 
   ```sh
   tools/rebuild_phoible_inventory.py <cldf/parameters.csv> --check
   ```
 
-  It is not in CI because it needs the upstream file, and fetching one over the
-  network is not something a build should depend on. It is how the 5,272
-  miscopied cells were found, so run it rather than trusting that the table
-  still says what upstream says.
-- Never describe a distribution bundling the data tables as MIT-only. The
-  current expression is
-  `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`, and it must agree
-  in `pyproject.toml`, `setup.py`, `NOTICE` and the README.
+  The check is not in CI, because it needs the upstream file and a build
+  should not depend on the network. It is the only check that the table still
+  agrees with upstream cell by cell.
+- **A distribution that bundles the data tables is not MIT-only.** Its license
+  expression is `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`, and
+  it agrees in `pyproject.toml`, `setup.py`, `NOTICE` and the README
+  ([ADR 0004](adr/0004-mit-for-code-upstream-terms-for-data.md)).
 - PHOIBLE and the four P-base models are redistributed under their upstream
-  terms, `CC-BY-SA-3.0` and `CC-BY-NC-SA-4.0`. A relicensing to CC-BY-4.0 was
-  declared on 2026-08-13 and withdrawn on 2026-08-20, because the permission
-  it rested on was never evidenced. Do not reintroduce it without a recorded
-  grant.
-- Fields marked `UNVERIFIED` in a provenance manifest must be established
-  before the next data release, not guessed from filenames.
+  terms, `CC-BY-SA-3.0` and `CC-BY-NC-SA-4.0`. No permission to relicense them
+  has been granted; they are not relicensed without a recorded grant from
+  the rights holders.
+- A field marked `UNVERIFIED` in a provenance manifest is established from
+  the source before the next data release, not inferred from file names.
