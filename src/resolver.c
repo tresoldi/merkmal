@@ -102,8 +102,9 @@ static mk_status mk_lookup_normalized(
     {
         int hit = mki_inventory_find(system->builtin, retracted, scratch, out);
 
-        /* Freed on both paths. The view borrows the pool, never `retracted`,
-         * so releasing it here does not invalidate anything in *out. */
+        /* Freed on both paths. The view borrows the inventory's storage, never
+         * `retracted`, so releasing it here does not invalidate anything in
+         * *out. */
         free(retracted);
         if (hit) {
             if (path_out != NULL) {
@@ -167,13 +168,12 @@ void mki_resolution_clear(mki_resolution *entry)
 
 /* Move a resolution out of a frame that is about to die.
  *
- * A plain struct assignment is not enough. On the inventory paths `features`
- * aliases the struct's own `inline_features` array, so a copy duplicates the
- * array but leaves `features` pointing into the *source*. The moment the
- * source goes out of scope the destination dangles -- which is the hazard
- * resolver.h warns about, and it was reachable: a fuzzer found
- * "cisntstiisi\234\213\226Fve" reading a dead frame through
- * mk_synthesize_cluster.
+ * A plain struct assignment is not enough. On the compiled-inventory paths
+ * `features` aliases the struct's own `inline_features` array, so a copy
+ * duplicates the array but leaves `features` pointing into the *source*. The
+ * moment the source goes out of scope the destination dangles -- the hazard
+ * resolver.h warns about, and a reachable one: mk_parse_component_at moves a
+ * stack-local resolution into a slot of mk_synthesize_cluster's frame.
  *
  * Use this rather than `*dst = *src` for any resolution that outlives its
  * source. The owned paths need no fixup: `owned_features` is heap storage that
@@ -186,11 +186,11 @@ static void mk_resolution_move(mki_resolution *dst, const mki_resolution *src)
     }
 }
 
-/* These three only read, and say so. Callers holding the mutable `char **` half
- * of an mki_resolution widen with a cast at the call, the way the call to
- * mki_ordinal_conflict below already did; C does not convert `char **` to
- * `const char *const *` on its own. Adding const is the safe direction, which
- * is why -Wcast-qual has nothing to say about it. */
+/* The read-only feature-list helpers take `const char *const *`. Callers
+ * holding the mutable `char **` half of an mki_resolution widen with a cast at
+ * the call, as the call to mki_ordinal_conflict below does; C does not convert
+ * `char **` to `const char *const *` on its own. Adding const is the safe
+ * direction, which is why -Wcast-qual has nothing to say about it. */
 static bool mk_feature_list_contains(const char *const *items, size_t count, const char *feature)
 {
     return mki_features_contain(items, count, feature);
@@ -340,8 +340,6 @@ static const char *mk_feature_dimension(const char *feature)
     return NULL;
 }
 
-/* A resolved entry is a grapheme, its features, and the storage behind them.
- * Scoring wants only the middle part. */
 mk_feature_view mki_view_of(const mki_resolution *entry)
 {
     mk_feature_view view;
@@ -501,11 +499,13 @@ static mk_status mk_add_chao_level_features(
         return MK_ERR_UNKNOWN_GRAPHEME;
     }
 
-    /* One ordered label per position. The previous encoding was a register bit
-     * plus a height bit, which is not monotone in the Chao digit: level 2 and
-     * level 4 differ in both bits and so scored as far apart as 1 and 5. */
-    /* Cannot truncate: `position` is one of two compiled-in words and `level`
-     * is 1-5, checked above, so the longest result is well inside 32. */
+    /* One ordered label per position, not a register bit plus a height bit:
+     * that pair is not monotone in the Chao digit, so level 2 and level 4
+     * would differ in both bits and score as far apart as 1 and 5.
+     *
+     * Cannot truncate: `position` is one of three compiled-in words and
+     * `level` is 1-5, checked above, so the longest result is well inside
+     * 32. */
     snprintf(feature, sizeof(feature), "tone-%s-%d", position, level);
     return mk_add_owned_feature(modifiers, modifier_count, modifier_cap, feature);
 }
@@ -568,8 +568,8 @@ static mk_status mk_add_chao_tone_features(
         return status;
     }
     /* A two-digit contour names its endpoints; the mid target is the midpoint
-     * of the glide. Leaving the slot empty made "a¹¹" differ from "a¹", which
-     * are the same level tone spelled two ways. */
+     * of the glide. Leaving the slot empty would make "a¹¹" differ from "a¹",
+     * which are the same level tone spelled two ways. */
     status = mk_add_chao_level_features(
         modifiers,
         modifier_count,
@@ -592,11 +592,11 @@ static mk_status mk_add_chao_tone_features(
 /* CLDF and CLTS markup that a Segments column carries alongside transcription.
  *
  * These are not sounds and must not resolve. But refusing them as unknown
- * graphemes told a caller doing transcription QC the wrong thing: `<?>` means
- * the *source* has a gap CLTS could not convert, not that merkmal lacks the
- * segment. In Lexibank the two commonest, `<?>` and `<<->>`, are 33,275 tokens
- * between them, so a QC pass that cannot separate them is reporting mostly
- * other people's known gaps as its own failures.
+ * graphemes would tell a caller doing transcription QC the wrong thing: `<?>`
+ * means the *source* has a gap CLTS could not convert, not that merkmal lacks
+ * the segment. They are common in Lexibank, `<?>` and `<<->>` above all, so a
+ * QC pass that cannot separate them reports other people's known gaps as its
+ * own failures; mki_resolve returns MK_ERR_SOURCE_MARKER for them instead.
  *
  * Deliberately narrow: the documented conventions only. Dataset-specific noise
  * such as arrows stays MK_ERR_UNKNOWN_GRAPHEME rather than being swept in here
@@ -649,8 +649,7 @@ static mk_status mk_set_synthesized_entry(
  *
  * Chao's neutral tone "⁰" is deliberately not a pitch level here. It is the
  * notation for a syllable that carries no tone in a language that otherwise
- * has tone -- 8.3% of the tone tokens in beidasinitic -- so it gets its own
- * privative feature rather than being folded into level 3 (which would claim it
+ * has tone, so it gets its own privative feature rather than being folded into level 3 (which would claim it
  * is mid) or level 1 (which would claim it is low). It has no pitch target, and
  * saying so is cheaper than inventing one. */
 static mk_status mk_synthesize_bare_tone(
@@ -969,8 +968,8 @@ static mk_status mk_decompose_diacritics(
         );
         if (suffix != NULL) {
             const char *feature = suffix->feature;
-            /* "aːː" is an overlong vowel. Adding "long" twice deduplicates to
-             * one "long", which made it identical to "aː". */
+            /* "aːː" is an overlong vowel. Adding "long" twice would
+             * deduplicate to one "long" and make it identical to "aː". */
             if (mki_streq(feature, "long") &&
                 mk_feature_list_contains(
                     (const char *const *)modifiers, modifier_count, "ultra-long")) {
@@ -1082,16 +1081,14 @@ static mk_status mk_apply_valued_modifiers(
 /* Whether a system synthesizes the spellings no inventory row carries:
  * diphthongs, consonant clusters, and complex segments such as "kp".
  *
- * This used to name `descriptive` and only `descriptive`. That left the other
- * categorical systems rejecting 1,188 segment types -- `ai`, `au`, `ei`, `gb`,
- * 78,762 tokens of Lexibank -- which mattered little while `descriptive` was
- * the system to reach for, and matters a great deal now that `distinctive` is
- * to become the default: the default would have been the least able to read the
- * field's data.
+ * Every categorical system does, not only `descriptive`. Limiting it to one
+ * system would leave the others, `distinctive` the default among them,
+ * rejecting common segments such as `ai`, `au`, `ei` and `gb` in the field's
+ * data.
  *
- * Nothing about the synthesis was ever descriptive-specific. Components are
- * resolved through whichever system is asking and scored by the component path
- * in system.c, which never looked at the system's name either. */
+ * Nothing about the synthesis is system-specific. Components are resolved
+ * through whichever system is asking and scored by mki_cluster_distance in
+ * cluster.c, which does not look at the system's name either. */
 static bool mk_admits_synthesized_clusters(const mk_system *system)
 {
     return system != NULL &&
@@ -1101,10 +1098,10 @@ static bool mk_admits_synthesized_clusters(const mk_system *system)
 
 /* Diacritics that assert opposite values of one property. A segment carrying
  * both is a contradiction, not a combination: `s̪̩̯` is syllabic and
- * non-syllabic, `ts̪̻̺` apical and laminal. Without this the scorer saw the two
- * labels cancel or overlap and returned 0.0 against the segment with either
- * mark alone, which the contrast audit recorded as a collapse. Refused the way
- * a breve plus a length mark is. Inventory rows are looked up before synthesis,
+ * non-syllabic, `ts̪̻̺` apical and laminal. Kept, the two labels would cancel
+ * or overlap and score 0.0 against the segment with either mark alone, which
+ * the contrast audit counts as a collapse. Refused the way a breve plus a
+ * length mark is. Inventory rows are looked up before synthesis,
  * so no row is affected. */
 static const char *const mk_contradictory_modifiers[][2] = {
     { "syllabic", "non-syllabic" },
@@ -1158,17 +1155,17 @@ static const mki_place_class *mk_find_place_class(const char *place)
 /* Applies a categorical modifier that names a place, such as dental U+032A.
  *
  * Diacritic synthesis is otherwise additive, which is right for "aspirated" and
- * wrong for a place: `n` is alveolar, and adding "dental" to it put the segment
- * at two points of the coronal scale, which the ordinal guard then refused as a
- * parse error. So `n̪` read only because it happens to be an inventory row, and
- * every stack the inventory does not list -- `n̪̊`, `t̪ʲʰ`, `ɹ̪`, `d̪̤`, `ɾ̪` --
- * failed in the categorical systems while the valued ones read it.
+ * wrong for a place: `n` is alveolar, and adding "dental" to it would put the
+ * segment at two points of the coronal scale, which the ordinal guard refuses
+ * as a parse error. Every stack the inventory does not list -- `n̪̊`, `t̪ʲʰ`,
+ * `ɹ̪`, `d̪̤`, `ɾ̪` -- would then fail in the categorical systems while the
+ * valued ones read it.
  *
  * A place diacritic restates where the segment is made, so it replaces the
  * base's level on the same scale. The coronal class labels the generator
- * derived from the old place are re-derived from the new one, but only when the
- * base carried them: a system that does not use them is not given them. A base
- * with no level on that scale (`p̪`) keeps the additive behaviour. */
+ * derived from the base's place are re-derived from the new one, but only when
+ * the base carried them: a system that does not use them is not given them. A
+ * base with no level on that scale (`p̪`) keeps the additive behaviour. */
 static mk_status mk_apply_place_modifier(
     char ***features,
     size_t *count,
@@ -1335,18 +1332,16 @@ static mk_status mk_add_cluster_component(
 /* Whether two resolved parts denote the same segment, which is what makes a
  * two-part cluster a geminate.
  *
- * This used to compare the two spellings byte for byte, twenty lines from
- * mk_add_prenasalization, which decides from features and carries a comment
- * recording that testing the spelling was the bug. Two adjacent rules about the
+ * Decided from features, not by comparing the spellings byte for byte, because
+ * mk_add_prenasalization decides from features too, and two rules about the
  * same two parts should not disagree about what "the same" means.
  *
- * The two rules agree on every pair of distinct inventory segments -- measured
- * across 24,824 two-part clusters in each of the three categorical systems, and
- * again over the tone spellings the contrast baseline declares equivalent. They
- * differ only where a mark is redundant: a nasal vowel written with a second
- * nasal mark, a creaky one with a second creaky mark. Those are one segment
- * written twice, which is what a geminate is, so the featural answer is also the
- * right one for them.
+ * Featural and spelling equality agree on every pair of distinct inventory
+ * segments in the three categorical systems, and on the tone spellings the
+ * contrast baseline declares equivalent. They differ only where a mark is
+ * redundant: a nasal vowel written with a second nasal mark, a creaky one with
+ * a second creaky mark. Those are one segment written twice, which is what a
+ * geminate is, so the featural answer is also the right one for them.
  *
  * A false geminate would need two genuinely different segments with identical
  * features. Those score exactly zero against each other, which is the
@@ -1378,9 +1373,11 @@ static bool mk_same_segment(const mki_resolution *a, const mki_resolution *b)
  * moves across and `resolved` is left holding nothing, so the caller's clear is
  * a no-op for it. An inventory part's strings are borrowed from the compiled
  * pool or the registry and stay borrowed, but the array pointing at them is
- * copied -- the one `resolved` holds is its own inline scratch and dies with
- * this frame. That copy is one small allocation per part, against the up to six
- * full re-resolutions scoring used to pay for every cluster comparison. */
+ * copied -- for a compiled inventory it is `resolved`'s own inline scratch,
+ * which dies with mk_synthesize_cluster's frame. That copy is one small
+ * allocation per part, against re-resolving every part's spelling on every
+ * cluster comparison. On MK_ERR_OOM the slot has no features and `resolved`
+ * still owns its own. */
 static mk_status mk_attach_component_features(
     mki_cluster_component *slot,
     mki_resolution *resolved
@@ -1468,9 +1465,8 @@ static mk_status mk_add_cluster_movement_features(
 
 /* What separates a vowel component from a consonant component: which codepoints
  * may start one, and what the resolved features must look like. Everything
- * between those two tests -- appending the base, accumulating combining marks,
- * tone marks and modifier letters, resolving the result -- is the same for
- * both, and used to be duplicated line for line. */
+ * between those two tests -- appending the base, accumulating combining marks
+ * and modifier letters, resolving the result -- is the same for both. */
 typedef struct mk_component_grammar {
     /* Whether this codepoint may begin a component of this kind. Shared
      * rejections (end of input, tone) are handled by the parser. */
@@ -1643,18 +1639,19 @@ static mk_status mk_parse_component_once(
 }
 
 /* One component, preferring a two-letter segment over two one-letter ones.
+ * On MK_OK component_out owns the component and *end_out is just past it; on
+ * failure component_out holds nothing to free.
  *
- * A component used to be exactly one base letter plus its diacritics, so `ntʃ`
- * parsed as n + t + ʃ: the affricate came apart inside the cluster even though
- * the tokenizer and the recognizer both read `tʃ` as one segment everywhere
- * else. The knowledge was already in the library and this path was not asking
- * for it.
+ * Not just one base letter plus its diacritics: that would parse `ntʃ` as
+ * n + t + ʃ, taking apart inside a cluster the affricate the tokenizer and the
+ * recognizer read as one segment everywhere else.
  *
  * The lookahead is one unit deep, which is all the two-letter segments need --
- * the affricates, and the doubly-articulated kp/gb/ŋm. It is tried against the
- * inventory and the complex synthesizer only, never against the cluster
- * grammars, so `nd` and `mb` stay the clusters they are rather than being
- * merged by a rule that would swallow any adjacent pair. */
+ * the affricates, the doubly-articulated kp/gb/ŋm, and the prenasalized stops
+ * such as `mb` and `nd`, so `mbr` is mb + r. It is tried against the inventory
+ * and the complex synthesizer only, never against the cluster grammars, so a
+ * pair merges only when it spells one known segment; a rule that accepted any
+ * cluster would swallow every adjacent pair. */
 static mk_status mk_parse_component_at(
     const mk_system *system,
     const mk_component_grammar *grammar,
@@ -1684,7 +1681,8 @@ static mk_status mk_parse_component_at(
 
             mki_resolution_clear(&second);
             if (text == NULL) {
-                /* The first component is already in component_out, owned. */
+                /* The first component is already in component_out, owned;
+                 * clear it so the failure leaves nothing behind. */
                 mki_resolution_clear(component_out);
                 return MK_ERR_OOM;
             }
@@ -1734,8 +1732,7 @@ static mk_status mk_parse_component_at(
  * record their spellings, cap at three, require at least two. What differs is
  * which components are admitted, whether a trailing tone may close the run,
  * the class labels the result carries, and which features the components
- * imply. Those four differences used to be spelled out twice, around eighty
- * lines of identical scan and cleanup. */
+ * imply; those four are what this struct holds. */
 typedef struct mk_cluster_grammar {
     mki_resolution_path path;
     const mk_component_grammar *component;
@@ -1761,8 +1758,8 @@ typedef struct mk_cluster_grammar {
 } mk_cluster_grammar;
 
 /* A prenasalised segment is a nasal followed by a non-nasal obstruent. Testing
- * only the first component made the geminates "mm" and "nn" prenasalised, and
- * did the same to "ŋm", which is a doubly articulated labial-velar nasal
+ * only the first component would make the geminates "mm" and "nn"
+ * prenasalised, and "ŋm" too, which is a doubly articulated labial-velar nasal
  * rather than a nasal plus anything. */
 static mk_status mk_add_prenasalization(
     char ***features,
@@ -1833,10 +1830,10 @@ static const mk_cluster_grammar mk_consonant_cluster_grammar = {
     0,
     mk_consonant_cluster_classes,
     sizeof(mk_consonant_cluster_classes) / sizeof(mk_consonant_cluster_classes[0]),
-    /* "mb" and "nd" used to be rejected while "mp", "nt", "ŋg", "ndz" and
-     * "ntʃ" were accepted. Whatever ambiguity motivated that applies
-     * identically to those, and these two are the most frequent NC sequences
-     * in the world's languages. The list is gone rather than extended. */
+    /* No list of refused NC sequences. "mb" and "nd" are the most frequent
+     * in the world's languages, and any ambiguity that would argue for
+     * refusing them applies identically to "mp", "nt", "ŋg", "ndz" and
+     * "ntʃ". */
     NULL,
     NULL,
     mk_add_prenasalization,
@@ -2030,9 +2027,8 @@ static mk_status mk_synthesize_untied_complex(
 );
 
 /* A tie bar asserts one segment, which is what this synthesizer builds, so it
- * matches the spelling with the ties removed. The inventory lookup already
- * did that for rows; the synthesizer did not, so `tʂ` read and `t͡ʂ` did not.
- * The cluster grammars never see the tie-stripped form: a tie bar must not be
+ * matches the spelling with the ties removed, as the inventory lookup does for
+ * rows; otherwise `tʂ` would read and `t͡ʂ` would not. The cluster grammars never see the tie-stripped form: a tie bar must not be
  * read as licensing a two-segment cluster. */
 static mk_status mk_synthesize_descriptive_complex(
     const mk_system *system,
@@ -2075,12 +2071,12 @@ static mk_status mk_synthesize_untied_complex(
 
     /* The labial-velars are one segment, not two. CLTS v1.4.1 reads `kp` as
      * "from voiceless velar stop to voiceless bilabial stop cluster", and this
-     * library already departs from that for `kp` and `gb`, because in the
-     * Niger-Congo languages that have them the standard analysis is a single
+     * library departs from that for `kp` and `gb`, because in the Niger-Congo
+     * languages that have them the standard analysis is a single
      * doubly-articulated segment. `ŋm` is the nasal member of exactly that
-     * series -- Yoruba, Ewe, Igbo -- and was the one left as a cluster, which
-     * scored it 0.73 from `kp` where `gb` scores 0.25. Extending the departure
-     * is what makes the series coherent; leaving it out was the anomaly. */
+     * series -- Yoruba, Ewe, Igbo -- so it gets the same departure: left as a
+     * cluster it would score far from `kp` while `gb` scores close, and the
+     * series would not be coherent. */
     if (mki_streq(normalized, "kp")) {
         place = "labio-velar";
         phonation = "voiceless";
@@ -2293,7 +2289,9 @@ static mk_status mk_synthesize_from_diacritics(
     }
     /* A breve plus a length mark asserts both `ultra-short` and `long`. Nothing
      * downstream can act on a segment that is at two points of one scale, and
-     * silently keeping whichever came first would be arbitrary. */
+     * silently keeping whichever came first would be arbitrary. Contradictory
+     * diacritics (mk_contradictory_modifiers) are refused for the same
+     * reason. */
     if (mki_ordinal_conflict((const char *const *)features, count, NULL, NULL, NULL) ||
         mk_modifiers_contradict((const char *const *)features, count)) {
         status = MK_ERR_PARSE;
@@ -2343,8 +2341,9 @@ mk_status mki_resolve(
 
     /* The written form first. A source convention rewrites one spelling into
      * another on the grounds that the system does not have the first -- so if
-     * the system does have it, the rewrite is wrong, and applying the table
-     * unconditionally is how U+026B came to overwrite a PHOIBLE row. */
+     * the system does have it, the rewrite is wrong. Applied unconditionally,
+     * the table would let a mapping such as U+026B `ɫ` to `lˠ` merge two
+     * segments a PHOIBLE inventory distinguishes. */
     {
         char *literal = NULL;
 
@@ -2382,8 +2381,8 @@ mk_status mki_resolve(
     }
     if (status == MK_ERR_UNKNOWN_GRAPHEME) {
         /* Tried first: a token made only of Chao digits or tone letters is
-         * unambiguous, and letting the cluster grammars see it first would have
-         * them reject it for reasons that say nothing about tone. */
+         * unambiguous, and the cluster grammars, seeing it first, would reject
+         * it for reasons that say nothing about tone. */
         status = mk_synthesize_bare_tone(system, normalized, out);
         if (status == MK_ERR_UNKNOWN_GRAPHEME) {
             status = mk_synthesize_cluster(system, &mk_vowel_cluster_grammar, normalized, out);
