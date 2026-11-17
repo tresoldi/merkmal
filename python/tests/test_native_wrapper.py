@@ -340,6 +340,9 @@ def test_native_unicode_helpers() -> None:
     assert merkmal.segment_ipa("tʰoŋ⁵⁵") == ["tʰ", "o", "ŋ", "⁵⁵"]
     assert merkmal.segment_ipa_merged("tʰoŋ⁵⁵") == ["tʰ", "o⁵⁵", "ŋ"]
     assert merkmal.merge_tone_digits(["tʰ", "o", "ŋ", "⁵⁵"]) == ["tʰ", "o⁵⁵", "ŋ"]
+    # The syllabic mark above (U+030D) bears a tone like the one below (U+0329).
+    assert merkmal.segment_ipa_merged("ŋ̍²¹") == ["ŋ̍²¹"]
+    assert merkmal.segment_ipa_merged("m̩⁵⁵") == ["m̩⁵⁵"]
     assert merkmal.segment_ipa("ⁿda") == ["ⁿd", "a"]
     assert merkmal.segment_ipa("n̥a") == ["n̥", "a"]
 

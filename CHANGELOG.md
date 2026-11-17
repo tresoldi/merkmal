@@ -46,6 +46,8 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- Tone merging dropped the tone of a syllabic consonant marked with U+030D
+  above (`ŋ̍²¹` gave `ŋ̍`); the mark is now treated like U+0329 below.
 - The contrast baseline counted no zero-distance pair as having "no comparable
   dimension": an unpacking error was swallowed. It now reports 7,131 of the
   13,779 sampled PHOIBLE pairs, mostly a tone row against a segment.

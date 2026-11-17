@@ -83,12 +83,14 @@ static bool mk_chao_token_has_nonzero(const char *s)
     return false;
 }
 
+/* A syllabic consonant is marked with U+0329 below, or with U+030D above a
+ * letter with a descender (`ŋ̍`); IPA treats the two as one diacritic. */
 static bool mk_segment_is_syllabic(const char *segment)
 {
     const char *p = segment;
 
     while (*p != '\0') {
-        if (mki_has_prefix(p, "̩")) {
+        if (mki_has_prefix(p, "̩") || mki_has_prefix(p, "̍")) {
             return true;
         }
         if (mki_is_combining_mark(p)) {
