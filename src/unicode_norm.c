@@ -32,7 +32,8 @@ typedef struct mk_code_points {
 static mk_status mk_push(mk_code_points *buffer, unsigned int cp)
 {
     unsigned int *next = (unsigned int *)mki_grow_array(
-        buffer->items, &buffer->cap, buffer->count, 1, sizeof(*next), 32);
+        buffer->items, &buffer->cap, buffer->count, 1, sizeof(*next), 32
+    );
 
     if (next == NULL) {
         return MK_ERR_OOM;
@@ -126,7 +127,8 @@ static mk_status mk_push_decomposed(mk_code_points *buffer, unsigned int cp)
         if (status == MK_OK) {
             status = mk_push(
                 buffer,
-                MK_HANGUL_V_BASE + (index % MK_HANGUL_N_COUNT) / MK_HANGUL_T_COUNT);
+                MK_HANGUL_V_BASE + (index % MK_HANGUL_N_COUNT) / MK_HANGUL_T_COUNT
+            );
         }
         if (status == MK_OK && trailing != 0) {
             status = mk_push(buffer, MK_HANGUL_T_BASE + trailing);
@@ -138,7 +140,8 @@ static mk_status mk_push_decomposed(mk_code_points *buffer, unsigned int cp)
             mki_unicode_tables.decomposition_code_points,
             mki_unicode_tables.decomposition_count,
             cp,
-            &at)) {
+            &at
+        )) {
         /* The generated table holds full decompositions, already applied
          * recursively, so the parts are pushed as they are. */
         const unsigned int *parts =
@@ -230,9 +233,10 @@ static unsigned int mk_compose_pair(unsigned int first, unsigned int second)
         mki_unicode_tables.composition_first,
         mki_unicode_tables.composition_count,
         first,
-        &at);
+        &at
+    );
     for (; at < mki_unicode_tables.composition_count &&
-           mki_unicode_tables.composition_first[at] == first;
+         mki_unicode_tables.composition_first[at] == first;
          at++) {
         if (mki_unicode_tables.composition_second[at] == second) {
             return mki_unicode_tables.composition_result[at];
@@ -284,7 +288,10 @@ static mk_status mk_encode(const mk_code_points *buffer, char **utf8_out)
 
     for (i = 0; i < buffer->count; i++) {
         unsigned int cp = buffer->items[i];
-        bytes += (cp & MK_RAW_BYTE_TAG) ? 1 : cp < 0x80 ? 1 : cp < 0x800 ? 2 : cp < 0x10000 ? 3 : 4;
+        bytes += (cp & MK_RAW_BYTE_TAG) ? 1 : cp < 0x80 ? 1
+            : cp < 0x800                                ? 2
+            : cp < 0x10000                              ? 3
+                                                        : 4;
     }
     out = (char *)malloc(bytes);
     if (out == NULL) {
@@ -319,7 +326,7 @@ static mk_status mk_encode(const mk_code_points *buffer, char **utf8_out)
 
 static mk_status mk_normalize(const char *utf8_in, int compose, char **utf8_out)
 {
-    mk_code_points buffer = { NULL, 0, 0 };
+    mk_code_points buffer = {NULL, 0, 0};
     mk_status status;
 
     if (utf8_in == NULL || utf8_out == NULL) {

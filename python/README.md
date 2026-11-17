@@ -84,6 +84,48 @@ the shared one.
 `feature_distance` takes no `system`: it measures a distance in the compiled
 geometry, which every system shares.
 
+## Command line
+
+Installing the package provides `merkmal` (also `python -m merkmal`):
+
+```sh
+merkmal systems
+merkmal features p
+merkmal distance ai au
+merkmal normalize ã
+merkmal segment "tʃa pʰa"
+merkmal --system phoible features bʰ
+```
+
+The default output is for people and may change between releases. Scripts
+should use one of the machine-readable modes, which are the stable contract.
+Each may be given before or after the subcommand:
+
+| Mode | Output |
+| --- | --- |
+| `--json` | one JSON object per invocation |
+| `--jsonl` | one JSON object per record, one per line |
+| `--tsv` | a header row, then one row per record |
+
+Records by subcommand:
+
+| Subcommand | JSON object | JSONL/TSV record |
+| --- | --- | --- |
+| `systems` | `{"systems": [...]}` | `system` |
+| `features` | `{"system", "grapheme", "features": [...]}` | `grapheme`, `feature` |
+| `distance` | `{"system", "a", "b", "distance", "coverage", "comparability"}` | the same fields |
+| `normalize` | `{"input", "normalized"}` | the same fields |
+| `segment` | `{"text", "segments": [...]}` | `index`, `segment` |
+
+`system` is the system actually used, `merkmal.DEFAULT_SYSTEM` when none is
+named. Text is UTF-8. In TSV a backslash, tab or newline inside a value is
+written `\\`, `\t` or `\n`, so a value never adds a column or a row. Floats
+are written in full precision.
+
+Exit status is 0 on success and 1 on an error the input caused (an unknown
+system or grapheme), with a message on stderr and nothing on stdout. A usage
+error, such as two modes at once, exits 2.
+
 ## Development
 
 From the repository root:

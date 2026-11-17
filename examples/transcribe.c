@@ -98,8 +98,7 @@ static int show_distance(const mk_system *system)
         return 1;
     }
 
-    printf("\nd(p, b) = %.4f  (coverage %.2f, comparability %d)\n",
-        distance, coverage, (int)why);
+    printf("\nd(p, b) = %.4f  (coverage %.2f, comparability %d)\n", distance, coverage, (int)why);
     printf("  scored by %s, a %s system\n", name, kind);
     return 0;
 }

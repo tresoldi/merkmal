@@ -5,15 +5,15 @@
 #include <stddef.h>
 
 #if defined(_WIN32) && defined(MERKMAL_SHARED)
-#  if defined(MERKMAL_BUILDING_LIBRARY)
-#    define MK_API __declspec(dllexport)
-#  else
-#    define MK_API __declspec(dllimport)
-#  endif
-#elif defined(__GNUC__) || defined(__clang__)
-#  define MK_API __attribute__((visibility("default")))
+#if defined(MERKMAL_BUILDING_LIBRARY)
+#define MK_API __declspec(dllexport)
 #else
-#  define MK_API
+#define MK_API __declspec(dllimport)
+#endif
+#elif defined(__GNUC__) || defined(__clang__)
+#define MK_API __attribute__((visibility("default")))
+#else
+#define MK_API
 #endif
 
 #ifdef __cplusplus

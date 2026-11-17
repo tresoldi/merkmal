@@ -60,8 +60,7 @@ int main(void)
         return 1;
     }
 
-    printf("corpus: %zu words, system: descriptive, inventory: %zu rows\n\n",
-           (size_t)WORD_COUNT, system->builtin->entry_count);
+    printf("corpus: %zu words, system: descriptive, inventory: %zu rows\n\n", (size_t)WORD_COUNT, system->builtin->entry_count);
 
     /* 1. System-aware tokenization: longest match, so several lookups per
      *    token, which is the case the lookup cost compounds in. */
@@ -77,8 +76,7 @@ int main(void)
         }
     }
     elapsed = seconds_since(start);
-    printf("tokenize      %8.3f s for %8zu tokens   %8.1f us/token\n",
-           elapsed, tokens, elapsed * 1e6 / (double)tokens);
+    printf("tokenize      %8.3f s for %8zu tokens   %8.1f us/token\n", elapsed, tokens, elapsed * 1e6 / (double)tokens);
 
     /* 2. Scoring pairs, which resolves two graphemes per call. */
     rounds = 400;
@@ -101,8 +99,7 @@ int main(void)
         }
     }
     elapsed = seconds_since(start);
-    printf("distance      %8.3f s for %8zu pairs    %8.1f us/pair\n",
-           elapsed, pairs, elapsed * 1e6 / (double)pairs);
+    printf("distance      %8.3f s for %8zu pairs    %8.1f us/pair\n", elapsed, pairs, elapsed * 1e6 / (double)pairs);
 
     /* 3. The lookup alone, on a miss -- the worst case, since a miss runs the
      *    search to the end. A hit can stop early. */
@@ -116,8 +113,7 @@ int main(void)
         lookups++;
     }
     elapsed = seconds_since(start);
-    printf("scan (miss)   %8.3f s for %8zu lookups  %8.1f us/lookup\n",
-           elapsed, lookups, elapsed * 1e6 / (double)lookups);
+    printf("scan (miss)   %8.3f s for %8zu lookups  %8.1f us/lookup\n", elapsed, lookups, elapsed * 1e6 / (double)lookups);
 
     lookups = 0;
     rounds = 20000;
@@ -130,8 +126,7 @@ int main(void)
         lookups++;
     }
     elapsed = seconds_since(start);
-    printf("scan (hit)    %8.3f s for %8zu lookups  %8.1f us/lookup\n",
-           elapsed, lookups, elapsed * 1e6 / (double)lookups);
+    printf("scan (hit)    %8.3f s for %8zu lookups  %8.1f us/lookup\n", elapsed, lookups, elapsed * 1e6 / (double)lookups);
 
     mk_registry_free(registry);
     return 0;

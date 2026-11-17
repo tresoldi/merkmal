@@ -1,8 +1,11 @@
 # Contributing to the C core
 
 The conventions of `include/` and `src/`, for a person or a coding agent
-changing them. Each rule here is already true of the tree; where a script or
-a test enforces it, that is named.
+changing them. They apply [the house standard](docs/house-standard.md) to this
+project; [AGENTS.md](AGENTS.md) is the short checklist, and
+[docs/adr/](docs/adr/) records where merkmal departs from the standard and why.
+Each rule here is already true of the tree; where a script or a test enforces
+it, that is named.
 
 The language is C99 in strict ISO mode (`CMAKE_C_EXTENSIONS OFF`), with no
 compiler extensions outside the `MK_API` visibility macro in `merkmal.h`.
@@ -209,6 +212,19 @@ the signature cannot.
   there is one, as in `TODO(#<issue>): drop the 1.0 aliases once no caller
   uses them`. A bare "TODO: improve" is not a TODO.
 
+## Formatting
+
+Formatting is mechanical: `.clang-format` at the root decides it, and it is
+not a review topic. `scripts/check_format.sh` fails on any first-party C file
+that differs from it, and `scripts/check_format.sh --fix` reformats in place.
+Generated tables are excluded by `.clang-format-ignore`.
+
+Never restyle code you are not otherwise changing. A reformat goes in a commit
+of its own, never mixed with a functional change. Where hand layout carries
+meaning (a table with one case per line, a literal split on purpose), wrap it
+in `/* clang-format off */` and `/* clang-format on */`, with the reason in a
+comment just above.
+
 ## Generated data
 
 `src/generated/builtin_data.c`, `src/generated/cc-by/builtin_data.c` and
@@ -238,6 +254,7 @@ CI runs each of these, so run the ones your change touches:
 | AddressSanitizer / UBSan | `-DMERKMAL_ENABLE_SANITIZER=address` or `=undefined` |
 | cc-by data profile | `-DMERKMAL_DATA_PROFILE=cc-by` |
 | Shared library | `-DBUILD_SHARED_LIBS=ON` |
+| Formatting | `scripts/check_format.sh` (`--fix` to apply) |
 | Static analysis | `scripts/run_static_analysis.sh` (GCC `-fanalyzer` and `clang --analyze`; any output beyond the headers is a new finding) |
 | Fuzzing | `CC=clang cmake -S . -B build-fuzz -DMERKMAL_BUILD_FUZZERS=ON -DMERKMAL_BUILD_TESTS=OFF`, then `build-fuzz/fuzz_<target> fuzz/corpus/<target>` |
 | Python | `pip install . pytest && python -m pytest python/tests -q` |

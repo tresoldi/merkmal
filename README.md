@@ -343,7 +343,8 @@ merkmal/
 └── docs/                   C API and format documentation
 ```
 
-Contributing to the C core: [STYLE.md](STYLE.md) describes the module layout,
+Contributing: start with [AGENTS.md](AGENTS.md), the checklist of commands,
+boundaries and required checks. [STYLE.md](STYLE.md) describes the module layout,
 the `mk_`/`mki_` naming rule, ownership and error conventions, the generated
 data, and the build, sanitizer, analysis and fuzzing commands CI runs.
 

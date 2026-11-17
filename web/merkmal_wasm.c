@@ -22,20 +22,12 @@
 
 /* Declared so -Wmissing-prototypes has something to match. */
 EMSCRIPTEN_KEEPALIVE char *merkmal_list_systems(void);
-EMSCRIPTEN_KEEPALIVE char *merkmal_grapheme_features(const char *system_name,
-                                                     const char *grapheme);
-EMSCRIPTEN_KEEPALIVE char *merkmal_segment_distance(const char *system_name,
-                                                    const char *a,
-                                                    const char *b);
-EMSCRIPTEN_KEEPALIVE char *merkmal_tokenize(const char *system_name,
-                                            const char *input,
-                                            int merge_tones,
-                                            int system_aware);
-EMSCRIPTEN_KEEPALIVE char *merkmal_distance_matrix(const char *system_name,
-                                                   const char *segments_csv);
+EMSCRIPTEN_KEEPALIVE char *merkmal_grapheme_features(const char *system_name, const char *grapheme);
+EMSCRIPTEN_KEEPALIVE char *merkmal_segment_distance(const char *system_name, const char *a, const char *b);
+EMSCRIPTEN_KEEPALIVE char *merkmal_tokenize(const char *system_name, const char *input, int merge_tones, int system_aware);
+EMSCRIPTEN_KEEPALIVE char *merkmal_distance_matrix(const char *system_name, const char *segments_csv);
 EMSCRIPTEN_KEEPALIVE char *merkmal_normalize(const char *grapheme);
-EMSCRIPTEN_KEEPALIVE char *merkmal_diagnose(const char *system_name,
-                                            const char *grapheme);
+EMSCRIPTEN_KEEPALIVE char *merkmal_diagnose(const char *system_name, const char *grapheme);
 EMSCRIPTEN_KEEPALIVE char *merkmal_register_model(const char *model_text);
 EMSCRIPTEN_KEEPALIVE const char *merkmal_version(void);
 EMSCRIPTEN_KEEPALIVE void merkmal_free(char *text);
@@ -283,8 +275,7 @@ char *merkmal_grapheme_features(const char *system_name, const char *grapheme)
             double *vals = (double *)calloc(width, sizeof(double));
             size_t written = 0;
             if (vals &&
-                mk_system_feature_vector(sys, grapheme, vals, width,
-                                         &written) == MK_OK) {
+                mk_system_feature_vector(sys, grapheme, vals, width, &written) == MK_OK) {
                 jb_cat(&b, ",\"vector\":{\"labels\":[");
                 for (size_t i = 0; i < written; i++) {
                     if (i > 0)
@@ -310,8 +301,7 @@ char *merkmal_grapheme_features(const char *system_name, const char *grapheme)
 }
 
 EMSCRIPTEN_KEEPALIVE
-char *merkmal_segment_distance(const char *system_name, const char *a,
-                               const char *b_seg)
+char *merkmal_segment_distance(const char *system_name, const char *a, const char *b_seg)
 {
     const mk_system *sys = NULL;
     double dist = 0.0, cov = 0.0;
@@ -326,8 +316,7 @@ char *merkmal_segment_distance(const char *system_name, const char *a,
     if (status != MK_OK)
         return error_json(status, system_name);
 
-    status = mk_system_segment_distance_ex(sys, a, b_seg, NULL, &dist, &cov,
-                                           &cmp);
+    status = mk_system_segment_distance_ex(sys, a, b_seg, NULL, &dist, &cov, &cmp);
     if (status != MK_OK)
         return error_json(status, NULL);
 
@@ -336,8 +325,7 @@ char *merkmal_segment_distance(const char *system_name, const char *a,
     jb_str(&buf, a);
     jb_cat(&buf, ",\"b\":");
     jb_str(&buf, b_seg);
-    jb_catf(&buf, ",\"distance\":%.6g,\"coverage\":%.6g,\"comparability\":",
-            dist, cov);
+    jb_catf(&buf, ",\"distance\":%.6g,\"coverage\":%.6g,\"comparability\":", dist, cov);
     switch (cmp) {
     case MK_CMP_OK:
         jb_str(&buf, "ok");
@@ -354,8 +342,7 @@ char *merkmal_segment_distance(const char *system_name, const char *a,
 }
 
 EMSCRIPTEN_KEEPALIVE
-char *merkmal_tokenize(const char *system_name, const char *input,
-                       int merge_tones, int system_aware)
+char *merkmal_tokenize(const char *system_name, const char *input, int merge_tones, int system_aware)
 {
     const mk_system *sys = NULL;
     mk_string_list *segments = NULL;
@@ -405,8 +392,7 @@ char *merkmal_tokenize(const char *system_name, const char *input,
 }
 
 EMSCRIPTEN_KEEPALIVE
-char *merkmal_distance_matrix(const char *system_name,
-                              const char *segments_csv)
+char *merkmal_distance_matrix(const char *system_name, const char *segments_csv)
 {
     const mk_system *sys = NULL;
     mk_status status;
@@ -528,8 +514,7 @@ char *merkmal_normalize(const char *grapheme)
     jb_str(&b, grapheme);
     jb_cat(&b, ",\"normalized\":");
     jb_str(&b, normalized);
-    jb_catf(&b, ",\"changed\":%s}",
-            strcmp(grapheme, normalized) != 0 ? "true" : "false");
+    jb_catf(&b, ",\"changed\":%s}", strcmp(grapheme, normalized) != 0 ? "true" : "false");
     mk_string_free(normalized);
     return jb_finish(&b);
 }
@@ -610,8 +595,8 @@ char *merkmal_register_model(const char *model_text)
                     end++;
                 size_t len =
                     (size_t)(end - p) < sizeof(name) - 1
-                        ? (size_t)(end - p)
-                        : sizeof(name) - 1;
+                    ? (size_t)(end - p)
+                    : sizeof(name) - 1;
                 memcpy(name, p, len);
                 name[len] = '\0';
                 break;

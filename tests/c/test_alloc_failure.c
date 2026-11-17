@@ -94,15 +94,18 @@ static mk_status run(int op)
         break;
     case 3:
         status = mk_system_segment_distance_ex(
-            descriptive, "ai³³", "au", NULL, &distance, &coverage, &why);
+            descriptive, "ai³³", "au", NULL, &distance, &coverage, &why
+        );
         break;
     case 4:
         status = mk_system_segment_distance_ex(
-            phoible, "p", "b", NULL, &distance, &coverage, &why);
+            phoible, "p", "b", NULL, &distance, &coverage, &why
+        );
         break;
     case 5:
         status = mk_system_segment_distance_ex(
-            descriptive, "a", "³³", NULL, &distance, &coverage, &why);
+            descriptive, "a", "³³", NULL, &distance, &coverage, &why
+        );
         break;
     default: {
         /* The registry is built with allocation failure off: what is under
@@ -117,7 +120,8 @@ static mk_status run(int op)
         }
         fail_at = saved;
         status = mk_registry_add_model_text_n(
-            registry, toy_model, sizeof(toy_model) - 1, &diagnostic);
+            registry, toy_model, sizeof(toy_model) - 1, &diagnostic
+        );
         fail_at = -1;
         mk_string_free(diagnostic);
         mk_registry_free(registry);
@@ -162,12 +166,10 @@ int main(void)
             /* Fewer allocations than n: the injected failure never happened. */
             completed = seen <= n;
             if (completed && status != MK_OK) {
-                fprintf(stderr, "FAIL: %s: clean run returned %s\n",
-                        op_names[op], mk_status_string(status));
+                fprintf(stderr, "FAIL: %s: clean run returned %s\n", op_names[op], mk_status_string(status));
                 failures++;
             } else if (!completed && status != MK_OK && status != MK_ERR_OOM) {
-                fprintf(stderr, "FAIL: %s: allocation %ld failed and it returned %s\n",
-                        op_names[op], n, mk_status_string(status));
+                fprintf(stderr, "FAIL: %s: allocation %ld failed and it returned %s\n", op_names[op], n, mk_status_string(status));
                 failures++;
             }
         }

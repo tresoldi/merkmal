@@ -25,6 +25,9 @@ typedef struct malformed_case {
     size_t length;
 } malformed_case;
 
+/* The table is laid out by hand, one case per line, and one literal is split
+ * on purpose (see below), so clang-format leaves it alone. */
+/* clang-format off */
 #define CASE(label, literal) { label, literal, sizeof(literal) - 1 }
 
 static const malformed_case cases[] = {
@@ -66,6 +69,7 @@ static const malformed_case cases[] = {
     CASE("merged cluster component escaping its frame",
         "cisntstiisi\x9c\x8b\x96" "Fve"),
 };
+/* clang-format on */
 
 /* Exercises everything that takes caller text. Nothing here asserts a
  * particular answer: the contract for malformed input is that the library
@@ -168,8 +172,7 @@ static int check_duplicate_grapheme_is_rejected(void)
     for (i = 0; i < ROWS; i++) {
         /* The last row repeats the first, so the duplicate is as far from its
          * partner as the model allows. */
-        used += (size_t)snprintf(model + used, capacity - used, row,
-            i == ROWS - 1 ? 0 : i);
+        used += (size_t)snprintf(model + used, capacity - used, row, i == ROWS - 1 ? 0 : i);
     }
 
     if (mk_registry_new_builtin(&registry) != MK_OK) {
@@ -183,8 +186,7 @@ static int check_duplicate_grapheme_is_rejected(void)
         failed = 1;
     }
     if (diagnostic == NULL || strstr(diagnostic, "more than once") == NULL) {
-        printf("FAIL: diagnostic did not name the repetition: %s\n",
-            diagnostic ? diagnostic : "(null)");
+        printf("FAIL: diagnostic did not name the repetition: %s\n", diagnostic ? diagnostic : "(null)");
         failed = 1;
     }
     /* Nothing was installed, so the name is still free. */
@@ -217,9 +219,9 @@ static int check_long_feature_name_is_rejected(void)
 
     memset(feature, 'x', sizeof(feature) - 1);
     feature[sizeof(feature) - 1] = '\0';
-    snprintf(model, sizeof(model),
-             "@model longfeature\n@type categorical\n@validation permissive\n"
-             "grapheme q %s\n", feature);
+    snprintf(model, sizeof(model), "@model longfeature\n@type categorical\n@validation permissive\n"
+                                   "grapheme q %s\n",
+             feature);
 
     if (mk_registry_new_builtin(&registry) != MK_OK) {
         return 1;
@@ -237,9 +239,7 @@ static int check_long_feature_name_is_rejected(void)
             for (i = 0; i < mk_string_list_size(features); i++) {
                 const char *name = mk_string_list_get(features, i);
                 if (strlen(name) < strlen(feature) && strncmp(name, feature, 40) == 0) {
-                    fprintf(stderr,
-                            "long feature name was silently truncated to %zu bytes\n",
-                            strlen(name));
+                    fprintf(stderr, "long feature name was silently truncated to %zu bytes\n", strlen(name));
                     failed = 1;
                 }
             }
@@ -264,9 +264,8 @@ static int check_wide_row_fingerprint(void)
     int failed = 0;
     int i;
 
-    len = (size_t)snprintf(model, sizeof(model),
-                           "@model wide\n@type categorical\n@validation permissive\n"
-                           "grapheme x");
+    len = (size_t)snprintf(model, sizeof(model), "@model wide\n@type categorical\n@validation permissive\n"
+                                                 "grapheme x");
     for (i = 0; i < 200; i++) {
         len += (size_t)snprintf(model + len, sizeof(model) - len, " f%03d", i);
     }
@@ -286,6 +285,55 @@ static int check_wide_row_fingerprint(void)
     }
     mk_string_free(digest);
     mk_registry_free(registry);
+    return failed;
+}
+
+/* `@format_version`: absent or 1 reads as today; a newer version is refused
+ * with a diagnostic rather than read as if it were this format; anything that
+ * is not a positive integer is a parse error. */
+static int check_format_version(void)
+{
+    static const struct {
+        const char *line;
+        mk_status expected;
+    } versions[] = {
+        {"", MK_OK},
+        {"@format_version 1\n", MK_OK},
+        {"@format_version 01\n", MK_OK},
+        {"@format_version 2\n", MK_ERR_UNSUPPORTED_MODEL},
+        {"@format_version 99999999999999999999999\n", MK_ERR_UNSUPPORTED_MODEL},
+        {"@format_version 0\n", MK_ERR_PARSE},
+        {"@format_version -1\n", MK_ERR_PARSE},
+        {"@format_version 1.5\n", MK_ERR_PARSE},
+        {"@format_version one\n", MK_ERR_PARSE},
+    };
+    size_t i;
+    int failed = 0;
+
+    for (i = 0; i < sizeof(versions) / sizeof(versions[0]); i++) {
+        char model[256];
+        mk_registry *registry = NULL;
+        char *diagnostic = NULL;
+        mk_status status;
+
+        snprintf(model, sizeof(model), "%s@model versioned\n@type categorical\n@geometry clements-hume\n"
+                                       "grapheme X consonant voiceless bilabial stop\n",
+                 versions[i].line);
+        if (mk_registry_new_builtin(&registry) != MK_OK) {
+            return 1;
+        }
+        status = mk_registry_add_model_text_ex(registry, model, &diagnostic);
+        if (status != versions[i].expected) {
+            fprintf(stderr, "format version case %zu: got %s, expected %s\n", i, mk_status_string(status), mk_status_string(versions[i].expected));
+            failed = 1;
+        }
+        if (status != MK_OK && diagnostic == NULL) {
+            fprintf(stderr, "format version case %zu: refused without a diagnostic\n", i);
+            failed = 1;
+        }
+        mk_string_free(diagnostic);
+        mk_registry_free(registry);
+    }
     return failed;
 }
 
@@ -321,8 +369,7 @@ static int check_unterminated_and_embedded_nul(void)
     memcpy(bytes, model, length);
 
     if (mk_registry_add_model_text_n(registry, bytes, length, &diagnostic) != MK_OK) {
-        fprintf(stderr, "unterminated model: rejected (%s)\n",
-            diagnostic == NULL ? "no diagnostic" : diagnostic);
+        fprintf(stderr, "unterminated model: rejected (%s)\n", diagnostic == NULL ? "no diagnostic" : diagnostic);
         failed = 1;
     }
     mk_string_free(diagnostic);
@@ -361,5 +408,6 @@ int main(void)
     failed |= check_long_feature_name_is_rejected();
     failed |= check_unterminated_and_embedded_nul();
     failed |= check_wide_row_fingerprint();
+    failed |= check_format_version();
     return failed ? 1 : 0;
 }

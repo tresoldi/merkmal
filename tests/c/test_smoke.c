@@ -133,8 +133,7 @@ int main(void)
     if (mk_string_list_size(systems) != 2 ||
         !list_contains(systems, "descriptive") ||
         !list_contains(systems, "distinctive")) {
-        fprintf(stderr, "systems: expected descriptive and distinctive only, got %zu\n",
-            mk_string_list_size(systems));
+        fprintf(stderr, "systems: expected descriptive and distinctive only, got %zu\n", mk_string_list_size(systems));
         failed = 1;
     }
 #else
@@ -736,13 +735,13 @@ int main(void)
             double value = -1.0;
             failed |= expect_status(
                 mk_system_segment_distance_with_weights(
-                    descriptive, "p", "b", presets[i], &value),
+                    descriptive, "p", "b", presets[i], &value
+                ),
                 MK_OK,
                 presets[i]
             );
             if (!(value >= 0.0 && value <= 1.0)) {
-                fprintf(stderr, "preset %s: expected a normalized value, got %.10f\n",
-                    presets[i], value);
+                fprintf(stderr, "preset %s: expected a normalized value, got %.10f\n", presets[i], value);
                 failed = 1;
             }
         }
@@ -750,20 +749,20 @@ int main(void)
         /* ignore-tone zeroes the Tonal node, so two tones of one vowel collapse. */
         failed |= expect_status(
             mk_system_segment_distance_with_weights(
-                descriptive, "a¹¹", "a⁵⁵", NULL, &toned),
+                descriptive, "a¹¹", "a⁵⁵", NULL, &toned
+            ),
             MK_OK,
             "distance a11 a55"
         );
         failed |= expect_status(
             mk_system_segment_distance_with_weights(
-                descriptive, "a¹¹", "a⁵⁵", "ignore-tone", &untoned),
+                descriptive, "a¹¹", "a⁵⁵", "ignore-tone", &untoned
+            ),
             MK_OK,
             "distance a11 a55 ignore-tone"
         );
         if (!(toned > 0.0) || untoned != 0.0) {
-            fprintf(stderr,
-                "ignore-tone: expected %.10f > 0 and 0.0, got %.10f and %.10f\n",
-                toned, toned, untoned);
+            fprintf(stderr, "ignore-tone: expected %.10f > 0 and 0.0, got %.10f and %.10f\n", toned, toned, untoned);
             failed = 1;
         }
 
@@ -773,14 +772,16 @@ int main(void)
         distance = -1.0;
         failed |= expect_status(
             mk_system_segment_distance_with_weights(
-                descriptive, "p", "b", "no-such-preset", &distance),
+                descriptive, "p", "b", "no-such-preset", &distance
+            ),
             MK_ERR_INVALID_ARGUMENT,
             "unknown preset categorical"
         );
         distance = -1.0;
         failed |= expect_status(
             mk_system_segment_distance_with_weights(
-                descriptive, "ai", "au", "no-such-preset", &distance),
+                descriptive, "ai", "au", "no-such-preset", &distance
+            ),
             MK_ERR_INVALID_ARGUMENT,
             "unknown preset cluster"
         );
@@ -788,7 +789,8 @@ int main(void)
         if (phoible != NULL) {
             failed |= expect_status(
                 mk_system_segment_distance_with_weights(
-                    phoible, "p", "b", "no-such-preset", &distance),
+                    phoible, "p", "b", "no-such-preset", &distance
+                ),
                 MK_ERR_INVALID_ARGUMENT,
                 "unknown preset valued"
             );
@@ -949,8 +951,7 @@ int main(void)
             "distance tone digits"
         );
         if (letters != digits || !(letters > 0.0)) {
-            fprintf(stderr,
-                "tone notations disagree: letters %.10f, digits %.10f\n", letters, digits);
+            fprintf(stderr, "tone notations disagree: letters %.10f, digits %.10f\n", letters, digits);
             failed = 1;
         }
     }
@@ -997,11 +998,11 @@ int main(void)
          * so the documented split of responsibilities cannot drift into a
          * silent validation nobody asked this function for. */
         failed |= expect_status(
-            mk_split_tone("a¹²³⁴", &base, &tone), MK_OK, "split does not validate the run");
+            mk_split_tone("a¹²³⁴", &base, &tone), MK_OK, "split does not validate the run"
+        );
         if (base == NULL || strcmp(base, "a") != 0 ||
             tone == NULL || strcmp(tone, "¹²³⁴") != 0) {
-            fprintf(stderr, "split tone 4-digit: got base \"%s\" tone \"%s\"\n",
-                base ? base : "(null)", tone ? tone : "(null)");
+            fprintf(stderr, "split tone 4-digit: got base \"%s\" tone \"%s\"\n", base ? base : "(null)", tone ? tone : "(null)");
             failed = 1;
         }
         mk_string_free(base);
@@ -1013,8 +1014,7 @@ int main(void)
 
         failed |= expect_status(mk_split_tone("o³¹", &base, &tone), MK_OK, "split tone 2");
         if (base == NULL || strcmp(base, "o") != 0 || tone == NULL || strcmp(tone, "³¹") != 0) {
-            fprintf(stderr, "split tone 2: got base \"%s\" tone \"%s\"\n",
-                base ? base : "(null)", tone ? tone : "(null)");
+            fprintf(stderr, "split tone 2: got base \"%s\" tone \"%s\"\n", base ? base : "(null)", tone ? tone : "(null)");
             failed = 1;
         }
         mk_string_free(base);
@@ -1087,7 +1087,8 @@ int main(void)
          * function exists to report. */
         if (phoible != NULL) {
             failed |= expect_status(
-                mk_registry_get_system(registry, "phoible", &valued), MK_OK, "get phoible");
+                mk_registry_get_system(registry, "phoible", &valued), MK_OK, "get phoible"
+            );
             failed |= expect_status(mk_system_kind(valued, &kind), MK_OK, "valued system kind");
             if (kind == NULL || strcmp(kind, "valued") != 0) {
                 printf("FAIL: phoible is a %s system\n", kind ? kind : "(null)");
@@ -1096,9 +1097,11 @@ int main(void)
         }
 
         failed |= expect_status(
-            mk_system_name(NULL, &name), MK_ERR_INVALID_ARGUMENT, "name of no system");
+            mk_system_name(NULL, &name), MK_ERR_INVALID_ARGUMENT, "name of no system"
+        );
         failed |= expect_status(
-            mk_system_kind(toy, NULL), MK_ERR_INVALID_ARGUMENT, "kind into no out-param");
+            mk_system_kind(toy, NULL), MK_ERR_INVALID_ARGUMENT, "kind into no out-param"
+        );
     }
 
     /* A name already in the registry is refused rather than appended.

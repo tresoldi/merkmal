@@ -46,8 +46,7 @@ static int mk_golden_case_set_features(mk_golden_case *item, const char *packed)
         size_t n = end == NULL ? strlen(start) : (size_t)(end - start);
 
         if (item->feature_count >= MK_GOLDEN_MAX_FEATURES) {
-            fprintf(stderr, "geometry case %s: more than %d features\n",
-                item->name, MK_GOLDEN_MAX_FEATURES);
+            fprintf(stderr, "geometry case %s: more than %d features\n", item->name, MK_GOLDEN_MAX_FEATURES);
             return 1;
         }
         item->features[item->feature_count] = mk_golden_dup(start, n);

@@ -10,6 +10,7 @@ runtime models are reserved for later versions.
 ## Syntax
 
 ```text
+@format_version 1
 @model NAME
 @type categorical
 @geometry clements-hume
@@ -29,6 +30,13 @@ Rules:
   files are not loaded at runtime yet.
 - `@validation strict` (the default) or `@validation permissive` selects how
   the model is checked. See below.
+- `@format_version 1` declares the version of this text format. It is
+  optional, and a model without it is read as version 1. A model that declares
+  a newer version than the library reads is refused with
+  `MK_ERR_UNSUPPORTED_MODEL` and a diagnostic, rather than read as if it were
+  this format, since a later version may give an existing line a new meaning.
+  A value that is not a positive integer is `MK_ERR_PARSE`. Declaring it is
+  recommended for any model kept in a file.
 - `grapheme` rows are required. Each row supplies one UTF-8 grapheme and
   one or more categorical feature names. The grapheme is normalized into a
   lookup key exactly as a query is, so a row may be written precomposed
