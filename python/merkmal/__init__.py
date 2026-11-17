@@ -314,7 +314,7 @@ class BundleComparison(NamedTuple):
 
 
 class AbstractSegment:
-    """A feature bundle with no grapheme as identity (`docs/abstract-segments.md`).
+    """A feature bundle with no grapheme as identity (`docs/method/abstract-segments.md`).
 
     Identity is the system and the canonical cell text. Cells are written as in
     the C API: `0` does not apply, `?` unknown and applies, `*` unknown and may

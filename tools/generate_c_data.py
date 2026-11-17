@@ -578,7 +578,7 @@ def load_categorical(name: str, geometry: dict[str, object]) -> tuple[str, list[
         # own leaf of the same name sits. Weighting it at the parent's depth
         # made every dimension one level shallower than the leaf it mirrors, so
         # the two scoring paths disagreed on all 35 shared names and
-        # docs/geometry.md described neither. An explicit leaf weight wins here
+        # docs/method/geometry.md described neither. An explicit leaf weight wins here
         # for the same reason it wins on the geometry path: depth is a
         # stipulation, and sometimes the wrong one.
         depth = geometry_node_depth(tree, dim["geometry_node"]) or 2

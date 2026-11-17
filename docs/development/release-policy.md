@@ -1,4 +1,4 @@
-# Release Policy
+# Release policy
 
 This policy applies to the C library, source tarballs, and Python wheels.
 
@@ -6,7 +6,7 @@ This policy applies to the C library, source tarballs, and Python wheels.
 
 The C library and the Python extension have no external dependency. Unicode
 normalization is compiled in (see
-[distribution.md](distribution.md#unicode-normalization)), so a release
+[distribution.md](../guide/installation.md#unicode-normalization)), so a release
 artifact normalizes identically wherever it is built.
 
 Release CI must run the normalization oracle, which needs `libutf8proc`:

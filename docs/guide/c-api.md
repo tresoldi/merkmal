@@ -1,6 +1,6 @@
 # C API
 
-The public C API is declared in [`include/merkmal.h`](../include/merkmal.h).
+The public C API is declared in [`include/merkmal.h`](../../include/merkmal.h).
 It is C99-compatible and uses explicit status codes instead of exceptions.
 Public functions are annotated with `MK_API` so shared-library builds export
 only the supported ABI surface.
@@ -231,7 +231,7 @@ A feature bundle with no grapheme as identity: one cell per dimension the
 system's scorer reads, each holding the values the segment may have. The
 comparison gives the scorer's distance over the dimensions both sides specify,
 its coverage, and the exact minimum and maximum over every completion. Cell
-grammar and semantics: `docs/abstract-segments.md`. A bundle borrows its
+grammar and semantics: `docs/method/abstract-segments.md`. A bundle borrows its
 system; free it before the registry.
 
 ## Status Codes
@@ -529,7 +529,7 @@ tonal equality.
 
 `mk_normalize_grapheme` returns NFC and the tokenizers work in NFD, both from
 compiled Unicode tables, identically in every build; see
-[distribution.md](distribution.md#unicode-normalization).
+[distribution.md](installation.md#unicode-normalization).
 
 ## Containers
 

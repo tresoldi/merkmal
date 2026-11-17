@@ -7,7 +7,7 @@
  * This is the library's only parser of untrusted input, which is why it is its
  * own module: it can be exercised -- and fuzzed -- without a registry, and the
  * registry does not have to carry a line-oriented parser to hold a list of
- * systems. See docs/runtime-model-format.md for the format itself. */
+ * systems. See docs/guide/runtime-model-format.md for the format itself. */
 
 #include "generated/builtin_data.h"
 #include "merkmal.h"

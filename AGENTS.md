@@ -1,10 +1,10 @@
 # Working on merkmal
 
 Instructions for coding agents (and people) changing this repository. The
-conventions themselves are in [STYLE.md](STYLE.md); the house standard they
-follow is [docs/house-standard.md](docs/house-standard.md); decisions that
+conventions themselves are in [docs/development/style.md](docs/development/style.md); the house standard they
+follow is [docs/development/house-standard.md](docs/development/house-standard.md); decisions that
 depart from it, or that are easy to undo by accident, are in
-[docs/adr/](docs/adr/).
+[docs/development/adr/](docs/development/adr/).
 
 ## Build and test
 
@@ -22,7 +22,7 @@ python -m pytest python/tests -q
 ## Checks to run before committing
 
 CI runs all of these (`.github/workflows/ci.yml`). Run the ones your change
-touches; STYLE.md, Building and checking, has the full table.
+touches; docs/development/style.md, Building and checking, has the full table.
 
 - C: the build above with GCC and with Clang, and with
   `-DMERKMAL_ENABLE_SANITIZER=address` and `=undefined`.
@@ -40,12 +40,12 @@ touches; STYLE.md, Building and checking, has the full table.
 - `include/merkmal.h` is the whole public API. The Python extension
   (`python/src/merkmal_module.c`) and the WebAssembly adapter
   (`web/merkmal_wasm.c`) include it and nothing else from `src/`.
-  [ADR 0001](docs/adr/0001-c-api-is-the-canonical-interface.md).
+  [ADR 0001](docs/development/adr/0001-c-api-is-the-canonical-interface.md).
 - `mk_` names are public, `mki_` names internal; the `public_symbols` test
   fails on a leak.
 - Canonical data lives in `data/models/`, `data/geometries/` and `data/diacritics/`. Changing
   it changes distances, golden fixtures and semantic fingerprints; follow
-  docs/release-policy.md, Data Releases.
+  docs/development/release-policy.md, Data Releases.
 
 ## Generated files: never edit by hand
 
@@ -54,7 +54,7 @@ touches; STYLE.md, Building and checking, has the full table.
 - `tests/golden/*.tsv`: `python tools/regenerate_golden.py`.
 - `NOTICE`: `python tools/generate_notice.py`.
 - `web/merkmal.js`, `web/merkmal.wasm`, `web/BUILD_INFO`: `web/build-wasm.sh`
-  (needs Emscripten). [ADR 0003](docs/adr/0003-generated-artifacts-are-committed.md).
+  (needs Emscripten). [ADR 0003](docs/development/adr/0003-generated-artifacts-are-committed.md).
 
 ## Do not
 
@@ -63,7 +63,7 @@ touches; STYLE.md, Building and checking, has the full table.
   functional change;
 - add a dependency without meeting the house standard's test (Dependencies
   must justify themselves) and recording it;
-- change a license or a license expression ([ADR 0004](docs/adr/0004-mit-for-code-upstream-terms-for-data.md));
+- change a license or a license expression ([ADR 0004](docs/development/adr/0004-mit-for-code-upstream-terms-for-data.md));
 - change a public signature or `mk_status` value without a **Breaking**
   CHANGELOG entry; statuses are appended, never renumbered.
 

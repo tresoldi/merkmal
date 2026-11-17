@@ -5,7 +5,7 @@
 # Usage: tools/check_format.sh          check (CI)
 #        tools/check_format.sh --fix    reformat in place
 #
-# Formatting is mechanical (STYLE.md): run --fix in a commit of its own, never
+# Formatting is mechanical (docs/development/style.md): run --fix in a commit of its own, never
 # mixed with a functional change.
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)

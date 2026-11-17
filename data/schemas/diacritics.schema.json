@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/tresoldi/merkmal/data/schemas/diacritics.schema.json",
   "title": "merkmal diacritic set",
-  "description": "Maps diacritics, modifier letters, and tone marks to the feature names a feature system uses. See docs/custom-models.md and the bundled data/diacritics/ipa-clts.json reference.",
+  "description": "Maps diacritics, modifier letters, and tone marks to the feature names a feature system uses. See docs/guide/custom-models.md and the bundled data/diacritics/ipa-clts.json reference.",
   "type": "object",
   "required": ["name"],
   "properties": {

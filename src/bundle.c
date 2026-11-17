@@ -12,7 +12,7 @@
  * the same ratio over every completion of the unspecified cells. The ratio is
  * a weighted mean of independent per-dimension choices, so both extremes are
  * found exactly by Dinkelbach iteration rather than by enumeration.
- * See docs/abstract-segments.md. */
+ * See docs/method/abstract-segments.md. */
 
 #include "merkmal.h"
 

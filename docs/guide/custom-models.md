@@ -1,4 +1,4 @@
-# Custom Models
+# Custom models
 
 The C library now treats built-in models as compiled data and accepts
 caller-supplied runtime models through the registry API. It does not search
@@ -29,7 +29,7 @@ opt out for exploratory work, and use `mk_registry_add_model_text_ex` to get a
 message naming the offending line and token.
 
 See [runtime-model-format.md](runtime-model-format.md) for the current format
-and [geometry.md](geometry.md) for the feature names the geometry knows.
+and [geometry.md](../method/geometry.md) for the feature names the geometry knows.
 Only categorical runtime models are public for now; the parser and C data model
 leave room for valued and class-feature formats later.
 

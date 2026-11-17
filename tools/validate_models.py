@@ -9,7 +9,7 @@ Usage:
     validate_models.py PATH [PATH ...] # validate your own model dir(s)
 
 The second form is for users bringing their own model: point it at a
-directory containing a model.json. See docs/custom-models.md.
+directory containing a model.json. See docs/guide/custom-models.md.
 """
 
 from __future__ import annotations
@@ -501,7 +501,7 @@ def check_scalar_weight_agreement() -> None:
 
     A categorical model may score through its own `scalar_dimensions` instead of
     the geometry leaves. Where a dimension shares a name with a leaf, the two
-    have to cost the same, or `docs/geometry.md` describes neither of them.
+    have to cost the same, or `docs/method/geometry.md` describes neither of them.
 
     They used to disagree on all 35 shared names, for two reasons: a dimension
     was weighted at its geometry *node's* depth while the leaf of the same name
@@ -513,7 +513,7 @@ def check_scalar_weight_agreement() -> None:
     # Ask the generator itself what weight it will emit, rather than restating
     # its rule here. A guard that reimplements the thing it guards passes when
     # both copies are wrong together, which is how the original divergence
-    # survived: docs/geometry.md stated one rule and the generator applied
+    # survived: docs/method/geometry.md stated one rule and the generator applied
     # another, and nothing compared them.
     sys.path.insert(0, str(ROOT / "tools"))
     try:

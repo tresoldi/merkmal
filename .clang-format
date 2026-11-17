@@ -1,4 +1,4 @@
-# Formatting for the first-party C sources (STYLE.md, Formatting). Matches the
+# Formatting for the first-party C sources (docs/development/style.md, Formatting). Matches the
 # style the tree was written in: 4 spaces, function braces on their own line,
 # one parameter per line in multi-line declarations, no line wrapping.
 # Generated tables are excluded in .clang-format-ignore.

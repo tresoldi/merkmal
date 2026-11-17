@@ -1,4 +1,4 @@
-# Runtime Model Format
+# Runtime model format
 
 `mk_registry_add_model_text` accepts a complete caller-supplied model as a
 UTF-8 text buffer. The format is intentionally line-oriented and
@@ -26,7 +26,7 @@ Rules:
 - `@type categorical` is required.
 - `@geometry clements-hume` selects the only geometry currently compiled into
   the native library (`merkmal-clements-hume-inspired-v1`, see
-  [geometry.md](geometry.md)). Other geometry names are rejected; geometry
+  [geometry.md](../method/geometry.md)). Other geometry names are rejected; geometry
   files are not loaded at runtime yet.
 - `@validation strict` (the default) or `@validation permissive` selects how
   the model is checked. See below.

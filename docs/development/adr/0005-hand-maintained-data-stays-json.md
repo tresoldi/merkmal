@@ -14,7 +14,7 @@ This project departs from the default: the files stay JSON.
 - They are validated against published JSON Schemas (`data/schemas/*.json`) by
   `tools/validate_models.py`, and the schemas are the contract.
 - The semantic fingerprint hashes the source files' bytes (`geometry_sha256`,
-  `diacritics_sha256`, `model_sha256`; docs/semantic-fingerprint.md), so
+  `diacritics_sha256`, `model_sha256`; docs/method/semantic-fingerprint.md), so
   converting them would change every system's fingerprint without any change
   in what it computes, and break the identity of stored results.
 - The files are edited rarely, and their explanations belong in the

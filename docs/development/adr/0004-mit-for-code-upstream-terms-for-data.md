@@ -23,4 +23,4 @@ without those tables.
 - `NOTICE` is generated from the provenance manifests
   (`tools/generate_notice.py --check` in CI), and the expression must agree
   in `pyproject.toml`, `setup.py`, `NOTICE` and the README
-  (docs/release-policy.md).
+  (docs/development/release-policy.md).

@@ -40,7 +40,7 @@ following before building on it:
   so those are published as counts rather than papered over.
 - **The weights are stipulated, not fitted.** They come from tree depth and
   hand-set scale weights, not from contrast data, perception, or observed sound
-  change. See [docs/geometry.md](docs/geometry.md).
+  change. See [docs/method/geometry.md](docs/method/geometry.md).
 
 A dependable, transparent segment prior is genuinely useful for alignment,
 candidate generation, transcription quality control, and exploratory
@@ -164,10 +164,10 @@ or pkg-config:
 cc example.c $(pkg-config --cflags --libs merkmal) -o example
 ```
 
-See [docs/distribution.md](docs/distribution.md) for static/shared builds,
+See [docs/guide/installation.md](docs/guide/installation.md) for static/shared builds,
 custom prefixes, and the normalization notes. See
-[docs/release-policy.md](docs/release-policy.md) for release dependency and
-validation policy. See [docs/webassembly.md](docs/webassembly.md) for the
+[docs/development/release-policy.md](docs/development/release-policy.md) for release dependency and
+validation policy. See [docs/guide/webassembly.md](docs/guide/webassembly.md) for the
 initial Emscripten and Node smoke-test path.
 
 ## C Example
@@ -204,10 +204,10 @@ int main(void) {
 }
 ```
 
-See [docs/c-api.md](docs/c-api.md) for the public C surface and
-[docs/distribution.md](docs/distribution.md) for installation and downstream
+See [docs/guide/c-api.md](docs/guide/c-api.md) for the public C surface and
+[docs/guide/installation.md](docs/guide/installation.md) for installation and downstream
 integration. See
-[docs/runtime-model-format.md](docs/runtime-model-format.md) for the
+[docs/guide/runtime-model-format.md](docs/guide/runtime-model-format.md) for the
 line-oriented caller-supplied model format.
 
 ## Python Wrapper
@@ -327,7 +327,7 @@ merkmal/
 ├── bench/                  footprint and lookup benchmarks, with a baseline
 ├── fuzz/                   libFuzzer harnesses and seed corpora
 ├── examples/               worked examples, built and run as tests
-├── tests/c/                C tests (STYLE.md says which link what)
+├── tests/c/                C tests (docs/development/style.md says which link what)
 ├── tests/golden/           parity fixtures for the native implementation
 ├── data/models/                 source model data used by generators
 ├── data/geometries/             source geometry data
@@ -338,7 +338,7 @@ merkmal/
 ```
 
 Contributing: start with [AGENTS.md](AGENTS.md), the checklist of commands,
-boundaries and required checks. [STYLE.md](STYLE.md) describes the module layout,
+boundaries and required checks. [docs/development/style.md](docs/development/style.md) describes the module layout,
 the `mk_`/`mki_` naming rule, ownership and error conventions, the generated
 data, and the build, sanitizer, analysis and fuzzing commands CI runs.
 
@@ -378,7 +378,7 @@ cmake -S . -B build -DMERKMAL_DATA_PROFILE=cc-by     # the C library
 
 `merkmal.DATA_PROFILE` says which build is loaded (`"full"` or `"cc-by"`). The
 published package is always the full one; see
-[docs/distribution.md](docs/distribution.md#data-profiles).
+[docs/guide/installation.md](docs/guide/installation.md#data-profiles).
 
 See [NOTICE](NOTICE), generated from `data/models/*/provenance.json`.
 

@@ -1,4 +1,4 @@
-# The geometry: `merkmal-clements-hume-inspired-v1`
+# The feature geometry
 
 `data/geometries/clements-hume.json` describes a tree of phonological nodes and
 leaves that the scorer walks to turn a feature-set difference into a number.

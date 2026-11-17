@@ -24,7 +24,7 @@ check. This script applies one rule to every cell instead:
 `0` and `?` are different claims and are kept apart: `0` says the feature does
 not apply, `?` that its value is not known here. Both used to be written `.`.
 Neither is compared in a point distance, so splitting them moves no score; they
-differ for abstract segments (`docs/abstract-segments.md`), where `?` can be
+differ for abstract segments (`docs/method/abstract-segments.md`), where `?` can be
 completed and `0` cannot.
 
 Contours become `?` rather than one phase because picking one phase of `+,-`

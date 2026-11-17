@@ -144,7 +144,7 @@ static mk_status mk_score_resolved(
      * number built entirely from how many features the *other* one has, which
      * is not a statement about tone and sits below the cost at which an aligner
      * stops matching the two. Gold alignments never put them in one column.
-     * See docs/c-api.md, Distance with coverage. */
+     * See docs/guide/c-api.md, Distance with coverage. */
     if (mk_is_tonal_autosegment(mki_view_of(a)) != mk_is_tonal_autosegment(mki_view_of(b))) {
         *out = mki_clements_hume_cross_tier_cost;
         if (coverage != NULL) {

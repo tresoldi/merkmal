@@ -1,9 +1,9 @@
-# Contributing to the C core
+# Conventions of the C sources
 
 The conventions of `include/` and `src/`, for a person or a coding agent
-changing them. They apply [the house standard](docs/house-standard.md) to this
-project; [AGENTS.md](AGENTS.md) is the short checklist, and
-[docs/adr/](docs/adr/) records where merkmal departs from the standard and why.
+changing them. They apply [the house standard](house-standard.md) to this
+project; [AGENTS.md](../../AGENTS.md) is the short checklist, and
+[docs/development/adr/](adr/) records where merkmal departs from the standard and why.
 Each rule here is already true of the tree; where a script or a test enforces
 it, that is named.
 
@@ -179,8 +179,8 @@ error checks, trivial getters, declarations whose names already say it.
 ### Public declarations
 
 In `merkmal.h`, lead with the contract, then give at most a few lines of
-rationale. When the reasoning needs more room, put it in `docs/c-api.md` and
-point there ("See docs/c-api.md, Distance with coverage."). Name tags such as
+rationale. When the reasoning needs more room, put it in `docs/guide/c-api.md` and
+point there ("See docs/guide/c-api.md, Distance with coverage."). Name tags such as
 `@param` and `@return` are not used: they repeat the signature. Say only what
 the signature cannot.
 
@@ -276,7 +276,7 @@ no ordinary input reaches.
    returning `mk_status`.
 3. Test it through the public header, in `tests/c/test_smoke.c` or a test of
    its own.
-4. Describe it in `docs/c-api.md` and add a `CHANGELOG.md` entry. Mark any
+4. Describe it in `docs/guide/c-api.md` and add a `CHANGELOG.md` entry. Mark any
    behavior change **Breaking**.
 5. Bind it in `python/src/merkmal_module.c` if Python callers need it.
 

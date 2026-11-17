@@ -21,5 +21,5 @@ rather than skip that comparison.
   says which Unicode version the tables carry.
 - Moving to a new Unicode version is a data change: regenerate the tables with
   an interpreter of that version and run the oracle against a matching
-  utf8proc (docs/release-policy.md).
+  utf8proc (docs/development/release-policy.md).
 - The library has no runtime dependencies.

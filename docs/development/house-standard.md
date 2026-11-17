@@ -1338,7 +1338,7 @@ README.md
 DEVELOPMENT.md or CONTRIBUTING.md
 ARCHITECTURE.md
 AGENTS.md
-docs/adr/
+docs/development/adr/
 ```
 
 Use only the files the project needs.
@@ -1350,7 +1350,7 @@ Use only the files the project needs.
 For important decisions, use lightweight ADRs:
 
 ```text
-docs/adr/
+docs/development/adr/
     0001-use-sqlite.md
     0002-use-lua-for-extensions.md
     0003-no-react.md

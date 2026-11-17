@@ -1,4 +1,4 @@
-# C Library Distribution
+# Installation
 
 `merkmal` installs as a normal C library with:
 
