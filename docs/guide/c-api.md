@@ -366,8 +366,10 @@ sequences such as `ai`, `aːi`, `əi³¹` and `ɛï³³`, precomposed vowels wit
 modifiers such as `ṵː`, affricates written without a tie bar such as `tʂʰ` and
 `kɣ`, prenasalized consonants such as `ᵐb`, `ⁿdʳ`, `mb` and `nd`, labial-velar
 stops such as `kpʷ` and `ɡb`, and tone-bearing syllabic consonants such as
-`ŋ̀`. The valued systems do not synthesize segments; they accept only the
-sequences their source tables list.
+`ŋ̀`. An affricate, labial-velar or prenasalized stop written without a tie
+bar is derived only when the system lists both of its letters, so a runtime
+model listing `t` but not `ʃ` does not accept `tʃ`. The valued systems do not
+synthesize segments; they accept only the sequences their source tables list.
 
 A synthesized vowel sequence carries position-qualified and movement features
 rather than the contradictory unqualified qualities of its components:

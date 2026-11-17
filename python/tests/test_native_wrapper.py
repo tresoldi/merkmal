@@ -367,6 +367,22 @@ def test_native_split_tone_inverts_the_merge() -> None:
         merkmal.split_tone("³¹")
 
 
+def test_native_runtime_model_derives_untied_complex_only_from_listed_parts() -> None:
+    registry = merkmal.Registry()
+    registry.add_model_text(
+        "@model only_t\n@type categorical\ngrapheme t consonant voiceless alveolar stop\n"
+    )
+    # Neither ʃ nor s is listed, so the model says nothing about tʃ or ts.
+    assert not registry.is_segment("tʃ", system="only_t")
+    assert not registry.is_segment("ts", system="only_t")
+    registry.add_model_text(
+        "@model t_and_sh\n@type categorical\n"
+        "grapheme t consonant voiceless alveolar stop\n"
+        "grapheme ʃ consonant voiceless post-alveolar fricative sibilant\n"
+    )
+    assert registry.is_segment("tʃ", system="t_and_sh")
+
+
 def test_native_registry_runtime_model() -> None:
     registry = merkmal.Registry()
     registry.add_model_text(

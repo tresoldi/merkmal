@@ -2063,6 +2063,26 @@ static mk_status mk_synthesize_descriptive_complex(
     return status;
 }
 
+/* The table below fixes the features of each complex segment, so it applies
+ * only to a system that lists both letters of the spelling. A runtime model
+ * listing `t` alone would otherwise resolve `tʃ` with labels it never
+ * declared. Every spelling in the table is two code points. */
+static bool mk_lists_both_parts(const mk_system *system, const char *normalized)
+{
+    const char *scratch[MKI_MAX_ENTRY_FEATURES];
+    mki_entry_view view;
+    char first[8];
+    size_t first_len = mki_utf8_step(normalized);
+
+    if (first_len == 0 || first_len >= sizeof(first)) {
+        return false;
+    }
+    memcpy(first, normalized, first_len);
+    first[first_len] = '\0';
+    return mki_inventory_find(system->builtin, first, scratch, &view) &&
+        mki_inventory_find(system->builtin, normalized + first_len, scratch, &view);
+}
+
 static mk_status mk_synthesize_untied_complex(
     const mk_system *system,
     const char *normalized,
@@ -2171,6 +2191,9 @@ static mk_status mk_synthesize_untied_complex(
         sibilant = 0;
         prenasalized = 1;
     } else {
+        return MK_ERR_UNKNOWN_GRAPHEME;
+    }
+    if (!mk_lists_both_parts(system, normalized)) {
         return MK_ERR_UNKNOWN_GRAPHEME;
     }
 

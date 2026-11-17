@@ -46,6 +46,10 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- An affricate, labial-velar or prenasalized stop written without a tie bar
+  (`tʃ`, `kp`, `mb`) was derived with fixed features in any categorical system,
+  including a runtime model that lists neither letter; it is now derived only
+  when the system lists both. The built-in systems are unaffected.
 - The WebAssembly adapter wrote an unknown feature value (NaN) as `nan`, which is
   not JSON; it now writes `null`, and the demonstration shows it as `?`.
 - Tone merging dropped the tone of a syllabic consonant marked with U+030D
