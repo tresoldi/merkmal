@@ -251,6 +251,44 @@ static int check_long_feature_name_is_rejected(void)
     return failed;
 }
 
+/* A runtime row may carry more features than MKI_MAX_ENTRY_FEATURES, which
+ * bounds compiled rows only. Guards against the semantic fingerprint copying
+ * such a row into a fixed array: under ASan that is a stack-buffer-overflow. */
+static int check_wide_row_fingerprint(void)
+{
+    char model[4096];
+    size_t len;
+    mk_registry *registry = NULL;
+    const mk_system *wide = NULL;
+    char *digest = NULL;
+    int failed = 0;
+    int i;
+
+    len = (size_t)snprintf(model, sizeof(model),
+                           "@model wide\n@type categorical\n@validation permissive\n"
+                           "grapheme x");
+    for (i = 0; i < 200; i++) {
+        len += (size_t)snprintf(model + len, sizeof(model) - len, " f%03d", i);
+    }
+    snprintf(model + len, sizeof(model) - len, "\n");
+
+    if (mk_registry_new_builtin(&registry) != MK_OK ||
+        mk_registry_add_model_text(registry, model) != MK_OK ||
+        mk_registry_get_system(registry, "wide", &wide) != MK_OK) {
+        fprintf(stderr, "the 200-feature model did not register\n");
+        mk_registry_free(registry);
+        return 1;
+    }
+    if (mk_system_semantic_fingerprint(wide, NULL, &digest) != MK_OK ||
+        digest == NULL || strlen(digest) != 64) {
+        fprintf(stderr, "fingerprint of a 200-feature row failed\n");
+        failed = 1;
+    }
+    mk_string_free(digest);
+    mk_registry_free(registry);
+    return failed;
+}
+
 /* mk_registry_add_model_text_n takes bytes, so it is the one entry point that
  * can be handed a model with no terminator and a model containing a NUL.
  *
@@ -322,5 +360,6 @@ int main(void)
     failed |= check_duplicate_grapheme_is_rejected();
     failed |= check_long_feature_name_is_rejected();
     failed |= check_unterminated_and_embedded_nul();
+    failed |= check_wide_row_fingerprint();
     return failed ? 1 : 0;
 }
