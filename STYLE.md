@@ -1,8 +1,11 @@
 # Contributing to the C core
 
 The conventions of `include/` and `src/`, for a person or a coding agent
-changing them. Each rule here is already true of the tree; where a script or
-a test enforces it, that is named.
+changing them. They apply [the house standard](docs/house-standard.md) to this
+project; [AGENTS.md](AGENTS.md) is the short checklist, and
+[docs/adr/](docs/adr/) records where merkmal departs from the standard and why.
+Each rule here is already true of the tree; where a script or a test enforces
+it, that is named.
 
 The language is C99 in strict ISO mode (`CMAKE_C_EXTENSIONS OFF`), with no
 compiler extensions outside the `MK_API` visibility macro in `merkmal.h`.
