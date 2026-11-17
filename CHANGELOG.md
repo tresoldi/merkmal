@@ -46,6 +46,9 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- The contrast baseline counted no zero-distance pair as having "no comparable
+  dimension": an unpacking error was swallowed. It now reports 7,131 of the
+  13,779 sampled PHOIBLE pairs, mostly a tone row against a segment.
 - `mk_system_segment_distance_ex` did not set the coverage of a comparison
   involving a synthesized cluster, so the caller's initial value was returned and
   the comparability derived from it could be wrong. Cluster coverage is now
