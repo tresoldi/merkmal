@@ -1351,7 +1351,7 @@ static mk_status mk_add_cluster_component(
  *
  * A false geminate would need two genuinely different segments with identical
  * features. Those score exactly zero against each other, which is the
- * undeclared collapse scripts/contrast_baseline.py sweeps the categorical
+ * undeclared collapse tools/contrast_baseline.py sweeps the categorical
  * systems for and fails on.
  *
  * Equal counts plus one-way containment: a resolved feature set does not repeat

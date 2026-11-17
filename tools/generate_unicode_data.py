@@ -10,7 +10,7 @@ CMake, the Python extension, WebAssembly -- runs the same NFC and NFD, at the
 Unicode version recorded in the output.
 
 The tables come from Python's `unicodedata`, so the Unicode version is the one
-the generating interpreter carries. `scripts/check_generated_data.py` compares
+the generating interpreter carries. `tools/check_generated_data.py` compares
 the committed file only under an interpreter with that same version.
 
 Three tables, all sorted by code point for binary search:

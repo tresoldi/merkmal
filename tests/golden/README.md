@@ -11,8 +11,8 @@ regeneration is a deliberate step:
 
 ```sh
 python -m pip install -e . --no-build-isolation
-python scripts/regenerate_golden.py --check    # report drift, write nothing
-python scripts/regenerate_golden.py            # rewrite, then read the diff
+python tools/regenerate_golden.py --check    # report drift, write nothing
+python tools/regenerate_golden.py            # rewrite, then read the diff
 ```
 
 Every fixture is produced by that one script, through the installed Python
@@ -33,7 +33,7 @@ regenerate; the value is filled in and the C tests replay it from then on:
 
 ```sh
 echo -e "n-feats\tt-feats\t0" >> tests/golden/geometry_sound_distances.tsv
-python scripts/regenerate_golden.py
+python tools/regenerate_golden.py
 ```
 
 A `geometry_*` row names feature sets rather than graphemes. Those sets are
@@ -50,7 +50,7 @@ Regenerate `src/generated/builtin_data.c` from the source model data with
 files were produced by the pre-C Python implementation, which is no longer in
 the tree (see the repository history before 0.9.0). No active test replays
 them, and
-`scripts/regenerate_golden.py` deliberately leaves them alone: rewriting them
+`tools/regenerate_golden.py` deliberately leaves them alone: rewriting them
 from the C build would destroy the record they exist to keep.
 
 That record currently shows drift between the two implementations, independent
@@ -66,7 +66,7 @@ Treat these files as history, not as expectations.
 
 Not a parity fixture. It records every pair of distinct graphemes that scores
 exactly zero, with a status and reason, so that a collapse has to be declared
-rather than discovered. `scripts/contrast_baseline.py --check` fails if an
+rather than discovered. `tools/contrast_baseline.py --check` fails if an
 undeclared one appears or if any label becomes unable to affect a distance.
 
 ## File formats

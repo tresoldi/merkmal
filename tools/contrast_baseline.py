@@ -16,9 +16,9 @@ not a sample:
    node then collapses into one boolean. That is how every manner distinction
    came to cost the same.
 
-    python scripts/contrast_baseline.py            # report
-    python scripts/contrast_baseline.py --check    # fail on any regression
-    python scripts/contrast_baseline.py --write    # re-record the baseline
+    python tools/contrast_baseline.py            # report
+    python tools/contrast_baseline.py --check    # fail on any regression
+    python tools/contrast_baseline.py --write    # re-record the baseline
 
 Sampling: the categorical systems are swept exhaustively, since that is where
 the every-zero-declared contract lives. The valued systems are capped at

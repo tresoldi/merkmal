@@ -7,8 +7,8 @@ it only when a model-data or scoring change is *intended*, and review the diff
 as data, not as noise:
 
     python -m pip install -e . --no-build-isolation
-    python scripts/regenerate_golden.py --check      # report drift, change nothing
-    python scripts/regenerate_golden.py              # rewrite the fixtures
+    python tools/regenerate_golden.py --check      # report drift, change nothing
+    python tools/regenerate_golden.py              # rewrite the fixtures
 
 Everything is produced here, through the installed native build. The C tests
 are consumers only, so no test can rewrite the values it is checked against,

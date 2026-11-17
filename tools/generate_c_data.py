@@ -177,7 +177,7 @@ def read_header_constant(name: str) -> int:
     This was a second `= 64` with a comment asking the reader to keep the two in
     step. Raising it here alone emits a row wider than the pointer array the
     resolver reserves inside every mki_resolution, which is stack corruption that
-    no test in the tree would catch -- and scripts/validate_models.py already
+    no test in the tree would catch -- and tools/validate_models.py already
     makes the argument for reading rather than restating: a guard that
     reimplements the thing it guards passes when both copies are wrong together.
     """

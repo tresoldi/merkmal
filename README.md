@@ -33,7 +33,7 @@ following before building on it:
   language-pair data for anything that claims to be about change.
 - **Every zero is on the record.** `tests/golden/contrast_baseline.tsv` records
   the zero-distance pairs of all eight systems, with reasons;
-  `scripts/contrast_baseline.py --check` fails on a regression. The categorical
+  `tools/contrast_baseline.py --check` fails on a regression. The categorical
   systems currently have none. The valued systems do, because the upstream
   feature tables genuinely do not distinguish the segments — the P-base UFTC
   feature set gives /e/ and /i/ identical values on every dimension it defines —

@@ -21,6 +21,6 @@ without those tables.
 - No license or license expression changes without the copyright holder's
   explicit decision, recorded in a new ADR.
 - `NOTICE` is generated from the provenance manifests
-  (`scripts/generate_notice.py --check` in CI), and the expression must agree
+  (`tools/generate_notice.py --check` in CI), and the expression must agree
   in `pyproject.toml`, `setup.py`, `NOTICE` and the README
   (docs/release-policy.md).

@@ -204,7 +204,7 @@ def check_provenance(model_dir: Path, mj: dict) -> None:
     """
     path = model_dir / "provenance.json"
     if not path.exists():
-        error("Missing provenance.json (see scripts/generate_notice.py)")
+        error("Missing provenance.json (see tools/generate_notice.py)")
         return
 
     manifest = json.loads(path.read_text(encoding="utf-8"))

@@ -17,7 +17,7 @@ publishes the committed demo as it is, needing no Emscripten.
 ## Consequences
 
 - Never edit them by hand; regenerate (AGENTS.md lists how).
-- `scripts/check_generated_data.py`, run in CI, regenerates the C tables and
+- `tools/check_generated_data.py`, run in CI, regenerates the C tables and
   fails if they differ from the committed ones, so a committed table can never
   drift from its source.
 - The WebAssembly build has no such check yet. CI compiles the library to

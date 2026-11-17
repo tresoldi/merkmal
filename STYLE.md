@@ -21,8 +21,7 @@ compiler extensions outside the `MK_API` visibility macro in `merkmal.h`.
 | `web/merkmal_wasm.c` | The WebAssembly adapter (JSON in, JSON out). Uses `merkmal.h` only. |
 | `tests/c/` | C tests. Most link the public library; the internal-seam tests link `merkmal_internal`. |
 | `fuzz/` | libFuzzer harnesses and their corpora. |
-| `tools/` | Generators for `src/generated/`. |
-| `scripts/` | Checks: generated data, public symbols, static analysis, model validation. |
+| `tools/` | Generators for `src/generated/`, and the checks: generated data, public symbols, formatting, static analysis, model validation. |
 
 Modules, from the bottom up. Each depends only on the layers below it, and
 there are no include cycles:
@@ -43,7 +42,7 @@ for what it does, never `utils.c`.
 ## Names
 
 - **`mk_` and `MK_` are the public contract**, and appear only in
-  `merkmal.h`. `scripts/check_public_symbols.sh` (the `public_symbols` ctest)
+  `merkmal.h`. `tools/check_public_symbols.sh` (the `public_symbols` ctest)
   fails if the library exports anything else under `mk_`.
 - **`mki_` and `MKI_` are internal**: every function or object with external
   linkage that is not public, and every type, enum constant and macro in an
@@ -215,8 +214,8 @@ the signature cannot.
 ## Formatting
 
 Formatting is mechanical: `.clang-format` at the root decides it, and it is
-not a review topic. `scripts/check_format.sh` fails on any first-party C file
-that differs from it, and `scripts/check_format.sh --fix` reformats in place.
+not a review topic. `tools/check_format.sh` fails on any first-party C file
+that differs from it, and `tools/check_format.sh --fix` reformats in place.
 Generated tables are excluded by `.clang-format-ignore`.
 
 Never restyle code you are not otherwise changing. A reformat goes in a commit
@@ -236,7 +235,7 @@ struct fields and limits from it, so a layout change is made there first.
 ```sh
 python tools/generate_c_data.py                     # full profile
 python tools/generate_c_data.py --profile cc-by     # cc-by profile
-python scripts/check_generated_data.py              # CI: committed == generated
+python tools/check_generated_data.py              # CI: committed == generated
 ```
 
 ## Building and checking
@@ -254,8 +253,8 @@ CI runs each of these, so run the ones your change touches:
 | AddressSanitizer / UBSan | `-DMERKMAL_ENABLE_SANITIZER=address` or `=undefined` |
 | cc-by data profile | `-DMERKMAL_DATA_PROFILE=cc-by` |
 | Shared library | `-DBUILD_SHARED_LIBS=ON` |
-| Formatting | `scripts/check_format.sh` (`--fix` to apply) |
-| Static analysis | `scripts/run_static_analysis.sh` (GCC `-fanalyzer` and `clang --analyze`; any output beyond the headers is a new finding) |
+| Formatting | `tools/check_format.sh` (`--fix` to apply) |
+| Static analysis | `tools/run_static_analysis.sh` (GCC `-fanalyzer` and `clang --analyze`; any output beyond the headers is a new finding) |
 | Fuzzing | `CC=clang cmake -S . -B build-fuzz -DMERKMAL_BUILD_FUZZERS=ON -DMERKMAL_BUILD_TESTS=OFF`, then `build-fuzz/fuzz_<target> fuzz/corpus/<target>` |
 | Python | `pip install . pytest && python -m pytest python/tests -q` |
 

@@ -37,8 +37,8 @@ lacks -- and reconciling those is a separate question about which release's
 segment list to carry, not a cell-level defect. Their old `.` cells cannot be
 told apart, so they become `?`: the source for them does not say.
 
-    scripts/rebuild_phoible_inventory.py <path-to-cldf/parameters.csv>
-    scripts/rebuild_phoible_inventory.py <path> --check
+    tools/rebuild_phoible_inventory.py <path-to-cldf/parameters.csv>
+    tools/rebuild_phoible_inventory.py <path> --check
 """
 
 from __future__ import annotations

@@ -26,12 +26,12 @@ touches; STYLE.md, Building and checking, has the full table.
 
 - C: the build above with GCC and with Clang, and with
   `-DMERKMAL_ENABLE_SANITIZER=address` and `=undefined`.
-- `scripts/check_format.sh`
-- `scripts/run_static_analysis.sh` (any finding beyond the documented one is new)
-- `python scripts/check_generated_data.py` after touching `data/models/`,
+- `tools/check_format.sh`
+- `tools/run_static_analysis.sh` (any finding beyond the documented one is new)
+- `python tools/check_generated_data.py` after touching `data/models/`,
   `data/geometries/`, `data/diacritics/`, `tools/` or `src/generated/builtin_data.h`
-- `python scripts/regenerate_golden.py --check`, `scripts/validate_models.py`,
-  `scripts/contrast_baseline.py --check`, `scripts/generate_notice.py --check`
+- `python tools/regenerate_golden.py --check`, `tools/validate_models.py`,
+  `tools/contrast_baseline.py --check`, `tools/generate_notice.py --check`
 - Python: `python -m ruff check python/merkmal python/tests scripts tools bench typology setup.py`
   and `python -m mypy python/merkmal`
 
@@ -51,8 +51,8 @@ touches; STYLE.md, Building and checking, has the full table.
 
 - `src/generated/*.c`: run `python tools/generate_c_data.py` (and with
   `--profile cc-by`) or `python tools/generate_unicode_data.py`.
-- `tests/golden/*.tsv`: `python scripts/regenerate_golden.py`.
-- `NOTICE`: `python scripts/generate_notice.py`.
+- `tests/golden/*.tsv`: `python tools/regenerate_golden.py`.
+- `NOTICE`: `python tools/generate_notice.py`.
 - `web/merkmal.js`, `web/merkmal.wasm`, `web/BUILD_INFO`: `web/build-wasm.sh`
   (needs Emscripten). [ADR 0003](docs/adr/0003-generated-artifacts-are-committed.md).
 

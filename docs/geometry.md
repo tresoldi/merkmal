@@ -56,7 +56,7 @@ dimension shares a name with a leaf, the two must cost the same, or this table
 describes neither of them. They did not: an explicit `"weight"` was dropped on
 the scalar path, so `vocoid` was declared 0.8 here and cost 1.0 in
 `distinctive` — a 25% overweight on major class in the system this table is
-most often read for. `scripts/validate_models.py` now asks the generator what
+most often read for. `tools/validate_models.py` now asks the generator what
 weight it will emit and fails if it disagrees with the leaf.
 
 **Ordered scales** (`ordinal_scales`) are for properties where the difference
@@ -136,9 +136,9 @@ state, including `devoiced`, `apical`, `laminal`, `unreleased`,
 
 The practical effect was that `p`~`p̥`, `t`~`t̺`, `k`~`k̚`, and `y`~`yːː` all
 scored exactly zero, and that a consonant–vowel comparison was barely further
-apart than a stop–fricative one. `scripts/contrast_baseline.py` now fails if
+apart than a stop–fricative one. `tools/contrast_baseline.py` now fails if
 any label a system can return is unable to affect a distance, and
-`scripts/validate_models.py` fails if an inventory label reaches no scoring
+`tools/validate_models.py` fails if an inventory label reaches no scoring
 dimension.
 
 Since then, `sonorant`, `continuant`, `anterior`, `distributed` and
@@ -147,7 +147,7 @@ inventory NAME strings never say those words, so the leaves existed and no
 grapheme could activate them, and every manner distinction collapsed into a
 single `Manner` boolean. The generator now derives them from the manner and
 place labels — the same derivation `data/models/distinctive/model.json` already
-spelled out in its `scalar_dimensions`. `scripts/contrast_baseline.py` fails if
+spelled out in its `scalar_dimensions`. `tools/contrast_baseline.py` fails if
 any scoring dimension becomes unreachable again.
 
 `vocoid` is derived rather than read from the `vowel` / `consonant` labels, and
@@ -166,7 +166,7 @@ tone, so it is not a pitch level: it activates this leaf and none of the ordered
 scales. Folding it into level 3 would assert it is mid and level 1 that it is
 low; it is neither, and the ordinal scales are skipped when one side has no
 value on them. Without the leaf `⁰` scored zero against every level tone, which
-is the collapse `scripts/contrast_baseline.py` exists to catch — and did.
+is the collapse `tools/contrast_baseline.py` exists to catch — and did.
 
 `tonal-autosegment` is a `metadata_feature`: carried on every bare tone token,
 readable, and deliberately **not scored**. It marks a token that is a tone and

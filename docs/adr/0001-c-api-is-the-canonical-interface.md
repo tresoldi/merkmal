@@ -18,7 +18,7 @@ public header too.
 
 ## Consequences
 
-- `scripts/check_public_symbols.sh` (the `public_symbols` test) fails if the
+- `tools/check_public_symbols.sh` (the `public_symbols` test) fails if the
   library exports anything outside the public set.
 - A feature a binding needs is first a public C function, with its contract in
   the header and a C test.

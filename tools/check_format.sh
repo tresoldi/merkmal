@@ -2,8 +2,8 @@
 # Fail if any first-party C file is not formatted by the repository's
 # .clang-format. Generated tables are excluded by .clang-format-ignore.
 #
-# Usage: scripts/check_format.sh          check (CI)
-#        scripts/check_format.sh --fix    reformat in place
+# Usage: tools/check_format.sh          check (CI)
+#        tools/check_format.sh --fix    reformat in place
 #
 # Formatting is mechanical (STYLE.md): run --fix in a commit of its own, never
 # mixed with a functional change.
@@ -29,7 +29,7 @@ else
     if ! clang-format --dry-run --Werror $files; then
         echo "check_format: the files above differ from .clang-format." >&2
         echo "check_format: if no code changed, this clang-format version formats differently;" >&2
-        echo "check_format: run scripts/check_format.sh --fix and commit that alone." >&2
+        echo "check_format: run tools/check_format.sh --fix and commit that alone." >&2
         exit 1
     fi
     echo "check_format: all first-party C files are formatted"

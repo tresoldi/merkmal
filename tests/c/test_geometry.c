@@ -1,5 +1,5 @@
 /* Replays the geometry fixtures. A consumer only: the fixtures are produced by
- * scripts/regenerate_golden.py, so the program that grades the answers is not
+ * tools/regenerate_golden.py, so the program that grades the answers is not
  * the program that wrote them, and a build of this test cannot quietly rewrite
  * its own expectations.
  *

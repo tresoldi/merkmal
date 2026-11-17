@@ -1,6 +1,6 @@
 """Unit tests for the pieces of the generator that have no other check.
 
-`scripts/check_generated_data.py` compares the emitter against its own output,
+`tools/check_generated_data.py` compares the emitter against its own output,
 so it catches drift but not a consistently wrong emission. The string pool is
 exactly that kind of risk: an off-by-one in an offset produces a file that
 compiles, links, and names the wrong feature.

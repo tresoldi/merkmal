@@ -64,13 +64,13 @@ Before tagging a release:
 - sanitizer CI passes for the C library
 - Python wrapper tests pass
 - Python wheel builds and contains only the native wrapper package files
-- `python scripts/validate_models.py` passes (schema, exact identifier
+- `python tools/validate_models.py` passes (schema, exact identifier
   matching, feature coverage, geometry node resolution, provenance)
-- `python scripts/contrast_baseline.py --check` passes: no undeclared
+- `python tools/contrast_baseline.py --check` passes: no undeclared
   zero-distance pair, no label unable to affect a distance
-- `python scripts/generate_notice.py --check` passes, so `NOTICE` matches the
+- `python tools/generate_notice.py --check` passes, so `NOTICE` matches the
   provenance manifests
-- `python scripts/regenerate_golden.py --check` passes
+- `python tools/regenerate_golden.py --check` passes
 
 ## Data Releases
 
@@ -80,7 +80,7 @@ numbers even when no code changed.
 - Any change to `data/models/`, `data/geometries/`, or `data/diacritics/` that moves a
   distance or a feature set is a **major** model version, not a patch. Say so
   in `CHANGELOG.md` with what moved and why.
-- Regenerate golden fixtures with `scripts/regenerate_golden.py` and read the
+- Regenerate golden fixtures with `tools/regenerate_golden.py` and read the
   diff. Do not accept a regenerated fixture without reviewing it: those values
   are the library's contract.
 - Re-stamp `data/models/*/provenance.json` (the input hashes are checked) and
@@ -89,7 +89,7 @@ numbers even when no code changed.
   pins:
 
   ```sh
-  scripts/rebuild_phoible_inventory.py <cldf/parameters.csv> --check
+  tools/rebuild_phoible_inventory.py <cldf/parameters.csv> --check
   ```
 
   It is not in CI because it needs the upstream file, and fetching one over the
