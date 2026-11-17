@@ -20,13 +20,13 @@
 extern "C" {
 #endif
 
-/* A borrowed feature set: the pointers and the strings both belong to the
- * caller and must outlive the call. Feature order carries no meaning.
+/** A borrowed feature set: the array and the strings both belong to the
+ * caller and must outlive the call. `features` may be NULL only when `count`
+ * is 0. Feature order carries no meaning.
  *
- * This is a value type on purpose. It is not opaque because there is nothing to
- * hide -- it is exactly a pointer and a count -- and making it public lets a
- * caller hand the same two fields to every function that scores features
- * instead of spelling out four arguments. */
+ * A public value type rather than an opaque one: it is exactly a pointer and
+ * a count, so there is nothing to hide, and every function that scores
+ * features takes the same two fields. */
 typedef struct mk_feature_view {
     const char *const *features;
     size_t count;
@@ -36,6 +36,10 @@ typedef struct mk_registry mk_registry;
 typedef struct mk_system mk_system;
 typedef struct mk_string_list mk_string_list;
 
+/** Every public function that can fail returns one of these.
+ *
+ * New statuses are appended, never inserted, so existing values keep their
+ * numbers. mk_status_string names each. */
 typedef enum mk_status {
     MK_OK = 0,
     MK_ERR_INVALID_ARGUMENT,
@@ -44,61 +48,38 @@ typedef enum mk_status {
     MK_ERR_UNSUPPORTED_MODEL,
     MK_ERR_PARSE,
     MK_ERR_OOM,
-    /** The token is CLDF/CLTS markup, not a transcription of a sound.
-     *
-     * `<?>` is CLTS's mark for a grapheme it could not convert, `<<...>>` is
-     * CLDF's escape for source material left unparsed, and `+`, `_` and `#` are
-     * boundary markers. Rejecting them is correct -- they are not sounds -- but
-     * a caller checking transcriptions needs to tell "your data has a known gap
-     * here" apart from "this library does not support this sound", and
-     * MK_ERR_UNKNOWN_GRAPHEME said only the second. In Lexibank these account
-     * for 33,275 tokens.
-     *
-     * Appended to the enum rather than inserted, so existing values keep their
-     * numbers. */
+    /** The token is CLDF/CLTS markup, not a transcription of a sound: CLTS's
+     * `<?>`, CLDF's `<<...>>`, or a `+`, `_` or `#` boundary marker. The
+     * source has a gap here; MK_ERR_UNKNOWN_GRAPHEME would say the library
+     * lacks the sound. See docs/c-api.md, Status Codes. */
     MK_ERR_SOURCE_MARKER,
-    /** A registry already holds a system by that name.
-     *
-     * Lookup returns the first match, so appending a second `descriptive`
-     * registered successfully and was then unreachable for the rest of the
-     * registry's life: the caller was told their model installed, and every
-     * query for it answered from the built-in one instead. Refusing says so at
-     * the point the caller can still do something about it -- rename, skip, or
-     * warn -- which is why this is its own status rather than the
-     * MK_ERR_INVALID_ARGUMENT this call already returns for a null pointer.
-     *
-     * Appended to the enum rather than inserted, so existing values keep their
-     * numbers. */
+    /** A registry already holds a system by that name, including a
+     * compiled-in one. Nothing was installed. Its own status rather than
+     * MK_ERR_INVALID_ARGUMENT, so the caller can tell it from a null pointer
+     * and rename, skip or warn. See docs/c-api.md, Registry. */
     MK_ERR_DUPLICATE_SYSTEM,
     /** A feature has no path in the geometry tree, so no tree distance is
-     * defined for it. See mk_feature_distance.
-     *
-     * Appended to the enum rather than inserted, so existing values keep their
-     * numbers. */
+     * defined for it. See mk_feature_distance. */
     MK_ERR_NO_TREE_PATH,
-    /** A caller-supplied feature label the geometry does not know.
-     *
-     * mk_sound_distance used to skip such a label, so `foo` or `-voice` scored
-     * exactly like no label at all and a typo passed as a measurement.
-     *
-     * Appended to the enum rather than inserted, so existing values keep their
-     * numbers. */
+    /** A feature label the geometry does not know, given to
+     * mk_sound_distance, or a column name a bundle does not have. Not
+     * skipped: a skipped typo would score like no label at all. See
+     * docs/c-api.md, Geometry And Unicode. */
     MK_ERR_UNKNOWN_FEATURE
 } mk_status;
 
-/** Returns the stable English label for a status code. */
+/** The stable English label for a status code, in static storage that must
+ * not be freed. A value outside the enum gives "unknown status". Total. */
 MK_API const char *mk_status_string(mk_status status);
 
-/* Build identity.
+/** Build identity.
  *
  * The macros are the version of the header a caller compiled against; the
- * functions answer for the library actually linked, which can differ when a
- * shared library is upgraded underneath an application. Compare the two if it
- * matters. The library version is the API's: two builds of one version can still
- * score differently by data profile, which is why it is a separate question, and
- * why mk_system_semantic_fingerprint exists for anything stored.
- *
- * All three return static storage that outlives everything. None can fail. */
+ * three functions below answer for the library actually linked, which can
+ * differ under a shared-library upgrade. Each function returns static storage
+ * and cannot fail. The version is the API's, not the data's: store
+ * mk_system_semantic_fingerprint with any result kept. See docs/c-api.md,
+ * Build Identity. */
 #define MK_VERSION_MAJOR 0
 #define MK_VERSION_MINOR 9
 #define MK_VERSION_PATCH 0
@@ -111,55 +92,62 @@ MK_API const char *mk_data_profile(void);
 /** The Unicode version of the compiled-in normalization tables, e.g. "15.1.0". */
 MK_API const char *mk_unicode_version(void);
 
-/** Creates a registry containing the compiled-in systems. */
+/** Creates a registry containing the compiled-in systems. On MK_OK *out is
+ * owned by the caller and freed with mk_registry_free; on failure it is NULL. */
 MK_API mk_status mk_registry_new_builtin(mk_registry **out);
-/** Frees a registry and all runtime models owned by it. */
+/** Frees a registry and every system in it, which invalidates every system
+ * pointer and borrowed name taken from it. Tolerates NULL. */
 MK_API void mk_registry_free(mk_registry *registry);
 
-/** Returns an owned list of system names. */
+/** An owned list of system names in registration order, compiled-in systems
+ * first. Free with mk_string_list_free. */
 MK_API mk_status mk_registry_list_systems(
     const mk_registry *registry,
     mk_string_list **out
 );
 
-/** Looks up a system. The returned pointer is owned by the registry. */
+/** Looks up a system by exact name. *out is borrowed from the registry and
+ * stays valid until mk_registry_free, even across later additions. An unknown
+ * name returns MK_ERR_UNKNOWN_SYSTEM and sets *out to NULL. */
 MK_API mk_status mk_registry_get_system(
     const mk_registry *registry,
     const char *name,
     const mk_system **out
 );
 
-/* Adds a copied categorical model described by the runtime text format.
+/** Adds a categorical model described by the runtime text format (see
+ * docs/runtime-model-format.md). The text is copied; it need not outlive the
+ * call. A name already registered returns MK_ERR_DUPLICATE_SYSTEM, malformed
+ * or invalid text MK_ERR_PARSE, and a model type or geometry other than
+ * categorical over clements-hume MK_ERR_UNSUPPORTED_MODEL. On any failure the
+ * registry is unchanged.
  *
  * Validation is strict unless the model says '@validation permissive': every
  * feature must reach a scoring dimension, graphemes must be unique, and
- * unrecognized lines are rejected. Without that, a model whose features the
- * geometry does not know registers successfully and then scores every
- * comparison as zero, which is indistinguishable from "these are identical". */
+ * unrecognized lines are rejected. Otherwise a model whose features the
+ * geometry does not know would score every comparison as zero. See
+ * docs/c-api.md, Registry. */
 MK_API mk_status mk_registry_add_model_text(
     mk_registry *registry,
     const char *model_text
 );
 
-/* As above, but on failure *diagnostic_out receives an owned message naming the
- * offending line and token. Free it with mk_string_free. It is NULL on success
- * and may be NULL on entry if the caller does not want the detail. */
+/** As mk_registry_add_model_text, but on failure *diagnostic_out may receive
+ * an owned message naming the offending line and token; free it with
+ * mk_string_free. It is NULL on success. `diagnostic_out` itself may be NULL
+ * when the caller does not want the detail. */
 MK_API mk_status mk_registry_add_model_text_ex(
     mk_registry *registry,
     const char *model_text,
     char **diagnostic_out
 );
 
-/* As _ex, but for text that is not NUL-terminated: `model_text_length` is a
- * byte count and nothing past it is read.
+/** As mk_registry_add_model_text_ex, but for text that need not be
+ * NUL-terminated: `model_text_length` is a byte count and nothing past it is
+ * read. The other two forms are this one with strlen.
  *
- * This is the entry point for a caller holding a buffer rather than a C string
- * -- a mapped file, a Python `bytes`, a fuzzer's input -- none of which owe the
- * library a terminator. The other two forms are this one with strlen.
- *
- * An embedded NUL returns MK_ERR_PARSE. The format is line-oriented text; a
- * NUL in the middle would end the model early and register the truncated part
- * as if it were whole. */
+ * An embedded NUL returns MK_ERR_PARSE rather than truncating: it would end
+ * the model early and register the part before it as if it were whole. */
 MK_API mk_status mk_registry_add_model_text_n(
     mk_registry *registry,
     const char *model_text,
@@ -167,60 +155,57 @@ MK_API mk_status mk_registry_add_model_text_n(
     char **diagnostic_out
 );
 
-/* System identity, for a caller holding a system pointer rather than the name
- * it looked the system up by.
- *
- * The kind is worth asking for because coverage means different things by it.
- * A valued system skips any dimension either segment leaves unset, so its
- * coverage is a real fraction and a segment can be under 1.0 even against
- * itself; a categorical one weighs whatever either segment specifies, so an
- * ordinary pair is fully covered. See mk_system_segment_distance_ex.
- *
- * Both are borrowed, and their lifetimes differ behind identical signatures:
- * the name is registry-owned and valid as long as the registry, while the kind
- * is a static string that outlives everything. */
+/** The system's registered name. *out is borrowed from the registry and
+ * valid until mk_registry_free; mk_system_kind's string, behind the same
+ * signature, is static instead. See docs/c-api.md, Systems. */
 MK_API mk_status mk_system_name(const mk_system *system, const char **out);
-/** One of "categorical", "valued", or "trained". Static storage. */
+/** One of "categorical", "valued", or "trained", in static storage. Coverage
+ * means different things by kind; see mk_system_segment_distance_ex. */
 MK_API mk_status mk_system_kind(const mk_system *system, const char **out);
 
-/* Returns the canonical system-level semantic fingerprint and its SHA-256
- * digest. Both outputs are owned strings, freed with mk_string_free.
+/** The canonical system-level semantic fingerprint and its SHA-256 digest.
+ * Both outputs are owned strings, freed with mk_string_free. Either of
+ * `payload_out` and `digest_out` may be NULL when the caller needs only the
+ * other, but not both.
  *
- * The payload identifies the compiled or runtime model data, selected scorer,
- * geometry and diacritic data, resolver and tone policies. It is deliberately
- * separate from the library/ABI version: two builds with the same ABI can
- * produce different scientific results. This operation describes a system;
- * callers must additionally record any operation-specific choice (for example
- * a non-default weight preset or tokenization policy).
- *
- * `payload_out` or `digest_out` may be NULL when the caller needs only the
- * other. At least one must be non-NULL. */
+ * The payload identifies the model data, scorer, geometry and diacritic
+ * data, resolver and tone policies, and is separate from the library version:
+ * two builds of one version can produce different results. It describes the
+ * system only; record per-call choices such as a non-default weight preset or
+ * a tokenization policy alongside it. See docs/semantic-fingerprint.md. */
 MK_API mk_status mk_system_semantic_fingerprint(
     const mk_system *system,
     char **payload_out,
     char **digest_out
 );
 
-/* Whether the system recognizes this grapheme, without allocating a feature
+/** Whether the system recognizes this grapheme, without allocating a feature
  * result.
  *
- * Total: input the system does not recognize sets *out to false and returns
- * MK_OK, as does input it recognizes and rejects, such as an over-long Chao
- * run. Use mk_system_grapheme_features when the reason matters. */
+ * Input the system does not recognize, input it recognizes and rejects (an
+ * over-long Chao run), and source markup all set *out to false and return
+ * MK_OK. Other failures are still returned with *out false: a tone-bearing
+ * grapheme in a system without tone support is MK_ERR_UNSUPPORTED_MODEL, and
+ * NULL arguments are MK_ERR_INVALID_ARGUMENT. Use mk_system_grapheme_features
+ * or mk_system_diagnose when the reason matters. */
 MK_API mk_status mk_system_is_segment(
     const mk_system *system,
     const char *utf8_grapheme,
     bool *out
 );
 
-/** Returns the features of one grapheme, in no meaningful order. */
+/** The features of one grapheme, as an owned list in no meaningful order;
+ * free with mk_string_list_free. A refusal returns MK_ERR_UNKNOWN_GRAPHEME,
+ * MK_ERR_PARSE, MK_ERR_SOURCE_MARKER or MK_ERR_UNSUPPORTED_MODEL; see
+ * docs/c-api.md, Status Codes. */
 MK_API mk_status mk_system_grapheme_features(
     const mk_system *system,
     const char *utf8_grapheme,
     mk_string_list **out
 );
 
-/** Computes the default segment distance for a system. */
+/** The system's distance between two graphemes, with the default weights.
+ * Either grapheme failing to resolve returns its status. */
 MK_API mk_status mk_system_segment_distance(
     const mk_system *system,
     const char *utf8_a,
@@ -228,7 +213,9 @@ MK_API mk_status mk_system_segment_distance(
     double *out
 );
 
-/** Computes a segment distance using an optional named weight preset. */
+/** As mk_system_segment_distance, with a named weight preset, or NULL for the
+ * default. An unknown preset returns MK_ERR_INVALID_ARGUMENT. The presets are
+ * listed in docs/c-api.md, Systems. */
 MK_API mk_status mk_system_segment_distance_with_weights(
     const mk_system *system,
     const char *utf8_a,
@@ -239,33 +226,23 @@ MK_API mk_status mk_system_segment_distance_with_weights(
 
 /** Hop count between two feature names along the geometry tree.
  *
- * Defined only over features the tree actually contains -- 110 of them. A
- * feature the geometry reaches some other way has no tree path and no tree
- * distance: `bilabial` and `velar` are both mapped to the Place node rather
- * than being leaves under it, and an ordered-scale level such as
- * `tone-onset-1` is a position on a scale rather than a point on the tree.
- * Roughly two in five of the labels a categorical system can return are in
- * that group. Either feature being off the tree returns MK_ERR_NO_TREE_PATH.
+ * Defined only over features that are points on the tree. Either feature
+ * being off the tree returns MK_ERR_NO_TREE_PATH and leaves *out unwritten,
+ * even when the two are the same string, so a misspelling is never 0 against
+ * itself. Many labels a system returns are off the tree (`bilabial`,
+ * `tone-onset-1`).
  *
- * This used to write 999 into *out and return MK_OK, which is a second error
- * channel of the kind this library does not have elsewhere: 999 is an ordinary
- * looking integer in a function whose real answers are small ones, so a caller
- * summing or thresholding got nonsense with nothing to test. It also answered 0
- * for a feature compared with itself before checking whether it knew the
- * feature at all, so a misspelling compared with itself was confidently zero.
- * The domain is checked first now, and identity falls out of the arithmetic.
- *
- * This is a tree measurement, not a phonological distance. Two segments are
- * compared with mk_system_segment_distance, which reads node groups and ordered
- * scales as well and is defined for every feature a system returns. */
+ * A tree measurement, not a phonological distance: compare segments with
+ * mk_system_segment_distance. See docs/c-api.md, Geometry And Unicode. */
 MK_API mk_status mk_feature_distance(
     const char *feature_a,
     const char *feature_b,
     int *out
 );
 
-/* Distance between two caller-provided feature sets, scored against the
- * compiled geometry with no system, registry, or grapheme involved.
+/** Distance between two caller-provided feature sets, scored against the
+ * compiled geometry with no system, registry, or grapheme involved. Both
+ * views are borrowed for the call only.
  *
  * `node_weights` names a weight preset, or is NULL for the default. An unknown
  * preset returns MK_ERR_INVALID_ARGUMENT rather than a score.
@@ -280,76 +257,68 @@ MK_API mk_status mk_sound_distance(
     double *out
 );
 
-/** Normalizes one UTF-8 grapheme and returns an owned string. */
+/** Normalizes one UTF-8 grapheme to merkmal's NFC form, with its IPA
+ * rewrites. *utf8_out is owned; free with mk_string_free. */
 MK_API mk_status mk_normalize_grapheme(
     const char *utf8_in,
     char **utf8_out
 );
 
-/* Orthographic tokenization: a new token starts at each new base code point
- * unless a tie bar joins it to the previous one. This is stable and
- * language-neutral, but it is not phonological segmentation, and it disagrees
- * with what a system recognizes: "tʃa" splits into t, ʃ, a even though the
- * descriptive system accepts untied "tʃ" as one segment. Use
- * mk_system_segment_ipa when tokens must agree with a system's own inventory,
- * or supply your own boundaries when the analysis is authoritative. */
+/** Orthographic tokenization into an owned list (free with
+ * mk_string_list_free): a new token starts at each new base code point unless
+ * a tie bar joins it to the previous one.
+ *
+ * Stable and language-neutral, but not phonological segmentation: "tʃa"
+ * splits into t, ʃ, a although the descriptive system accepts untied "tʃ".
+ * Use mk_system_segment_ipa when tokens must agree with a system's inventory,
+ * or supply your own boundaries. See docs/c-api.md, Geometry And Unicode. */
 MK_API mk_status mk_segment_ipa(
     const char *utf8_in,
     mk_string_list **out
 );
 
-/* System-aware tokenization: longest match against the system's inventory and
+/** System-aware tokenization into an owned list (free with
+ * mk_string_list_free): longest match against the system's inventory and
  * synthesis grammar, so "tʃa" becomes [tʃ, a] and "kpa" becomes [kp, a] where
  * those tokens are recognized.
  *
- * Longest match is a policy, not a truth: "kp" may be /k.p/ in a language that
- * has no labial-velar. Results also depend on the selected system and its
- * inventory version, so record both alongside any stored tokenization.
- *
- * Input that the system does not recognize is passed through as its
- * orthographic token rather than dropped, so the function is total. Check
- * mk_system_is_segment per token if you need a guarantee. */
+ * Input the system does not recognize is passed through as its orthographic
+ * token rather than dropped, so the function is total over its input; check
+ * mk_system_is_segment per token if you need a guarantee. Longest match is a
+ * policy ("kp" may be /k.p/), and results depend on the system and its
+ * inventory version: record both with any stored tokenization. */
 MK_API mk_status mk_system_segment_ipa(
     const mk_system *system,
     const char *utf8_in,
     mk_string_list **out
 );
 
-/** Merges Chao tone tokens into the preceding eligible segment. */
+/** Merges Chao tone tokens into the preceding eligible segment. `segments` is
+ * borrowed; *out is a new owned list, freed with mk_string_list_free. */
 MK_API mk_status mk_merge_tone_digits(
     const mk_string_list *segments,
     mk_string_list **out
 );
 
-/** Segments IPA input and merges Chao tone tokens in one operation. */
+/** mk_segment_ipa followed by mk_merge_tone_digits, into one owned list. */
 MK_API mk_status mk_segment_ipa_merged(
     const char *utf8_in,
     mk_string_list **out
 );
 
-/* Inverse of the merge step: separates a merged segment such as "a¹" into its
- * base grapheme ("a") and its Chao tone token ("¹"). Without this, a consumer
- * that models tone as its own dimension has to reimplement Chao digit parsing
- * to undo what mk_merge_tone_digits did.
+/** Inverse of mk_merge_tone_digits: separates a merged segment such as "a¹"
+ * into its base grapheme ("a") and its Chao tone token ("¹").
  *
- * On MK_OK both outputs are caller-owned and freed with mk_string_free.
+ * On MK_OK both outputs are caller-owned and freed with mk_string_free;
  * *tone_out is NULL when the segment carries no tone, which is not an error.
- * A token consisting only of tone digits returns MK_ERR_UNKNOWN_GRAPHEME,
- * matching the policy that standalone tone clusters are not segments.
+ * On a refusal or MK_ERR_OOM both are NULL. A token consisting only of tone
+ * digits returns MK_ERR_UNKNOWN_GRAPHEME: standalone tone clusters are not
+ * segments.
  *
- * The split is orthographic and does not read the tone run: it finds the first
- * Chao digit and cuts there. "a¹²³⁴" splits into ("a", "¹²³⁴") and returns
- * MK_OK, though four digits are not a contour this library accepts and
- * mk_system_is_segment reports false for that token. That is the same
- * separation mk_segment_ipa keeps, which splits "tʃa" into three tokens while
- * the descriptive system recognizes "tʃ" as one segment: an orthographic
- * operation answers about spelling, and whether the result denotes a segment is
- * a question for the recognizer.
- *
- * So the one error here is about *shape* -- there is no base to split off --
- * and never about the content of the run. A caller who needs the content
- * checked calls mk_system_is_segment or mk_system_grapheme_features, which
- * report MK_ERR_PARSE for a run this one splits without complaint. */
+ * The split is orthographic: it cuts at the first Chao digit without reading
+ * the run, so "a¹²³⁴" splits with MK_OK though the recognizer rejects it. Use
+ * mk_system_is_segment or mk_system_grapheme_features when the content
+ * matters. See docs/c-api.md, Geometry And Unicode. */
 MK_API mk_status mk_split_tone(
     const char *segment,
     char **base_out,
@@ -358,22 +327,19 @@ MK_API mk_status mk_split_tone(
 
 /** Why a grapheme was refused, for checking transcriptions.
  *
- * `status` is what mk_system_grapheme_features would return: MK_OK when the
- * grapheme is fine, and otherwise MK_ERR_UNKNOWN_GRAPHEME, MK_ERR_PARSE or
- * MK_ERR_SOURCE_MARKER, which already say different things.
+ * `status` is what resolving the grapheme returns: MK_OK when it is fine, and
+ * otherwise a refusal such as MK_ERR_UNKNOWN_GRAPHEME, MK_ERR_PARSE,
+ * MK_ERR_SOURCE_MARKER or MK_ERR_UNSUPPORTED_MODEL (a tone-bearing grapheme
+ * in a system without tone support).
  *
- * `valid_prefix_bytes` is the longest prefix that does resolve -- `pʰ` out of a
- * mistyped `pʰ` plus junk -- which localizes the problem and is usually the
- * repair. It is 0 when nothing resolves and the whole length when nothing is
- * wrong.
+ * `valid_prefix_bytes` is the length in bytes of the longest prefix, cut at a
+ * character boundary, that does resolve: 0 when none does and the whole
+ * length when nothing is wrong. `offending_offset` is the byte offset just
+ * past that prefix, and `offending` holds the UTF-8 character there,
+ * NUL-terminated, empty when there is none.
  *
- * `offending_offset` is the byte offset just past that prefix, and `offending`
- * holds the character there as a NUL-terminated UTF-8 string, empty when there
- * is none.
- *
- * There is deliberately no "nearest valid grapheme": an edit-distance search
- * over the inventory would be a guess presented as an answer, and the prefix is
- * cheaper and more often right.
+ * There is no "nearest valid grapheme". See docs/c-api.md, Diagnosing a
+ * refusal.
  */
 typedef struct mk_diagnosis {
     mk_status status;
@@ -382,8 +348,10 @@ typedef struct mk_diagnosis {
     char offending[8];
 } mk_diagnosis;
 
-/** Fills `out`. Returns MK_OK unless the arguments are unusable: a refused
- *  grapheme is the normal case and is reported in `out->status`. */
+/** Fills `out`. A refused grapheme is the normal case and is reported in
+ * `out->status` with MK_OK returned. NULL arguments return
+ * MK_ERR_INVALID_ARGUMENT, and a failed allocation MK_ERR_OOM, which leaves
+ * `out` partly filled. */
 MK_API mk_status mk_system_diagnose(
     const mk_system *system,
     const char *utf8_grapheme,
@@ -396,8 +364,8 @@ typedef enum mk_comparability {
     MK_CMP_OK = 0,
     /** One is a tone and the other a segment. They occupy different tiers, and
      *  the score is the geometry's declared `tier_policy.cross_tier_cost`
-     *  rather than a measurement. Gold alignments never place a tone in a
-     *  column with a segment. */
+     *  rather than a measurement; coverage is 0.0. See docs/c-api.md,
+     *  Distance with coverage. */
     MK_CMP_CROSS_TIER,
     /** Same tier, but no dimension on which both have a value. A valued
      *  system's 0.0 here means "nothing to compare", not "identical". */
@@ -406,23 +374,17 @@ typedef enum mk_comparability {
 
 /** Distance, with the share of dimensions the comparison actually used.
  *
- * A valued system skips any dimension where either segment has no value, so a
- * score of `0.0` is ambiguous: it can mean "identical" or "nothing in common to
- * compare". PHOIBLE writes `.` in 30,181 cells, and a pair whose overlap is
- * entirely `.` scored a confident zero with no way for a caller to tell.
+ * `coverage` is required (NULL returns MK_ERR_INVALID_ARGUMENT); `why` may be
+ * NULL. Otherwise the statuses are those of
+ * mk_system_segment_distance_with_weights, and on failure *out and *coverage
+ * are 0.0.
  *
  * `*coverage` is the share of the system's declared dimensions on which both
- * segments had a value, in `[0, 1]`. Treat a low value as a weak comparison
- * however your work requires -- the library does not decide a threshold.
- *
- * It is relative to the system, not to the segment, so a segment compared with
- * *itself* is not 1.0 unless it has a value on every dimension: PHOIBLE leaves
- * 11 of /p/'s 38 cells empty, and `("p", "p")` reports 27/38.
- *
- * Categorical systems weigh any dimension either segment specifies, so an
- * ordinary pair is fully covered and the ambiguity does not arise. A pair that
- * reaches no scored dimension at all still reports 0.0 rather than claiming a
- * comparison that did not happen.
+ * segments have a value, in `[0, 1]`. It is relative to the system, not the
+ * segment, so in a valued system a segment compared with itself is below 1.0
+ * when it leaves a dimension unset. A categorical pair is fully covered
+ * unless it reaches no scored dimension, which reports 0.0. The library sets
+ * no threshold. See docs/c-api.md, Distance with coverage.
  */
 MK_API mk_status mk_system_segment_distance_ex(
     const mk_system *system,
@@ -482,10 +444,11 @@ MK_API mk_status mk_unicode_normalize(
  *
  * `values` must have room for mk_system_vector_width entries; on
  * MK_ERR_INVALID_ARGUMENT from too small a buffer, `*written` reports the width
- * needed, so one failed call is enough to size it.
+ * needed, so one failed call is enough to size it. A grapheme that does not
+ * resolve returns its refusal status with `*written` 0.
  *
- * Encoding, following `soundvectors` (Rubehn, Nieder, Forkel & List 2024) so
- * that the numbers mean what the rest of the ecosystem means by them:
+ * Encoding, following `soundvectors` (Rubehn, Nieder, Forkel & List 2024); see
+ * docs/c-api.md, Feature vectors:
  *
  * - `+1` the feature is present
  * - `-1` it applies to this kind of segment and is absent
@@ -505,7 +468,7 @@ MK_API mk_status mk_system_feature_vector(
     size_t *written
 );
 
-/* Abstract segments: feature bundles with no grapheme as identity.
+/** Abstract segments: feature bundles with no grapheme as identity.
  *
  * A bundle belongs to one system and has one cell per dimension that system's
  * scorer reads: binary columns, ordered scales (`vowel_height`), and, for
@@ -525,6 +488,7 @@ MK_API mk_status mk_system_feature_vector(
 typedef struct mk_bundle mk_bundle;
 
 /** A bundle against a bundle.
+ *
  * `distance`: the system's scorer formula over the dimensions specified on
  * both sides, with its own skip rules; a bundle made from a grapheme scores as
  * that grapheme does. `coverage`: for a valued system, the share of declared
@@ -549,15 +513,22 @@ MK_API mk_status mk_bundle_from_grapheme(const mk_system *system, const char *ut
 /** Parses the text form above. An unknown column is MK_ERR_UNKNOWN_FEATURE,
  *  a bad cell MK_ERR_PARSE. */
 MK_API mk_status mk_bundle_from_text(const mk_system *system, const char *text, mk_bundle **out);
+/** An independent copy over the same borrowed system. Free with
+ *  mk_bundle_free. */
 MK_API mk_status mk_bundle_copy(const mk_bundle *bundle, mk_bundle **out);
+/** Tolerates NULL. Free every bundle before the registry its system is in. */
 MK_API void mk_bundle_free(mk_bundle *bundle);
 /** Canonical text, every column in order. Owned; free with mk_string_free. */
 MK_API mk_status mk_bundle_to_text(const mk_bundle *bundle, char **out);
 MK_API mk_status mk_bundle_column_count(const mk_bundle *bundle, size_t *out);
-/** Borrowed; valid as long as the registry. */
+/** Borrowed; valid as long as the registry. An index at or past
+ * mk_bundle_column_count returns MK_ERR_INVALID_ARGUMENT. */
 MK_API mk_status mk_bundle_column_name(const mk_bundle *bundle, size_t index, const char **out);
 /** The values a column can take, in order. */
 MK_API mk_status mk_bundle_column_values(const mk_bundle *bundle, const char *column, mk_string_list **out);
+/** Replaces one cell, written in the cell grammar of docs/abstract-segments.md.
+ *  An unknown column is MK_ERR_UNKNOWN_FEATURE and a cell that does not parse
+ *  is MK_ERR_PARSE; on any failure the bundle is unchanged. */
 MK_API mk_status mk_bundle_set(mk_bundle *bundle, const char *column, const char *cell);
 /** Owned canonical text of one cell; free with mk_string_free. */
 MK_API mk_status mk_bundle_get(const mk_bundle *bundle, const char *column, char **cell_out);
@@ -578,7 +549,8 @@ MK_API mk_status mk_bundle_compatible_graphemes(
     mk_string_list **out
 );
 
-/** Creates an owned copy of a caller-provided string list. */
+/** Creates an owned list holding copies of `count` caller-provided strings;
+ * the caller keeps `items`. Free with mk_string_list_free. */
 MK_API mk_status mk_string_list_new(
     const char *const *items,
     size_t count,
@@ -586,15 +558,13 @@ MK_API mk_status mk_string_list_new(
 );
 /** Returns the number of items in a list, or zero for NULL. */
 MK_API size_t mk_string_list_size(const mk_string_list *list);
-/** Returns a borrowed item, or NULL for an invalid index. */
+/** A borrowed item, valid until the list is freed, or NULL for a NULL list
+ * or an index at or past the size. */
 MK_API const char *mk_string_list_get(const mk_string_list *list, size_t index);
-/** Frees a string list and all copied strings. */
+/** Frees a string list and all its strings. Tolerates NULL. */
 MK_API void mk_string_list_free(mk_string_list *list);
 
-/* Frees a string the library allocated. Tolerates NULL.
- *
- * Named for the thing it frees, like mk_string_list_free and mk_registry_free.
- * It was mk_free_string, the one destructor that read the other way round. */
+/** Frees a string the library allocated. Tolerates NULL. */
 MK_API void mk_string_free(char *s);
 
 #ifdef __cplusplus

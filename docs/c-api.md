@@ -409,9 +409,24 @@ ordered-scale level such as `tone-onset-1` is a position on a scale. Roughly two
 in five of the labels a categorical system can return are in that group, and
 either feature being off the tree returns `MK_ERR_NO_TREE_PATH`.
 
+That is a status, not a sentinel distance. The real answers are small
+integers, so a sentinel such as `999` would look like an ordinary one, and a
+caller summing or thresholding would get nonsense with nothing to test. The
+domain is checked before identity: a feature the tree does not contain,
+misspellings included, is `MK_ERR_NO_TREE_PATH` even against itself rather than
+a confident `0`. For features on the tree identity needs no special case: the
+two paths are equal and the count comes out 0.
+
 It is a tree measurement, not a phonological distance. For two segments use
 `mk_system_segment_distance`, which reads node groups and ordered scales too and
 is defined for every feature a system returns.
+
+`mk_sound_distance` scores two caller-supplied feature sets against the
+compiled geometry, with no system involved. A label the geometry does not know,
+scored or metadata, returns `MK_ERR_UNKNOWN_FEATURE` rather than being skipped:
+a skipped `foo` or `-voice` would score exactly like no label at all, and a
+typo would pass as a measurement. Labels are privative: a negative value is
+the opposite label (`voiceless`), never a sign (`-voice`).
 
 There are two tokenization policies, and the choice matters.
 `mk_segment_ipa` is orthographic: a token starts at each new base code
