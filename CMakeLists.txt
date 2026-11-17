@@ -159,8 +159,13 @@ if(MERKMAL_ENABLE_SANITIZER)
     if(NOT MERKMAL_ENABLE_SANITIZER MATCHES "^(address|undefined)$")
         message(FATAL_ERROR "MERKMAL_ENABLE_SANITIZER must be empty, address, or undefined")
     endif()
-    target_compile_options(merkmal PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer)
-    target_link_options(merkmal PUBLIC -fsanitize=${MERKMAL_ENABLE_SANITIZER})
+    # Defined once: the library and merkmal_internal (the tests' copy of it)
+    # must be instrumented identically.
+    set(MERKMAL_SANITIZER_COMPILE_OPTIONS
+        -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer)
+    set(MERKMAL_SANITIZER_LINK_OPTIONS -fsanitize=${MERKMAL_ENABLE_SANITIZER})
+    target_compile_options(merkmal PRIVATE ${MERKMAL_SANITIZER_COMPILE_OPTIONS})
+    target_link_options(merkmal PUBLIC ${MERKMAL_SANITIZER_LINK_OPTIONS})
 endif()
 
 if(MERKMAL_BUILD_TESTS)
@@ -216,114 +221,71 @@ if(MERKMAL_BUILD_TESTS)
     target_link_libraries(test_geometry PRIVATE merkmal)
     add_test(NAME geometry COMMAND test_geometry)
 
-    # The resolution seam is internal and a shared build does not export it, so
-    # this test compiles the library sources rather than linking the target.
-    # That keeps it running in every configuration, including BUILD_SHARED_LIBS.
-    add_executable(test_resolution tests/c/test_resolution.c ${MERKMAL_SOURCES})
-    target_include_directories(test_resolution
-        PRIVATE
+    # Tests of internal modules link this rather than the merkmal target. A
+    # shared merkmal exports only the public API (hidden visibility), so the
+    # mki_ symbols these tests call exist only in a static build of the same
+    # sources. Built only for the tests and never installed. It carries the
+    # warning set and the sanitizer, so a test linking it is checked exactly
+    # as the library is. This replaced six executables each recompiling the
+    # sources with their own copy of the sanitizer flags.
+    add_library(merkmal_internal STATIC EXCLUDE_FROM_ALL ${MERKMAL_SOURCES})
+    target_include_directories(merkmal_internal
+        PUBLIC
             ${CMAKE_CURRENT_SOURCE_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
-    if(MERKMAL_ENABLE_SANITIZER)
-        target_compile_options(test_resolution
-            PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
-        )
-        target_link_options(test_resolution PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
-    endif()
+    target_compile_options(merkmal_internal
+        PRIVATE ${MERKMAL_C_WARNINGS}
+        PUBLIC ${MERKMAL_SANITIZER_COMPILE_OPTIONS}
+    )
+    target_link_options(merkmal_internal PUBLIC ${MERKMAL_SANITIZER_LINK_OPTIONS})
+
+    # The resolution seam: which path resolved a grapheme is part of the answer
+    # and only visible internally.
+    add_executable(test_resolution tests/c/test_resolution.c)
+    target_link_libraries(test_resolution PRIVATE merkmal_internal)
     add_test(NAME resolution COMMAND test_resolution)
 
-    # Compiles the sources for the same reason test_resolution does: the scoring
-    # seam is internal, and which scorer a system selects is what this asserts.
-    add_executable(test_scoring tests/c/test_scoring.c ${MERKMAL_SOURCES})
-    target_include_directories(test_scoring
-        PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/include
-            ${CMAKE_CURRENT_SOURCE_DIR}/src
-    )
-    if(MERKMAL_ENABLE_SANITIZER)
-        target_compile_options(test_scoring
-            PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
-        )
-        target_link_options(test_scoring PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
-    endif()
+    # The scoring seam: which scorer a system selects is what this asserts.
+    add_executable(test_scoring tests/c/test_scoring.c)
+    target_link_libraries(test_scoring PRIVATE merkmal_internal)
     add_test(NAME scoring COMMAND test_scoring)
 
-    # Same reason again: the cluster seam is internal, and what this asserts is
-    # that a resolved cluster carries its parts rather than only their spellings.
-    add_executable(test_cluster tests/c/test_cluster.c ${MERKMAL_SOURCES})
-    target_include_directories(test_cluster
-        PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/include
-            ${CMAKE_CURRENT_SOURCE_DIR}/src
-    )
-    if(MERKMAL_ENABLE_SANITIZER)
-        target_compile_options(test_cluster
-            PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
-        )
-        target_link_options(test_cluster PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
-    endif()
+    # The cluster seam: a resolved cluster carries its parts rather than only
+    # their spellings.
+    add_executable(test_cluster tests/c/test_cluster.c)
+    target_link_libraries(test_cluster PRIVATE merkmal_internal)
     add_test(NAME cluster COMMAND test_cluster)
 
     # The checked growth helper, on its own: its overflow paths cannot be
     # reached through the public API with any input that fits in memory.
-    add_executable(test_array tests/c/test_array.c src/array.c)
-    target_include_directories(test_array PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    if(MERKMAL_ENABLE_SANITIZER)
-        target_compile_options(test_array
-            PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
-        )
-        target_link_options(test_array PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
-    endif()
+    add_executable(test_array tests/c/test_array.c)
+    target_link_libraries(test_array PRIVATE merkmal_internal)
     add_test(NAME array COMMAND test_array)
 
     # Fails every allocation in turn inside the entry points whose cleanup
     # paths no ordinary input reaches. Wrapping malloc needs the GNU or LLVM
-    # linker's --wrap, and the wrap only reaches objects linked into this
-    # executable, so it compiles the sources rather than linking the library.
+    # linker's --wrap, which applies to the archive members linked in, so it
+    # links merkmal_internal rather than a possibly shared merkmal.
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        add_executable(test_alloc_failure tests/c/test_alloc_failure.c ${MERKMAL_SOURCES})
-        target_include_directories(test_alloc_failure
-            PRIVATE
-                ${CMAKE_CURRENT_SOURCE_DIR}/include
-                ${CMAKE_CURRENT_SOURCE_DIR}/src
-        )
-        target_compile_options(test_alloc_failure PRIVATE ${MERKMAL_C_WARNINGS})
+        add_executable(test_alloc_failure tests/c/test_alloc_failure.c)
+        target_link_libraries(test_alloc_failure PRIVATE merkmal_internal)
         target_link_options(test_alloc_failure
             PRIVATE -Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc
         )
-        if(MERKMAL_DATA_PROFILE STREQUAL "cc-by")
-            target_compile_definitions(test_alloc_failure PRIVATE MERKMAL_TEST_DATA_PROFILE_CC_BY)
-        endif()
-        if(MERKMAL_ENABLE_SANITIZER)
-            target_compile_options(test_alloc_failure
-                PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
-            )
-            target_link_options(test_alloc_failure PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
-        endif()
         add_test(NAME alloc_failure COMMAND test_alloc_failure)
     endif()
 
     # The built-in NFC and NFD. With utf8proc found, the test also compares
     # every code point and generated mark sequences against it; utf8proc is a
     # test oracle here, never a dependency of the library.
-    add_executable(test_unicode tests/c/test_unicode.c src/array.c src/unicode_norm.c src/generated/unicode_data.c)
-    target_include_directories(test_unicode
-        PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/include
-            ${CMAKE_CURRENT_SOURCE_DIR}/src
-    )
+    add_executable(test_unicode tests/c/test_unicode.c)
+    target_link_libraries(test_unicode PRIVATE merkmal_internal)
     if(UTF8PROC_FOUND)
         target_compile_definitions(test_unicode PRIVATE MK_HAVE_UTF8PROC=1)
         target_link_libraries(test_unicode PRIVATE PkgConfig::UTF8PROC)
     else()
         target_compile_definitions(test_unicode PRIVATE MK_HAVE_UTF8PROC=0)
-    endif()
-    if(MERKMAL_ENABLE_SANITIZER)
-        target_compile_options(test_unicode
-            PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
-        )
-        target_link_options(test_unicode PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
     endif()
     add_test(NAME unicode COMMAND test_unicode)
     # A utf8proc carrying another Unicode version than the tables cannot serve
@@ -338,6 +300,7 @@ if(MERKMAL_BUILD_TESTS)
         test_smoke
         test_inventory
         test_bundle
+        test_alloc_failure
         test_header
         test_malformed
         test_golden_distances
@@ -349,13 +312,16 @@ if(MERKMAL_BUILD_TESTS)
         test_array
         test_unicode
     )
+        if(NOT TARGET ${target})
+            continue()  # test_alloc_failure exists only on Linux
+        endif()
         target_compile_options(${target} PRIVATE ${MERKMAL_C_WARNINGS})
         if(MERKMAL_DATA_PROFILE STREQUAL "cc-by")
             target_compile_definitions(${target} PRIVATE MERKMAL_TEST_DATA_PROFILE_CC_BY)
         endif()
     endforeach()
 
-    # That the archive exports the 31 public symbols and no more. Needs nm and a
+    # That the archive exports the public symbols and no more. Needs nm and a
     # static archive to read, so it is skipped rather than failed elsewhere; the
     # script exits 0 when nm is absent, and a shared build hides internals by
     # visibility anyway.
