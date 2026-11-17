@@ -35,6 +35,8 @@ UNICODE_VERSION: str = _native.UNICODE_VERSION
 # built with MERKMAL_DATA_PROFILE=cc-by, without the PHOIBLE and P-base tables, whose
 # share-alike and non-commercial terms some users cannot accept. See NOTICE.
 DATA_PROFILE: str = _native.DATA_PROFILE
+# The system every call uses when it names none.
+DEFAULT_SYSTEM: str = _native.DEFAULT_SYSTEM
 # Deprecated, and True in every build. It used to say whether libutf8proc was
 # linked, because a build without it could normalize differently; since
 # normalization was compiled in, none does. Kept so that code refusing a
@@ -324,13 +326,13 @@ class AbstractSegment:
     __slots__ = ("system", "text")
 
     def __init__(self, text: str = "", *, system: str | None = None) -> None:
-        self.system = system or "distinctive"
+        self.system = system or DEFAULT_SYSTEM
         self.text = _native.bundle_parse(text, system=self.system)
 
     @classmethod
     def from_grapheme(cls, grapheme: str, *, system: str | None = None) -> AbstractSegment:
         segment = cls.__new__(cls)
-        segment.system = system or "distinctive"
+        segment.system = system or DEFAULT_SYSTEM
         segment.text = _native.bundle_parse(grapheme, system=segment.system, from_grapheme=True)
         return segment
 
@@ -345,7 +347,7 @@ class AbstractSegment:
         """
         if not graphemes:
             raise ValueError("covering: no graphemes")
-        system = system or "distinctive"
+        system = system or DEFAULT_SYSTEM
         values = dict(cls.columns(system=system))
         members = [cls.from_grapheme(g, system=system).cells for g in graphemes]
         cells: dict[str, str] = {}
@@ -448,6 +450,7 @@ __all__ = [
     "HAVE_UTF8PROC",
     "UNICODE_VERSION",
     "DATA_PROFILE",
+    "DEFAULT_SYSTEM",
     "is_segment",
     "list_systems",
     "load_geometry",

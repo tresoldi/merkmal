@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### The command line has machine-readable modes
+
+`merkmal` takes `--json`, `--jsonl` or `--tsv`, before or after the subcommand,
+and these are the stable interface for scripts; the default human output may
+change. `distance` reports coverage and comparability in these modes. A failure
+leaves stdout empty in every mode. `merkmal.DEFAULT_SYSTEM` names the system
+used when a call names none, which the extension now exports instead of
+`__init__.py` repeating it. See `python/README.md`, Command line.
+
 ### The runtime model text format declares its version
 
 A model may begin with `@format_version 1`. It is optional, and a model without

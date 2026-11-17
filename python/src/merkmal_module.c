@@ -18,8 +18,8 @@ static PyObject *mk_py_error = NULL;
 static PyObject *mk_py_source_marker = NULL;
 static const char *registry_capsule_name = "merkmal.registry";
 
-/* The system used when a call names none. AbstractSegment in __init__.py
- * repeats the name as its own fallback; the two must agree.
+/* The system used when a call names none, exported as DEFAULT_SYSTEM so
+ * that __init__.py and the CLI read it rather than repeating it.
  *
  * `distinctive` rather than `descriptive`. Both recognize the same graphemes
  * over the Lexibank segment types, so the choice is purely about which scores
@@ -1584,6 +1584,10 @@ PyMODINIT_FUNC PyInit__native(void)
     Py_INCREF(mk_py_error);
     if (PyModule_AddObject(module, "NativeError", mk_py_error) < 0) {
         Py_DECREF(mk_py_error);
+        Py_DECREF(module);
+        return NULL;
+    }
+    if (PyModule_AddStringConstant(module, "DEFAULT_SYSTEM", default_system_name) < 0) {
         Py_DECREF(module);
         return NULL;
     }

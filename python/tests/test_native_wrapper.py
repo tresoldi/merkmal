@@ -1077,6 +1077,54 @@ def test_cli_reports_user_mistakes_without_a_traceback(
     assert "'" not in captured.err
 
 
+def test_cli_machine_modes_are_a_stable_contract(capsys: pytest.CaptureFixture[str]) -> None:
+    """--json, --jsonl and --tsv are what scripts may rely on (python/README.md)."""
+    import json
+
+    # JSON: one object, naming the system actually used even when defaulted.
+    assert main(["--json", "features", "p"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["system"] == merkmal.DEFAULT_SYSTEM
+    assert result["grapheme"] == "p"
+    assert result["features"] == sorted(merkmal.get_features("p"))
+
+    # The mode may also follow the subcommand.
+    assert main(["features", "p", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out) == result
+
+    # JSONL: one record per line.
+    assert main(["segment", "tʃa", "--jsonl"]) == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert [json.loads(line) for line in lines] == [
+        {"index": i, "segment": s} for i, s in enumerate(merkmal.segment_ipa("tʃa"))
+    ]
+
+    # TSV: a header, then rows; distance carries coverage and comparability.
+    assert main(["--tsv", "distance", "ai", "au"]) == 0
+    header, row = capsys.readouterr().out.splitlines()
+    assert header.split("\t") == ["system", "a", "b", "distance", "coverage", "comparability"]
+    fields = row.split("\t")
+    assert float(fields[3]) == merkmal.distance("ai", "au")
+    assert fields[4:] == ["1.0", "ok"]
+
+    # A tab or newline in a value is escaped, so it cannot add a column or row.
+    assert main(["--tsv", "normalize", "a\tb\nc"]) == 0
+    header, row = capsys.readouterr().out.splitlines()
+    assert row.split("\t")[0] == "a\\tb\\nc"
+
+    # A failure writes nothing to stdout, in every mode.
+    for mode in ("--json", "--jsonl", "--tsv"):
+        assert main([mode, "features", "not-ipa"]) == 1
+        captured = capsys.readouterr()
+        assert captured.out == ""
+        assert captured.err.startswith("error: ")
+
+    # The modes are exclusive.
+    with pytest.raises(SystemExit):
+        main(["--json", "--tsv", "systems"])
+    capsys.readouterr()
+
+
 def test_tone_presence_separates_mid_tone_from_tonelessness() -> None:
     """Regression cover for the review's tone findings.
 
