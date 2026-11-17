@@ -163,7 +163,7 @@ static mk_status mk_score_resolved(
     if (a->cluster_component_count > 0 || b->cluster_component_count > 0) {
         /* Only a categorical system synthesizes clusters, so this never runs
          * for a valued one. See mk_admits_synthesized_clusters in the resolver. */
-        status = mki_cluster_distance(system, a, b, node_weights, out);
+        status = mki_cluster_distance(system, a, b, node_weights, out, coverage);
     } else if (coverage == NULL && mki_streq(a->grapheme, b->grapheme)) {
         /* Two spellings of one segment. The scorer would reach 0.0 anyway; this
          * skips the walk over every leaf, group, and scale.

@@ -21,6 +21,12 @@
  * [0, 1]: 0.0 for equal graphemes, and 1.0 if neither side is a cluster after
  * all.
  *
+ * `coverage` may be NULL. Otherwise it receives the share of the system's
+ * dimensions the comparison used, in [0, 1]: each part's coverage from the
+ * scorer, weighted as its distance is (nucleus and offglides, components and
+ * whole segment), with the length penalties left out because they measure no
+ * dimension. 0.0 when neither side is a cluster.
+ *
  * Reads the parts the resolver already worked out and never re-resolves a
  * spelling. Either side may be a plain segment: a cluster against one is scored
  * nucleus-first, with the remaining parts averaged.
@@ -35,7 +41,8 @@ mk_status mki_cluster_distance(
     const mki_resolution *a,
     const mki_resolution *b,
     const char *node_weights,
-    double *out
+    double *out,
+    double *coverage
 );
 
 #endif

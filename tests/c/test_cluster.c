@@ -212,14 +212,58 @@ static void check_two_plain_segments(const mk_system *system)
         fail("plain segments", "did not resolve");
         return;
     }
-    if (mki_cluster_distance(system, &a, &b, NULL, &out) != MK_OK || out != 1.0) {
+    if (mki_cluster_distance(system, &a, &b, NULL, &out, NULL) != MK_OK || out != 1.0) {
         fail("plain segments", "expected 1.0 for a pair with no parts");
     }
-    if (mki_cluster_distance(NULL, &a, &b, NULL, &out) != MK_ERR_INVALID_ARGUMENT) {
+    if (mki_cluster_distance(NULL, &a, &b, NULL, &out, NULL) != MK_ERR_INVALID_ARGUMENT) {
         fail("plain segments", "a NULL system should be rejected");
     }
     mki_resolution_clear(&a);
     mki_resolution_clear(&b);
+}
+
+/* Guards against cluster coverage left unwritten, which hands back whatever
+ * the caller seeded: a seed of 0.0 then reports every diphthong pair as
+ * sharing no dimension. The seeds are values no scorer writes, so an untouched
+ * one shows. The distance must not depend on whether coverage is asked for. */
+static void check_cluster_coverage(const mk_system *system)
+{
+    static const char *const pairs[][2] = {
+        {"ai", "au"}, {"ai", "a"}, {"a", "ai"}, {"ai", "ai"}, {"aiu", "ai"}, {"mbr", "br"},
+    };
+    static const double seeds[] = {-7.0, 0.0, 2.0};
+    size_t i;
+    size_t k;
+
+    for (i = 0; i < sizeof(pairs) / sizeof(pairs[0]); i++) {
+        double plain = -1.0;
+
+        if (mk_system_segment_distance(system, pairs[i][0], pairs[i][1], &plain) != MK_OK) {
+            fail(pairs[i][0], "plain distance failed");
+            continue;
+        }
+        for (k = 0; k < sizeof(seeds) / sizeof(seeds[0]); k++) {
+            double score = -1.0;
+            double coverage = seeds[k];
+            mk_comparability why = MK_CMP_CROSS_TIER;
+
+            if (mk_system_segment_distance_ex(
+                    system, pairs[i][0], pairs[i][1], NULL, &score, &coverage, &why) != MK_OK) {
+                fail(pairs[i][0], "distance_ex failed");
+                continue;
+            }
+            if (coverage != 1.0) {
+                /* Categorical: every component pair is fully covered. */
+                fail(pairs[i][0], "cluster coverage is not the components' 1.0");
+            }
+            if (why != MK_CMP_OK) {
+                fail(pairs[i][0], "a same-tier cluster pair is not comparable");
+            }
+            if (score != plain) {
+                fail(pairs[i][0], "asking for coverage changed the distance");
+            }
+        }
+    }
 }
 
 int main(void)
@@ -237,6 +281,7 @@ int main(void)
         check_composition(descriptive);
         check_geminacy_is_featural(descriptive);
         check_two_plain_segments(descriptive);
+        check_cluster_coverage(descriptive);
     }
     check_policy_is_data();
 

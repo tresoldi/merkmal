@@ -129,6 +129,13 @@ writes `.` in 30,181 cells and its tone letters are `.` on every dimension, so
 the segments, so a segment compared with itself reports less than 1.0 whenever
 it has a gap: `("p", "p")` on PHOIBLE is 27/38.
 
+For a synthesized cluster (a diphthong, an untied consonant sequence), coverage
+combines the coverage of each part comparison with the same weights the
+distance gives that part: nucleus and offglides, then components and the whole
+segment. The length penalties that make `ai` further from `a` than `a` is from
+itself measure no dimension and do not enter it. Only categorical systems
+synthesize clusters, so an ordinary cluster pair is fully covered.
+
 `*why` reports whether the pair was comparable at all:
 
 | value | meaning |
