@@ -16,7 +16,7 @@ struct mk_system {
      * literal for a compiled system -- and the destructor should not have to
      * cast that away to free what this struct allocated. */
     char *owned_name;
-    int owns;
+    bool owns;
 };
 
 #endif

@@ -118,7 +118,7 @@ mk_status mk_system_segment_distance(
 }
 
 /* A tone token carries this and nothing else does. See the resolver. */
-static int mk_is_tonal_autosegment(mk_feature_view view)
+static bool mk_is_tonal_autosegment(mk_feature_view view)
 {
     return mki_features_contain(view.features, view.count, "tonal-autosegment");
 }

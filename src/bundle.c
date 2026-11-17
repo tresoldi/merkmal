@@ -250,7 +250,7 @@ static mk_status mk_build_columns(
 
 /* -- cells from features ------------------------------------------------------ */
 
-static int mk_view_has(mk_feature_view view, const char *label)
+static bool mk_view_has(mk_feature_view view, const char *label)
 {
     return label != NULL && label[0] != '\0' &&
         mki_features_contain(view.features, view.count, label);
@@ -270,15 +270,15 @@ static char mk_valued_state(mk_feature_view view, const char *feature)
     return '\0';
 }
 
-static int mk_any_label(mk_feature_view view, const char *const *labels, size_t count)
+static bool mk_any_label(mk_feature_view view, const char *const *labels, size_t count)
 {
     size_t i;
     for (i = 0; i < count; i++) {
         if (mk_view_has(view, labels[i])) {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 static mk_cell mk_cell_na(void)
@@ -421,7 +421,7 @@ mk_status mk_bundle_new(const mk_system *system, mk_bundle **out)
     return MK_OK;
 }
 
-static int mk_is_tone(mk_feature_view view)
+static bool mk_is_tone(mk_feature_view view)
 {
     return mki_features_contain(view.features, view.count, "tonal-autosegment");
 }
@@ -562,7 +562,7 @@ static int mk_popcount(uint64_t x)
     return n;
 }
 
-static int mk_cell_specified(const mk_column *col, const mk_cell *c)
+static bool mk_cell_specified(const mk_column *col, const mk_cell *c)
 {
     if (c->na) {
         return !c->any && c->mask == 0;
@@ -750,7 +750,7 @@ typedef struct mk_text {
     size_t capacity;
 } mk_text;
 
-static int mk_text_add(mk_text *t, const char *s)
+static bool mk_text_add(mk_text *t, const char *s)
 {
     size_t len = strlen(s);
     if (t->length + len + 1 > t->capacity) {
@@ -761,17 +761,17 @@ static int mk_text_add(mk_text *t, const char *s)
         }
         grown = (char *)realloc(t->data, cap);
         if (grown == NULL) {
-            return 0;
+            return false;
         }
         t->data = grown;
         t->capacity = cap;
     }
     memcpy(t->data + t->length, s, len + 1);
     t->length += len;
-    return 1;
+    return true;
 }
 
-static int mk_cell_text(const mk_bundle *b, const mk_column *col, const mk_cell *c, mk_text *t)
+static bool mk_cell_text(const mk_bundle *b, const mk_column *col, const mk_cell *c, mk_text *t)
 {
     int first = 1;
     size_t i;
@@ -784,18 +784,18 @@ static int mk_cell_text(const mk_bundle *b, const mk_column *col, const mk_cell 
     }
     if (col->kind == MK_COL_GROUP && c->any) {
         if (!mk_text_add(t, "?")) {
-            return 0;
+            return false;
         }
     } else if (col->kind != MK_COL_GROUP && c->mask == mk_full_mask(b, col)) {
         if (!mk_text_add(t, "?")) {
-            return 0;
+            return false;
         }
     } else if (col->kind == MK_COL_BINARY) {
         unsigned bits[3] = {MK_BIN_PLUS, MK_BIN_MINUS, MK_BIN_NEUTRAL};
         for (i = 0; i < 3; i++) {
             if (c->mask & bits[i]) {
                 if ((!first && !mk_text_add(t, "|")) || !mk_text_add(t, mk_binary_value_name(bits[i]))) {
-                    return 0;
+                    return false;
                 }
                 first = 0;
             }
@@ -813,13 +813,13 @@ static int mk_cell_text(const mk_bundle *b, const mk_column *col, const mk_cell 
                 hi++;
             }
             if (!first && !mk_text_add(t, "|")) {
-                return 0;
+                return false;
             }
             if (!mk_text_add(t, col->scale->levels[lo])) {
-                return 0;
+                return false;
             }
             if (hi > lo && (!mk_text_add(t, "..") || !mk_text_add(t, col->scale->levels[hi]))) {
-                return 0;
+                return false;
             }
             first = 0;
             lo = hi + 1;
@@ -829,16 +829,16 @@ static int mk_cell_text(const mk_bundle *b, const mk_column *col, const mk_cell 
         for (i = 0; i < col->label_count; i++) {
             if (c->mask & ((uint64_t)1 << i)) {
                 if ((!first && !mk_text_add(t, sep)) || !mk_text_add(t, col->labels[i])) {
-                    return 0;
+                    return false;
                 }
                 first = 0;
             }
         }
     }
     if (c->na && !mk_text_add(t, "|0")) {
-        return 0;
+        return false;
     }
-    return 1;
+    return true;
 }
 
 mk_status mk_bundle_get(const mk_bundle *bundle, const char *column, char **state_out)
@@ -1014,10 +1014,10 @@ static mk_option mk_contribution(
     }
 }
 
-static int mk_group_equal_possible(const mk_cell *a, const mk_cell *b)
+static bool mk_group_equal_possible(const mk_cell *a, const mk_cell *b)
 {
     if (a->any || b->any) {
-        return 1;
+        return true;
     }
     if (!a->oneof && !b->oneof) {
         return a->mask == b->mask;
@@ -1031,20 +1031,20 @@ static int mk_group_equal_possible(const mk_cell *a, const mk_cell *b)
     return mk_popcount(a->mask) == 1 && (a->mask & b->mask) != 0;
 }
 
-static int mk_group_single(const mk_cell *c)
+static bool mk_group_single(const mk_cell *c)
 {
     return !c->any && (!c->oneof || mk_popcount(c->mask) == 1);
 }
 
-static int mk_group_differ_possible(const mk_cell *a, const mk_cell *b)
+static bool mk_group_differ_possible(const mk_cell *a, const mk_cell *b)
 {
     if (mk_group_single(a) && mk_group_single(b)) {
         return a->mask != b->mask;
     }
-    return 1;
+    return true;
 }
 
-static int mk_group_applies(const mk_cell *c)
+static bool mk_group_applies(const mk_cell *c)
 {
     return c->any || c->mask != 0;
 }
@@ -1279,10 +1279,10 @@ mk_status mk_bundle_compare(
 
 /* -- compatibility ---------------------------------------------------------------- */
 
-static int mk_cells_intersect(const mk_column *col, const mk_cell *a, const mk_cell *b)
+static bool mk_cells_intersect(const mk_column *col, const mk_cell *a, const mk_cell *b)
 {
     if (a->na && b->na) {
-        return 1;
+        return true;
     }
     if (col->kind == MK_COL_GROUP) {
         return mk_group_applies(a) && mk_group_applies(b) && mk_group_equal_possible(a, b);
@@ -1290,15 +1290,15 @@ static int mk_cells_intersect(const mk_column *col, const mk_cell *a, const mk_c
     return (a->mask & b->mask) != 0;
 }
 
-static int mk_bundles_intersect(const mk_bundle *a, const mk_bundle *b)
+static bool mk_bundles_intersect(const mk_bundle *a, const mk_bundle *b)
 {
     size_t i;
     for (i = 0; i < a->column_count; i++) {
         if (!mk_cells_intersect(&a->columns[i], &a->cells[i], &b->cells[i])) {
-            return 0;
+            return false;
         }
     }
-    return 1;
+    return true;
 }
 
 mk_status mk_bundle_compatible(const mk_bundle *bundle, const char *utf8_grapheme, bool *out)

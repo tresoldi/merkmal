@@ -41,7 +41,7 @@ static mk_status mk_push_token(char ***items, size_t *count, size_t *cap, char *
     return MK_OK;
 }
 
-static int mk_is_suffix_modifier(const char *p)
+static bool mk_is_suffix_modifier(const char *p)
 {
     return mki_is_modifier_letter_or_symbol(p);
 }

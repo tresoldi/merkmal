@@ -44,13 +44,13 @@
 #include <string.h>
 
 /* Whether a feature list carries `label`. */
-static int mk_vector_has(const mk_feature_view *view, const char *label)
+static bool mk_vector_has(const mk_feature_view *view, const char *label)
 {
     return mki_features_contain(view->features, view->count, label);
 }
 
 /* Any of `labels` present. */
-static int mk_vector_has_any(
+static bool mk_vector_has_any(
     const mk_feature_view *view,
     const char *const *labels,
     size_t count
@@ -60,10 +60,10 @@ static int mk_vector_has_any(
 
     for (i = 0; i < count; i++) {
         if (mk_vector_has(view, labels[i])) {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 /* A valued system writes its cells as "name=state". Returns the state
@@ -83,12 +83,12 @@ static char mk_vector_valued_state(const mk_feature_view *view, const char *feat
     return '\0';
 }
 
-static int mk_vector_is_valued(const mk_builtin_system *builtin)
+static bool mk_vector_is_valued(const mk_builtin_system *builtin)
 {
     return builtin->kind != MK_SYSTEM_CATEGORICAL;
 }
 
-static int mk_vector_uses_scalar_dimensions(const mk_builtin_system *builtin)
+static bool mk_vector_uses_scalar_dimensions(const mk_builtin_system *builtin)
 {
     return builtin->scalar_dimensions != NULL && builtin->scalar_dimension_count > 0;
 }

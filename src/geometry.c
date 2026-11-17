@@ -12,12 +12,12 @@ typedef struct mk_node_group {
     int differs;
 } mk_node_group;
 
-static int mk_view_contains(mk_feature_view view, const char *feature)
+static bool mk_view_contains(mk_feature_view view, const char *feature)
 {
     return mki_features_contain(view.features, view.count, feature);
 }
 
-static int mk_is_leaf_feature(const char *feature)
+static bool mk_is_leaf_feature(const char *feature)
 {
     size_t i;
 
@@ -25,10 +25,10 @@ static int mk_is_leaf_feature(const char *feature)
         const mk_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
         if ((leaf->positive[0] != '\0' && mki_streq(leaf->positive, feature)) ||
             (leaf->negative[0] != '\0' && mki_streq(leaf->negative, feature))) {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 static const char *mk_feature_node(const char *feature)
@@ -55,7 +55,7 @@ static const mk_feature_path *mk_find_feature_path(const char *feature)
     return NULL;
 }
 
-static int mk_is_ordinal_level_feature(const char *feature)
+static bool mk_is_ordinal_level_feature(const char *feature)
 {
     size_t i;
     size_t j;
@@ -64,17 +64,17 @@ static int mk_is_ordinal_level_feature(const char *feature)
         const mk_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
         for (j = 0; j < scale->level_count; j++) {
             if (mki_streq(scale->levels[j], feature)) {
-                return 1;
+                return true;
             }
         }
     }
-    return 0;
+    return false;
 }
 
 /* Reports a feature set that sits at two points on one ordered scale. The
  * diacritic composer can build one: breve plus length mark yields both
  * `ultra-short` and `long`, which is not a segment any language contrasts. */
-int mki_ordinal_conflict(
+bool mki_ordinal_conflict(
     const char *const *features,
     size_t feature_count,
     const char **scale_out,
@@ -103,38 +103,38 @@ int mki_ordinal_conflict(
                 if (second_out != NULL) {
                     *second_out = scale->levels[j];
                 }
-                return 1;
+                return true;
             }
             found = scale->levels[j];
         }
     }
-    return 0;
+    return false;
 }
 
-static int mk_is_metadata_feature(const char *feature)
+static bool mk_is_metadata_feature(const char *feature)
 {
     size_t i;
 
     for (i = 0; i < mki_default_metadata_feature_count; i++) {
         if (mki_streq(mki_default_metadata_features[i], feature)) {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
-int mki_geometry_knows_feature(const char *feature)
+bool mki_geometry_knows_feature(const char *feature)
 {
     if (feature == NULL || feature[0] == '\0') {
-        return 0;
+        return false;
     }
     return mk_is_metadata_feature(feature) || mki_geometry_scores_feature(feature);
 }
 
-int mki_geometry_scores_feature(const char *feature)
+bool mki_geometry_scores_feature(const char *feature)
 {
     if (feature == NULL || feature[0] == '\0') {
-        return 0;
+        return false;
     }
     return mk_is_leaf_feature(feature) ||
         mk_is_ordinal_level_feature(feature) ||
@@ -334,10 +334,10 @@ static void mk_process_node_feature(
     }
 }
 
-int mki_is_node_group_feature(const char *feature)
+bool mki_is_node_group_feature(const char *feature)
 {
     if (feature == NULL || mk_is_leaf_feature(feature) || mk_is_ordinal_level_feature(feature)) {
-        return 0;
+        return false;
     }
     return mk_feature_node(feature) != NULL;
 }
@@ -579,7 +579,7 @@ static mk_status mk_score_leaf(
     return MK_OK;
 }
 
-static int mk_label_value(
+static bool mk_label_value(
     mk_feature_view view,
     const char *feature,
     double *out
@@ -595,7 +595,7 @@ static int mk_label_value(
             /* Not compared: '0' the feature does not apply, '?' its value is
              * unknown here, '.' a table that does not say which of the two. */
             if (state == '.' || state == '0' || state == '?') {
-                return 0;
+                return false;
             }
             if (state == '+') {
                 *out = 1.0;
@@ -604,10 +604,10 @@ static int mk_label_value(
             } else {
                 *out = 0.0;
             }
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 static mk_status mk_score_valued(

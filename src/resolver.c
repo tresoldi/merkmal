@@ -190,7 +190,7 @@ static void mk_resolution_move(mk_resolution *dst, const mk_resolution *src)
  * mki_ordinal_conflict below already did; C does not convert `char **` to
  * `const char *const *` on its own. Adding const is the safe direction, which
  * is why -Wcast-qual has nothing to say about it. */
-static int mk_feature_list_contains(const char *const *items, size_t count, const char *feature)
+static bool mk_feature_list_contains(const char *const *items, size_t count, const char *feature)
 {
     return mki_features_contain(items, count, feature);
 }
@@ -284,14 +284,14 @@ static mk_status mk_copy_entry_features(const mk_entry_view *entry, char ***item
     return MK_OK;
 }
 
-static int mk_feature_array_marks_nucleus(const char *const *items, size_t count)
+static bool mk_feature_array_marks_nucleus(const char *const *items, size_t count)
 {
     return mk_feature_list_contains(items, count, "vowel") ||
         mk_feature_list_contains(items, count, "syllabic") ||
         mk_feature_list_contains(items, count, "syllabic=+");
 }
 
-static int mk_feature_array_marks_sonorant(const char *const *items, size_t count)
+static bool mk_feature_array_marks_sonorant(const char *const *items, size_t count)
 {
     return mk_feature_list_contains(items, count, "sonorant") ||
         mk_feature_list_contains(items, count, "nasal") ||
@@ -427,17 +427,17 @@ static mk_status mk_add_movement_feature(
     return mk_add_owned_feature(items, count, cap, label);
 }
 
-static int mk_feature_base_present(char **items, size_t count, const char *feature)
+static bool mk_feature_base_present(char **items, size_t count, const char *feature)
 {
     size_t i;
     size_t feature_len = strlen(feature);
 
     for (i = 0; i < count; i++) {
         if (strncmp(items[i], feature, feature_len) == 0 && items[i][feature_len] == '=') {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 static const mk_diacritic_map *mk_match_diacritic_map(
@@ -604,27 +604,27 @@ static mk_status mk_add_chao_tone_features(
  * Deliberately narrow: the documented conventions only. Dataset-specific noise
  * such as arrows stays MK_ERR_UNKNOWN_GRAPHEME rather than being swept in here
  * on a guess about what its author meant. */
-static int mk_is_source_marker(const char *text)
+static bool mk_is_source_marker(const char *text)
 {
     if (text == NULL || text[0] == '\0') {
-        return 0;
+        return false;
     }
     /* CLDF boundary markers. */
     if (mki_streq(text, "+") || mki_streq(text, "_") || mki_streq(text, "#")) {
-        return 1;
+        return true;
     }
     /* CLTS: a grapheme the conversion could not resolve. */
     if (mki_streq(text, "<?>")) {
-        return 1;
+        return true;
     }
     /* CLDF: source material left unparsed, escaped as <<...>>. */
     if (mki_has_prefix(text, "<<")) {
         size_t len = strlen(text);
         if (len >= 4 && strcmp(text + len - 2, ">>") == 0) {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 static void mk_free_owned_feature_array(char **features, size_t count);
@@ -807,17 +807,17 @@ static const mk_valued_diacritic_effect *mk_find_valued_effect(const char *modif
  * therefore whether some tone-derived modifier has a valued effect on a
  * dimension this system actually has. Returning "unsupported" instead of zero
  * is the honest answer: no tonal equality has been established. */
-static int mk_system_supports_tone(const mk_system *system)
+static bool mk_system_supports_tone(const mk_system *system)
 {
     size_t i;
     size_t j;
     size_t k;
 
     if (system == NULL || system->builtin == NULL) {
-        return 0;
+        return false;
     }
     if (system->builtin->kind != MK_SYSTEM_VALUED) {
-        return 1;
+        return true;
     }
     for (i = 0; i < mki_default_valued_diacritic_effect_count; i++) {
         const mk_valued_diacritic_effect *effect = &mki_default_valued_diacritic_effects[i];
@@ -827,12 +827,12 @@ static int mk_system_supports_tone(const mk_system *system)
         for (j = 0; j < effect->alternative_count; j++) {
             for (k = 0; k < system->builtin->geometry_map_count; k++) {
                 if (mki_streq(system->builtin->geometry_map[k].feature, effect->alternatives[j])) {
-                    return 1;
+                    return true;
                 }
             }
         }
     }
-    return 0;
+    return false;
 }
 
 static mk_status mk_decompose_diacritics(
@@ -1095,7 +1095,7 @@ static mk_status mk_apply_valued_modifiers(
  * Nothing about the synthesis was ever descriptive-specific. Components are
  * resolved through whichever system is asking and scored by the component path
  * in system.c, which never looked at the system's name either. */
-static int mk_admits_synthesized_clusters(const mk_system *system)
+static bool mk_admits_synthesized_clusters(const mk_system *system)
 {
     return system != NULL &&
         system->builtin != NULL &&
@@ -1118,17 +1118,17 @@ static const char *const mk_contradictory_modifiers[][2] = {
     { "advanced-tongue-root", "retracted-tongue-root" }
 };
 
-static int mk_modifiers_contradict(const char *const *features, size_t count)
+static bool mk_modifiers_contradict(const char *const *features, size_t count)
 {
     size_t i;
 
     for (i = 0; i < sizeof(mk_contradictory_modifiers) / sizeof(mk_contradictory_modifiers[0]); i++) {
         if (mki_features_contain(features, count, mk_contradictory_modifiers[i][0]) &&
             mki_features_contain(features, count, mk_contradictory_modifiers[i][1])) {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 /* Removes one owned label, keeping the order of the rest. */
@@ -1360,19 +1360,19 @@ static mk_status mk_add_cluster_component(
  *
  * Equal counts plus one-way containment: a resolved feature set does not repeat
  * a label. */
-static int mk_same_segment(const mk_resolution *a, const mk_resolution *b)
+static bool mk_same_segment(const mk_resolution *a, const mk_resolution *b)
 {
     size_t i;
 
     if (a->feature_count != b->feature_count) {
-        return 0;
+        return false;
     }
     for (i = 0; i < a->feature_count; i++) {
         if (!mki_features_contain(b->features, b->feature_count, a->features[i])) {
-            return 0;
+            return false;
         }
     }
-    return 1;
+    return true;
 }
 
 /* Carries a part's resolved features into the record, so scoring never has to
@@ -1479,17 +1479,17 @@ static mk_status mk_add_cluster_movement_features(
 typedef struct mk_component_grammar {
     /* Whether this codepoint may begin a component of this kind. Shared
      * rejections (end of input, tone) are handled by the parser. */
-    int (*admits_start)(const char *p);
+    bool (*admits_start)(const char *p);
     /* Whether the resolved component is one of this kind. */
-    int (*accepts)(const mk_resolution *component);
+    bool (*accepts)(const mk_resolution *component);
 } mk_component_grammar;
 
-static int mk_vowel_starts_component(const char *p)
+static bool mk_vowel_starts_component(const char *p)
 {
     return mki_is_vowel_letter(p);
 }
 
-static int mk_vowel_component_accepted(const mk_resolution *component)
+static bool mk_vowel_component_accepted(const mk_resolution *component)
 {
     return mk_feature_array_marks_nucleus(
             component->features, component->feature_count) &&
@@ -1498,7 +1498,7 @@ static int mk_vowel_component_accepted(const mk_resolution *component)
 }
 
 /* Source markup and control tokens are not segments and must not start one. */
-static int mk_consonant_starts_component(const char *p)
+static bool mk_consonant_starts_component(const char *p)
 {
     return !(*p == '<' ||
         *p == '>' ||
@@ -1511,7 +1511,7 @@ static int mk_consonant_starts_component(const char *p)
         mki_has_prefix(p, "∼"));
 }
 
-static int mk_consonant_component_accepted(const mk_resolution *component)
+static bool mk_consonant_component_accepted(const mk_resolution *component)
 {
     return mk_feature_list_contains(
             component->features, component->feature_count, "consonant") &&

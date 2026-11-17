@@ -88,7 +88,7 @@ static size_t mk_decode(const unsigned char *p, unsigned int *out)
     return length;
 }
 
-static int mk_bisect(const unsigned int *keys, size_t count, unsigned int key, size_t *at)
+static bool mk_bisect(const unsigned int *keys, size_t count, unsigned int key, size_t *at)
 {
     size_t low = 0;
     size_t high = count;

@@ -12,6 +12,7 @@
 #include "generated/builtin_data.h"
 #include "merkmal.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 
 /* mk_feature_view is public, in merkmal.h. Scoring reads feature sets and
@@ -23,17 +24,17 @@
 /* Whether the compiled geometry has anywhere to put this feature. A feature it
  * does not know contributes nothing to any distance, so a model built from such
  * features registers successfully and then scores every comparison as zero. */
-int mki_geometry_knows_feature(const char *feature);
+bool mki_geometry_knows_feature(const char *feature);
 
 /* Whether the feature can actually move a distance, as opposed to merely
  * being a declared label. Metadata features are known but never scored. */
-int mki_geometry_scores_feature(const char *feature);
+bool mki_geometry_scores_feature(const char *feature);
 
 /* Whether the leaf scorer compares this feature as a member of a node group:
  * it maps to a geometry node and is neither a leaf value nor a level of an
  * ordered scale. Such features are the one-hot columns of a leaf-scored
  * system's feature vector. */
-int mki_is_node_group_feature(const char *feature);
+bool mki_is_node_group_feature(const char *feature);
 
 /* A feature set's position on an ordered scale, exactly as the scorers read
  * it: the first level label present, else the scale's unmarked default, else
@@ -49,7 +50,7 @@ double mki_node_depth_value(const char *node);
 const char *mki_feature_node(const char *feature);
 
 /* Non-zero when a feature set holds two values of one ordered scale. */
-int mki_ordinal_conflict(
+bool mki_ordinal_conflict(
     const char *const *features,
     size_t feature_count,
     const char **scale_out,

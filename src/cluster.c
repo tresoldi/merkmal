@@ -10,14 +10,14 @@ static double mk_min_double(double a, double b)
     return a < b ? a : b;
 }
 
-static int mk_view_has(mk_feature_view view, const char *feature)
+static bool mk_view_has(mk_feature_view view, const char *feature)
 {
     return mki_features_contain(view.features, view.count, feature);
 }
 
 /* Whether a segment is explicitly marked for length, in any of the degrees the
  * geometry's duration scale carries. */
-static int mk_segment_carries_length(mk_feature_view view)
+static bool mk_segment_carries_length(mk_feature_view view)
 {
     return mk_view_has(view, "long") ||
         mk_view_has(view, "mid-long") ||

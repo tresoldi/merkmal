@@ -9,6 +9,7 @@
 
 #include "generated/builtin_data.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 
 /* One inventory row, as borrowed strings.
@@ -33,7 +34,7 @@ typedef struct mk_entry_view {
  *
  * The strings themselves are never in the scratch: only the pointers to them
  * are, so the row's text stays valid for the life of the registry either way. */
-int mki_inventory_find(
+bool mki_inventory_find(
     const mk_builtin_system *system,
     const char *key,
     const char **scratch,

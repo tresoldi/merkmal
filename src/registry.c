@@ -60,7 +60,7 @@ static void mk_free_owned_system(mk_system *system)
     system->builtin = NULL;
     system->owned_name = NULL;
     memset(&system->owned, 0, sizeof(system->owned));
-    system->owns = 0;
+    system->owns = false;
 }
 
 /*
@@ -269,7 +269,7 @@ mk_status mk_registry_add_model_text_n(
     slot->owned.entries = model.entries;
     slot->owned.entry_count = model.entry_count;
     slot->builtin = &slot->owned;
-    slot->owns = 1;
+    slot->owns = true;
     registry->system_count++;
     return MK_OK;
 }
