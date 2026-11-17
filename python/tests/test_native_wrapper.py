@@ -541,7 +541,7 @@ def test_fixed_space_distance_is_distinct_from_compatibility_score() -> None:
 
 def test_alternative_geometry_is_explicit_and_fingerprinted() -> None:
     geometry = merkmal.load_geometry(
-        Path(__file__).resolve().parents[2] / "geometries" / "deep-clements-hume.json"
+        Path(__file__).resolve().parents[2] / "data" / "geometries" / "deep-clements-hume.json"
     )
     assert geometry.name == "deep-clements-hume"
     assert len(geometry.digest) == 64
@@ -700,7 +700,7 @@ def test_a_tone_and_a_segment_are_not_compared() -> None:
         )
         assert why == "cross-tier", other
         assert coverage == 0.0, other
-        # The declared policy value, not a measurement: geometries/clements-hume.json
+        # The declared policy value, not a measurement: data/geometries/clements-hume.json
         # carries it as `tier_policy.cross_tier_cost` so it is data, not a tree edit.
         assert score == 1.0, other
 
@@ -754,7 +754,7 @@ def test_feature_vectors_are_lossless() -> None:
     The vector used to omit dimensions the scorer reads: in `distinctive`, /a/
     and /e/ had the same vector.
     """
-    models = Path(__file__).resolve().parents[2] / "models"
+    models = Path(__file__).resolve().parents[2] / "data" / "models"
     for system in merkmal.list_systems():
         rows = (models / system / "inventory.tsv").read_text(encoding="utf-8").splitlines()[1:]
         by_vector: dict[tuple[float, ...], str] = {}
@@ -780,7 +780,7 @@ def test_phoible_keeps_inapplicable_and_unknown_apart() -> None:
 
 
 def _inventory(system: str) -> list[str]:
-    models = Path(__file__).resolve().parents[2] / "models"
+    models = Path(__file__).resolve().parents[2] / "data" / "models"
     rows = (models / system / "inventory.tsv").read_text(encoding="utf-8").splitlines()[1:]
     return [row.split("\t")[0] for row in rows if row]
 
@@ -1410,7 +1410,7 @@ def test_normalization_is_the_same_in_every_build() -> None:
 
 def _one_letter_vowels(system: str) -> list[str]:
     """Every vowel the system's inventory spells with a single code point."""
-    inventory = Path(__file__).resolve().parents[2] / "models" / system / "inventory.tsv"
+    inventory = Path(__file__).resolve().parents[2] / "data" / "models" / system / "inventory.tsv"
     vowels = []
     for line in inventory.read_text(encoding="utf-8").splitlines()[1:]:
         grapheme, _, name = line.partition("\t")
@@ -1472,7 +1472,7 @@ def test_a_place_diacritic_replaces_the_base_place(system: str) -> None:
     # Synthesis must agree with the inventory wherever both can answer. Ring
     # above and ring below are the same diacritic, and no row spells dental
     # plus ring above, so each such spelling of a row goes through synthesis.
-    inventory = Path(__file__).resolve().parents[2] / "models" / system / "inventory.tsv"
+    inventory = Path(__file__).resolve().parents[2] / "data" / "models" / system / "inventory.tsv"
     checked = 0
     for line in inventory.read_text(encoding="utf-8").splitlines()[1:]:
         row = line.partition("\t")[0]

@@ -665,7 +665,7 @@ static mk_status mk_score_valued(
      * actually had a value. Without it, a score of 0.0 is ambiguous between
      * "identical" and "nothing in common to compare" -- and the second happens:
      * PHOIBLE writes `.` in many cells, and a pair whose overlap is entirely
-     * `.` would score a confident zero. See docs/c-api.md. */
+     * `.` would score a confident zero. See docs/guide/c-api.md. */
     if (coverage != NULL) {
         *coverage = system->geometry_map_count > 0
             ? (double)compared / (double)system->geometry_map_count

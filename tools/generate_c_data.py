@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Generate built-in C data tables from the current merkmal data files."""
+"""Generate the built-in C data tables from the data files.
+
+Writes src/generated/builtin_data.c from data/models/, data/geometries/ and
+data/diacritics/; `--profile cc-by` writes src/generated/cc-by/builtin_data.c
+instead. The output is committed and checked by tools/check_generated_data.py.
+"""
 
 from __future__ import annotations
 
@@ -72,7 +77,7 @@ PROFILE_OUTPUTS = {
 
 
 def system_license(name: str) -> str:
-    manifest = json.loads((ROOT / "models" / name / "provenance.json").read_text(encoding="utf-8"))
+    manifest = json.loads((ROOT / "data" / "models" / name / "provenance.json").read_text(encoding="utf-8"))
     return str(manifest["license_spdx"])
 
 
@@ -92,7 +97,7 @@ def model_metadata(name: str) -> tuple[str, str]:
     cannot hash alike. Provenance is intentionally excluded: correcting a
     citation must not change a segment-distance result.
     """
-    directory = ROOT / "models" / name
+    directory = ROOT / "data" / "models" / name
     digest = hashlib.sha256()
     for path in sorted(directory.iterdir()):
         if not path.is_file() or path.name == "provenance.json":
@@ -139,17 +144,17 @@ HEADER_STRUCTS = parse_header_structs()
 def c_struct(struct: str, values: dict[str, str]) -> str:
     """One designated initializer, checked against the header's field list.
 
-    Positional initializers made field order load-bearing across two languages:
-    mki_builtin_system's `entry_graphemes` and `entry_feature_at` are both
-    `const unsigned int *` and adjacent, so transposing either the struct or the
-    emitter compiled clean under -Werror and silently returned the wrong row.
+    Designated rather than positional, because a positional initializer
+    depends on field order: mki_builtin_system's `entry_graphemes` and
+    `entry_feature_at` are both `const unsigned int *` and adjacent, so
+    transposing them in the struct or in the emitter would compile without
+    warning and return the wrong row.
 
-    Designating the fields fixes that direction but opens another, because
-    -Wmissing-field-initializers does not fire for designated initializers: a
-    field added to the header would be quietly zero-filled instead of warned
-    about. So the emitter is checked against the header here, and drift in
-    either direction stops the generator rather than reaching a compiler that
-    has no way to notice it.
+    Designated initializers have the opposite weakness:
+    -Wmissing-field-initializers does not fire for them, so a field added to
+    the header would be zero-filled without warning. The emitter is therefore
+    checked against the header here, and a mismatch in either direction stops
+    the generator, since the compiler cannot detect it.
     """
     fields = HEADER_STRUCTS.get(struct)
     if fields is None:
@@ -174,12 +179,10 @@ def c_struct(struct: str, values: dict[str, str]) -> str:
 def read_header_constant(name: str) -> int:
     """Read a #define from builtin_data.h rather than restating its value.
 
-    This was a second `= 64` with a comment asking the reader to keep the two in
-    step. Raising it here alone emits a row wider than the pointer array the
-    resolver reserves inside every mki_resolution, which is stack corruption that
-    no test in the tree would catch -- and scripts/validate_models.py already
-    makes the argument for reading rather than restating: a guard that
-    reimplements the thing it guards passes when both copies are wrong together.
+    A restated copy could be changed alone. For MKI_MAX_ENTRY_FEATURES, a
+    larger value here than in the header would emit rows wider than the
+    pointer array the resolver reserves in every mki_resolution, a stack
+    overflow that no test would detect.
     """
     match = re.search(
         rf"^#define\s+{re.escape(name)}\s+(\d+)\s*$",
@@ -218,10 +221,10 @@ POOL_CHUNK = 1 << POOL_CHUNK_BITS
 class StringPool:
     """Every distinct grapheme and feature label, stored once.
 
-    The tables used to hold `const char *` for each of roughly 260,000 feature
-    slots. That is 2.08 MB of pointers on a 64-bit target -- and one relocation
-    each -- to refer to 35 KB of actual text. They now hold offsets into this
-    pool, which needs one relocation per chunk and none per string.
+    The tables hold byte offsets into this pool rather than a `const char *`
+    per slot: a pointer per slot would cost eight bytes and a relocation each
+    on a 64-bit target, for far more slots than there are distinct strings,
+    while the pool needs one relocation per chunk and none per string.
 
     A string never straddles a chunk: when one will not fit in what is left,
     the chunk is padded with NULs and the string starts the next. That keeps
@@ -346,13 +349,13 @@ def parse_sound_name(
     return frozenset(features)
 
 
-# The inventory NAME strings say "voiceless velar stop consonant". They never
-# say "obstruent", "continuant", "anterior" or "consonantal", so the geometry
-# leaves for those never fired and every manner distinction collapsed into a
-# single Manner group boolean: /p/~/f/, /p/~/r/ and /k/~/ʔ/ all cost the same.
-# These derivations are the same ones models/distinctive/model.json already
-# spells out in its scalar_dimensions; applying them here makes the leaves real
-# for the categorical path too.
+# Major-class and coronal features derived from manner and place. The
+# inventory NAME strings ("voiceless velar stop consonant") never say
+# "obstruent", "continuant", "anterior" or "consonantal", so without these
+# derivations the geometry leaves for those features would never be reached,
+# and every manner distinction would reduce to a single Manner group mismatch
+# (/p/~/f/, /p/~/r/ and /k/~/ʔ/ would cost the same). The derivations are the
+# ones data/models/distinctive/model.json states in its scalar_dimensions.
 SONORANT_MANNERS = frozenset({"nasal", "lateral", "approximant", "trill", "tap", "vowel"})
 OBSTRUENT_MANNERS = frozenset({"stop", "fricative", "affricate", "click", "implosive"})
 CONTINUANT_MANNERS = frozenset({"fricative", "approximant", "trill", "vowel"})
@@ -364,11 +367,11 @@ DISTRIBUTED_PLACES = frozenset({"dental", "post-alveolar", "alveolo-palatal", "l
 NON_DISTRIBUTED_PLACES = frozenset({"alveolar", "retroflex"})
 
 # Articulator features. Each place scale is defined only for its own
-# articulator, so with nothing else a labial and a dorsal have no place
-# dimension in common and their difference disappears: /b/ and /g/ scored
-# exactly zero. These are the privative articulator nodes of standard feature
-# geometry, and they carry the cross-articulator difference that the ordered
-# scales, which measure gradience *within* an articulator, cannot.
+# articulator, so without these a labial and a dorsal share no place dimension
+# and /b/ and /g/ would be at distance zero. These are the privative
+# articulator nodes of feature geometry; they carry the difference between
+# articulators, which the ordered scales, measuring gradience within one
+# articulator, cannot.
 ARTICULATORS = {
     "labial": frozenset(
         {"bilabial", "labio-dental", "labial", "labio-palatal", "labio-velar"}
@@ -383,9 +386,10 @@ ARTICULATORS = {
     "guttural": frozenset({"pharyngeal", "epiglottal", "glottal"}),
 }
 
-# [-consonantal]: vowels and the four cardinal glides. Without this, /w/ scored
-# as far from /u/ as a glottal stop does from /a/, though w~u and j~i
-# alternations are among the most common things in historical phonology.
+# Vocoids ([-consonantal]): vowels and the approximants at these four places
+# (the glides). Without this class, /w/ would be as far from /u/ as a glottal
+# stop is from /a/, although w~u and j~i alternations are frequent in sound
+# change.
 GLIDE_PLACES = frozenset({"palatal", "labio-palatal", "labio-velar", "velar"})
 
 
@@ -427,10 +431,10 @@ def derive_class_features(features: frozenset[str]) -> frozenset[str]:
 def check_ordinal_consistency(
     grapheme: str, features: frozenset[str], geometry: dict[str, object]
 ) -> None:
-    """A segment may not sit at two points on one ordered scale.
+    """Stop the generator if a segment has two levels on one ordered scale.
 
-    The diacritic composer could produce a vowel carrying both `ultra-short` and
-    `long` (breve plus length mark), a contradiction nothing rejected.
+    The diacritic composer can otherwise produce a contradiction such as a
+    vowel that is both `ultra-short` and `long` (breve plus length mark).
     """
     for scale in geometry.get("ordinal_scales", []):
         present = sorted(features & frozenset(str(x) for x in scale["levels"]))
@@ -447,10 +451,10 @@ def enrich_click_features(features: frozenset[str]) -> frozenset[str]:
     added = {"non-pulmonic"}
     if "click" in features or "nasal-click" in features:
         # A click has two closures. The name gives the anterior one, which is
-        # its place; the rear closure is definitional of the airstream and gets
-        # its own feature. Adding plain "velar" instead made the rear closure
-        # compete as a place, so /ǃ/ counted as both alveolar and velar and came
-        # out exactly equidistant from /k/ and /t/.
+        # its place; the rear closure defines the airstream and gets its own
+        # feature. Not plain "velar": the rear closure would then compete as a
+        # place, and /ǃ/, both alveolar and velar, would be equidistant from
+        # /k/ and /t/.
         added.add("dorsal-closure")
     return features | added
 
@@ -475,10 +479,10 @@ def geometry_leaves(
         if "children" in child:
             result.extend(geometry_leaves(child, depth + 1))
         else:
-            # A leaf may override the mechanical 1/depth base weight. Depth is a
-            # stipulation about how much a difference should cost, and it is
-            # sometimes the wrong one: major class sits at the root but should
-            # not outweigh every segmental property combined.
+            # A leaf may override the default 1/depth weight. Depth is a
+            # stipulation about how much a difference costs, and not always an
+            # apt one: major class sits at the root but should not outweigh
+            # every other segmental property combined.
             weight = child.get("weight")
             result.append(
                 (
@@ -531,15 +535,15 @@ def geometry_node_parents(tree: dict[str, object], parent: str = "") -> list[tup
 
 
 def load_geometry() -> dict[str, object]:
-    return json.loads((ROOT / "geometries" / "clements-hume.json").read_text(encoding="utf-8"))
+    return json.loads((ROOT / "data" / "geometries" / "clements-hume.json").read_text(encoding="utf-8"))
 
 
 def load_diacritics() -> dict[str, object]:
-    return json.loads((ROOT / "diacritics" / "ipa-clts.json").read_text(encoding="utf-8"))
+    return json.loads((ROOT / "data" / "diacritics" / "ipa-clts.json").read_text(encoding="utf-8"))
 
 
 def load_categorical(name: str, geometry: dict[str, object]) -> tuple[str, list[tuple[str, list[str]]], list[tuple[str, str]], list[float], list[dict[str, object]]]:
-    model_dir = ROOT / "models" / name
+    model_dir = ROOT / "data" / "models" / name
     raw = json.loads((model_dir / "model.json").read_text(encoding="utf-8"))
     _, inventory_rows = read_tsv(model_dir / "inventory.tsv")
     feature_categories: dict[str, str] = {}
@@ -573,14 +577,11 @@ def load_categorical(name: str, geometry: dict[str, object]) -> tuple[str, list[
         for name, _pos, _neg, depth, _parent, explicit in geometry_leaves(tree)
     }
     for dim in raw.get("scalar_dimensions", []):
-        # A scalar dimension hangs *under* its geometry node, so it sits one
-        # level deeper than that node -- which is exactly where the geometry's
-        # own leaf of the same name sits. Weighting it at the parent's depth
-        # made every dimension one level shallower than the leaf it mirrors, so
-        # the two scoring paths disagreed on all 35 shared names and
-        # docs/geometry.md described neither. An explicit leaf weight wins here
-        # for the same reason it wins on the geometry path: depth is a
-        # stipulation, and sometimes the wrong one.
+        # A scalar dimension hangs under its geometry node, one level deeper
+        # than that node, which is where the geometry's own leaf of the same
+        # name sits; weighting it at that depth keeps the two scoring paths in
+        # agreement. An explicit leaf weight takes precedence, as it does on the
+        # geometry path.
         depth = geometry_node_depth(tree, dim["geometry_node"]) or 2
         weight = leaf_weights.get(dim["name"], 1.0 / (depth + 1))
         scalar_dimensions.append(
@@ -596,7 +597,7 @@ def load_categorical(name: str, geometry: dict[str, object]) -> tuple[str, list[
 
 
 def load_valued(name: str, geometry: dict[str, object]) -> tuple[str, list[tuple[str, list[str]]], list[tuple[str, str]], list[float], list[dict[str, object]]]:
-    model_dir = ROOT / "models" / name
+    model_dir = ROOT / "data" / "models" / name
     raw = json.loads((model_dir / "model.json").read_text(encoding="utf-8"))
     header, inventory_rows = read_tsv(model_dir / "inventory.tsv")
 
@@ -730,9 +731,8 @@ def emit_system(
     feature_n: list[int] = []
     ids: list[int] = []
 
-    # Rows with the same feature set share one run of ids. A quarter of the
-    # rows in the bundled inventories are duplicates in this sense -- the same
-    # segment described identically under different graphemes.
+    # Rows with the same feature set share one run of ids: different graphemes
+    # often describe the same segment identically.
     runs: dict[tuple[int, ...], int] = {}
 
     # Sorted so that mki_inventory_find can binary-search instead of walking
@@ -786,9 +786,9 @@ def emit_system(
 def emit_tier_policy(geometry: dict[str, object]) -> str:
     """What a tone costs against a segment, as a compiled-in constant.
 
-    Emitted from the geometry file rather than written in C so that changing it
-    is a data change with a version and a diff, not a code change -- which is
-    what lets a later fitted scorer carry its own without disturbing this one.
+    Emitted from the geometry file rather than written in C, so that changing
+    it is a versioned change of data, and another geometry can carry its own
+    value without affecting this one.
     """
     policy = geometry.get("tier_policy", {})
     cost = float(policy.get("cross_tier_cost", 1.0))
@@ -801,14 +801,12 @@ def emit_tier_policy(geometry: dict[str, object]) -> str:
 def emit_cluster_policy(geometry: dict[str, object]) -> str:
     """How a multi-part spelling composes, as compiled-in constants.
 
-    Same argument as emit_tier_policy: these move every diphthong, triphthong
-    and geminate distance, so they belong in the geometry file where a change
-    to one is a diff that can be reviewed as data. The rules that apply them --
-    which part is the nucleus, when the length penalty is waived -- stay in C,
-    because they read both segments.
-
-    Defaults are the values these had as #defines in system.c, so a geometry
-    that declares no cluster_policy scores exactly as before.
+    As for emit_tier_policy: these values affect every diphthong, triphthong
+    and geminate distance, so they are data in the geometry file, where a
+    change can be reviewed as data. The rules that apply them (which part is
+    the nucleus, when the length penalty is waived) are in C, because they
+    read both segments. The defaults apply to a geometry that declares no
+    cluster_policy.
     """
     policy = geometry.get("cluster_policy", {})
     fields = (
@@ -974,15 +972,11 @@ def emit_geometry(geometry: dict[str, object]) -> str:
 def emit_decompositions(diacritics: dict[str, object]) -> str:
     """Precomposed letters whose decomposition merkmal can interpret.
 
-    Lookup used a hand-written else-if chain covering acute/grave/macron/
-    circumflex on a few vowels. Everything else it left composed, so `ǎ` was
-    rejected while its canonically equivalent NFD form was accepted -- and
-    `mk_normalize_grapheme` returns NFC, so the documented preprocessing step
-    turned working input into failing input.
-
-    Deriving the table here rather than calling utf8proc_NFD at lookup time
-    keeps the two build configurations in step: the fallback build and the
-    utf8proc build accept exactly the same graphemes.
+    Lookup decomposes these, so that a precomposed letter such as `ǎ` resolves
+    as its canonically equivalent NFD form does. This matters because
+    `mk_normalize_grapheme` returns NFC. Only letters in U+00C0..U+20FF
+    whose base is a letter and whose marks are all known combining or tone
+    diacritics are included.
     """
     known_marks = {mark_from_hex(cp) for cp in diacritics.get("combining", {})}
     known_marks |= {mark_from_hex(cp) for cp in diacritics.get("tone_marks", {})}
@@ -1060,7 +1054,7 @@ def emit_place_classes() -> str:
 
 
 def emit_metadata_features(geometry: dict[str, object]) -> str:
-    """Labels a model may carry that deliberately do not score.
+    """Labels a model may carry that are not scored.
 
     They are known to the geometry, so strict validation accepts them, but they
     cannot be all a grapheme has: a model built only from metadata would answer
@@ -1288,11 +1282,11 @@ def generate(output: Path, profile: str = "full") -> None:
     chunks.append(emit_geometry(geometry))
     chunks.append(
         "const char *const mki_fingerprint_geometry_sha256 = "
-        + c_string(sha256_file(ROOT / "geometries" / "clements-hume.json")) + ";"
+        + c_string(sha256_file(ROOT / "data" / "geometries" / "clements-hume.json")) + ";"
     )
     chunks.append(
         "const char *const mki_fingerprint_diacritics_sha256 = "
-        + c_string(sha256_file(ROOT / "diacritics" / "ipa-clts.json")) + ";"
+        + c_string(sha256_file(ROOT / "data" / "diacritics" / "ipa-clts.json")) + ";"
     )
     chunks.append("")
     chunks.append(emit_ordinal_scales(geometry))

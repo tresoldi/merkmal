@@ -1,8 +1,8 @@
-"""Validated, experimental scoring for JSON geometries.
+"""Experimental scoring of feature sets under a geometry loaded from JSON.
 
-The native library deliberately compiles one geometry. This module provides a
-separate Python path for comparing already-resolved feature sets under an
-alternative geometry, without implying that native ``distance`` selected it.
+The native library compiles in one geometry. This module scores feature sets
+that a system has already resolved under an alternative geometry, in Python;
+the native ``distance`` never uses such a geometry.
 """
 
 from __future__ import annotations
@@ -28,7 +28,12 @@ class _Leaf:
 
 
 class Geometry:
-    """A validated JSON geometry and its explicit feature-set scorer."""
+    """A validated geometry and a scorer for feature sets under it.
+
+    ``name`` and ``version`` come from the data; ``digest`` is the SHA-256 of
+    its canonical JSON serialization (``payload``). The constructor raises
+    ``GeometryError`` for data that is not a valid schema-version-1 geometry.
+    """
 
     def __init__(self, data: dict[str, Any], *, source: str = "<mapping>") -> None:
         self.data = data
@@ -52,6 +57,7 @@ class Geometry:
 
     @classmethod
     def from_path(cls, path: str | Path) -> Geometry:
+        """Read a geometry from a UTF-8 JSON file."""
         location = Path(path)
         return cls(json.loads(location.read_text(encoding="utf-8")), source=str(location))
 
@@ -120,11 +126,18 @@ class Geometry:
     def distance(
         self, features_a: Iterable[str], features_b: Iterable[str], *, preset: str | None = None
     ) -> float:
-        """Return a geometry score for two resolved feature sets.
+        """Return the weighted mean difference of two feature sets, in ``[0, 1]``.
 
-        This mirrors the experimental categorical scorer: leaf mismatches and
-        node-group mismatches are weighted, while ordered scales retain their
-        ordinal distance. It is intentionally separate from native scoring.
+        Each leaf contributes its weight times 1.0 when one set has its
+        positive and the other its negative feature, 0.5 when only one set has
+        it, and 0.0 otherwise. A ``feature_to_node`` label that either set has,
+        or that is also a leaf, contributes its node's weight times 0.5 when
+        only one set has it. An ordinal scale on
+        which both sets have a level contributes the level difference divided
+        by the scale's span. ``preset`` multiplies each node's weight; it
+        raises ``GeometryError`` if the geometry does not define it. Returns
+        0.0 when nothing is scored. The result can differ from the native
+        ``distance``, which uses the compiled-in geometry.
         """
         a, b = set(features_a), set(features_b)
         total = difference = 0.0

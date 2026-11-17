@@ -1,4 +1,12 @@
-"""Native C-backed Python wrapper for merkmal."""
+"""Python interface to the merkmal C library.
+
+Most functions are the C API's, called through the native extension. Unless a
+docstring says otherwise, they take ``system=None`` for the default system
+(``DEFAULT_SYSTEM``), raise ``KeyError`` for an unknown system, ``ValueError``
+for a grapheme the system cannot resolve, and ``NotImplementedError`` where
+the system does not support the operation, and ``NativeError`` for any other
+failure of the C library.
+"""
 
 from __future__ import annotations
 
@@ -22,32 +30,40 @@ except ImportError as exc:  # pragma: no cover - exercised before extension buil
     ) from exc
 
 NativeError = _native.NativeError
-# Raised for CLDF/CLTS markup -- `<?>`, `<<...>>`, boundary markers -- which is
-# not a sound and must not resolve. A ValueError subclass, so code that already
-# catches ValueError is unaffected; catch this one to skip the source's own
-# known gaps without also swallowing segments the library genuinely lacks.
+# Raised for CLDF/CLTS markup (`<?>`, `<<...>>`, boundary markers), which is
+# not a sound and must not resolve. A ValueError subclass, so code that catches
+# ValueError also catches it; catching this one alone skips the source's own
+# marked gaps without also skipping segments the library cannot resolve.
 SourceMarkerError = _native.SourceMarkerError
 # The Unicode version of the compiled-in NFC/NFD tables. Every build of one
 # commit normalizes identically, so a cache of merkmal output keyed on
 # __version__ and UNICODE_VERSION is keyed on everything that can move it.
 UNICODE_VERSION: str = _native.UNICODE_VERSION
-# Which built-in data this build carries: "full", or "cc-by" for the build
-# built with MERKMAL_DATA_PROFILE=cc-by, without the PHOIBLE and P-base tables, whose
-# share-alike and non-commercial terms some users cannot accept. See NOTICE.
+# The built-in data this build carries: "full", or "cc-by" for a build made
+# with MERKMAL_DATA_PROFILE=cc-by, which omits the PHOIBLE and P-base tables
+# because of their share-alike and non-commercial terms. See NOTICE.
 DATA_PROFILE: str = _native.DATA_PROFILE
 # The system every call uses when it names none.
 DEFAULT_SYSTEM: str = _native.DEFAULT_SYSTEM
-# Deprecated, and True in every build. It used to say whether libutf8proc was
-# linked, because a build without it could normalize differently; since
-# normalization was compiled in, none does. Kept so that code refusing a
-# degraded build keeps importing. Key caches on UNICODE_VERSION instead.
+# Deprecated; True in every build, because Unicode normalization is compiled
+# in. Retained so that code which checks it keeps working. Key caches on
+# UNICODE_VERSION instead.
 HAVE_UTF8PROC = True
 diagnose = _native.diagnose
 distance = _native.distance
 
 
 class Comparison(NamedTuple):
-    """A score plus the evidence needed to interpret it."""
+    """A dissimilarity with the evidence needed to interpret it.
+
+    ``coverage`` is the share, in ``[0, 1]``, of the system's declared
+    dimensions on which both segments have a value. ``comparability`` is
+    ``"ok"``; ``"cross-tier"`` when one argument is a tone and the other a
+    segment, in which case ``score`` is the geometry's declared cross-tier
+    cost, not a measurement, and ``coverage`` is 0.0; or
+    ``"no-shared-dimension"`` when no dimension has a value in both, in which
+    case a score of 0.0 means "nothing to compare", not "identical".
+    """
 
     score: float
     coverage: float
@@ -55,27 +71,32 @@ class Comparison(NamedTuple):
 
 
 def distance_with_coverage(*args: Any, **kwargs: Any) -> Comparison:
-    """Return compatibility dissimilarity with coverage metadata."""
+    """Return the dissimilarity of two graphemes with its coverage.
+
+    Takes ``(a, b, system=None, node_weights=None)``, as ``distance`` does.
+    The library sets no coverage threshold; see ``Comparison``.
+    """
     return Comparison(*_native.distance_with_coverage(*args, **kwargs))
 
 
 def fixed_space_distance(
     a: str, b: str, *, system: str | None = None
 ) -> float:
-    """Compare fixed-width feature vectors with an L1 mean.
+    """Return the mean absolute difference of two graphemes' feature vectors.
 
-    This is a vector-space distance over the system's declared dimensions. A
-    zero vector value is treated as the model's neutral/unspecified state;
-    callers needing a different missingness policy must not use this helper.
+    The vectors are those of ``feature_vector``, over every column of the
+    system. A ``0`` cell ("does not apply") counts as a value like any other,
+    so this is not the pairwise-complete score of ``distance_with_coverage``;
+    a ``NaN`` cell (a valued system's unknown) makes the result ``NaN``.
     """
     left = feature_vector(a, system=system)
     right = feature_vector(b, system=system)
     if len(left) != len(right):
         raise ValueError("feature vectors have different widths")
     return float(sum(abs(x - y) for x, y in zip(left, right, strict=True)) / len(left))
-# Explicit name for the valued scorer's pairwise-complete semantics. This is
-# an alias rather than a new calculation: callers should not mistake the
-# coverage-normalized score for a fixed-space metric.
+# A name that states the scorer's pairwise-complete semantics, so that the
+# coverage-normalized score is not mistaken for a fixed-space metric. An
+# alias, not a separate calculation.
 compatibility_dissimilarity = distance_with_coverage
 feature_vector = _native.feature_vector
 vector_labels = _native.vector_labels
@@ -94,7 +115,11 @@ split_tone = _native.split_tone
 
 
 def load_geometry(path: str | Path) -> Geometry:
-    """Load and validate a JSON geometry for experimental feature scoring."""
+    """Load and validate a JSON geometry for experimental feature scoring.
+
+    Raises ``OSError`` if the file cannot be read, ``json.JSONDecodeError``
+    if it is not JSON, and ``GeometryError`` if it is not a valid geometry.
+    """
     return Geometry.from_path(path)
 
 
@@ -106,7 +131,12 @@ def geometry_distance(
     system: str | None = None,
     preset: str | None = None,
 ) -> float:
-    """Score two graphemes under an explicitly loaded experimental geometry."""
+    """Return the distance of two graphemes under a loaded geometry.
+
+    The feature sets come from ``system``; ``preset`` names one of the
+    geometry's weight presets (``None``: no preset, every node weighted 1).
+    Raises ``GeometryError`` for an unknown preset.
+    """
     return float(
         geometry.distance(
             get_features(a, system=system),
@@ -152,11 +182,13 @@ def operation_fingerprint(
     missingness_policy: str = "default",
     **options: Any,
 ) -> tuple[str, str]:
-    """Return canonical provenance for one result-producing operation.
+    """Return a canonical payload and its SHA-256 for one operation.
 
-    The system fingerprint identifies model data; this adds caller-selected
-    operation settings so cached distances and downstream analyses can be
-    compared safely. Extra options are serialized with sorted keys.
+    The payload combines the system's semantic fingerprint with the
+    caller-selected settings (geometry, node weights, policies and any extra
+    keyword options), so that cached distances and analyses record exactly the
+    settings that produced them. Extra options must be JSON-serializable and
+    are serialized with sorted keys.
     """
     system_payload, _ = system_fingerprint(system=system)
     if geometry is not None:
@@ -180,15 +212,12 @@ def operation_fingerprint(
 
 
 class Registry:
-    """Owns built-in systems and caller-supplied categorical models.
+    """A set of systems: the built-in ones and caller-supplied categorical models.
 
-    The registry keeps the native handle alive for the lifetime of this
-    object. Methods raise ``KeyError`` for unknown systems and ``ValueError``
-    for invalid or unknown graphemes.
-
-    Each method is the module-level function of the same name, pointed at this
-    registry instead of the shared default one. Passing ``system=None`` uses
-    the default system, which the native module defines.
+    The native registry lives as long as this object. Each method is the
+    module-level function of the same name, applied to this registry instead
+    of the shared default one, with the same exceptions. ``system=None`` means
+    ``DEFAULT_SYSTEM``.
     """
 
     def __init__(self) -> None:
@@ -199,7 +228,19 @@ class Registry:
     def add_model_text(
         self, model_text: str, *, manifest: Mapping[str, Any] | None = None
     ) -> None:
-        """Add a categorical model, optionally with scholarly metadata."""
+        """Register a categorical model given in the runtime model format.
+
+        ``manifest``, if given, is metadata recorded with the model and
+        included in ``operation_fingerprint``: a mapping with at least
+        ``name`` (equal to the model's ``@model`` name), ``version``,
+        ``source``, ``interpretation`` and ``license``, serializable as JSON.
+        Raises ``NativeError`` for a model that does not parse,
+        ``ValueError`` for a name already registered or for an incomplete or
+        mismatched manifest, and ``TypeError`` if ``manifest`` is not a
+        mapping. The model is registered before the
+        manifest is checked, so it stays registered when only the manifest is
+        rejected.
+        """
         _native.add_model_text(model_text, registry=self._handle)
         if manifest is not None:
             if not isinstance(manifest, Mapping):
@@ -275,7 +316,11 @@ class Registry:
         missingness_policy: str = "default",
         **options: Any,
     ) -> tuple[str, str]:
-        """Return operation provenance for a system in this registry."""
+        """As the module-level ``operation_fingerprint``, for this registry.
+
+        The manifest of a registered model, if one was given, is part of the
+        payload.
+        """
         payload, _ = self.system_fingerprint(system=system)
         if system is not None and system in self._manifests:
             options = {**options, "model_manifest": self._manifests[system]}
@@ -299,12 +344,18 @@ class Registry:
         )
 
     def model_manifest(self, *, system: str) -> dict[str, Any] | None:
-        """Return a registered model's manifest, if one was supplied."""
+        """Return a copy of the manifest given for ``system``, or ``None``."""
         manifest = self._manifests.get(system)
         return None if manifest is None else json.loads(json.dumps(manifest))
 
 class BundleComparison(NamedTuple):
-    """An abstract segment against another: point distance and exact bounds."""
+    """The comparison of two abstract segments.
+
+    ``distance`` and ``coverage`` are the point values; ``minimum`` and
+    ``maximum`` are the exact extremes of the distance over every completion
+    of the unspecified cells. ``why`` is ``"ok"``, ``"cross_tier"`` or
+    ``"no_shared_dimension"``, with the meanings given for ``Comparison``.
+    """
 
     distance: float
     coverage: float
@@ -314,13 +365,15 @@ class BundleComparison(NamedTuple):
 
 
 class AbstractSegment:
-    """A feature bundle with no grapheme as identity (`docs/abstract-segments.md`).
+    """A feature bundle whose identity is not a grapheme.
 
-    Identity is the system and the canonical cell text. Cells are written as in
-    the C API: `0` does not apply, `?` unknown and applies, `*` unknown and may
-    not apply; `+`/`-` for binary columns; a level or `lo..hi` on an ordered
-    scale; a label, `l1|l2` (one of them) or `l1&l2` (one exact set) for a node
-    group; `|0` adds "may not apply".
+    Identity is the system and the canonical cell text. ``text`` is written
+    ``column=cell;column=cell...`` as in the C API; columns left out are
+    ``*``. Cells: ``0`` does not apply, ``?`` unknown and applies, ``*``
+    unknown and may not apply; ``+``/``-`` for binary columns; a level or
+    ``lo..hi`` on an ordered scale; a label, ``l1|l2`` (one of them) or
+    ``l1&l2`` (one exact set) for a node group; ``|0`` adds "may not apply".
+    See docs/method/abstract-segments.md.
     """
 
     __slots__ = ("system", "text")
@@ -331,6 +384,11 @@ class AbstractSegment:
 
     @classmethod
     def from_grapheme(cls, grapheme: str, *, system: str | None = None) -> AbstractSegment:
+        """The fully specified bundle of a grapheme.
+
+        Raises ``NotImplementedError`` for a tone or a synthesized cluster,
+        neither of which is one feature set on the segmental tier.
+        """
         segment = cls.__new__(cls)
         segment.system = system or DEFAULT_SYSTEM
         segment.text = _native.bundle_parse(grapheme, system=segment.system, from_grapheme=True)
@@ -386,6 +444,7 @@ class AbstractSegment:
 
     @property
     def cells(self) -> dict[str, str]:
+        """Every column's cell, in column order."""
         return dict(item.split("=", 1) for item in self.text.split(";"))
 
     def with_cells(self, **cells: str) -> AbstractSegment:
@@ -397,6 +456,10 @@ class AbstractSegment:
     def compare(
         self, other: AbstractSegment | str, *, weights: str | None = None
     ) -> BundleComparison:
+        """Compare with another bundle, or with a grapheme's bundle.
+
+        Raises ``ValueError`` if the bundles belong to different systems.
+        """
         if isinstance(other, str):
             other = AbstractSegment.from_grapheme(other, system=self.system)
         if other.system != self.system:

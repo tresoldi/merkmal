@@ -1,30 +1,28 @@
 #!/usr/bin/env python3
-"""Fit a segment-pair cost from gold alignments, and find out whether it helps.
+"""Fit segment-pair costs to gold alignments and test whether they improve alignment.
 
-Both earlier reviews concluded that a fitted pair-cost table is the only real
-answer to the scorer's disagreement with the frequency of sound change. This is
-that experiment, run under the following constraints because they are what make
-the answer worth anything:
+The geometry's costs are stipulated and need not follow how often segments
+correspond in sound change. This experiment estimates pair costs from expert
+alignments instead, under these constraints:
 
 - **Split by whole family, never by word pair.** Pairs from one alignment share
-  a wordlist and its doculects; splitting between them leaks and the resulting
-  number means nothing. This is leave-one-family-out.
+  a wordlist and its doculects, so a split between them leaks information. The
+  protocol is leave-one-family-out.
 - **Not fitted on alignments this library produced.** BDPA's alignments are
-  human-annotated, so fitting to them does not calibrate merkmal against itself.
-  That circularity is point 6 of the CoreCog quarantine and it is easy to
-  reintroduce without noticing.
-- **Its own identity.** Anything shipped from this carries its own `scorer_id`
-  and never merges into the stipulated geometry.
-- **Calibration beside accuracy**, and the sample's limits stated in the output
-  rather than in a footnote.
+  made by hand, so fitting to them does not calibrate merkmal against itself
+  (the circularity described in data/typologies/README.md, point 6).
+- **A separate identity.** Costs fitted this way, if ever distributed, carry
+  their own `scorer_id` and are not merged into the stipulated geometry.
+- **Calibration beside accuracy**, with the limits of the sample stated in the
+  output.
 
-    bench/fit_pair_costs.py --bdpa ~/lexibank_clone/bdpa
+    bench/fit_pair_costs.py --bdpa <bdpa-checkout>
 
-What the data can support is the first result: BDPA is 750 alignments over
-**five** families, 65% of them Indo-European. Leave-one-family-out therefore has
-five folds, four of which train on mostly-Indo-European data. That is enough to
-detect a large effect and not enough to estimate a small one, and the output
-says so.
+The data limit what the result can show. BDPA has 750 alignments over five
+families, 65% of them Indo-European (docs/method/evaluation.md, section 4), so
+leave-one-family-out has five folds, four of which train mostly on
+Indo-European data. That suffices to detect a large effect, not to estimate a
+small one.
 """
 
 from __future__ import annotations
@@ -40,9 +38,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import bench_alignment as bench  # noqa: E402
 
-# BDPA's block headers name dialect groups as often as families. Splitting on
-# them would put Bulgarian in train and French in test and call that a family
-# split, which is the leak this protocol exists to avoid.
+# BDPA's block headers name dialect groups as often as families. A split on
+# the headers would put Bulgarian in training and French in test under the
+# name of a family split, which is the leak the protocol must avoid.
 FAMILY = {
     "Bulgarian": "Indo-European", "Germanic": "Indo-European",
     "French": "Indo-European", "Norwegian": "Indo-European",
@@ -53,9 +51,9 @@ FAMILY = {
 }
 
 SYSTEM = "distinctive"
-# How many observations before the fitted cost is trusted over the geometry.
-# Shrinkage rather than a cutoff: most pairs are seen once or never, and a table
-# that answers confidently from one observation is how overfitting looks.
+# The number of observations at which a pair's fitted cost and the geometry's
+# cost weigh equally. Shrinkage rather than a cutoff: most pairs are seen once
+# or never, and a cost taken at face value from one observation overfits.
 SHRINKAGE = 5.0
 
 
@@ -87,10 +85,10 @@ def fit(pairs: list) -> dict[tuple[str, str], float]:
         if a == b:
             costs[(a, b)] = 0.0
             continue
-        # Pointwise mutual information, squashed into [0, 1]. A pair aligned far
-        # more often than chance is cheap; one aligned less often than chance is
-        # expensive. Chance is what makes this a claim about correspondence
-        # rather than about which segments happen to be frequent.
+        # Pointwise mutual information, mapped into (0, 1) by a logistic. A pair
+        # aligned more often than chance is cheap, one aligned less often than
+        # chance expensive. Measuring against chance makes the cost reflect
+        # correspondence rather than the frequency of the segments.
         expected = seen[a] * seen[b] / (total * total)
         observed = n / total
         pmi = math.log(observed / expected) if expected > 0 else 0.0
@@ -124,8 +122,10 @@ def scorer(model: dict, fallback_system: str = SYSTEM):
 def calibration(pairs: list, sub, gap: float) -> float:
     """Mean absolute gap between predicted closeness and observed alignment.
 
-    Accuracy says how often the ranking is right; this says whether the numbers
-    mean anything. A scorer can order pairs well and still be badly scaled.
+    Accuracy measures how often the alignment is right; calibration measures
+    whether the costs are on a meaningful scale. A scorer can order pairs well
+    and still be badly scaled. Costs are binned in tenths; bins with fewer than
+    20 pairs are ignored, and the result is NaN if none remains.
     """
     buckets: dict[int, list[int]] = collections.defaultdict(list)
     for s1, s2, gold in pairs:
@@ -166,8 +166,8 @@ def main() -> int:
         fitted = scorer(model)
         base = bench.merkmal_sub(SYSTEM)
 
-        # Gap tuned on training only: tuning it on the held-out family would
-        # leak the thing being measured.
+        # Gap tuned on training data only: tuning it on the held-out family
+        # would leak the test data into the fit.
         gap_base = bench.tune(train, base)
         gap_fit = bench.tune(train, fitted)
         acc_base, _ = bench.score(test, base, gap_base)

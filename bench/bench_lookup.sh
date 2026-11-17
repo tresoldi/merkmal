@@ -2,8 +2,7 @@
 # Build and run the lookup benchmark against the library sources.
 #
 # It is built here rather than as a CMake target because mki_inventory_find is
-# internal, and because a benchmark that needs a configured build directory is
-# a benchmark nobody runs.
+# internal, and so that running it needs no configured CMake build.
 #
 # Usage: bench/bench_lookup.sh [build_dir]
 

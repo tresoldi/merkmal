@@ -17,9 +17,9 @@ include src/generated/unicode_data.h
 include python/src/merkmal_module.c
 
 # Generated data is committed and shipped so building the C library needs no
-# Python tooling, per docs/release-policy.md.
+# Python tooling, per docs/development/release-policy.md.
 recursive-include python/tests *.py
 
 # Provenance manifests travel with the data they describe.
-include models/*/provenance.json
-include typologies/README.md
+include data/models/*/provenance.json
+include data/typologies/README.md

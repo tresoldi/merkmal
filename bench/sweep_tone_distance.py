@@ -1,15 +1,16 @@
-"""Sweep the distance between a bare tone segment and a segmental unit.
+"""Sweep the cost of aligning a bare tone with a segment, on BDPA.
 
-Kept because it is the evidence behind the tone-tier leaf weight: the weight
-should land where this sweep says, and if the tone representation changes this
-is how to re-derive the target.
+This is the evidence for the cross-tier cost (`tier_policy.cross_tier_cost`
+in data/geometries/clements-hume.json; docs/guide/c-api.md, Distance with
+coverage): the script reports the value above which every cost gives the same
+alignments. If the tone representation changes, it re-derives that value.
 
     bench/sweep_tone_distance.py <bdpa-checkout>
 
-The scorer here is a shim, not the library: bare tone tokens do not resolve yet,
-so this parameterizes what their distance to a segment *would* be. Once they do
-resolve, this should be re-run against the real implementation to confirm the
-chosen weight still sits at the optimum.
+The substitution function is not the library's alone, so that the cost can be
+varied without rebuilding: it uses merkmal for two segments, its own mean
+difference of Chao levels for two tones, and the swept constant T for a tone
+against a segment.
 """
 
 import sys
@@ -28,7 +29,8 @@ def levels(t):
     return None
 
 def make_sub(target, system="distinctive"):
-    """merkmal for segments; ordinal Chao for tone~tone; T for tone~segment."""
+    """A substitution cost: merkmal for two segments, the mean Chao-level
+    difference for two tones, and ``target`` for a tone against a segment."""
     base = bench.merkmal_sub(system)
     cache = {}
 
@@ -56,9 +58,8 @@ def make_sub(target, system="distinctive"):
 bdpa = Path(sys.argv[1] if len(sys.argv) > 1 else "~/lexibank_clone/bdpa").expanduser()
 
 # Split at alignment boundaries, not at pair boundaries. Up to three pairs come
-# from the same alignment -- same wordlist, same doculects -- so a pair-level
-# split puts them on both sides. That is the leak D7 declares non-negotiable,
-# and the first version of this script had it.
+# from the same alignment (same wordlist, same doculects), so a pair-level split
+# would put related pairs on both sides and leak test data into tuning.
 groups = bench.gold_pairs_grouped(bdpa)
 tone_groups = {
     name: prs for name, prs in groups.items()
@@ -82,11 +83,11 @@ for target in [0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.2,1.5,2.0]:
     rows.append((target, gap, dacc, tacc, tperf))
     print(f"{target:6.2f} {gap:9.2f} {100*dacc:8.2f}% {100*tacc:8.2f}% {100*tperf:12.2f}%")
 
-# Report the saturation point, not an argmax. Above some value the aligner
-# stops matching tone to a segment at all, and every larger cost -- including an
-# infinite one -- produces identical alignments. An argmax over a flat region is
-# spurious precision: it reports a number the data cannot distinguish from any
-# other number in that region, or from a rule.
+# Report the saturation point, not an argmax. Above some value the aligner no
+# longer matches a tone with a segment, and every larger cost, including an
+# infinite one, produces identical alignments. An argmax over that flat region
+# would report a value the data cannot distinguish from any other value in the
+# region, or from treating tone and segment as incomparable.
 top = max(r[3] for r in rows)
 saturated = [r for r in rows if abs(r[3] - top) < 1e-12]
 floor_t = min(r[0] for r in saturated)

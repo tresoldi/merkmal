@@ -1,1903 +1,207 @@
 # Changelog
 
+Changes are grouped by release. **Breaking** marks a change that alters the
+interface or the numbers a caller receives; results computed before such a
+change must be recomputed. The reasons for each change are recorded in the
+commit history, in [docs/](docs/README.md) and in the design records in
+[docs/development/adr/](docs/development/adr/).
+
 ## Unreleased
 
-### The command line has machine-readable modes
+### Added
 
-`merkmal` takes `--json`, `--jsonl` or `--tsv`, before or after the subcommand,
-and these are the stable interface for scripts; the default human output may
-change. `distance` reports coverage and comparability in these modes. A failure
-leaves stdout empty in every mode. `merkmal.DEFAULT_SYSTEM` names the system
-used when a call names none, which the extension now exports instead of
-`__init__.py` repeating it. See `python/README.md`, Command line.
+- Abstract segments: feature bundles without a grapheme, with cells that may be
+  unspecified or restricted to a set of values (`mk_bundle_*`,
+  `merkmal.AbstractSegment`). See
+  [docs/method/abstract-segments.md](docs/method/abstract-segments.md).
+- `mk_system_inventory` (the graphemes of a system's own table) and
+  `mk_unicode_normalize` (NFC or NFD without IPA rewrites), in C.
+- Build identity: `MK_VERSION_*` macros, `mk_version_string`, `mk_data_profile`
+  and `mk_unicode_version`; `merkmal._native.LIBRARY_VERSION` and
+  `merkmal.DEFAULT_SYSTEM` in Python.
+- Command line: `--json`, `--jsonl` and `--tsv` output, documented as the stable
+  interface for scripts; `distance` also reports coverage and comparability.
+- Runtime model format: an optional `@format_version` directive; a model
+  declaring a newer version than the library reads is refused.
 
-### The runtime model text format declares its version
+### Changed
 
-A model may begin with `@format_version 1`. It is optional, and a model without
-it is read as version 1, so existing models are unaffected. A model declaring a
-newer version than the library reads is refused with `MK_ERR_UNSUPPORTED_MODEL`
-and a diagnostic instead of being read as this format. See
-`docs/runtime-model-format.md`.
+- **Breaking:** numeric feature vectors include every dimension the scorer reads
+  (ordered scales and node-group columns), so their width and columns change
+  (`distinctive` 54 → 64, `descriptive` 62 → 68). Equal vectors now imply a
+  distance of zero.
+- **Breaking:** `mk_sound_distance` refuses a feature label the geometry does not
+  know, with the new status `MK_ERR_UNKNOWN_FEATURE` (Python: `ValueError`),
+  instead of ignoring it.
+- PHOIBLE model 2.0.0 distinguishes "does not apply" (`0`) from "unknown" (`?`),
+  which were both written `.`. Distances are unchanged; feature labels change,
+  and unknown values are `NaN` in feature vectors.
+- Python: a string argument containing U+0000 raises `ValueError` instead of
+  being truncated at that character. The browser demonstration refuses such
+  input in the same way.
+- Repository layout: source data in `data/`, all generators and checks in
+  `tools/`, fuzzing harnesses in `tests/fuzz/`, the typology package in
+  `python/typology/`, and documentation in `docs/guide/`, `docs/method/` and
+  `docs/development/`. Internal working documents were removed.
 
-### Coverage is measured for clusters
+### Fixed
 
-`mk_system_segment_distance_ex` never wrote `*coverage` when either side was a
-synthesized cluster, so a caller got back whatever it had passed in, and the
-comparability it then derived from that value was wrong too. Python seeds
-coverage with `0.0`, so `distance_with_coverage("ai", "au")` reported coverage
-`0.0` and `no-shared-dimension` for every diphthong pair. Cluster coverage now
-combines the parts' coverage with the weights the distance uses (see
-`docs/c-api.md`, Distance with coverage); in the categorical systems that
-synthesize clusters it is `1.0` for any same-tier pair. **No distance changes**:
-checked over 43,808 pairs of cluster and segment spellings in `descriptive` and
-`distinctive`, with and without coverage requested.
-
-### A runtime model row with more than 64 features overflowed the stack
-
-`mk_system_semantic_fingerprint` copied each row of a runtime model into a
-fixed array of `MKI_MAX_ENTRY_FEATURES` (64) pointers before sorting it, but
-that limit applies only to the compiled-in tables: a model text row can list any
-number of features, and one with more than 64 wrote past the array (from C, or
-from Python through `Registry.add_model_text` and the fingerprint). The sorted
-copy is now allocated to the row's size, and running out of memory there returns
-`MK_ERR_OOM`. Fingerprints are unchanged. `tests/c/test_malformed.c` checks a
-200-feature row.
-
-### Web demo: an embedded NUL is refused instead of truncating the input
-
-The demo passes every string to the library through Emscripten's `ccall`,
-which hands C a NUL-terminated copy, so a U+0000 ended the input there:
-`p\u0000junk` was answered as `p`, and a pasted model registered up to the
-NUL with strict validation never reading the rest. `call()` in `web/app.js`
-now refuses such input with an "invalid argument" error, as the Python binding
-does with `ValueError`. Only `app.js` changes; the WebAssembly build is the
-same. `tests/wasm/app_nul_test.cjs` runs the demo's own wrapper against the
-committed module in Node.
-
-### Running out of memory no longer crashes segmentation or leaks clusters
-
-`mk_system_segment_ipa` freed its intermediate token list twice when its last
-allocation failed, and cluster synthesis leaked a parsed component when
-recording it failed. Both are reachable only when an allocation fails. A new
-test, `tests/c/test_alloc_failure.c`, fails every allocation in turn inside
-tokenization, system-aware segmentation, distance and model registration, and
-under the address sanitizer any crash or leak on those paths fails it (Linux
-only, since it wraps `malloc` at link time).
-
-### Build identity is public: `mk_version_string`, `mk_data_profile`, `mk_unicode_version`
-
-The header now carries `MK_VERSION_MAJOR`, `MK_VERSION_MINOR`,
-`MK_VERSION_PATCH` and `MK_VERSION_STRING`, and three functions answer for the
-library actually linked. The Python extension used to read the data profile and
-Unicode version by declaring the generated tables' internal symbols, and the
-WebAssembly adapter got its version from a `-D` the build script scraped out of
-`CMakeLists.txt`; both now use the public header only. `merkmal._native`
-gains `LIBRARY_VERSION`. The C smoke test holds the header version to the
-CMake project version and the Python tests hold `__version__` to the linked
-library, so a release cannot bump one without the other. Additions only.
-
-### Python: an embedded NUL is refused instead of truncating the input
-
-**Behavior change:** every string argument reached the C library as a C
-string, so `"p\x00junk"` was answered as `"p"`: `is_segment` said `True`,
-`distance` said `0.0`, and a model text was registered up to the NUL. All
-string arguments, including feature lists and model text, now raise
-`ValueError` on an embedded NUL, the same refusal `mk_registry_add_model_text_n`
-already gives C callers.
-
-### Two calls for alteruphono 2.0: the inventory, and plain Unicode normalization
-
-`mk_system_inventory` lists a system's own inventory graphemes, in storage
-order, so that a consumer can render a feature set back to a grapheme by exact
-lookup instead of relying on `mk_bundle_compatible_graphemes`-style display
-rankings. Synthesized base+diacritic graphemes are not listed: that set is
-unbounded. `mk_unicode_normalize` exposes the compiled-in NFD/NFC without the
-IPA rewrites of `mk_normalize_grapheme` (which maps `g` to `ɡ` and returns NFC);
-alteruphono's rule notation is defined on NFD. Both are additions; nothing
-existing changes. Tested in `tests/c/test_inventory.c`.
-
-### Abstract segments: `mk_bundle_*` and `merkmal.AbstractSegment`
-
-A feature bundle with no grapheme as identity, for reconstructed segments that
-no attested language keeps. Each cell holds the values the segment may have:
-
-- `0`: does not apply;
-- `?`: unknown, applies;
-- `*`: unknown, may not apply;
-- a sign, a level or a range on an ordered scale, or node-group labels.
-
-A comparison returns the system's own distance over the dimensions both sides
-specify, its coverage, and the exact minimum and maximum over all completions.
-Compatibility with a grapheme and a ranked list of compatible graphemes are for
-display only. A bundle from a grapheme scores exactly as the grapheme (checked
-on 21,000 pairs across the seven systems), and the bounds equal brute-force
-enumeration. Design and decisions: `docs/abstract-segments.md`.
-
-### PHOIBLE model 2.0.0: "does not apply" and "unknown" are kept apart
-
-PHOIBLE's `0` (the feature does not apply), a missing vector, a per-phase
-contour and an empty cell were all written `.`. They are different claims, so
-the cells now say which: `0` for does not apply (28,031 cells) and `?` for not
-known here (5,886 cells, including the old `.` of graphemes upstream v2.0.1
-lacks). `scripts/rebuild_phoible_inventory.py --check` passes against the
-pinned table. Neither state is compared in a point distance, so **no distance
-moved**: every distance fixture is unchanged, and only `phoible_features.tsv`
-was regenerated. What changes is the feature labels (`anterior=0`,
-`anterior=?`) and the vector, where `?` is now `NaN` rather than `0`. The
-P-base tables keep `.`, `n`, `o` and `x`: the meaning of their codes is not
-recorded, so they are not split (`docs/abstract-segments.md`, Open).
-
-### Feature vectors carry every dimension the scorer reads
-
-**Breaking (vector width and columns):** `feature_vector` used to drop
-dimensions the scorer reads. In `distinctive`, the default system, 232 pairs
-of graphemes had identical vectors and non-zero distance: /a/ and /e/ were the
-same vector, because vowel height and backness are scored on the geometry's
-ordered scales and were not columns. In `descriptive`, 7 pairs (/l/ and /ɮ/,
-/r/ and /ɹ/) lost manner, which is scored as a node group. Now:
-
-- systems with scalar dimensions append the ordered scales (`distinctive`:
-  54 → 64 columns);
-- leaf-scored systems append one-hot node-group columns named `Node=label`,
-  where +1 means the label is present, −1 the node is set by another label,
-  and 0 the node is unset (`descriptive`: 62 → 68);
-- scale columns read the scale's unmarked default level as the scorer does.
-
-Valued systems are unchanged. Over every built-in grapheme, equal vectors now
-mean distance zero (`test_feature_vectors_are_lossless`). This is the basis of
-the abstract segments in `docs/abstract-segments.md`.
-
-### `mk_sound_distance` refuses labels the geometry does not know
-
-**Breaking:** an unknown label used to be skipped, so `["consonant", "foo"]`
-and `["consonant", "-voice"]` scored 0.554 against /p/, exactly what the empty
-set scores, and a typo or a signed label passed as a measurement. Such a label
-now returns the new status `MK_ERR_UNKNOWN_FEATURE` (Python: `ValueError`).
-Labels are privative: the negative of `voiced` is `voiceless`, not `-voice`.
-Metadata labels the geometry declares are still accepted. Found while
-designing abstract segments (`docs/abstract-segments.md`).
+- `mk_system_segment_distance_ex` did not set the coverage of a comparison
+  involving a synthesized cluster, so the caller's initial value was returned and
+  the comparability derived from it could be wrong. Cluster coverage is now
+  computed from the coverage of its parts; distances are unchanged.
+- A runtime model row with more than 64 features overflowed a stack buffer in
+  `mk_system_semantic_fingerprint`.
+- `mk_system_segment_ipa` freed memory twice, and cluster synthesis leaked
+  memory, when an allocation failed.
 
 ## 0.9.0 (2026-11-04)
 
-The first release of the C core and the native Python wrapper. Everything
-from here down to 0.6.0 belongs to it; 0.6.0 and earlier were the retired
-pure-Python and Go implementation.
-
-### The build declares the setuptools it actually needs
-
-`pyproject.toml` asked for `setuptools>=61.0` but declares its license as an
-SPDX expression, which only setuptools 77 with packaging 24.2 can read. A build
-environment that resolved an older `packaging` failed while reading the
-metadata, which is how the first macOS wheel build failed. The build now
-requires `setuptools>=77` and `packaging>=24.2`.
-
-### A build without the share-alike and non-commercial tables
-
-`pip install merkmal` carries the four P-base tables (CC-BY-NC-SA-4.0) and
-PHOIBLE (CC-BY-SA-3.0), so anyone who could not accept a non-commercial clause
-had no way to use even the two systems that are CC-BY-4.0.
-
-- Added: `MERKMAL_DATA_PROFILE` (`full` or `cc-by`) for CMake and `setup.py`,
-  and `merkmal.DATA_PROFILE`. A `cc-by` build compiles in only `distinctive`
-  (the default) and `descriptive`, and the resulting library contains no
-  PHOIBLE or P-base data. Profiles are selected by the license each manifest
-  declares, so a relicensed or new system lands in the right profile without a
-  code change.
-- merkmal is published as one package, the full one. The cc-by profile is a
-  build option, not a second distribution.
-- The tests skip a system only when the build is the cc-by profile and the
-  system is absent from it, so a system missing from a full build still fails.
-- PHOIBLE's retrieval date is recorded (2026-08-01), the last `UNVERIFIED`
-  provenance field.
-
-### Tie-barred complex segments, `ˁ` and `ε`
-
-- `t͡ʂ`, `d͡ʐ`, `t͡ʂʰ` and the other tie-barred spellings of segments the library
-  synthesizes rather than lists now read. The inventory lookup stripped tie
-  bars and the complex-segment synthesizer did not, so `tʂ` read and `t͡ʂ` did
-  not. The cluster grammars still never see a tie-stripped form, because a tie
-  bar asserts one segment.
-- `ˁ` (U+02C1), the pharyngealization mark of Semitist and Arabic-dialect
-  transcription, reads as `ˤ` (U+02E4); Greek `ε` reads as `ɛ`, as `ǝ` already
-  read as `ə`.
-
-Together with the changes above, `descriptive` and `distinctive` read 7,059 of
-Lexibank's 7,396 segment types, up from 7,027, and the coverage floors are
-raised to hold the gain. Of what remains unread, most is the sources' own CLDF
-and CLTS markup: in `williamsonbenuecongo`, the one dataset under 90% token
-coverage, every one of the top unread tokens is `<?>` or `<<…>>`.
-
-### A place diacritic moves the segment, and contradictory marks are refused
-
-Diacritic synthesis in the categorical systems was purely additive. That is
-right for `ʰ` and wrong for a place: `n` is alveolar, so `n` plus dental U+032A
-sat at two points of the coronal scale and the ordinal guard refused it as a
-parse error. `n̪` read only because it is an inventory row, so every stack the
-inventory does not list failed in `descriptive` and `distinctive` while the
-valued systems read it: `n̪̊`, `n̪̊ʰ`, `t̪ʲʰ`, `t̪ˠʰ`, `d̪̤`, `ɹ̪`, `ɾ̪`, `ʃ̪`.
-
-A place diacritic now replaces the base's level on the same scale, and the
-`anterior`/`distributed` labels are re-derived from the new place using a table
-the generator emits from the same sets it derives inventory rows with, so the
-two derivations cannot drift. Where both can answer they agree: every row
-spelled with dental plus ring below gives identical features when respelled
-with ring above, which only synthesis can read. A base with no coronal place
-keeps the old reading, so `p̪` is still labiodental. Ten more Lexibank segment
-types read.
-
-Diacritics asserting opposite values of one property — syllabic and
-non-syllabic, apical and laminal, advanced and retracted, raised and lowered,
-more and less rounded, ATR and RTR — are refused, as a breve plus a length mark
-already was. They used to resolve and score 0.0 against either mark alone.
-
-### Every zero in the contrast baseline has a reason
-
-The baseline carried 56 categorical pairs as `UNDECLARED`. All were one base
-with the same diacritics reordered or repeated (`t̪ʷʰ`~`t̪ʰʷ`, `t̪ʰ`~`t̪ʰʰ`). The
-audit now recognises that class as `modifier-equivalent`, keeping marks before
-the base apart from marks after it and counting length marks rather than
-collecting them, so `ʰt`~`tʰ` and `aː`~`aːː` are never matched. The baseline has
-no `UNDECLARED` row left.
-
-### `ʏ` can be part of a diphthong, and `ɚ`/`ɝ` read (#2)
-
-German `ɔʏ`, `ɔʏ̯` (*Freude*, *heute*) and `ʏɐ` (*Gürtel*) were unknown while
-`ɔɪ̯` and `ɪɐ` read. The cause was not the inventory but the list of letters
-allowed to open a vowel component: it named 29 vowel letters and missed `ʏ`,
-along with the Sinological apical vowels `ʮ` and `ʯ`, whose siblings `ɿ` and
-`ʅ` were listed. Every one-letter vowel in the categorical inventories is now
-tested as either element of a two-vowel cluster and as a non-syllabic offglide,
-so the next missing letter fails the suite rather than a user's corpus.
-
-`ɚ` and `ɝ` (U+025A, U+025D), the IPA's precomposed rhotacized central vowels,
-are read as `ə˞` and `ɜ˞` by every system. PHOIBLE's own `ɚ` row is untouched:
-the inventory is consulted before the conventions are.
-
-### Normalization is compiled in, and every build agrees (#3)
-
-NFC and NFD came from libutf8proc when it was installed and from a 45-pair
-hand list when it was not. The two disagreed — `gỹnh` came back with `ỹ`
-decomposed from a build on a runner without utf8proc — under one commit and one
-`__version__`. Found when two machines built arcaverborum from the same merkmal
-commit and 250 of 7,304 varieties differed. Two utf8proc builds could disagree
-too, whenever their utf8proc versions carried different Unicode versions.
-
-The library now carries complete Unicode canonical normalization — full
-decomposition, canonical reordering, composition with blocking and the
-exclusions, Hangul — as tables generated from the Unicode Character Database
-(`tools/generate_unicode_data.py`, Unicode 15.1.0) and about 300 lines of C.
-Every build runs it: CMake, the Python extension, WebAssembly. The `unicode`
-ctest compares it with utf8proc over all 1,112,064 scalar values and 400,000
-generated mark sequences, and agrees on every one; CI runs that comparison
-under ASan and UBSan as well. Bytes that are not well-formed UTF-8 pass through
-unchanged instead of making utf8proc builds report `MK_ERR_OOM`.
-
-- **The library has no external dependency.** The installed CMake package and
-  `merkmal.pc` no longer require utf8proc, and `setup.py` no longer looks for
-  it. `MERKMAL_USE_UTF8PROC` and `MERKMAL_REQUIRE_UTF8PROC` now only control
-  the test oracle; the `MERKMAL_REQUIRE_UTF8PROC` environment variable is
-  accepted and ignored by `setup.py`.
-- Added: `merkmal.UNICODE_VERSION`. With `__version__`, it identifies
-  everything that can change a normalized string.
-- `merkmal.HAVE_UTF8PROC`, added earlier in this release to tell the two builds
-  apart, is kept for compatibility and is `True` in every build: there is no
-  degraded build left to detect.
-- Costs 44 KB of read-only data; code is 126 bytes smaller
-  ([bench/baseline.txt](bench/baseline.txt)).
-
-### `broad` is retired
-
-**Breaking:** the deprecated `broad` built-in system, its source model, golden
-fixtures, and benchmark rows are removed. It was a pure duplicate of
-`descriptive`; use `descriptive` for the same geometry-scored analysis. Stored
-results that name `broad` remain historical records and must not be relabelled
-as a new run.
-
-### Inventory comparison now carries coverage
-
-`merkmal_typology.inventory_comparison()` returns an `InventoryComparison`
-instead of silently reducing a comparison to a number. It records readable and
-unreadable input segments, aggregate input readability, the coverage of the
-nearest-neighbour matches actually selected, and their comparability statuses.
-`inventory_distance()` remains as a scalar compatibility convenience; new
-analyses should retain the comparison object.
-
-### P-base extraction provenance is established as far as the source permits
-
-The P-base feature tables were manually extracted by Tiago Tresoldi in 2019
-from <https://pbase.phon.chass.ncsu.edu/>. P-base supplied no versioned release
-identifier for that extraction, and its exact retrieval date, machine-readable
-export, and step-by-step extraction log were not retained; the manifests now
-say so directly rather than labelling the whole provenance unknown.
-
-### System semantic fingerprints
-
-`mk_system_semantic_fingerprint()` and Python's `system_fingerprint()` return
-an auditable canonical payload and SHA-256 digest for a selected system. The
-v1 payload identifies its model data, scorer, geometry and diacritic inputs,
-resolver, tone grammar, and baseline comparison policy. It is intentionally a
-system identity rather than a claim to identify a whole operation: callers
-must record non-default node weights and tokenization choices alongside it.
-
-### Strict validation stops being quadratic in the caller's text
-
-`mk_validate_strict_entries` compared every grapheme against every earlier one.
-That is O(n²) on text the caller supplies, and
-`mk_registry_add_model_text_n` exists for exactly the inputs that makes
-dangerous — its own documentation names a mapped file, a Python `bytes`, and a
-fuzzer's input. A model of distinct rows is the worst case, because nothing
-short-circuits.
-
-Measured, with `@validation permissive` as the linear baseline:
-
-| rows | strict | permissive | the duplicate check alone |
-| ---: | ---: | ---: | ---: |
-| 2,000 | 37.6 ms | 23.4 ms | 14.2 ms |
-| 8,000 | 256.7 ms | 102.6 ms | 154.1 ms |
-| 16,000 | 953.6 ms | 223.0 ms | 730.6 ms |
-| 32,000 | 5,201 ms | 476.2 ms | 4,724.8 ms |
-
-Sorted and walked once, the same check costs 4.7 / 19.9 / 38.9 / 85.2 ms — 55×
-less at 32,000 rows, and the whole install drops from 5.2 s to 0.57 s.
-
-The pointers are sorted, not the rows, because nothing may assume an order and
-a runtime model is looked up by scanning its rows anyway. Two things about the
-diagnostic changed and neither affects the status: for a model with several
-duplicates the one reported is now whichever sorts first rather than whichever
-came first in the file, and a model with both a duplicate and an unknown
-feature now reports the duplicate.
-
-Nothing tested this at all before — not the rejection, not the diagnostic.
-`test_malformed.c` covers both over 4,000 rows, sized so a return of the
-quadratic form would show up in the suite's runtime.
-
-### The two system-identity calls have a caller
-
-`mk_system_name` and `mk_system_kind` were exported, documented, ABI-frozen and
-called by nothing in the repository — not a test, not the example, not the
-Python extension. Two public functions no one had ever run.
-
-They are not dead surface, though, and the coverage work is what makes that
-clear: `*coverage` means different things by system kind, and a caller holding
-a `const mk_system *` had no way to ask which kind they had short of hardcoding
-the eight built-in names. `examples/transcribe.c` now reports it alongside the
-number — *"scored by descriptive, a categorical system"* — which both shows why
-the function exists and exercises it under `ctest`.
-
-`test_smoke.c` covers both, including the thing their identical signatures
-cannot express: the name is registry-owned storage and the kind is a static
-string. It checks a runtime model's name is the text the caller supplied, and
-that `phoible` reports `valued` where the others report `categorical` — the one
-distinction the function exists to draw.
-
-### `mk_feature_distance` says when it has no answer
-
-It wrote `999` into `*out` and returned `MK_OK`. That is the second error
-channel `geometry.h` records removing from the scorers, and it was worse here
-than a sentinel usually is: the
-function's real answers run from 0 to 8, so `999` is an ordinary looking
-integer, and a caller summing or thresholding got nonsense with nothing to
-test.
-
-**`999` never meant "unknown feature".** It meant "not on the geometry tree",
-which is true of plenty of features the library scores perfectly well.
-`bilabial` and `velar` are mapped to the `Place` node rather than being leaves
-under it; `tone-onset-1` is a position on an ordered scale. Measured against
-what `descriptive` actually returns, 41 of 97 labels — two in five — were
-answered with the sentinel, and 8 of the 12 rows in
-`tests/golden/geometry_distances.tsv` recorded it as though it were a
-measurement, for the most natural questions anyone would ask: `stop` against
-`fricative`, `bilabial` against `velar`.
-
-Off-tree features now return `MK_ERR_NO_TREE_PATH`, appended to the enum so
-existing values keep their numbers. Its own status rather than
-`MK_ERR_INVALID_ARGUMENT`, which this call already returns for a null pointer.
-
-The equality shortcut was also tested before the domain, so a feature the tree
-does not contain answered `0` against itself while refusing everything else —
-a misspelling compared with itself was confidently zero. The domain is checked
-first now, and identity needs no special case at all: two identical features
-have identical paths, every element is common, and the arithmetic yields 0.
-
-The fixture keeps twelve rows, with the eight sentinel pairs replaced by tree
-pairs spanning the distances the tree actually produces (0, 2, 4, 5, 6, 8).
-`test_geometry.c` asserts the refusals directly, including the two cases that
-made the old behaviour incoherent: identity of an off-tree feature, and a
-misspelling against itself.
-
-### Four things the documentation said that were not true
-
-- `distance_with_coverage` was documented as returning `tuple[float, float]`.
-  It returns three values -- score, coverage, and the comparability label --
-  so `help()` and every editor reading the docstring had the arity wrong.
-- The Python README said bare `mb` and `nd` are rejected. They resolve, as
-  two-component clusters carrying `pre-nasalized`; the note had been stale since
-  the two-item blocklist that rejected them was removed, and
-  `test_native_wrapper.py` has asserted they are segments ever since. The
-  explicit `ᵐb` notation is still worth naming, because it gives one segment
-  rather than a sequence, so that is what the README now says.
-- Two comments dated the current default system "since 1.1". There is no 1.1:
-  no tag, and the change sits under `## Unreleased` here. Version attribution
-  belongs in this file, so the comments now state the default without pinning a
-  release nobody has cut.
-- `mk_split_tone` did not say that it does not validate. It is an orthographic
-  split -- find the first Chao digit, cut there -- so `"a¹²³⁴"` splits cleanly
-  into `("a", "¹²³⁴")` even though four digits are rejected as a contour and the
-  recognizer refuses that token. That is the separation `mk_segment_ipa` already
-  keeps, which splits `"tʃa"` into three tokens the descriptive system would
-  read as two, and it was worth stating because the function's one error
-  (`MK_ERR_UNKNOWN_GRAPHEME`, for a token with no base to split off) reads like
-  validation and is not. Behaviour is unchanged; `test_smoke.c` now pins it so
-  the split of responsibilities cannot drift into a check nobody asked for.
-
-### A duplicate system name is refused instead of silently lost
-
-`mk_registry_add_model_text` appended unconditionally, and
-`mk_registry_get_system` returns the first match. A model named `descriptive`
-therefore registered with `MK_OK`, appeared twice in
-`mk_registry_list_systems`, and was unreachable for the rest of the registry's
-life -- every query for the name answered from the built-in one. The caller was
-told their model installed and it had not.
-
-It now returns `MK_ERR_DUPLICATE_SYSTEM`, a new status appended to the enum so
-existing values keep their numbers. Its own value rather than
-`MK_ERR_INVALID_ARGUMENT`, because that is what the same call already returns
-for a null pointer, and conflating a caller's bug with a name collision leaves
-the diagnostic string as the only way to tell them apart -- which is what
-`mk_status` exists to avoid. The check runs before anything is installed, so a
-refused model leaves the registry exactly as it was.
-
-There is deliberately no shadowing. Appending and letting the last match win
-would change what a name means mid-session for every caller, including one
-already holding a `const mk_system *` obtained under the old meaning. If
-extending a built-in is wanted, the honest feature is a model that declares what
-it extends, not a name collision that happens to win.
-
-The parser has refused a grapheme declared twice within one model since the
-format existed, with a comment noting that a binary search "may return either
-row". This is the same ambiguity one level up.
-
-### The Python exception type now follows the status
-
-`add_model_text` chose its exception by whether the C library had produced a
-diagnostic string: any failure carrying detail became `NativeError` regardless
-of cause, and only failures without detail reached the status mapping. So the
-new duplicate-name status arrived as `NativeError` rather than the `ValueError`
-the mapping specifies. `status_error_detail` now takes the message and the type
-separately -- the detail replaces the text, the status still picks the class.
-
-### Geminacy is a question about segments, not about bytes
-
-A two-part cluster was a geminate when its two parts were spelled identically,
-byte for byte -- twenty lines from `mk_add_prenasalization`, which decides from
-features and carries a comment recording that testing the spelling *was* the
-bug. Two adjacent rules about the same two parts disagreed about what "the same"
-means. It is featural now.
-
-Measured before changing it, on all three categorical systems:
-
-| sweep | two-part clusters | disagreements |
-| --- | --- | --- |
-| every ordered pair of distinct inventory graphemes | 24,824 | 0 |
-| every inventory row doubled, with and without one added mark | 8,992 | 10 |
-| the tone spellings the contrast baseline declares equivalent | 315 | 0 |
-
-So the rules never disagree about two genuinely different segments, and no
-distance in the tree moves. The ten are all redundant marks -- a creaky vowel
-written with a second creaky mark, a nasal one with a second nasal mark -- where
-the featural rule says geminate and the byte rule does not. Those are one
-segment written twice, which is what a geminate is, so the featural answer is
-also the better one for them.
-
-A false geminate would need two genuinely different segments with identical
-features. Those score exactly zero against each other, which is the undeclared
-collapse `scripts/contrast_baseline.py --check` sweeps the categorical systems
-for and fails on, so the invariant this rests on is already enforced in CI and
-does not need its own sweep in `ctest`.
-
-`tests/c/test_cluster.c` covers `aa`, `ai`, `au`, and one redundant-mark pair
-written in hex escapes, because stacked combining marks render ambiguously and
-that case only means anything if the bytes are exact. It is the only observable
-difference between the two rules, and a revert to byte comparison fails on it
-and on nothing else -- checked by making the revert and watching it fail.
-
-### The header is the shape, and the generator is held to it
-
-`builtin_data.h` declares twelve struct types; `tools/generate_c_data.py`
-emitted brace-initializers for them, positionally. That made field order
-load-bearing across two languages with nothing checking it.
-`mk_builtin_system`'s `entry_graphemes` and `entry_feature_at` are both
-`const unsigned int *` and adjacent, so transposing either the struct or the
-emitter compiled clean under `-Werror` and returned the wrong row for every
-lookup. `check_generated_data.py` would not have noticed: it compares the
-emitter to its own output, so it proves determinism and nothing else.
-
-Every emitted struct now goes through `c_struct`, which reads the field names
-out of the header and refuses an initializer that has drifted from them. That
-covers the direction designated initializers alone do not: GCC's
-`-Wmissing-field-initializers` fires for a positional initializer that omits a
-field and stays silent for a designated one, so naming the fields would have
-traded a silent transposition for a silent zero-fill. Verified in all three
-directions — a field added to the header, a field renamed, and a field the
-emitter does not know — each now stops the generator with a message naming the
-struct.
-
-`MK_MAX_ENTRY_FEATURES` was a second `= 64` in the generator, kept in step by a
-comment asking the reader to remember. It is read from the header. Raising it
-there alone used to emit a row wider than the pointer array the resolver
-reserves inside every `mk_resolution`, which is stack corruption no test in the
-tree would have caught.
-
-`mk_geometry_leaf.depth` is now `weight`, because that is what it held. A leaf
-declaring an explicit weight was emitted as *the depth that would produce it*,
-so the table carried 1.25 and 2.5 as the "depths" of leaves that are at neither,
-and the runtime divided them back. The C side had no way to tell which rows were
-depths and which were inverted weights, and the disclaimer lived only in the
-Python. The generator does the arithmetic now and the field says what it holds.
-
-The emitted `.rodata` is byte-identical before and after, which is the check
-that this was a change to how the source reads and not to what it compiles to.
-No distance moved.
-
-### The CLI caught an exception nothing raises
-
-`merkmal features not-ipa`, `merkmal --system nope features p` and every other
-ordinary mistake exited through a traceback rather than the error message the
-CLI has a function for.
-
-It caught `merkmal.NativeError`, which is created with no base class, while the
-wrapper raises Python's own `KeyError` for an unknown system, `ValueError` for
-an unknown grapheme and `NotImplementedError` for an unsupported model. Those
-types are the documented contract and are what a caller expects to catch, so
-the mapping is right and the handler was wrong. `_print_error` and the usage
-exit code were unreachable for anything a person would actually type.
-
-It survived because the only CLI test exercised success paths. There is now one
-that asserts the exit code, the message and an empty stdout for four failing
-invocations.
-
-### Clusters carry their parts, and their policy became data
-
-A cluster — a diphthong, an untied affricate, a geminate — is synthesized by
-resolving each part and composing the results. It then threw the parts away and
-kept only their spellings, so scoring re-resolved them: comparing `ai³³` with
-`au` ran the whole resolution seam four more times on strings that had just been
-resolved, and a cluster-to-cluster comparison could run it six.
-
-`mk_cluster_component` carries the resolved parts forward. Storing one costs a
-small array copy when the part came from an inventory, because the array the
-lookup filled is the resolution's own stack scratch and does not survive the
-synthesizer's frame; a synthesized part's array moves across for nothing. The
-trade measured out at no movement in tokenization, where the allocation lands,
-and about 13% off pair scoring, which is what it was for. `bench/baseline.txt`
-records both.
-
-The scoring itself moved to `src/cluster.c` behind `mki_cluster_distance`.
-`system.c` was 595 lines holding three unrelated things — the public entry
-points, 220 lines of cluster policy, and a longest-match tokenizer the directory
-map never named; it is now 367. The move passes the test the
-`resolver.c` and `geometry.c` splits failed: cluster scoring's six helpers were
-used by cluster scoring and nothing else, so moving them hides them rather than
-exporting them.
-
-The five numbers it composes with are now `cluster_policy` in
-`geometries/clements-hume.json`, emitted the way `tier_policy` is, for the
-reason `docs/c-api.md` already gives for that one: they move every diphthong,
-triphthong and geminate distance in the three categorical systems, so changing
-one should be a diff that can be reviewed as data rather than a tree edit. The
-geminate waiver stays in C, because it is a rule and reads both segments. Values
-are unchanged.
-
-`tests/c/test_cluster.c` asserts that a resolved cluster's parts arrive carrying
-features and obeying the storage rule, that the shares are the geometry's, and
-the composition rules those feed — the nucleus weighting, the symmetry, and the
-length penalty being waived against a segment that spells the length out.
-
-**No distance moved.** `regenerate_golden.py --check` and
-`contrast_baseline.py --check` are the proof, and both stay clean.
-
-Not changed, and worth naming: geminacy is still decided by byte-comparing two
-component spellings, twenty lines from a rule that decides prenasalisation from
-features and carries a comment recording that testing the spelling was the bug.
-The parts now carry features, so the featural test is available; it is left for
-its own change, because it would move distances and this one deliberately does
-not.
-
-### One `contains` for feature sets
-
-Four copies of "does this feature set hold this label", in `geometry.c`,
-`system.c`, `vector.c` and `resolver.c`, identical but for where each put its
-guard against an empty needle. Splitting cluster scoring out of `system.c` would
-have made it five. `mki_features_contain` in `strings.h` replaces them, taking
-the array and count so the resolver — which builds feature arrays before any
-view exists — and every holder of an `mk_feature_view` share one body.
-
-The `name=state` scan stays per caller. The scorer distinguishes "no value" from
-"a value of zero" because coverage depends on it; the numeric vectors
-deliberately do not, following the `soundvectors` convention that
-`vector.c` documents. Two contracts, both right, and merging them would have
-broken one.
-
-### One scoring seam, and coverage stops being asserted by the caller
-
-There were three scoring bodies reachable through two functions with
-incompatible signatures, and which one a system reached was decided in two
-places on two different fields. `system.c` tested `kind` to choose categorical
-against valued. Inside the categorical body, line 474 of `geometry.c` tested
-`scalar_dimension_count` to choose scalar against leaf — invisible from
-`geometry.h`, in a function whose name said it *was* the categorical body, and
-it was the test that picked the scorer for `distinctive`, the default system.
-
-The three scorers now share one interface and `mki_scorer_for` chooses, once.
-`mki_score_categorical` and `mki_score_valued` are gone from `geometry.h`;
-`mki_scorer_for` and `mki_scorer_name` replace them. `MK_SYSTEM_TRAINED` — a
-declared kind with no implementation, previously read as "valued" by `vector.c`,
-as an error by `system.c`, and as "not categorical" by `resolver.c` — now has
-one answer: no scorer.
-
-`tests/c/test_scoring.c` asserts which scorer each of the eight systems selects,
-the way `test_resolution.c` asserts which path resolved a grapheme. It also
-gives `mk_system_segment_distance_ex` its first C test; it had none, and was
-covered only through the Python wrapper.
-
-**Behaviour change, `mk_system_segment_distance_ex` only.** No distance moved
-and no golden fixture changed. Every scorer now reports its own `coverage`
-instead of `_ex` seeding 1.0 and letting the valued path overwrite it:
-
-- A segment compared with itself reports the coverage it actually has.
-  `("p", "p")` on PHOIBLE was 1.0 and is 27/38, because PHOIBLE leaves 11 of
-  /p/'s 38 cells empty. The old answer was coverage relative to the segment;
-  the documented quantity is relative to the system's declared dimensions, and
-  the two differ whenever a segment has a gap. The identity shortcut still runs
-  when no coverage is asked for, so `mk_system_segment_distance` is unchanged.
-- A categorical pair reaching no scored dimension reports 0.0 and
-  `MK_CMP_NO_SHARED_DIMENSION` rather than 1.0 and `MK_CMP_OK`. Unreachable
-  with inventory rows, which always reach some dimension; reachable through
-  `mk_sound_distance` with labels the geometry does not know.
-
-`docs/c-api.md` also declared this function with six parameters and then
-discussed the seventh. It now declares the one that exists.
-
-### A cluster component could be read after its stack frame died
-
-`mk_parse_component_at` merges two adjacent components into one and copies the
-result out with a struct assignment. On the inventory paths a resolution's
-`features` aliases its own `inline_features` array, so the copy duplicated the
-array but left `features` pointing into the local — which stopped existing at
-the closing brace. `mk_synthesize_cluster` then read it.
-
-Reachable from every public entry point that takes transcription text;
-`mk_system_segment_ipa` is the shortest path to it. Found by `fuzz_resolve`,
-confirmed as a stack-use-after-return by AddressSanitizer, and replayed by
-`ctest` now as a case in `test_malformed.c`.
-
-`mk_resolution_move` replaces the assignment and re-points the alias, so the
-hazard `resolver.h` documents has a safe primitive rather than a warning.
-
-Two reasons this survived: the crash needs the fallback Unicode profile, which
-no sanitizer job built — utf8proc's extra normalization pass hid it — and GCC
-leaves stack-use-after-return detection off unless asked. The sanitizer matrix
-now covers both Unicode profiles and sets `ASAN_OPTIONS`.
-
-### `mk_` now means public, and the compiler checks it
-
-`libmerkmal.a` exported 97 symbols. 31 were the API; the other 66 were the
-resolution seam, the string helpers and the compiled tables — and all 97 were
-spelled `mk_`. A consumer linking the static library, which is the default and
-what the pkg-config build produces, saw no difference between a promise and an
-implementation detail.
-
-Internal symbols are now `mki_`. Nothing in the public header moved, so this
-breaks no caller who used only what is declared; it does rename symbols a
-caller could previously have reached by declaring them, which was never
-supported.
-
-`ctest -R public_symbols` reads the archive with `nm` and compares it against
-`include/merkmal.h`, so adding a cross-module helper named `mk_something` now
-fails the suite rather than quietly widening the API.
-
-### The types say which pointers they own
-
-`mk_builtin_entry` declared its pointers `const char *` while owning every one
-of them, because it sat beside the genuinely-const compiled tables. Its two
-destructors cast the qualifier away 28 times to free what they owned.
-
-Nothing was wrong at any of the 28 — the casts were correct — but a type that
-needs a cast to be freed is a type no compiler can check, and the same struct
-serves both a heap-owned runtime model and, in `mk_builtin_system`, tables in
-`.rodata`. `mk_system` now holds the name it allocates in its own `owned_name`
-field, and `mk_builtin_entry` is unqualified because only runtime models ever
-use it. `-Wcast-qual` is on to keep it that way. Costs 16 bytes of text in
-`registry.c`; nothing else in the footprint moves.
-
-### `mk_registry_add_model_text_n`
-
-The runtime-model parser now has an entry point taking a pointer and a byte
-count, for callers holding a buffer rather than a C string. An embedded NUL
-returns `MK_ERR_PARSE` instead of ending the model early and registering the
-truncated part as though it were whole.
-
-The parser already copied its input before tokenizing it destructively, so this
-removes a copy rather than adding one, and the fuzz harness now hands libFuzzer's
-own redzoned allocation straight to the parser instead of terminating it first.
-
-### Warnings, Clang, and an example
-
-- Six warnings added, each measured against the tree first: `-Wvla`,
-  `-Wformat=2`, `-Wdouble-promotion`, `-Wswitch-enum`, `-Wwrite-strings` were
-  already clean; `-Wcast-qual` is what found the ownership defect above.
-- The warning set now applies to every test target. It previously reached two
-  of seven, leaving the malformed-input and golden tests — the ones doing the
-  most pointer arithmetic — as the least-checked code in the tree.
-- CI builds and tests with Clang. It was used only for static analysis and
-  fuzzing, so a GCC-only `-Werror` gate let Clang-visible findings accumulate.
-- `examples/transcribe.c` shows tokenization, feature lookup, scoring and
-  diagnosis through the public header, and runs as a test so it cannot rot.
-
-### A source convention can no longer shadow a real segment
-
-The resolver applied the source-conventions table before looking anything up,
-so a rule saying "a source writing X means the segment written Y" fired even
-when the system had X as its own inventory row. That is only ever a safe rewrite
-when the system *lacks* X, and the table had no way to know.
-
-It bit once, on U+026B: mapping `ɫ` to `lˠ` merged two segments PHOIBLE
-distinguishes, and the contrast audit caught it as one new zero-distance pair.
-The mapping was removed with the underlying defect left standing — latent for
-every other entry, and harmless only because no bundled model happens to list
-`ʧ` or `ʣ` as a row.
-
-`mk_resolve` now tries the written form against the inventory first and falls
-back to the rewritten one. Which makes `ɫ` safe to restore, so it is: it
-resolves to `lˠ` in the systems that lack it and remains its own segment in
-PHOIBLE, which has it. Both at once, with a test asserting each half.
-
-No golden fixture moves — the extra lookup changes which spelling wins, not what
-any segment scores.
-
-### One license for the data, and what it rests on — withdrawn
-
-> **Withdrawn on 2026-08-20 (2279c83).** The permission this entry rests on was
-> never evidenced, so PHOIBLE is back under CC-BY-SA-3.0 and the four P-base
-> models under CC-BY-NC-SA-4.0, their upstream terms, and the distribution
-> declares `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`. The
-> README and `docs/release-policy.md` went on repeating the relicensed terms
-> until the release preparation corrected them. The entry is kept as the record
-> of what was claimed.
-
-**No bundled table now carries a non-commercial or share-alike restriction.**
-The distribution declares `MIT AND CC-BY-4.0`, down from
-`MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`. That was the item
-gating adoption: many institutional and industrial users cannot depend on a
-package bundling NC data at all, and they no longer have to.
-
-- `phoible`: CC-BY-SA-3.0 → CC-BY-4.0
-- `pbase-hc`, `pbase-jfh`, `pbase-spe`, `pbase-uftc`: CC-BY-NC-SA-4.0 → CC-BY-4.0
-- `broad`, `descriptive`, `distinctive`: already CC-BY-4.0, unchanged
-- `classfeat`: MIT, unchanged — first-party and more permissive
-
-**This rests on a permission the repository does not yet evidence, and says so
-in every place it is declared.** Neither CC-BY-SA-3.0 nor CC-BY-NC-SA-4.0 allows
-relicensing to CC-BY-4.0 unilaterally: dropping share-alike and the
-non-commercial clause makes the terms *less* restrictive, which only the
-rightsholder can do. So each manifest gains a `relicensed` block recording what
-it supersedes and carrying `grantor`, `granted_on` and `evidence` as
-`UNVERIFIED`, and `NOTICE`, the README and `docs/release-policy.md` all repeat
-it. Establish those before relying on this for redistribution — the same
-discipline that established the CLTS derivation in Phase 0 rather than assuming
-it, applied to a claim that is currently weaker than that one was.
-
-Attribution is unaffected and still required: credit the upstream project each
-manifest names, and say that changes were made.
-
-One consequence worth noting: the share-alike clause was one of two reasons the
-typology layer is a separate package. It is gone. The other — keeping sampling
-weight and genealogy out of a core that has spent its life refusing them — is
-the one that mattered, and it still holds.
-
-### A tone and a segment are no longer compared
-
-**Breaking (C, unreleased):** `mk_system_segment_distance_ex` takes a fourth
-output, `mk_comparability *why`. `merkmal.distance_with_coverage` returns three
-values instead of two.
-
-Until now a tone token scored against a segment through the geometry, returning
-0.61 against a stop and 0.50 against a vowel **with coverage 1.0** — claiming a
-complete comparison. Those numbers are functions of how many features the
-*other* segment has, not statements about tone: every 7-feature segment scored
-exactly 0.5000. And they sit below the cost at which an aligner stops matching
-the two, while gold alignments never put a tone in a column with a segment.
-
-`why` now distinguishes three cases: `MK_CMP_OK`, `MK_CMP_CROSS_TIER` (the score
-is a declared policy value, not a measurement), and `MK_CMP_NO_SHARED_DIMENSION`
-(a `0.0` that means "nothing to compare", not "identical").
-
-**The cross-tier cost is data.** `tier_policy.cross_tier_cost` lives in
-`geometries/clements-hume.json`, so changing it is a versioned data change with
-a diff rather than a tree edit — which is what lets a later evidence-derived or
-preference-derived scorer carry its own without moving this one. That was the
-decisive argument against the tier *leaf* an adversarial review rejected: a leaf
-baked into the single compiled-in geometry is baked in for every user of every
-system forever.
-
-It is 1.0, meaning incomparable. `bench/sweep_tone_distance.py` saturates above
-roughly 0.7 — every value from there upward produces byte-identical alignments —
-so the data cannot distinguish any cost in that region from refusing to compare
-at all. A caller wanting a finite cost reads `why` and supplies their own.
-
-No measurable effect on the alignment benchmark, which is the expected result
-and a second confirmation of an earlier finding: BDPA contains no
-tonal-versus-toneless language pair, so the case almost never arises there. It
-arises constantly in Lexibank.
-
-### The fitted scorer, run and not shipped
-
-Both earlier reviews concluded a fitted pair-cost table is the only real answer
-to the scorer's disagreement with the frequency of sound change.
-`bench/fit_pair_costs.py` runs that experiment under D7's constraints, and the
-answer on the data available is **no detectable difference**.
-
-Leave-one-family-out over BDPA's human-annotated alignments — human-annotated
-because fitting to alignments merkmal produced would calibrate it against
-itself, which is point 6 of the CoreCog quarantine and easy to reintroduce
-without noticing. Segment-pair costs from pointwise mutual information, shrunk
-toward the geometry by observation count, gap tuned on training folds only:
-
-| held out | geometry | fitted | delta |
-| --- | ---: | ---: | ---: |
-| Indo-European | 96.17% | 96.03% | −0.14 |
-| Japonic | 86.89% | 87.38% | +0.49 |
-| Quechuan | 100.00% | 100.00% | 0.00 |
-| Sino-Tibetan | 90.83% | 89.36% | −1.47 |
-| Uralic | 93.12% | 92.81% | −0.31 |
-
-Mean −0.28 points, 95% interval [−0.92, +0.35], 1 of 5 folds improved. Not a
-win for either side.
-
-**Nothing ships from this run**, and the reason is the protocol rather than the
-result. BDPA is five families and 65% Indo-European: enough to find a large
-effect, not enough to resolve a small one. Tuning the smoothing until a fold
-turns positive would be fitting the protocol instead of the data — the exact
-failure D7's constraints exist to prevent, and the one that produced the
-quarantined CoreCog prior.
-
-Calibration is reported beside accuracy and moves independently of it: on
-Japonic the fitted costs are better *scaled* (0.079 → 0.038) while barely better
-ranked. A scorer can order pairs well and still mean nothing by its numbers.
-
-What would settle it: alignments over many more families — Lexibank's cognate
-sets, aligned by something that is not merkmal.
-
-### A typology layer, deliberately outside the library
-
-`typology/` is a companion package, `merkmal_typology`, carrying PHOIBLE's
-language-indexed inventories: 3,020 doculects over 2,186 languages with family,
-macroarea and coordinates, pinned to the same v2.0.1 the segment table is.
-
-**A companion rather than part of the core, and the size argument is the lesser
-reason.** The core has spent its life refusing to have opinions about sampling
-weight, genealogy and areal membership — the README's disclaimer about segment
-*types* rather than languages is load-bearing. Adding a language column to the
-C core would have quietly ended that. Keeping it here means the discipline
-survives the addition, and 500 KB of share-alike data stays out of a library
-whose distribution terms would otherwise have to grow.
-
-Four analyses, split by whether the sampling question touches them:
-
-- `segment_frequency()` — **cross-language, so it never travels alone.** It
-  returns a `Frequency` carrying its own `SampleComposition`, and printing it
-  prints both. That /m/ is in 96% of PHOIBLE's inventories is a real fact; it is
-  not the claim "/m/ is in 96% of the world's languages", and the difference is
-  not a technicality when Atlantic-Congo and Pama-Nyungan are 28% of the sample
-  and 531 languages carry more than one doculect. No weighting scheme ships:
-  choosing one is a research decision, not something a library should do
-  silently.
-- `inventory_distance()` — symmetric, sample-independent, built on the segment
-  distance. **An explicit size penalty was tried first and was wrong**: charging
-  for the difference in inventory size made English closer to Yue Chinese than
-  to French, because those differ by one segment and six, while French was twice
-  as close by content. A similarity measure that is mostly a size measure is
-  worse than useless. Replaced by the mean nearest-neighbour distance in both
-  directions, which behaves — Mandarin and Yue are the closest pair tested, and
-  the inventories furthest from English in a random 120 are all Australian.
-- `feature_economy()` — Clements' ratio, inventory size over features used.
-  Counted per *feature*, not per (feature, value) pair; the first version
-  counted pairs, which roughly halves it and is not what Clements defines. It
-  reproduces the expected pattern: Hawaiian at 13 segments is the least
-  economical, Hindi at 94 the most.
-- `inventories()` / `languages()` — per-inventory shape and size, where the
-  sampling question does not arise.
-
-### Diagnosis, scope, and a cross-theory check
-
-- **`mk_system_diagnose` / `merkmal.diagnose`.** Rejection was a status and
-  nothing else, which is enough for "can I score this?" and useless for checking
-  someone's transcriptions — the workflow a validated inventory and a fast C core
-  should be best in the world at, and where the diagnosis *is* the product. It
-  now reports the status, the longest prefix that does resolve, and the first
-  character beyond it: `pʰ̳zz` comes back as `pʰ` plus the offending combining
-  mark, `¹²³⁴` as a parse error with `¹²³` valid and `⁴` at fault.
-
-  Deliberately **no "nearest valid grapheme"**: an edit-distance search over the
-  inventory would be a guess presented as an answer, and the prefix is cheaper
-  and more often right.
-
-- **The README says what the library is not.** `merkmal` supplies a substitution
-  cost and no gap model, no alignment, no sequence operations — a scope decision,
-  not a gap to fill later. It points at LingPy and publishes the measured gap
-  costs (0.30–0.50 categorical, up to 0.80 valued) so nobody has to guess, along
-  with the two live caveats: the tone-versus-segment placeholder, and
-  `sound_distance` not agreeing with `distance` under the default system.
-
-- **`bench/cross_theory.py`** puts the same claim to all seven feature theories.
-  Over every "A is closer to B than to C" that 41 segments can state and at least
-  six systems have an opinion on, **37.4% are not unanimous**.
-
-  The first version of this used fifteen claims I picked, and all fifteen came
-  back unanimous — which demonstrates only that I picked easy ones. Sweeping
-  exhaustively found 10,918 contested orderings, including `d(p,t) < d(p,k)`:
-  whether a labial is nearer a coronal or a velar depends on who is asked.
-
-### PHOIBLE's cells rebuilt from the pinned upstream table
-
-**PHOIBLE distances change.** The extraction that produced this inventory was
-not self-consistent, and 5,272 cells across 2,002 rows are corrected against
-`cldf-datasets/phoible` v2.0.1, the release `provenance.json` pins:
-
-- **3,729 cells where upstream says `0`** — the feature does not apply to this
-  segment — **were written `-`**, which asserts that it applies and is absent.
-  `/p/` carried `advancedTongueRoot=-` and `retractedTongueRoot=-`; tongue-root
-  position is not a property a bilabial stop has.
-- **761 cells where upstream gives `+` or `-` were written `.`**, dropping a
-  value the source states.
-- **686 contours such as `+,-` were resolved to a single sign**, while 3,788
-  others became `.`.
-
-One rule now covers every cell, applied by
-`scripts/rebuild_phoible_inventory.py`, whose `--check` re-verifies against the
-pinned table: `+` and `-` carry through; `0`, `N` (upstream has no vector at
-all, 2 segments), a contour, and an empty cell all become `.`. Contours collapse
-rather than resolve, because choosing one phase of `+,-` invents a claim the
-source does not make — and `distance_with_coverage` now reports what saying so
-costs.
-
-**Reading `0` as `-` manufactured agreement**, so distances were systematically
-too small. Over a 24,090-pair sample the mean rises from 0.2208 to 0.2420, and
-zero-distance pairs *fall* from 6.06% to 5.89%: fewer segments now look
-identical, because fewer of them are being credited with agreeing about features
-neither one has.
-
-Still open, and a different question: the row *sets* differ from v2.0.1 by 17
-graphemes here that it lacks and 58 there that this inventory lacks. Which
-release's segment list to carry is a decision rather than a defect, and this
-change does not make it.
-
-### The last two cluster defects
-
-- **Affricates survive inside a cluster.** `features("ntʃ")` parsed as
-  *n + t + ʃ*, even though the tokenizer and the recognizer both read `tʃ` as one
-  segment everywhere else — the component parser was the one path still
-  splitting by letter. It now looks one unit ahead and prefers a two-letter
-  segment when the inventory or the complex synthesizer knows one, which is all
-  the affricates and the doubly-articulated `kp`/`gb`/`ŋm` need.
-
-  The lookahead consults the inventory and the complex synthesizer only, never
-  the cluster grammars, so `mb` and `nd` stay the two-component clusters they
-  are rather than being merged by a rule that would swallow any adjacent pair.
-
-- **A doubled spelling is no longer charged for its own length.** The
-  per-component penalty put `aa` at 0.233 from `aː` while a plain `a` sat at
-  0.064 — so a doubled vowel was further from the long vowel than a short one
-  was, and doubling is how Uralic, Austronesian and much African data write
-  length. The penalty is waived when a geminate cluster meets a length-marked
-  segment, because there the length it charges for is exactly what the other
-  side spells out. `d(aa, aː)` is 0.113 now, below `d(aa, a)` at 0.159.
-
-  **Waived, not reversed.** `aa` lands where `a` does rather than closer,
-  because whether a doubled vowel means length or a genuine sequence is a
-  property of the source that nothing here can read per form. Asserting it means
-  length is the move that cost a PHOIBLE contrast when it was applied to `ɫ`
-  earlier in this release. A non-geminate cluster such as `ai` still pays the
-  penalty in full.
-
-### Coverage alongside the score, and one segment series made whole
-
-- **`mk_system_segment_distance_ex` / `merkmal.distance_with_coverage`.** A
-  valued system skips any dimension where either segment has no value, so a
-  score of `0.0` meant either "identical" or "nothing in common to compare" and
-  a caller could not tell which. The first independent review found the sharp
-  case: PHOIBLE's tone letters carry `.` on every dimension, so `˦˨` scored a
-  confident `0.0` against every segment in the table, `/a/` included.
-
-  The score is unchanged — inventing values to separate them would be
-  fabricating data — but `coverage` now reports the share of the system's
-  declared dimensions both segments actually had a value on. `d(˦˨, d)` is
-  `(0.0, 0.0)`; `d(e, i)` in P-base UFTC, which is genuinely indistinguishable
-  there, is `(0.0, 0.75)`. Same score, and now visibly not the same claim. The
-  library sets no threshold: what counts as too weak a comparison depends on the
-  work.
-
-  Categorical systems score over the union of what either segment specifies, so
-  the ambiguity cannot arise and coverage is 1.0 there by construction.
-
-- **`ŋm` is one segment, not a cluster.** It is the nasal member of the `kp`/`gb`
-  series — Yoruba, Ewe, Igbo — and was the one left as a two-component cluster,
-  which scored it 0.73 from `kp` where `gb` sits at 0.18. Now 0.38 from `kp`,
-  0.23 from `gb`, and close to both `ŋ` and `m`, which is what a doubly
-  articulated segment should look like.
-
-  Worth recording that this is a **departure from CLTS**, and a deliberate one:
-  CLTS v1.4.1 reads `kp` as "from voiceless velar stop to voiceless bilabial stop
-  cluster". The library already departed for `kp` and `gb` because the standard
-  analysis in the languages that have them is a single segment. Extending it to
-  `ŋm` makes the series coherent; leaving it out was the anomaly.
-
-### Numeric feature vectors
-
-`mk_system_feature_vector`, `mk_system_vector_labels`, `mk_system_vector_width`,
-and `merkmal.feature_vector` / `merkmal.vector_labels` in Python. Everything
-else in this library returns feature *labels* — the right shape for reasoning
-about a segment, the wrong one for a model that wants numbers, which is why the
-neural-phonology audience has used PanPhon instead.
-
-The encoding follows `soundvectors` (Rubehn, Nieder, Forkel & List 2024), so the
-numbers mean what the ecosystem already means by them: `+1` present, `-1`
-applies and is absent, `0` does not apply or the source does not say.
-
-That third value is the reason this belongs in the library rather than in each
-caller. A valued system writes `anterior=.` for "no value" and `anterior=-` for
-"absent", and a hand-written mapping tends to collapse them — silently, and in
-the direction that makes a model confident about data it does not have.
-
-**Ordered scales** cannot use `0` for a middle level, because `0` already means
-"no value". A scale of *n* levels maps level *i* to *i/n*, so scale columns land
-in `(0, 1]`. `vowel_height` is 0.14 for `/i/`, 0.43 for `/e/`, 1.0 for `/a/`, and
-0 for `/p/`, where the scale does not apply at all.
-
-**The basis differs by system**, because the systems differ: a valued system's
-columns are its own inventory columns, a system declaring `scalar_dimensions`
-uses those, and the rest use the geometry they score through. Widths are 54
-(`distinctive`), 62 (`descriptive`), 38 (`phoible`), 23 (`pbase-hc`). Ask
-`vector_labels` rather than assuming width or order; labels are unique within a
-system, so a column is addressable by name.
-
-No call vectorizes a token list. That is a loop, and sequence-level operations
-are not this library's.
-
-### Source markup says so, and two CLTS spellings resolve
-
-- **New status `MK_ERR_SOURCE_MARKER`**, and `merkmal.SourceMarkerError` in
-  Python. `<?>` is CLTS's mark for a grapheme *the source* could not convert,
-  `<<...>>` is CLDF's escape for unparsed source material, and `+`, `_`, `#` are
-  boundary markers. All of them are correctly refused — they are not sounds —
-  but refusing them as `MK_ERR_UNKNOWN_GRAPHEME` told a caller the wrong thing:
-  that merkmal lacked the segment. In Lexibank they are 33,275 tokens, so a
-  transcription-QC pass could not tell its own gaps from other people's without
-  string-matching the input itself.
-
-  The Python exception subclasses `ValueError`, so code already catching that is
-  unaffected; catch `SourceMarkerError` to skip the source's known gaps without
-  swallowing segments the library genuinely lacks. `is_segment` stays total and
-  still returns `False`. The status is **appended** to `mk_status`, so existing
-  values keep their numbers.
-
-  Deliberately narrow: the documented CLDF/CLTS conventions only. Dataset-local
-  noise such as `→` and `∼` stays an unknown grapheme rather than being swept in
-  on a guess about what its author meant.
-
-- **`ǝ` resolves.** U+01DD TURNED E is a source convention for schwa, named
-  "unrounded mid central vowel" in CLTS v1.4.1 — the name this inventory already
-  gives U+0259 — and no bundled model carries it as a row of its own.
-
-  **`ɫ` deliberately does not.** It was mapped to `lˠ` on the same CLTS reading
-  and then taken out: PHOIBLE carries `ɫ` as its own inventory row with feature
-  values that differ from `lˠ`, and the source-conventions table is applied
-  before lookup and unconditionally, so the mapping destroyed a contrast PHOIBLE
-  draws rather than adding a spelling merkmal lacked. `scripts/contrast_baseline.py`
-  caught it as a single new zero-distance pair in `phoible`.
-
-  The general defect this exposed — a source convention can override a grapheme
-  the system actually has — is unfixed. It needs the resolver to try the written
-  form before the rewritten one. Until then the rule is that nothing enters that
-  table which any model lists as a row.
-
-### The default is `distinctive`, and `broad` is deprecated
-
-**Breaking, for anyone who calls without naming a system.** The default moves
-from `descriptive` to `distinctive`, so `merkmal.distance("p", "b")` returns
-0.1493 where it returned 0.125. Stored results computed against the old default
-must be recomputed or pinned with `system="descriptive"`.
-
-The choice is now purely about which scores better, because after the cluster
-work the two recognize exactly the same graphemes — 0 disagreements over 7,396
-Lexibank segment types. On BDPA gold alignments `distinctive` is not
-statistically distinguishable from LingPy's SCA (−0.39%, CI crossing zero) where
-the geometry-scored systems are measurably behind it (−0.79%).
-
-**`broad` is deprecated** and will be removed in the next major version. It is
-not merely "operationally identical" to `descriptive` as the README used to say:
-it is now a pure duplicate, with 0 differences in feature sets, distances, or
-recognition across the corpus. It still resolves, so nothing breaks today.
-
-**A consequence worth stating, because the switch surfaced it.**
-`mk_sound_distance` / `merkmal.sound_distance` is the *geometry* scorer and takes
-no system. `distinctive` scores through its own `scalar_dimensions`. So feeding a
-segment's default features into `sound_distance` no longer reproduces what
-`distance` returns for that segment — 0.125 against 0.1493 for `p`~`b`. The two
-agree only for the geometry-scored systems (`descriptive`, `broad`). There is now
-a test asserting the divergence in both directions, so it is a stated property
-rather than something a user discovers.
-
-### Every categorical system reads what `descriptive` reads
-
-Diphthongs, consonant clusters and complex segments such as `kp` were
-synthesized for `descriptive` and refused by `broad` and `distinctive`, on a
-hardcoded check of the system's *name*. Nothing about the synthesis was ever
-descriptive-specific: components resolve through whichever system is asking, and
-the cluster scorer in `system.c` never looked at the name either.
-
-That mattered little while `descriptive` was the system to reach for. It
-mattered a great deal with `distinctive` about to become the default, because
-the default would have been the system least able to read the field's data —
-1,188 segment types and 78,762 Lexibank tokens it rejected and `descriptive`
-accepted.
-
-| | before tone work | after tone | now |
-| --- | ---: | ---: | ---: |
-| `distinctive` types | 73.4% | 78.5% | **94.5%** |
-| `distinctive` tokens | 95.57% | 99.16% | **99.71%** |
-| median dataset, forms parsed | 95.9% | 98.2% | **100.0%** |
-| datasets below 90% of forms | 52 | 27 | **3** |
-| datasets below 3% of forms | 26 | 1 | **1** |
-
-**On the alignment benchmark this restores parity with SCA**, and on a sounder
-footing than the claim retracted earlier in this file. The readable subset is
-now 2,091 of 2,250 pairs (**92.9%**, from 64.4%), and over it `distinctive`
-scores 96.16% against SCA's 96.72% — a difference of −0.39% with a 95% CI of
-[−0.95, +0.15], **not significant**. Over all pairs it is 95.00% against 96.35%.
-Every point of that came from reading more data; nothing about how segments
-score was changed.
-
-- Cluster parses report `n1-`/`n2-`/`n3-` component labels, `move-` trajectories,
-  and `diphthong`/`triphthong`/`complex`/`geminate`/`consonant-cluster`. None of
-  them score — clusters are scored through their components — and they are now
-  **declared** as unscored in the geometry, by prefix for the open-ended ones.
-  They had been returned to callers as if they participated since the cluster
-  paths were written; an earlier review flagged it and it was never closed.
-- The contrast audit sweeps cluster spellings, taken from Lexibank by token
-  frequency. Like bare tone before them, they are recognized by every
-  categorical system and carried by no inventory row, so an inventory-derived
-  sweep never saw them.
-
-### Tone as its own segment, which is how the field writes it
-
-CLTS/BIPA spells tone as a segment in its own right — `t o ³³`, not `t o³³` —
-and that is the form CLDF wordlists are published in. merkmal accepted tone only
-bound to a nucleus, so it could not read the tonal half of the world's
-languages as they are actually encoded.
-
-- **Bare tone tokens are segments.** Chao digit runs of one to three levels and
-  IPA tone letters U+02E5–U+02E9 resolve on a new `MK_RESOLVED_TONE` path,
-  carrying the tone features they already had in bound position. `merge_tone_digits`
-  converts between the two spellings and is unchanged.
-- **Chao neutral tone `⁰` is recognized, and is not a pitch level.** It is the
-  notation for a syllable carrying no tone in a language that otherwise has
-  tone — 8.3% of the tone tokens in `beidasinitic`, and that dataset's single
-  largest blocking token. It gets its own privative `tone-neutral` feature
-  rather than being folded into level 3 (which would claim it is mid) or level 1
-  (which would claim it is low). It has no pitch target and says so.
-- **Rejected, with a parse error rather than an unknown-grapheme error:** runs of
-  four or more levels, and `⁰` mixed with a pitch level. The distinction matters
-  — it says the token *is* tone and is spelled wrong.
-- **Valued systems refuse bare tone** with `MK_ERR_UNSUPPORTED_MODEL`, the same
-  policy they already applied to bound tone, because none of them declares a
-  dimension a tone can move and the alternative is a confident zero.
-- Tone tokens carry `tonal-autosegment`, declared in `metadata_features` and
-  deliberately **not scored**. What a tone should cost against a segment is open.
-  Today they compare through the geometry like
-  anything else, which is a placeholder, not an answer.
-
-**Coverage, measured over 152 Lexibank datasets** (`bench/bench_coverage.py`):
-
-| | before | after |
-| --- | ---: | ---: |
-| `descriptive` tokens | 96.12% | **99.71%** |
-| `broad` / `distinctive` tokens | 95.57% | **99.16%** |
-| `descriptive` types | 89.5% | **94.5%** |
-| datasets below 90% token coverage | 37 | **1** |
-| datasets below 3% of forms parsed | **26** | **1** |
-| median dataset, forms fully parsed | 95.9% | **98.2%** |
-
-The one dataset still blocked is `williamsonbenuecongo`, which contains no tone
-at all and fails on CLTS's `<?>` and `<<->>` markers.
-
-On the alignment benchmark, reading tone made 258 more BDPA pairs usable — the
-readable subset goes from 69.8% to **81.2%** — and improved the result rather
-than diluting it. `distinctive` moves from 92.91% to **93.62%** column accuracy
-over all pairs, narrowing the gap to SCA from −3.09% to −2.60%, and holds
-−0.66% [−1.21, −0.05] on the readable subset. The newly readable pairs are
-tone-against-tone, where the ordinal Chao scale does the work; the unresolved
-tone-against-segment cost rarely arises, which is the same conclusion the
-saturation analysis reached from the other direction.
-
-The contrast audit now sweeps the bare-tone recognition space and records 168
-collapses, all of them one Chao contour spelled more than one way. Two things
-that had not been written down anywhere fell out of doing it: a two-digit
-contour fills its middle slot by **rounding the midpoint up**, so `¹²` is the
-same tone as `¹²²` and a different tone from `¹¹²` — a rise reaches its target
-early rather than late — and `distinctive` needed its own `tone_neutral` scalar
-dimension, because a geometry leaf alone does not reach a system that scores
-through `scalar_dimensions`.
-
-### Two guards, and the bug the second one found
-
-Both come from an adversarial review of a proposed tone design. Neither is about
-tone; both are about checks that passed while the thing they claimed to check
-was untrue.
-
-- **`contrast_baseline.py` now checks that dimensions can be reached, not only
-  that labels land.** It verified every label a system returns can move some
-  distance, and never asked the reverse question of the artifact that does the
-  scoring. For `distinctive` that artifact is its own `scalar_dimensions`, not
-  the geometry, so **nine dimensions left behind by the ordinal tone rewrite**
-  (`tone_onset_register`, `tone_mid_height`, and seven more) sat unreachable
-  while the script printed "every scoring dimension is reachable". They are
-  removed; `regenerate_golden.py --check` confirms no value moves, which is
-  exactly why nothing caught them.
-- **`validate_models.py` now checks that a model's scalar weights agree with the
-  geometry leaves they mirror**, by asking the generator what it will emit
-  rather than restating its rule. **Behavior change:** it found that an explicit
-  `"weight"` on a geometry leaf was silently dropped on the scalar path, so
-  `vocoid` was declared 0.8 in `geometries/clements-hume.json` and cost **1.0**
-  in `distinctive` — a 25% overweight on major class, in the system intended to
-  become the default, and `docs/geometry.md` documented neither number. Fixed in
-  `tools/generate_c_data.py`.
-
-  **This changes `distinctive` distances.** Measured over 24,090 pairs: mean
-  distance −1.2%, per-pair ratios 0.72–1.12, and **2.69% of "is A closer than B"
-  orderings flip** — a reordering, not a rescale, so a published correction
-  factor cannot repair it. Stored `distinctive` distances, alignments, clusters
-  and thresholds must be recomputed. On the alignment benchmark the change is a
-  wash (96.79% vs 96.90% column accuracy, 94.52% vs 94.39% perfect); the reason
-  to make it is that the two scoring paths now cost the same thing the same
-  amount. `broad`, `descriptive` and the valued systems are unaffected — they
-  score through geometry leaves, which already honoured the explicit weight.
-
-### Two benchmarks that measure the library against the outside
-
-Every existing guard measures merkmal against itself — golden fixtures, the
-contrast baseline, the generated-data check — and all of them pass on a library
-that is internally consistent and unusable in practice. These two do not.
-
-- Added `bench/bench_coverage.py`, which measures what fraction of real CLDF
-  wordlist data the library can read, and **runs in CI with per-system floors**
-  so a regression fails the build. Against 152 Lexibank datasets (14,193,616
-  tokens, 7,396 segment types) the current state is: `descriptive` 89.5% of
-  types, `phoible` 79.2%, everything else 73.4–73.7%; token rates cluster around
-  95.6%. The token rate flatters it. A form only parses if every one of its
-  tokens does, and `bench/coverage_baseline.txt` records the consequence:
-  **26 of 152 datasets have under 3% of their forms fully parseable**. Twenty-
-  five of the 26 are blocked by tone — Sinitic, Hmong-Mien, Bai, Tai-Kadai,
-  Lolo-Burmese, Karen — because CLTS/BIPA writes tone as its own segment while
-  merkmal accepts it only bound to a vowel, and several of those datasets write
-  it through the `source/BIPA` slash convention on top of that. The twenty-sixth,
-  `williamsonbenuecongo`, has no tone tokens at all and is blocked by CLTS's
-  `<?>` and `<<->>` markers.
-- Added `bench/bench_alignment.py`, which scores the segment distance as an
-  alignment substitution cost against LingPy's SCA classes on BDPA gold
-  alignments, through an identical Needleman-Wunsch with the gap tuned per
-  scorer on a held-out half. On pairs merkmal can fully read, `distinctive`
-  reaches 96.79% column accuracy against SCA's 97.74% — close, but behind by a
-  margin that is statistically significant (bootstrap 95% CI on the difference
-  [-1.39, -0.24]). Over the whole benchmark it falls further behind (92.91% vs
-  96.35%) because it cannot read 30% of the pairs. Coverage is worth several
-  times more than the remaining modelling gap.
-- Added `bench/corpus/`, an aggregate segment-frequency table with its own
-  provenance manifest. It carries segment types and counts only — no forms,
-  glosses, or language identifiers — so it does not redistribute the wordlists
-  and does not inherit their licenses.
-
-No library behavior changes.
-
-### The data's provenance, established rather than asserted
-
-No behavior changes: no feature set, distance, or golden fixture moves. What
-changes is what the distribution says about where its data came from, and one
-of those statements was wrong.
-
-- **Corrected licensing.** `broad`, `descriptive` and `distinctive` declared
-  `MIT`. They are derived from CLTS, so that was a misdeclaration in a shipped
-  artifact. They now declare `CC-BY-4.0`, and the distribution declares
-  `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`. Using these
-  inventories obliges you to credit CLTS and indicate that changes were made.
-- **The source is CLTS v1.4.1** (`d0dbd4bd`), established by diffing the
-  inventory against every tagged CLTS release rather than from recollection:
-  v1.4.1 matches 768 of 769 graphemes and 766 of 769 byte-identical NAME
-  strings, against 689 and 680 for v2.0.0 and later. The three divergences are
-  recorded in the manifests instead of being reconciled away. One of them is
-  upstream's: v1.4.1 named `ʈʂː` "voiced", contradicting its own `ʈʂ` entry,
-  and corrected it in v2.0.0.
-- `classfeat` is **not** CLTS-derived — its inventory is `GRAPHEME`/`CLASS`,
-  a sound-class alphabet with hand-assigned classes. It stays MIT.
-- **PHOIBLE pinned to CLDF `cldf-datasets/phoible` v2.0.1** (`f36deac7f80b`).
-  Content alone could not have settled this — v2.0, v2.0.1 and 3.0 match at
-  98.9%, 99.5% and 99.7% of graphemes — so it stayed `UNVERIFIED` until
-  answered from maintainer records rather than inferred. Its `CC-BY-SA-3.0`
-  declaration was then checked against the pinned release and is correct:
-  v2.0.1 declares no `dc:license` of its own, so PHOIBLE 2.0's own terms
-  govern.
-- **Recorded, not yet fixed:** the PHOIBLE extraction is not self-consistent.
-  Against v2.0.1, 3,729 cells where upstream says `0` (not applicable) were
-  written `-` rather than `.`, 761 where upstream specifies a value were
-  written `.`, and 697 where upstream gives a contour were resolved to a single
-  `+`/`-`. 95.43% of cells are accounted for by the intended transformation.
-- Still `UNVERIFIED`: the four `pbase-*` models' release, commit and retrieval
-  date, and PHOIBLE's retrieval date. P-base is distributed from a website
-  rather than a versioned repository, so the diff method used above does not
-  apply to it.
-- Note for anyone auditing published artifacts: merkmal 0.1.0, 0.1.1 and 0.2.0
-  on PyPI declare `MIT` and ship CLTS-derived data. Those releases are being
-  left in place; the correction is to be disclosed on the project page.
-
-## Earlier development (versioned 1.0.0 in the tree, never released)
-
-This work carried the version 1.0.0 until 2026-08-20 (3529398), when it was
-stepped back to 0.9.0 before any release. Nothing was published as 1.0.0, and
-the C API is not yet promised stable: that promise is for 1.0.0 proper. Three
-breaking changes were batched here; see the migration table in
-[docs/c-api.md](docs/c-api.md).
-
-- **Breaking (C):** `mk_free_string` is now `mk_string_free`. A rename only. It
-  reads the way the other destructors already did — `mk_string_list_free`,
-  `mk_registry_free` — type first, verb last. It was the one that read the
-  other way round.
-- **Breaking (C/ABI):** `mk_system_is_segment` reports through `bool *` rather
-  than `int *`, and `merkmal.h` now includes `<stdbool.h>`. This is an ABI
-  change wherever `_Bool` and `int` differ in size, which is most places, so it
-  rides the SOVERSION bump: recompile rather than relink.
-- **Breaking (C):** `mk_sound_distance` takes two `mk_feature_view` values in
-  place of four arguments. `mk_feature_view` is now public — a value type
-  holding a `const char *const *` and a `size_t`, borrowed for the call. It was
-  already the internal scoring type; the public function was the one place a
-  caller had to spell out both pairs and keep them aligned by hand.
-- Added: `ctest` compiles `merkmal.h` on its own, and CI additionally compiles
-  it as C++. A header that needs the caller to have included `<stddef.h>` first
-  passes everywhere inside this project and fails for the first consumer who
-  includes it before anything else.
-- The exported surface is still 26 symbols. The Python API is unaffected.
-
-The rest of 1.0.0, in the order it was done:
-
-### The Python extension under sanitizers and warnings
-
-- Added: the extension compiles at the library's warning set, minus
-  `-Wcast-function-type` and `-Wmissing-prototypes`, which the CPython API
-  forces on any extension. Not gated with `-Werror`, so a wheel build cannot
-  fail on a warning from a compiler this project has not seen.
-- Added: `MERKMAL_SANITIZE=address` builds the extension for a sanitizer run,
-  and a CI job runs the wrapper suite under it with the interpreter's ASan
-  runtime preloaded. `python/tests/lsan-suppressions.txt` covers the four
-  CPython type allocations that live for the process, suppressed by frame
-  rather than by library so that merkmal's own allocations are not covered too.
-  The file also records what the job does not prove: LeakSanitizer scans the
-  stack conservatively and did not report a deliberately injected leak, so leak
-  coverage for the C core stays with the `ctest` suite under ASan.
-
-### Fuzzing, static analysis, and a heap overread on malformed UTF-8
-
-- **Fixed: a heap buffer overread on truncated UTF-8 input.**
-  `mk_utf8_char_len` returned the length a lead byte *claims*, and nineteen
-  call sites copied or skipped that many bytes without checking the string had
-  them. `mk_segment_ipa("a\xF0")` read four bytes out of a two-byte
-  allocation. Every public entry point that takes transcription text was
-  affected: `mk_segment_ipa`, `mk_segment_ipa_merged`, `mk_normalize_grapheme`,
-  `mk_split_tone`, and everything in the resolver reached through
-  `mk_system_*`. It is now `mk_utf8_step(const char *)`, which never returns
-  more than the bytes present, so a scan can neither read nor step past the
-  terminator.
-- Fixed: a synthesized feature label built from an over-long feature name was
-  silently truncated into a different feature — one the geometry does not know,
-  which therefore contributes nothing to any distance. Reachable through a
-  runtime model, whose feature names are caller-supplied and unbounded.
-  `mk_add_prefixed_feature`, `mk_add_movement_feature` and
-  `mk_add_position_features` now return `MK_ERR_PARSE` rather than truncate.
-  The two `snprintf` calls that build *diagnostics* still truncate, which is
-  correct and now says so.
-- Added: `fuzz/` with three libFuzzer harnesses covering the runtime-model
-  parser, tokenization and normalization, and resolution against every built-in
-  system. Built with `-fsanitize=fuzzer,address,undefined` behind
-  `MERKMAL_BUILD_FUZZERS` (Clang only, off by default), seeded from the golden
-  fixtures, and run for 60 seconds per entry point in CI.
-- Added: `tests/c/test_malformed.c`, a `ctest` case replaying twenty malformed
-  inputs — truncated sequences, bare continuations, invalid leads, and the
-  shapes the synthesizers reach for — each in a heap buffer sized exactly to
-  its bytes so an overread is visible to AddressSanitizer.
-- Added: `scripts/run_static_analysis.sh` runs `gcc -fanalyzer` and
-  `clang --analyze`, with the accepted findings documented in the script. CI
-  fails on anything else.
-- Internal: the tokenizer's five duplicated `realloc` blocks are one
-  `mk_push_token`. One of them ran ahead of the branch that used it, leaving
-  two `items[count++]` writes whose bound was only provable by an argument
-  spanning forty lines — which Clang's analyzer reported as a null dereference,
-  and which was the reason to leave the structure alone until the malformed
-  cases and the fuzzers were in place to cover the change.
-
-### Inventory lookup is a binary search: tokenization twice as fast
-
-No public API, ABI, or behavior change; golden fixtures are byte-identical.
-
-Grapheme lookup walked every row calling `strcmp`. The cost was linear in
-inventory size at roughly 7.3 ns per row, a resolution performs up to three
-lookups, and longest-match tokenization performs several resolutions per token.
-
-| system | rows | miss, before | miss, after |
-|---|---|---|---|
-| descriptive | 769 | 5.6 µs | 0.07 µs |
-| pbase-hc | 1,068 | 8.4 µs | 0.08 µs |
-| phoible | 3,142 | 25.9 µs | 0.08 µs |
-
-End to end, `mk_system_segment_ipa` went from 96.8 to 48.7 µs per token.
-Scoring a pair moved only from 36.8 to 34.0 µs: those lookups are mostly early
-hits, and the remaining time is the scorer's own walk over leaves, node groups
-and ordered scales.
-
-- Internal: compiled inventories are emitted sorted by the grapheme's UTF-8
-  bytes, the order `strcmp` imposes. The generator rejects a duplicate grapheme
-  within a system — a binary search may return either row where the scan always
-  returned the first. There are none in the bundled data.
-- Added: `bench/bench_lookup.sh`, and `bench/baseline.txt` now records lookup
-  timings alongside the footprint numbers.
-- Added: `test_resolution` checks the emitted row order. A disagreement between
-  Python's sort and C's `strcmp` would otherwise be silent — a grapheme that is
-  present would simply stop being a segment.
-
-### The compiled data is interned: 55% off the WebAssembly payload
-
-No public API, ABI, or behavior change. The exported symbol list is unchanged
-and every golden fixture is byte-identical; this is a change of representation
-only.
-
-The generated tables held a `const char *` for each of roughly 260,000 feature
-slots — 2.08 MB of pointers on a 64-bit target, one relocation each, to name
-35 KB of text. They now hold 16-bit ids into a single interned string pool.
-
-|                              | before    | after   |
-|------------------------------|-----------|---------|
-| `builtin_data.o` `.rodata`   | 2,485,500 | 546,420 |
-| relocations, whole library   | 282,512   | 4,008   |
-| `footprint.wasm`             | 1,286,045 | 574,609 |
-
-- Internal: `mk_builtin_system` carries either compiled storage (pool offsets
-  and feature ids) or runtime storage (`mk_builtin_entry` pointers, as a model
-  parsed from text produces). `src/inventory.c` hides which, so nothing above
-  it changed shape.
-- Internal: rows with identical feature sets share one run of ids. A quarter of
-  the bundled rows are duplicates in that sense, worth a further 24.6% of the
-  largest array.
-- Internal: the pool is emitted in 2 KB chunks. C99 only requires support for
-  string literals of 4,095 characters and adjacent literals concatenate into
-  one, so a single-array pool was not strictly conforming.
-- Fixed: an affricate-retraction lookup leaked its candidate spelling on a
-  miss. Introduced while rewiring the lookup and caught by AddressSanitizer
-  before it left this branch.
-- Added: `tools/tests/` covers the generator's string pool directly — offset
-  round-trips, byte offsets for non-ASCII, chunk boundaries, and the literal
-  limit. `scripts/check_generated_data.py` compares the emitter against its own
-  output, so it catches drift but not a consistently wrong emission.
-- Added: `test_resolution` walks all 9,728 compiled rows, checking each against
-  the interned storage and that each finds itself by grapheme.
-
-### Module boundaries: internal.h dissolved, unicode.c split
-
-Internal restructuring. No public API, ABI, or behavior change: the exported
-symbol list is byte-identical to the previous commit, and every golden fixture
-is unchanged.
-
-- Internal: `src/internal.h` is gone. It had become the repository-wide
-  `common.h` — 16 data-table struct definitions, 28 `extern` declarations, and
-  four unrelated families of helper prototypes, included whole by every
-  translation unit. Its contents now live with their owners:
-  `src/generated/builtin_data.h` (table types and tables), `geometry.h`,
-  `system.h`, `registry.h`, `string_list.h`, `strings.h`. Each compiles
-  standalone.
-- Internal: `src/unicode.c` (1,073 lines, four responsibilities) is split into
-  `utf8.c` (encoding and Unicode classification), `ipa.c` (IPA orthographic
-  classification), `normalize.c`, `tone.c`, and `tokenize.c`, with
-  `mk_strdup_internal`, `mk_streq`, `mk_has_prefix`, `mk_append_text`, and
-  `mk_free_items` collected in `strings.c`.
-- Internal: the runtime-model parser moved out of `registry.c` into
-  `model_text.c` behind `mk_parse_model_text`, which produces a model without
-  touching a registry. `registry.c` drops from 555 lines to 209 and no longer
-  contains a line-oriented parser.
-- Internal: `setup.py` globs the core sources instead of listing them. The list
-  existed in three places — `CMakeLists.txt`, `setup.py`, and the WebAssembly
-  smoke script — so splitting a module meant remembering all three, and the one
-  that gets forgotten fails only in whichever build nobody runs locally.
-- `geometry.c` and `resolver.c` were left whole; measurements showed they did
-  not benefit from further splitting.
-
-### Enforced warning baseline, a testable fallback profile, and footprint measurement
-
-- Fixed: the WebAssembly smoke test had been failing, so the `wasm` CI job was
-  red. Both of its assertions were pinned to pre-C Python values — 5 features
-  for `pʰ` where the descriptive inventory now gives 9, and a `p`/`b` distance
-  of 0.375, which is the figure preserved in the archived `_full` fixtures
-  against the C library's 0.125. It now asserts feature membership and scoring
-  invariants; exact values belong to the golden fixtures, which are regenerated
-  deliberately.
-- Added: `MERKMAL_USE_UTF8PROC` (default `ON`). `OFF` selects the IPA-focused
-  fallback even where `libutf8proc` is installed. `MERKMAL_REQUIRE_UTF8PROC=OFF`
-  only ever permitted the fallback rather than selecting it, so the profile
-  WebAssembly ships could not be reproduced on a developer machine that had the
-  library — and was therefore covered by nothing but a 90-line smoke program.
-  A new `c-fallback` CI job runs the whole C suite against it.
-- Added: `MERKMAL_WERROR` (default `OFF`, enabled in CI). The compiler warning
-  set is now `-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wstrict-prototypes
-  -Wmissing-prototypes`; the first-party sources were already clean at it, so
-  this enforces existing discipline rather than requiring new work. Downstream
-  consumers building from source are unaffected.
-- Added: `bench/bench_footprint.sh` and a committed `bench/baseline.txt`
-  recording section sizes, relocation counts, `.wasm` bytes, and module compile
-  time. The generated data is 2.49 MB of `.rodata` over 35 KB of actual string
-  content, carrying 281,322 relocations; the baseline exists so that work
-  against that number can be argued from measurements.
-
-### Internal structure, and two tokenization defects
-
-Restructuring of the C library and its Python wrapper. No distance, feature
-set, or tokenization result changes except where noted as a fix.
-
-- Fixed: IPA tone letters were dropped by tone merging. The tokenizer grouped
-  `˥˦˧˨˩` into a tone run, but the merge step decoded superscripts only, judged
-  the run all-zero, and discarded it — `segment_ipa_merged("a˥")` returned a
-  toneless `"a"`. The library had three Chao decoders accepting three different
-  alphabets; it now has one.
-- Fixed: graphemes in a caller-supplied runtime model were stored as written
-  while queries were normalized, so a `grapheme` row spelled with a precomposed
-  `ã` could not be matched under either spelling. Runtime and built-in models
-  now share one normalization, and the source conventions apply too, so a row
-  written `ʧ` is reachable as `tʃ`.
-- Fixed: an unknown `node_weights` preset on a cluster segment such as `ai`
-  returned `MK_OK` with a composed value near 0.8 instead of
-  `MK_ERR_INVALID_ARGUMENT`. The scorers no longer signal failure with `NAN`.
-- **Breaking (Python):** `feature_distance` no longer accepts `system`. It
-  measures a distance in the compiled geometry, which every system shares; the
-  argument was validated and then ignored, so a caller naming `phoible` was
-  silently given clements-hume numbers.
-- **Breaking (Python):** `merkmal._native._registry_*` are gone. Each operation
-  is now one function taking an optional `registry`, and `Registry` methods
-  call it. `merkmal.Registry` itself is unchanged apart from `system` now
-  defaulting to `None` (the same default system) rather than to the literal
-  `"descriptive"`.
-- Added: `merkmal.Registry.system_segment_ipa`.
-- Changed: adding a model to the shared default registry now raises
-  `ValueError` rather than mutating what every other caller in the process
-  sees. Construct a `merkmal.Registry`.
-- Changed: bare `mb`, `nd`, `mp`, `nt` and `ŋg` are recognized as prenasalized
-  consonant clusters; `docs/c-api.md` still described the older two-item
-  blocklist.
-- **Breaking (C ABI):** `mk_feature_set` is removed. It was the same struct as
-  `mk_string_list` exported under a second name, with its own
-  `_size` / `_get` / `_free` triple and its own translation unit.
-  `mk_system_grapheme_features` now returns an `mk_string_list **`; replace
-  `mk_feature_set_size` / `_get` / `_free` with the `mk_string_list`
-  equivalents. The exported ABI is 26 symbols, down from 29. The Python API is
-  unaffected — `get_features` still returns a `frozenset`.
-- Added: `merkmal.sound_distance`, exposing `mk_sound_distance`, which was
-  public C API the wrapper did not bind. It scores two feature sets against the
-  compiled geometry with no system, registry, or grapheme involved.
-- Internal: segment resolution moved into `src/resolver.{c,h}` behind
-  `mk_resolve`, which reports which path resolved a grapheme; `src/system.c`
-  went from 2298 to 473 lines. The two component parsers and the two cluster
-  synthesizers became one of each, taking a grammar. Hand-written C dropped
-  from 5466 to 5084 lines and the Python binding from 929 to 811.
-
-### Second review pass: ordered scales, derived class features, tone
-
-An independent linguistic review ([docs/independent-linguistic-review.md](docs/independent-linguistic-review.md))
-found that the first pass had corrected the symptoms it measured while leaving
-the underlying defect: ordered properties were encoded as unordered flags, and
-several basic features were unreachable. See
-[docs/review-response.md](docs/review-response.md) for the correction notice.
-
-- **Corrected claim.** "Every consonant-consonant pair scores below every
-  consonant-vowel pair" was false; it generalised from eight hand-picked pairs.
-  Measured across the inventory, `broad` had a max C-C of 0.829 against a min
-  C-V of 0.660. The claim is withdrawn.
-- **Corrected claim.** "Every zero is on the record" covered only the bare
-  inventory of the three categorical systems. It missed composed forms
-  (`d(aː, aːː)` was 0) and all five valued systems (`phoible` scored zero on
-  ~5% of pairs). The audit now covers all eight systems and composed forms.
-- **Corrected claim.** "33 dead labels to 0" checked one direction only.
-  Thirteen scoring leaves were unreachable because no inventory name ever says
-  `sonorant`, `continuant`, `anterior` or `distributed`. Both directions are now
-  checked.
-- **Breaking (numeric): all categorical distances changed again.** Ordered
-  properties are now scored as ordered scales, cost proportional to the
-  difference in level.
-- Fixed: the vowel space was not ordinally correct. `d(i,e)` was 0.214 while
-  `d(i,a)` was 0.167, and `/i/`, `/e/` and `/a/` were all exactly 0.500 from
-  `/ɔ/`. Height and backness are now seven- and five-point ordered scales.
-- Fixed: the Chao tone code was not monotone in the digit. Levels 2 and 4
-  differed on both the register and the height bit, so they scored as far apart
-  as 1 and 5. Each position now carries an ordered level.
-- Fixed: two-digit contours never filled the mid slot, so `a¹` and `a¹¹` — the
-  same level tone spelled two ways — differed.
-- Added: IPA tone letters U+02E5–U+02E9, the primary IPA tone notation, were
-  rejected outright and are now read as pitch levels.
-- Fixed: 19 precomposed tone-marked vowels (including the whole Pinyin
-  third-tone set `ǎ ě ǐ ǒ ǔ`) were rejected while their canonically equivalent
-  NFD spellings were accepted — and `normalize()` returns the precomposed form,
-  so the documented preprocessing step turned working input into failing input.
-  Decomposition is now table-driven and identical with or without utf8proc.
-- Fixed: length was a set of unordered flags. A half-long vowel scored further
-  from a long one than a plain vowel did, `aː` and `aːː` were identical, and
-  breve-plus-length-mark asserted both `ultra-short` and `long`. Duration is now
-  a five-point ordered scale, a repeated length mark means overlong, and
-  contradictory values are rejected.
-- Fixed: every manner distinction cost the same, because `sonorant`,
-  `continuant`, `anterior` and `distributed` were never activated by any
-  grapheme. They are now derived from the manner and place labels.
-- Fixed: `/w/` scored as far from `/u/` as `/ʔ/` does from `/a/`. `vocoid` is
-  derived and covers the cardinal glides, which are [-consonantal].
-- Fixed: clicks carried the rear closure as a second place, so `/ǃ/` was exactly
-  equidistant from `/k/` and `/t/`. The rear closure is now its own feature.
-- Fixed: `segmental` and `ignore-prosodic` silently discarded nasalisation and
-  ejectivity along with length. Both moved out of `Prosodic`; `ignore-length`
-  and `ignore-secondary` presets added.
-- Fixed: `mb` and `nd` were rejected by a two-item blocklist while `mp`, `nt`,
-  `ŋg` and `ndz` were accepted. The blocklist is gone.
-- Fixed: `pre-nasalized` was asserted for any nasal-initial cluster, so the
-  geminates `mm`/`nn` and the labial-velar nasal `ŋm` carried it.
-- Fixed: three inventory errors — a Private-Use-Area codepoint U+F268, a
-  spurious `oz̻`, and `ǃǃ` — and seven rows carrying an undescribed combining
-  circumflex, which consumed the tone mark and produced a plain mid vowel while
-  the same sequence elsewhere synthesised a full falling tone.
-- Fixed: `classes.tsv` defined class `R` "resonant" as `consonant,-stop`, which
-  captured every fricative and affricate; and shipped a leftover `XXX`
-  "development" class.
-- Fixed: `typologies/lenition-bias.json` made devoicing the cheap direction,
-  contradicting its own stated lenition scale.
-- Fixed: two more inventory naming errors that made distinct segments
-  identical — `ʈʂː` was named *voiced* though `ʈʂ` is voiceless, and `ⁿgǃ` (a
-  prenasalized plain click) was named a *nasal-click*, which made it the same
-  as prenasalized `ŋǃ`.
-- Fixed: cross-articulator place had become invisible while the ordered place
-  scales were being introduced — each scale is undefined for the other
-  articulator, so `d(b, g)` was 0. The privative articulator features (labial,
-  coronal, dorsal, guttural) now carry that difference.
-- Result: **no pair of distinct forms scores zero in any categorical system**,
-  over 611,065 pairs including modifier-composed forms; every label can affect
-  a distance and every scoring dimension is reachable.
-- Documented: phonetic distance does not track diachronic probability. Frequent
-  changes score *further* apart than rare ones on average. This is inherent, not
-  a tuning target.
-
-### First review pass
-
-#### Response to the external linguistics and phonology review
-
-See [docs/review-response.md](docs/review-response.md) for the finding-by-finding
-account. Highlights:
-
-- **Breaking (numeric): categorical and `pbase-jfh` distances changed.** Every
-  distance produced by `broad`, `descriptive`, and `distinctive` moved, and
-  every feature set for a tone-bearing grapheme changed. Recompute stored
-  distances, alignments, clusters, and thresholds; do not mix cached scores
-  across this change.
-- Fixed: 33 feature labels reached no scoring dimension and so could not affect
-  any distance, among them `consonant`, `vowel`, `devoiced`, `apical`,
-  `laminal`, `unreleased`, `velarized`, and the whole length series. As a
-  result `p`~`p̥`, `t`~`t̺`, `k`~`k̚`, and `y`~`yːː` all scored exactly zero.
-  Over all 302,253 inventory pairs, zero-distance pairs fell from 802/802/599
-  to 7/7/7, and those 7 are now declared with reasons in
-  `tests/golden/contrast_baseline.tsv`.
-- Fixed: `distinctive` could not separate palatal/velar/uvular consonants,
-  bilabial from labiodental, the guttural places, close-mid from mid from
-  open-mid, lateral fricatives from lateral approximants, or clicks from
-  implosives. Dimensions were added for each.
-- Fixed: Chao level 3 produced no features, so a mid-tone segment was identical
-  to a toneless one (`a` = `a³³` = `ā`). Tone now emits `tone-present` plus an
-  explicit `tone-<position>-mid-level`.
-- Fixed: a Chao run of four or more digits was split into two contradictory
-  tone readings, so `a¹²³⁴` was accepted and carried both `tone-onset-lowered`
-  and `tone-onset-raised`. Over-long runs are now rejected whole.
-- Fixed: `models/pbase-jfh/model.json` mapped `"vocalic "` with a trailing
-  space, so that dimension was absent from every `pbase-jfh` distance. The dead
-  `spread` key was removed from `models/pbase-spe/model.json`.
-- Fixed: `models/phoible/model.json` declared the state symbol `0`, which never
-  occurs in its inventory, while the 30,181 cells written as `.` were
-  undeclared. Its license is corrected from generic `CC-BY` to `CC-BY-SA-3.0`.
-- Breaking: the valued systems (`pbase-*`, `phoible`) now return
-  `MK_ERR_UNSUPPORTED_MODEL` for tone-bearing graphemes. None has a dimension a
-  tone modifier can move, so they previously scored `a¹¹` and `a⁵⁵` as equal.
-- Breaking: runtime model registration validates strictly by default. A model
-  whose features the geometry does not know is rejected with a diagnostic
-  instead of registering and then scoring every comparison as zero. Use
-  `@validation permissive` to opt out.
-- Breaking: the distribution declares
-  `MIT AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`, not MIT alone. The compiled-in
-  tables include PHOIBLE (share-alike) and P-base (non-commercial share-alike)
-  data. See the generated `NOTICE`.
-- Added: `mk_system_segment_ipa` / `merkmal.system_segment_ipa`, longest-match
-  tokenization that agrees with a system's own recognizer, so `tʃa` becomes
-  `[tʃ, a]` and `kpa` becomes `[kp, a]`. `mk_segment_ipa` is unchanged and now
-  documented as orthographic tokenization.
-- Added: `mk_registry_add_model_text_ex`, which reports which line and token a
-  rejected model failed on.
-- Added: per-artifact `models/*/provenance.json`, a generated `NOTICE`, and
-  `scripts/generate_notice.py`. Upstream release, commit, and retrieval date
-  are recorded as `UNVERIFIED` rather than guessed.
-- Added: `scripts/contrast_baseline.py` (exhaustive collapse and dead-label
-  audit) and `scripts/regenerate_golden.py` (reviewable fixture regeneration).
-- Changed: the geometry is identified as `merkmal-clements-hume-inspired-v1`
-  with an explicit `departures` list; `clements-hume` remains a compatibility
-  name. See [docs/geometry.md](docs/geometry.md).
-- Changed: `typologies/corecog-derived.json` is quarantined. It is not a
-  sound-change direction prior: unordered daughter-daughter pairs do not
-  identify direction, its stated pair orientation was wrong, and its cost
-  transform was inverted. See `typologies/README.md`.
-- Documented: the output is an experimental dissimilarity, not a metric, not a
-  sound-change probability, and not a typological statistic. `broad` and
-  `descriptive` are operationally identical at this revision.
-
-### Earlier unreleased work
-
-- Breaking: repository direction changed from parallel Python/Go
-  implementations to a C99 core library with a native Python wrapper.
-  Go support has been retired.
-- Breaking: the installable Python package is now native-only. The old
-  pure-Python implementation and its tests have been removed from the active
-  codebase.
-- Changed: Python packaging now lives at the repository root so source
-  distributions include the C core and can build independently of a checkout.
-- Added: C99 library skeleton, public `merkmal.h`, CMake build, compiled-in
-  built-in data, C golden tests, and CPython Limited API wrapper.
-- Added: C install rules, exported CMake package metadata, pkg-config metadata,
-  public symbol annotations, and `mk_status_string`.
-- Added: release policy documentation, sanitizer CI, and an Emscripten/Node
-  smoke test for the raw C ABI with filesystem support disabled.
-- Added: public C APIs for built-in registries, runtime categorical model
-  registration, feature lookup, segment distance, geometry feature
-  distance, sound distance with weight presets, IPA normalization,
-  segmentation, and Chao tone digit merging.
-- Added: `mk_split_tone` and Python `split_tone`, which separate a merged
-  segment such as `a¹³` into its base grapheme and its Chao tone token.
-  Consumers that model tone as its own dimension previously had to
-  reimplement Chao digit parsing to undo `mk_merge_tone_digits`.
-- Documented: Chao digits are pitch levels, not tone-category numbers.
-  Superscript `⁰`-`⁵` merge; ASCII digits such as Jyutping `ji6` or Yoruba
-  `ori3` label tone categories, carry no pitch, and stay unrecognised
-  rather than synthesising tone features the notation never asserted.
-- Added: Python wrapper access to `node_weights`, tone-digit merging,
-  merged IPA segmentation, and a minimal native `Registry` for runtime model
-  text.
-- Added: descriptive source-token synthesis for vowel clusters, explicit
-  complex consonants, broader affricate spellings, and tone-bearing nuclei.
-- Added: Arca-driven residual descriptive support for precomposed-vowel
-  clusters such as `ɛï³³` and mixed velar affricate source tokens such as
-  `kɣ`.
-- Added: compositional descriptive support for precomposed vowel/modifier
-  source tokens such as `ḭ`, `ṳ`, `ṵ`, and `ṵː`, plus `ṽ` as a nasalized
-  consonant.
-- Changed: bare `mb` and `nd`, standalone tone clusters, slash-delimited
-  tone/control forms, and source markup/control tokens remain invalid source
-  segments.
-- Added: public documentation for C distribution, the C API, and the
-  line-oriented runtime categorical model format.
-- Changed: pre-C Python tutorials, notebooks, and research scripts are archived under
-  `docs/legacy_python/` until they are rewritten for the native API.
-- Changed: generated C data now comes directly from the top-level source data
-  files instead of importing archived Python loaders.
+The first release of the C library and the Python package built on it. Work
+developed under the provisional version 1.0.0, which was never released, is
+included here.
+
+### Added
+
+- A C99 library with a single public header, `merkmal.h`; CMake build, install
+  rules, a CMake package and a pkg-config file.
+- A Python package wrapping the library through the CPython limited API, built
+  as `abi3` wheels, with a `merkmal` command line.
+- A WebAssembly build and a browser demonstration.
+- Seven compiled-in feature systems: `distinctive`, `descriptive`, `phoible`,
+  `pbase-hc`, `pbase-jfh`, `pbase-spe` and `pbase-uftc`.
+- A `cc-by` data profile without the share-alike and non-commercial tables
+  (`MERKMAL_DATA_PROFILE`, `merkmal.DATA_PROFILE`).
+- Runtime models in a line-oriented text format, validated strictly by default
+  (`mk_registry_add_model_text`, `_ex` with a diagnostic, `_n` for byte buffers).
+- System-aware tokenization by longest match (`mk_system_segment_ipa`).
+- Comparison with coverage and comparability (`mk_system_segment_distance_ex`,
+  `merkmal.distance_with_coverage`).
+- Numeric feature vectors (`mk_system_feature_vector`, `merkmal.feature_vector`).
+- Diagnosis of a refused grapheme: the valid prefix and the offending character
+  (`mk_system_diagnose`).
+- Semantic fingerprints of a system's data and policies
+  (`mk_system_semantic_fingerprint`).
+- Separation of a merged tone (`mk_split_tone`); tone written as a segment of its
+  own; the IPA tone letters U+02E5–U+02E9.
+- Status codes `MK_ERR_SOURCE_MARKER` (CLDF and CLTS markup), `MK_ERR_DUPLICATE_SYSTEM`
+  and `MK_ERR_NO_TREE_PATH`.
+- `merkmal_typology`, a companion package of language-indexed PHOIBLE
+  inventories, separate from the core library.
+- Provenance manifests for every model and a `NOTICE` generated from them.
+- Benchmarks against external references (alignment, corpus coverage,
+  cross-theory robustness, fitted pair costs) and an exhaustive record of
+  zero-distance pairs; see [docs/method/evaluation.md](docs/method/evaluation.md).
+- Fuzzing harnesses, static analysis, sanitizer builds and a strict warning set
+  in continuous integration.
+
+### Changed
+
+- **Breaking:** the default system is `distinctive` (previously `descriptive`).
+- **Breaking:** categorical distances changed: ordered properties (vowel height
+  and backness, length, Chao tone level, place) are compared as positions on
+  scales, and major-class features are derived; `pbase-jfh` distances changed
+  with a corrected feature mapping.
+- **Breaking:** PHOIBLE's values were rebuilt from the pinned upstream release
+  (v2.0.1), correcting 5,272 cells; PHOIBLE distances changed.
+- **Breaking:** the valued systems refuse tone-bearing graphemes
+  (`MK_ERR_UNSUPPORTED_MODEL`) instead of ignoring the tone.
+- **Breaking:** a tone and a segment are not compared on a shared scale; the
+  comparison returns a declared cross-tier cost and reports it through the new
+  `mk_comparability` output of `mk_system_segment_distance_ex`.
+- **Breaking:** `mk_feature_distance` returns `MK_ERR_NO_TREE_PATH` for a feature
+  outside the geometry tree instead of the value 999.
+- **Breaking (C):** `mk_feature_set` was removed; `mk_system_grapheme_features`
+  returns an `mk_string_list`. `mk_free_string` was renamed `mk_string_free`.
+  `mk_system_is_segment` reports through `bool *` rather than `int *`.
+  `mk_sound_distance` takes two `mk_feature_view` values instead of four
+  arguments.
+- **Breaking (Python):** `feature_distance` takes no `system` argument, and the
+  private `merkmal._native._registry_*` functions were removed.
+- **Breaking:** the distribution declares
+  `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`, reflecting the terms of
+  the bundled data.
+- A place diacritic changes the place of the segment it modifies, and
+  contradictory diacritics are refused (`MK_ERR_PARSE`).
+- Diphthongs, consonant clusters and complex segments are derived in every
+  categorical system, and a cluster's parts are resolved once and reused.
+- A registry refuses a second system with an existing name
+  (`MK_ERR_DUPLICATE_SYSTEM`).
+- Unicode normalization is compiled in, so every build returns the same strings;
+  utf8proc is used only as a test oracle.
+- Inventory lookup is a binary search, and the compiled data is interned
+  (WebAssembly payload 55% smaller).
+- Only the public API is exported from the library (`mk_` public, `mki_`
+  internal).
+
+### Fixed
+
+- A heap buffer over-read on truncated UTF-8 input.
+- A cluster component read after the end of its stack frame.
+- Tie-barred spellings of derived complex segments (`t͡ʂ`, `d͡ʐ`) were refused.
+- `ʏ` could not begin a diphthong, and `ɚ`, `ɝ` were not recognized.
+- An affricate inside a cluster was split into its two letters.
+- A source convention could replace a segment that the system itself lists.
+- IPA tone letters were dropped by tone merging.
+- Strict validation of a runtime model took time quadratic in its size.
+
+### Removed
+
+- **Breaking:** the `broad` system, a duplicate of `descriptive`.
+- **Breaking:** the pure-Python implementation and its helper functions, and the
+  Go module.
 
 ## 0.6.0
 
-- Added: `segment_ipa(ipa) → [phones]` — IPA tokenizer that handles
-  tie bars, prefix/suffix modifiers, combining marks, and Chao tone
-  digits. Exported from the public API along with `decompose_grapheme`
-  and `compose_grapheme`.
-- Added: `MergeToneDigits` in the Go module, matching the Python
-  `merge_tone_digits`. Fixed `ParseChaoDigits` handling of all-zero
+- Added `segment_ipa`, an IPA tokenizer handling tie bars, modifiers, combining
+  marks and Chao tone digits, together with `decompose_grapheme` and
+  `compose_grapheme`.
+- Added `MergeToneDigits` to the Go module; fixed `ParseChaoDigits` for all-zero
   input.
-- Added: sequence normalization (`normalize_sequences`) — fallback
-  normalizations for postalveolar affricates (tie-bar stripping,
+- Added fallback normalization of postalveolar affricates (tie-bar removal,
   retraction).
-- Added: valued engine compositional fallback — valued engines
-  (phoible, pbase-*) now resolve unknown graphemes via
-  `decompose_grapheme` + modifier-to-feature mapping, matching the
-  categorical engine's compositional chain.
-- Added: CLTS normalization — slash stripping, ligature resolution,
-  ASCII-colon parsing, and stress mark normalization for broader
-  input compatibility.
-- Added: typology module (`typology.py`) with `DirectionCost` and
-  `Typology` types for asymmetric distance computation. Three
-  bundled typologies: `default`, `lenition-bias`, `corecog-derived`.
-- Added: geometry comparison and weight learning infrastructure
-  (`paper/`).
-- Added: 10,000+ cross-language golden test entries covering all
-  nine systems (features, distances, partitions, geometry).
-- Fixed: `parse_chao_digits` and `merge_tone_digits` restored to
-  public API after accidental omission in 0.5.0.
-- Cleaned up: removed one-time migration scripts, fixed import
-  sorting.
+- Added compositional resolution of unknown graphemes in the valued systems.
+- Added CLTS normalization: slash removal, ligatures, ASCII colon and stress
+  marks.
+- Added a typology module with asymmetric direction costs and three bundled
+  typologies.
+- Added over 10,000 cross-language golden test entries for all nine systems.
+- Fixed: `parse_chao_digits` and `merge_tone_digits` were missing from the public
+  API in 0.5.0.
 
 ## 0.5.0
 
-- **Breaking**: data-code decoupling. Feature inventories, geometry
-  tree, partition definitions, and per-system metadata moved from
-  Python source files to pluggable model directories (`models/`) and
-  geometry files (`geometries/`). Both Python and Go implementations
-  load these data files at runtime.
-- **Breaking**: Python package moved from `src/merkmal/` to
-  `python/merkmal/`. Engine implementations reorganized into
-  `engines/categorical.py`, `engines/valued.py`, `engines/trained.py`.
-- Added: native Go module (`go/`) implementing the full `System`
-  interface — model loading, geometry-weighted distance, partition
-  derivation, grapheme normalization. All `fs.FS`-based for
-  embedding flexibility.
-- Added: cross-language golden test data (`tests/golden/`) pinning
-  feature extractions, pairwise distances, and partition assignments
-  across all nine systems. Both test suites validate against these.
-- Added: `model.py` / `model.go` — generic model loader that reads
-  `model.json` and dispatches to the appropriate engine by type.
-- Added: `geometry.py` / `geometry.go` — geometry loader from JSON,
-  replacing the hardcoded tree in the old `geometry.py`.
-- Added: `partition.py` / `partition.go` — partition derivation from
-  model config, replacing hardcoded slot definitions.
-- Added: `registry.py` / `registry.go` — model discovery from the
-  `models/` directory.
-- Removed: `cognator_export.py` and the `export-cognator` CLI
-  subcommand. Downstream Go packages now import `merkmal/go`
-  directly.
-- Removed: UPA transcription adapter (`upa.py`). Consumers requiring
-  UPA-to-IPA mapping should handle conversion upstream.
-- Removed: `exporters.py`, `data/` directory (data now in `models/`).
+- **Breaking:** feature inventories, the geometry, partitions and system metadata
+  moved from Python source into model directories and geometry files loaded at
+  run time.
+- **Breaking:** the Python package moved from `src/merkmal/` to
+  `python/merkmal/`.
+- Added a Go module implementing the same interface, cross-language golden tests,
+  and generic loaders for models, geometries and partitions.
+- Removed the cognator export, the UPA transcription adapter and the exporters.
 
 ## 0.4.0
 
-- Added: `--custom-level` flag to `export-cognator` for caller-specified
-  partition feature subsets (repeatable as
-  `--custom-level=name:feat1,feat2,...`). Mirrored in the Python API as
-  the `custom_levels=` kwarg of `merkmal.export_cognator` and
-  `merkmal.export_all_systems`. Custom levels appear in `partitions.tsv`
-  alongside the four standard levels; their feature subsets and source
-  are recorded in the manifest with `source: custom`.
+- Added caller-specified partition levels to the cognator export
+  (`--custom-level`, `custom_levels=`).
 
 ## 0.3.0
 
-- Added: `partitions.tsv` in cognator export — feature-subset-derived
-  grapheme partition at four granularity levels (prosody, coarse,
-  medium, fine). Derived from each system's own features; transparent
-  per-level feature subset recorded in manifest.
+- Added grapheme partitions at four levels of granularity to the cognator export.
 
 ## 0.2.0
 
-- Added: `export-cognator` subcommand for static export of feature
-  distances, classes, prosody, and fallback data to a byte-stable
-  bundle consumed by cognator. Exposed as `merkmal.export_cognator`
-  (single system) and `merkmal.export_all_systems` (every registered
-  system). Bundles are reproducible under `SOURCE_DATE_EPOCH` and
-  include SHA-256 hashes in `manifest.json`.
-- Added: `merkmal` console script entry point (also runnable via
-  `python -m merkmal`).
+- Added the `export-cognator` command, a reproducible export of distances,
+  classes and prosody, and the `merkmal` command-line entry point.
 
 ## 0.1.1
 
-- Fix cross-process non-determinism in `sound_distance` and
-  `valued_geometry_distance`. Set unions are now sorted before
-  iteration so floating-point accumulation order is stable
-  regardless of Python's hash randomization seed.
+- Fixed non-deterministic results of `sound_distance` and
+  `valued_geometry_distance` across processes.
 
 ## 0.1.0
 
-Initial public release.
-
-- Nine built-in feature systems: descriptive, broad, distinctive,
-  pbase-hc, pbase-jfh, pbase-spe, pbase-uftc, phoible, classfeat.
-- Feature geometry tree for structured distance (Clements & Hume 1995).
-- Tonal geometry (Yip 1980, Bao 1999): register, contour, onset/mid/offset.
-- ClassFeat: trained hybrid system (sound classes + continuous features).
-- Compositional segment decomposition via Unicode NFD.
-- UPA transcription adapter.
-- Analysis layer: queries, matrices, natural class derivation, distance, export.
-- Zero runtime dependencies, Python 3.12+.
+Initial release: nine feature systems, a feature geometry after Clements and Hume
+(1995) and a tonal geometry after Yip (1980) and Bao (1999), the ClassFeat
+system, compositional decomposition of segments, a UPA adapter, and an analysis
+layer.

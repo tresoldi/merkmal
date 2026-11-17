@@ -2,10 +2,10 @@
 # Record the compiled footprint of the library, with the generated data broken
 # out separately.
 #
-# The generated data dominates: it is mostly arrays of pointers into a small
-# pool of strings, and every one of those pointers is a relocation. That costs
-# bytes in the .wasm payload and work at instantiate time, so the relocation
-# count is tracked as a first-class number alongside the section sizes.
+# The generated data dominates the footprint. Every pointer in it is a
+# relocation, which costs bytes in the .wasm payload and work at instantiation,
+# so the relocation count is reported alongside the section sizes. The tables
+# refer to strings by offset into an interned pool to keep that count low.
 #
 # Usage: bench/bench_footprint.sh [build_dir]
 # Writes a report to stdout. Compare against bench/baseline.txt.
@@ -24,7 +24,7 @@ printf '# compiler: %s\n' "$($cc --version 2>/dev/null | head -1)"
 printf '# flags: -std=c99 -O2 -DNDEBUG\n'
 printf '\n'
 
-# --- native objects -------------------------------------------------------
+# Native objects
 
 printf '## native objects (-O2 -DNDEBUG)\n\n'
 printf '%-28s %10s %10s %10s\n' 'object' 'text' 'rodata' 'relocs'
@@ -60,17 +60,15 @@ done
 printf '%-28s %10s %10s %10s\n' 'TOTAL' "$total_text" "$total_rodata" "$total_relocs"
 printf '\n'
 
-# String literals in the generated data, as distinct from the interned pool.
-# Before interning this was the whole text of the tables -- 35 KB against
-# 2.45 MB of pointers, which is what the compaction was aimed at. The pool is
-# now a plain char array and so counts inside .rodata, leaving only the
-# geometry tables' literals here.
+# String literals in the generated data outside the interned pool. The pool is
+# a plain char array and counts inside .rodata, so this is essentially the
+# literals of the geometry tables.
 literals=$(size -A "$build_dir/src_generated_builtin_data.c.o" |
     awk '$1 ~ /^\.rodata\.str/ { sum += $2 } END { print sum + 0 }')
 printf 'generated string literals (outside the interned pool): %s bytes\n' "$literals"
 printf '\n'
 
-# --- WebAssembly ----------------------------------------------------------
+# WebAssembly
 
 printf '## WebAssembly (emcc, fallback Unicode path)\n\n'
 

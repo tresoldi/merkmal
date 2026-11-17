@@ -1,4 +1,4 @@
-"""Small native-backed command line interface."""
+"""The ``merkmal`` command-line interface (python/README.md, Command line)."""
 
 from __future__ import annotations
 
@@ -12,15 +12,11 @@ import merkmal
 _EXIT_OK = 0
 _EXIT_USAGE = 1
 
-# What the wrapper raises when the user got something wrong.
-#
-# They are Python's own types, on purpose: merkmal.Registry documents KeyError
-# for an unknown system and ValueError for an unknown grapheme, and callers
-# expect to catch those rather than something library-specific. NativeError is
-# not a base class of any of them -- it is created with no base -- so catching
-# it alone caught none of the mistakes a person actually makes, and every one
-# of them exited through a traceback instead of _print_error. It stays in the
-# tuple for the statuses that do map to it.
+# The exceptions that report a mistake in the input, printed by _print_error
+# rather than as a traceback. The package raises Python's own types for these
+# (KeyError for an unknown system, ValueError for an unknown grapheme), and
+# NativeError, which is not a base class of any of them, for the remaining
+# statuses, so all of them must be listed.
 _USER_ERRORS = (ValueError, KeyError, NotImplementedError, merkmal.NativeError)
 
 
@@ -45,7 +41,7 @@ def _add_format_options(parser: argparse.ArgumentParser, default: Any) -> None:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    """Create the command-line parser for the supported wrapper operations."""
+    """Create the parser: global options, then one subcommand."""
     parser = argparse.ArgumentParser(prog="merkmal")
     parser.add_argument(
         "-s",
@@ -56,8 +52,6 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_format_options(parser, default=None)
     sub = parser.add_subparsers(dest="command", required=True)
 
-    # SUPPRESS: a subcommand that is not given a mode must not reset one given
-    # before the subcommand.
     commands = {
         "systems": ("list built-in feature systems", []),
         "features": ("print features for one grapheme", ["grapheme"]),
@@ -69,6 +63,8 @@ def _build_parser() -> argparse.ArgumentParser:
         command = sub.add_parser(name, help=help_text)
         for positional in positionals:
             command.add_argument(positional)
+        # SUPPRESS: a subcommand that is not given a mode must not reset one
+        # given before the subcommand.
         _add_format_options(command, default=argparse.SUPPRESS)
 
     return parser
@@ -137,7 +133,11 @@ def _run(args: argparse.Namespace) -> tuple[list[str], dict[str, Any], list[dict
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run the command-line interface and return its process exit code."""
+    """Run the command line given by ``argv`` (default ``sys.argv[1:]``).
+
+    Returns the exit status: 0 on success, 1 when the input is rejected (the
+    message goes to stderr). argparse exits with status 2 on a usage error.
+    """
     parser = _build_parser()
     args = parser.parse_args(argv)
 

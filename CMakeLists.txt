@@ -328,7 +328,7 @@ if(MERKMAL_BUILD_TESTS)
     if(UNIX AND NOT BUILD_SHARED_LIBS)
         add_test(
             NAME public_symbols
-            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/check_public_symbols.sh
+            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_public_symbols.sh
                     $<TARGET_FILE:merkmal>
         )
     endif()
@@ -354,7 +354,7 @@ if(MERKMAL_BUILD_FUZZERS)
         message(FATAL_ERROR "MERKMAL_BUILD_FUZZERS needs Clang for libFuzzer")
     endif()
     foreach(target model_text segment resolve)
-        add_executable(fuzz_${target} fuzz/fuzz_${target}.c ${MERKMAL_SOURCES})
+        add_executable(fuzz_${target} tests/fuzz/fuzz_${target}.c ${MERKMAL_SOURCES})
         target_include_directories(fuzz_${target}
             PRIVATE
                 ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -372,7 +372,7 @@ endif()
 if(Python3_Interpreter_FOUND)
     add_custom_target(check-generated-data
         COMMAND Python3::Interpreter
-            "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check_generated_data.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/check_generated_data.py"
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         COMMENT "Checking generated C data"
     )

@@ -1,29 +1,27 @@
 #!/usr/bin/env python3
-"""Does the conclusion survive changing the feature theory?
+"""Test whether a conclusion holds when the feature theory changes.
 
-This is the question `merkmal` can answer and its neighbours cannot. PanPhon has
-one feature set, CLTS has none, LingPy has sound classes. Here the same analysis
-runs under Hayes-style distinctive features, a descriptive geometry, PHOIBLE's
-binary table, and three P-base sets including Jakobson-Fant-Halle's *acoustic*
-features -- and the question is not which is right but whether the answer moves.
-
-A result that holds under all six is a result about the sounds. One that holds
-under one is a result about that feature set, and worth knowing before it goes
-in a paper.
+The same analysis runs under every built-in system: `distinctive` (after
+Clements and Hume 1995), `descriptive`, PHOIBLE's binary features, and the four
+P-base sets, among them the acoustic features of Jakobson, Fant and Halle
+(1952). The question is not which system is right but whether the answer
+changes between them. A result that holds under all of them is a result about
+the sounds; one that holds under one system is a result about that feature
+set.
 
     bench/cross_theory.py [--bdpa <checkout>]
 
-The headline: over every "A is closer to B than to C" a 41-segment set can
-state, **37% are not unanimous**. Claims of that form get made in passing all
-the time. A third of them depend on which feature theory is answering.
-
 Two analyses:
 
-1. **Segment orderings**, swept exhaustively rather than hand-picked, because a
-   hand-picked set shows whatever the picker expected. The rate is the result;
-   the named examples are illustration.
-2. **Alignment accuracy**, if a BDPA checkout is given. Whether the *ranking* of
-   systems is stable is a different question from whether any of them is good.
+1. **Segment orderings.** Every claim of the form "a is closer to b than to c"
+   over a fixed set of 41 segments is evaluated, rather than a hand-picked
+   selection. A claim counts when at least six systems give a strict answer
+   (ties and unreadable segments abstain). With the seven built-in systems,
+   37.4% of the 29,179 counted claims are split (as this script prints them).
+   The rate is the result; the listed examples are illustrations.
+2. **Alignment accuracy**, if a BDPA checkout is given: whether the ranking of
+   systems is stable, which is a different question from whether any of them
+   aligns well.
 """
 
 from __future__ import annotations
@@ -37,20 +35,18 @@ import merkmal
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# Claims of the form "a is closer to b than to c". Each is something a reader
-# would nod at, which is the point: the ones that fail are more interesting than
-# the ones that pass.
-
 # A segment set broad enough to cross every major class boundary and small
-# enough to sweep exhaustively: 41 segments is 32,800 ordered triples.
+# enough to sweep exhaustively: 41 segments give 31,980 claims (a choice of a
+# and of an unordered pair b, c from the rest).
 SEGMENTS = [
     "p", "b", "t", "d", "k", "g", "m", "n", "ŋ", "s", "z", "f", "v", "ʃ", "ʒ",
     "h", "l", "r", "j", "w", "i", "e", "ɛ", "a", "ɔ", "o", "u", "y", "ø", "ə",
     "tʃ", "dʒ", "ts", "θ", "ð", "x", "ɣ", "q", "ʔ", "ɲ", "ʎ",
 ]
 
-# Claims worth showing whatever the sweep says: if these ever split, something
-# is wrong with a feature set rather than interestingly contested.
+# Claims of the form "a is closer to b than to c" that are shown whatever the
+# sweep finds: a split on one of these indicates an error in a feature set
+# rather than a contested question.
 SANITY = [
     ("p", "b", "a", "a stop is closer to its voiced counterpart than to a vowel"),
     ("i", "e", "a", "adjacent vowel heights beat distant ones"),
@@ -102,7 +98,7 @@ def orderings() -> int:
                 continue
             result = votes(names, a, b, c, cache)
             if len(result) < 6:
-                continue  # too few systems have an opinion to call it a disagreement
+                continue  # too few systems answer for a split to be meaningful
             total += 1
             agree = sum(1 for v in result if v)
             if agree in (0, len(result)):

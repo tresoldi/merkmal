@@ -24,10 +24,10 @@ static const char *registry_capsule_name = "merkmal.registry";
  * `distinctive` rather than `descriptive`. Both recognize the same graphemes
  * over the Lexibank segment types, so the choice is purely about which scores
  * better, and on BDPA gold alignments `distinctive` is not statistically
- * distinguishable from LingPy's SCA where `descriptive` is measurably behind
- * it. CHANGELOG.md ("The default is `distinctive`") and
- * docs/reference-library-review.md hold the measurements. Changing it changes
- * the numbers any caller gets who does not name a system. */
+ * distinguishable from LingPy's SCA where the geometry-scored systems are
+ * measurably behind it; bench/alignment_baseline.txt holds the current
+ * measurement. Changing it changes the numbers any caller gets who does not
+ * name a system. */
 static const char *const default_system_name = "distinctive";
 
 typedef struct py_utf8 {

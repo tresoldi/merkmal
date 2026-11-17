@@ -1,31 +1,30 @@
 #!/usr/bin/env python3
-"""Measure what fraction of real CLDF wordlist data merkmal can actually read.
+"""Measure the share of CLDF wordlist data that merkmal can read.
 
-Every other guard in this repository checks the library against itself: the
-golden fixtures, the contrast baseline, the generated-data check. They all pass
-on a library that is internally perfect and unusable on the field's data. This
-one checks it against the outside.
+The other checks in this repository (the golden fixtures, the contrast
+baseline, the generated-data check) compare the library with itself. This one
+compares it with external data: for each segment token in a CLDF `Segments`
+column, whether merkmal has defined behaviour for it.
 
-The metric that matters is not "does `is_segment` work" but "if a token appears
-in a CLDF `Segments` column, does merkmal have defined behaviour for it". A form
-is only usable if *every* token in it parses, so token coverage alone flatters
-the result: failures cluster by language family, and a 95% token rate can still
-mean an entire branch of the tree is unreadable.
+A form is usable only if every token in it parses, so token coverage alone
+overstates usability: failures cluster by dataset and language family. In
+bench/coverage_baseline.txt, for example, `williamsonbenuecongo` has 62.4% of
+its tokens but none of its forms readable under `distinctive`.
 
-Two modes:
+Usage:
 
-    bench/bench_coverage.py                     # check the committed fixture
-    bench/bench_coverage.py --check             # ...and fail below the floors
+    bench/bench_coverage.py                     # report on the committed fixture
+    bench/bench_coverage.py --check             # also fail below the floors
     bench/bench_coverage.py --regenerate DIR    # rebuild from a Lexibank checkout
 
-`DIR` is a directory of CLDF dataset clones, each with `cldf/forms.csv`. The
-fixture is regenerated deliberately and its diff reviewed, exactly like
-`bench/baseline.txt`: a change here is always an argued change.
+`DIR` is a directory of CLDF dataset clones, each with `cldf/forms.csv`.
+Regeneration is done on purpose and its diff reviewed, as for
+`bench/baseline.txt`.
 
-Why a committed fixture rather than reading the corpus every run: 152 dataset
-clones are ~14M tokens and not something CI can fetch, and the aggregate segment
-table is small, factual, and carries no wordlist content. See
-bench/corpus/provenance.json for what it is and where it came from.
+The fixture is committed rather than the corpus read on every run because the
+corpus (152 datasets, 14,193,616 tokens; bench/corpus/provenance.json) cannot
+be fetched in CI, while the aggregate segment table is small and contains no
+wordlist content.
 """
 
 from __future__ import annotations
@@ -42,12 +41,12 @@ CORPUS = ROOT / "bench" / "corpus"
 SEGMENTS_TSV = CORPUS / "lexibank-segments.tsv"
 FLOORS_JSON = CORPUS / "coverage-floors.json"
 
-# CLDF writes these as tokens in the Segments column; they are not sounds and no
-# phonological library should be asked to score them.
+# CLDF writes these boundary markers as tokens in the Segments column; they are
+# not sounds and are not counted.
 BOUNDARY_MARKERS = {"+", "_", "#"}
 
 
-# ---------------------------------------------------------------- fixture i/o
+# Fixture input and output
 
 
 def load_fixture() -> tuple[dict[str, int], dict[str, dict[str, int]]]:
@@ -104,7 +103,7 @@ def scan_corpus(corpus_dir: Path) -> tuple[dict[str, dict[str, int]], dict[str, 
     return per_ds, forms  # type: ignore[return-value]
 
 
-# ------------------------------------------------------------------ measuring
+# Measuring
 
 
 def accepted(segments, system: str) -> set[str]:
@@ -138,8 +137,8 @@ def measure(total: dict[str, int], systems: list[str]) -> dict[str, dict[str, fl
 def blocked_datasets(per_ds: dict[str, dict[str, int]], system: str) -> list[tuple[str, float]]:
     """Datasets by token coverage, worst first.
 
-    Token coverage per dataset is exactly recoverable from the aggregate table;
-    the form-level rate is not, and is recorded in the baseline instead.
+    Token coverage per dataset can be computed exactly from the aggregate
+    table; the form-level rate cannot, and is recorded in the baseline instead.
     """
     every = set()
     for counts in per_ds.values():
@@ -154,7 +153,7 @@ def blocked_datasets(per_ds: dict[str, dict[str, int]], system: str) -> list[tup
     return rows
 
 
-# ----------------------------------------------------------------- reporting
+# Reporting
 
 
 def report(check: bool) -> int:
@@ -196,9 +195,9 @@ def report(check: bool) -> int:
             continue
         got = result[system]
         for key in ("types_pct", "tokens_pct"):
-            # Floors are stored at the precision they are printed at, so compare
-            # at that precision: a measured 95.5687 is not a regression against a
-            # recorded 95.57, it is the same number written down.
+            # Floors are stored at the precision they are printed at, so the
+            # comparison is made at that precision: a measured 95.5687 is the
+            # recorded 95.57, not a regression from it.
             if round(got[key], 2) + 1e-9 < floor[key]:
                 print(f"    {system:14} {key} {got[key]:.2f}% < floor {floor[key]:.2f}%")
                 failed = True
