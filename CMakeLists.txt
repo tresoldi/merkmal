@@ -277,6 +277,33 @@ if(MERKMAL_BUILD_TESTS)
     endif()
     add_test(NAME array COMMAND test_array)
 
+    # Fails every allocation in turn inside the entry points whose cleanup
+    # paths no ordinary input reaches. Wrapping malloc needs the GNU or LLVM
+    # linker's --wrap, and the wrap only reaches objects linked into this
+    # executable, so it compiles the sources rather than linking the library.
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        add_executable(test_alloc_failure tests/c/test_alloc_failure.c ${MERKMAL_SOURCES})
+        target_include_directories(test_alloc_failure
+            PRIVATE
+                ${CMAKE_CURRENT_SOURCE_DIR}/include
+                ${CMAKE_CURRENT_SOURCE_DIR}/src
+        )
+        target_compile_options(test_alloc_failure PRIVATE ${MERKMAL_C_WARNINGS})
+        target_link_options(test_alloc_failure
+            PRIVATE -Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc
+        )
+        if(MERKMAL_DATA_PROFILE STREQUAL "cc-by")
+            target_compile_definitions(test_alloc_failure PRIVATE MERKMAL_TEST_DATA_PROFILE_CC_BY)
+        endif()
+        if(MERKMAL_ENABLE_SANITIZER)
+            target_compile_options(test_alloc_failure
+                PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
+            )
+            target_link_options(test_alloc_failure PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
+        endif()
+        add_test(NAME alloc_failure COMMAND test_alloc_failure)
+    endif()
+
     # The built-in NFC and NFD. With utf8proc found, the test also compares
     # every code point and generated mark sequences against it; utf8proc is a
     # test oracle here, never a dependency of the library.

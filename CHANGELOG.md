@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Running out of memory no longer crashes segmentation or leaks clusters
+
+`mk_system_segment_ipa` freed its intermediate token list twice when its last
+allocation failed, and cluster synthesis leaked a parsed component when
+recording it failed. Both are reachable only when an allocation fails. A new
+test, `tests/c/test_alloc_failure.c`, fails every allocation in turn inside
+tokenization, system-aware segmentation, distance and model registration, and
+under the address sanitizer any crash or leak on those paths fails it (Linux
+only, since it wraps `malloc` at link time).
+
 ### Build identity is public: `mk_version_string`, `mk_data_profile`, `mk_unicode_version`
 
 The header now carries `MK_VERSION_MAJOR`, `MK_VERSION_MINOR`,
