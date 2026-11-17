@@ -169,8 +169,7 @@ mk_status mk_feature_distance(
     }
 
     common = 0;
-    limit = path_a->path_count < path_b->path_count ?
-        path_a->path_count : path_b->path_count;
+    limit = path_a->path_count < path_b->path_count ? path_a->path_count : path_b->path_count;
     while (common < limit && mki_streq(path_a->path[common], path_b->path[common])) {
         common++;
     }

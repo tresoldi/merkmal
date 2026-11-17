@@ -77,15 +77,13 @@ int main(void)
     check(mk_bundle_set(h, "voice", "?") == MK_OK, "set voice");
     check(mk_bundle_set(h, "guttural_place", "?") == MK_OK, "set place");
     check(mk_bundle_set(h, "Manner", "fricative|approximant") == MK_OK, "set manner");
-    check(mk_bundle_get(h, "Manner", &cell) == MK_OK && strcmp(cell, "approximant|fricative") == 0,
-          "canonical group alternatives");
+    check(mk_bundle_get(h, "Manner", &cell) == MK_OK && strcmp(cell, "approximant|fricative") == 0, "canonical group alternatives");
     mk_string_free(cell);
 
     check(mk_bundle_compatible(h, "ʕ", &ok) == MK_OK && ok, "ʕ compatible");
     check(mk_bundle_compatible(h, "h", &ok) == MK_OK && ok, "h compatible");
     check(mk_bundle_compatible(h, "k", &ok) == MK_OK && !ok, "k not compatible");
-    check(mk_bundle_compatible_graphemes(h, NULL, &compatible) == MK_OK &&
-              mk_string_list_size(compatible) > 0, "compatible list");
+    check(mk_bundle_compatible_graphemes(h, NULL, &compatible) == MK_OK && mk_string_list_size(compatible) > 0, "compatible list");
     mk_string_list_free(compatible);
 
     {

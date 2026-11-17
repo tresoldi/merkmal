@@ -37,7 +37,8 @@ static mk_status mk_score_views(
 )
 {
     return mki_scorer_for(system->builtin)(
-        system->builtin, a, b, node_weights, out, coverage);
+        system->builtin, a, b, node_weights, out, coverage
+    );
 }
 
 /* `a` and `b` weighted, normalized so the result stays in [0, 1] when both
@@ -130,7 +131,8 @@ static mk_status mk_cluster_to_segment(
     }
     status = mk_part_to_segment(
         system, &cluster->cluster_components[0], segment, node_weights, &part,
-        coverage == NULL ? NULL : &nucleus_coverage);
+        coverage == NULL ? NULL : &nucleus_coverage
+    );
     if (status != MK_OK) {
         return status;
     }
@@ -144,7 +146,8 @@ static mk_status mk_cluster_to_segment(
         for (i = 1; i < cluster->cluster_component_count; i++) {
             status = mk_part_to_segment(
                 system, &cluster->cluster_components[i], segment, node_weights, &part,
-                coverage == NULL ? NULL : &part_coverage);
+                coverage == NULL ? NULL : &part_coverage
+            );
             if (status != MK_OK) {
                 return status;
             }
@@ -157,7 +160,8 @@ static mk_status mk_cluster_to_segment(
         if (coverage != NULL) {
             *coverage = mk_weighted(
                 mki_clements_hume_cluster_nucleus_share, nucleus_coverage,
-                mki_clements_hume_cluster_offglide_share, rest_coverage);
+                mki_clements_hume_cluster_offglide_share, rest_coverage
+            );
         }
     }
     /* The extra-component penalty says a two-part spelling is further from a
@@ -220,19 +224,20 @@ mk_status mki_cluster_distance(
     }
     if (a->cluster_component_count > 0 && b->cluster_component_count == 0) {
         status = mk_cluster_to_segment(
-            system, a, b, node_weights, &component_score, want_component);
+            system, a, b, node_weights, &component_score, want_component
+        );
         if (status != MK_OK) {
             return status;
         }
     } else if (a->cluster_component_count == 0 && b->cluster_component_count > 0) {
         status = mk_cluster_to_segment(
-            system, b, a, node_weights, &component_score, want_component);
+            system, b, a, node_weights, &component_score, want_component
+        );
         if (status != MK_OK) {
             return status;
         }
     } else {
-        size_t common = a->cluster_component_count < b->cluster_component_count ?
-            a->cluster_component_count : b->cluster_component_count;
+        size_t common = a->cluster_component_count < b->cluster_component_count ? a->cluster_component_count : b->cluster_component_count;
         for (i = 0; i < common; i++) {
             double part;
             double part_coverage = 0.0;
@@ -265,7 +270,8 @@ mk_status mki_cluster_distance(
 
     status = mk_score_views(
         system, mki_view_of(a), mki_view_of(b), node_weights, &segment_score,
-        coverage == NULL ? NULL : &segment_coverage);
+        coverage == NULL ? NULL : &segment_coverage
+    );
     if (status != MK_OK) {
         return status;
     }
@@ -275,7 +281,8 @@ mk_status mki_cluster_distance(
     if (coverage != NULL) {
         *coverage = mk_weighted(
             mki_clements_hume_cluster_component_share, component_coverage,
-            mki_clements_hume_cluster_segment_share, segment_coverage);
+            mki_clements_hume_cluster_segment_share, segment_coverage
+        );
     }
     return MK_OK;
 }

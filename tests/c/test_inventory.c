@@ -67,13 +67,12 @@ int main(void)
     inventory_of(registry, "distinctive");
     check(mk_system_inventory(NULL, &list) == MK_ERR_INVALID_ARGUMENT, "NULL system");
 
-    check_norm("\xc3\xa9", MK_NFD, "e\xcc\x81");                 /* é -> e + U+0301 */
+    check_norm("\xc3\xa9", MK_NFD, "e\xcc\x81"); /* é -> e + U+0301 */
     check_norm("e\xcc\x81", MK_NFC, "\xc3\xa9");
-    check_norm("g", MK_NFD, "g");                                /* no IPA rewrite to ɡ */
-    check_norm("t'", MK_NFC, "t'");                              /* no apostrophe rewrite */
+    check_norm("g", MK_NFD, "g"); /* no IPA rewrite to ɡ */
+    check_norm("t'", MK_NFC, "t'"); /* no apostrophe rewrite */
     check_norm("a\xcc\x83\xcc\xa0", MK_NFD, "a\xcc\xa0\xcc\x83"); /* reorder: ccc 220 before 230 */
-    check(mk_unicode_normalize("a", (mk_normalization_form)7, &out) == MK_ERR_INVALID_ARGUMENT
-        && out == NULL, "bad form clears the out-pointer");
+    check(mk_unicode_normalize("a", (mk_normalization_form)7, &out) == MK_ERR_INVALID_ARGUMENT && out == NULL, "bad form clears the out-pointer");
     check(mk_unicode_normalize(NULL, MK_NFD, &out) == MK_ERR_INVALID_ARGUMENT, "NULL input");
 
     mk_registry_free(registry);

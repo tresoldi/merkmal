@@ -35,13 +35,13 @@ typedef struct scorer_case {
  * the only one carrying scalar dimensions of its own; the other categorical
  * system and every runtime model fall to leaf. */
 static const scorer_case scorer_cases[] = {
-    { "descriptive", "leaf" },
-    { "distinctive", "scalar" },
-    { "phoible", "valued" },
-    { "pbase-hc", "valued" },
-    { "pbase-jfh", "valued" },
-    { "pbase-spe", "valued" },
-    { "pbase-uftc", "valued" }
+    {"descriptive", "leaf"},
+    {"distinctive", "scalar"},
+    {"phoible", "valued"},
+    {"pbase-hc", "valued"},
+    {"pbase-jfh", "valued"},
+    {"pbase-spe", "valued"},
+    {"pbase-uftc", "valued"}
 };
 
 static void check_selection(mk_registry *registry)
@@ -62,8 +62,7 @@ static void check_selection(mk_registry *registry)
         got = mki_scorer_name(mki_scorer_for(system->builtin));
         if (strcmp(got, scorer_cases[i].scorer) != 0) {
             char detail[128];
-            snprintf(detail, sizeof(detail), "expected %s, got %s",
-                scorer_cases[i].scorer, got);
+            snprintf(detail, sizeof(detail), "expected %s, got %s", scorer_cases[i].scorer, got);
             fail(scorer_cases[i].system, detail);
         }
     }
@@ -140,7 +139,8 @@ static void check_coverage(mk_registry *registry)
      * scorer: its 1.0 would be coverage relative to the segment, where the
      * documented quantity is relative to the system's dimensions. */
     if (mk_system_segment_distance_ex(
-            phoible, "p", "p", NULL, &score, &coverage, &why) != MK_OK) {
+            phoible, "p", "p", NULL, &score, &coverage, &why
+        ) != MK_OK) {
         fail("phoible p/p", "status");
     } else {
         if (score != 0.0) {
@@ -148,8 +148,7 @@ static void check_coverage(mk_registry *registry)
         }
         if (!(coverage > 0.0 && coverage < 1.0)) {
             char detail[128];
-            snprintf(detail, sizeof(detail),
-                "expected partial coverage, got %.10f", coverage);
+            snprintf(detail, sizeof(detail), "expected partial coverage, got %.10f", coverage);
             fail("phoible p/p", detail);
         }
         if (why != MK_CMP_OK) {
@@ -166,7 +165,8 @@ static void check_coverage(mk_registry *registry)
     /* PHOIBLE's tone letters carry `.` on every dimension, so there is nothing
      * to compare against a segment. Same tier, no shared dimension. */
     if (mk_system_segment_distance_ex(
-            phoible, "˦˨", "d", NULL, &score, &coverage, &why) != MK_OK) {
+            phoible, "˦˨", "d", NULL, &score, &coverage, &why
+        ) != MK_OK) {
         fail("phoible tone/d", "status");
     } else if (coverage != 0.0 || why != MK_CMP_NO_SHARED_DIMENSION) {
         fail("phoible tone/d", "expected zero coverage and no-shared-dimension");
@@ -176,12 +176,14 @@ static void check_coverage(mk_registry *registry)
      * ordinary pair is fully covered. leaf answers for descriptive, scalar for
      * distinctive, and they report coverage the same way. */
     if (mk_system_segment_distance_ex(
-            descriptive, "p", "b", NULL, &score, &coverage, &why) != MK_OK ||
+            descriptive, "p", "b", NULL, &score, &coverage, &why
+        ) != MK_OK ||
         coverage != 1.0 || why != MK_CMP_OK) {
         fail("descriptive p/b", "expected full coverage");
     }
     if (mk_system_segment_distance_ex(
-            distinctive, "p", "b", NULL, &score, &coverage, &why) != MK_OK ||
+            distinctive, "p", "b", NULL, &score, &coverage, &why
+        ) != MK_OK ||
         coverage != 1.0 || why != MK_CMP_OK) {
         fail("distinctive p/b", "expected full coverage");
     }
@@ -189,11 +191,13 @@ static void check_coverage(mk_registry *registry)
     /* Coverage is the reason this entry point exists, so it is required rather
      * than optional -- unlike `why`, which may be NULL. */
     if (mk_system_segment_distance_ex(
-            phoible, "p", "b", NULL, &score, NULL, &why) != MK_ERR_INVALID_ARGUMENT) {
+            phoible, "p", "b", NULL, &score, NULL, &why
+        ) != MK_ERR_INVALID_ARGUMENT) {
         fail("null coverage", "expected MK_ERR_INVALID_ARGUMENT");
     }
     if (mk_system_segment_distance_ex(
-            phoible, "p", "b", NULL, &score, &coverage, NULL) != MK_OK) {
+            phoible, "p", "b", NULL, &score, &coverage, NULL
+        ) != MK_OK) {
         fail("null why", "why must stay optional");
     }
 }

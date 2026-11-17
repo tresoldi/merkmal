@@ -46,19 +46,25 @@ static void mk_sha256_block(mk_sha256 *ctx, const unsigned char *block)
 
     for (i = 0; i < 16; i++) {
         words[i] = ((uint32_t)block[i * 4] << 24) |
-                   ((uint32_t)block[i * 4 + 1] << 16) |
-                   ((uint32_t)block[i * 4 + 2] << 8) |
-                   (uint32_t)block[i * 4 + 3];
+            ((uint32_t)block[i * 4 + 1] << 16) |
+            ((uint32_t)block[i * 4 + 2] << 8) |
+            (uint32_t)block[i * 4 + 3];
     }
     for (i = 16; i < 64; i++) {
         uint32_t s0 = mk_rotr(words[i - 15], 7) ^ mk_rotr(words[i - 15], 18) ^
-                      (words[i - 15] >> 3);
+            (words[i - 15] >> 3);
         uint32_t s1 = mk_rotr(words[i - 2], 17) ^ mk_rotr(words[i - 2], 19) ^
-                      (words[i - 2] >> 10);
+            (words[i - 2] >> 10);
         words[i] = words[i - 16] + s0 + words[i - 7] + s1;
     }
-    a = ctx->state[0]; b = ctx->state[1]; c = ctx->state[2]; d = ctx->state[3];
-    e = ctx->state[4]; f = ctx->state[5]; g = ctx->state[6]; h = ctx->state[7];
+    a = ctx->state[0];
+    b = ctx->state[1];
+    c = ctx->state[2];
+    d = ctx->state[3];
+    e = ctx->state[4];
+    f = ctx->state[5];
+    g = ctx->state[6];
+    h = ctx->state[7];
     for (i = 0; i < 64; i++) {
         uint32_t s1 = mk_rotr(e, 6) ^ mk_rotr(e, 11) ^ mk_rotr(e, 25);
         uint32_t choice = (e & f) ^ ((~e) & g);
@@ -66,11 +72,23 @@ static void mk_sha256_block(mk_sha256 *ctx, const unsigned char *block)
         uint32_t s0 = mk_rotr(a, 2) ^ mk_rotr(a, 13) ^ mk_rotr(a, 22);
         uint32_t majority = (a & b) ^ (a & c) ^ (b & c);
         uint32_t temp2 = s0 + majority;
-        h = g; g = f; f = e; e = d + temp1;
-        d = c; c = b; b = a; a = temp1 + temp2;
+        h = g;
+        g = f;
+        f = e;
+        e = d + temp1;
+        d = c;
+        c = b;
+        b = a;
+        a = temp1 + temp2;
     }
-    ctx->state[0] += a; ctx->state[1] += b; ctx->state[2] += c; ctx->state[3] += d;
-    ctx->state[4] += e; ctx->state[5] += f; ctx->state[6] += g; ctx->state[7] += h;
+    ctx->state[0] += a;
+    ctx->state[1] += b;
+    ctx->state[2] += c;
+    ctx->state[3] += d;
+    ctx->state[4] += e;
+    ctx->state[5] += f;
+    ctx->state[6] += g;
+    ctx->state[7] += h;
 }
 
 static void mk_sha256_init(mk_sha256 *ctx)
@@ -154,10 +172,14 @@ static int mk_compare_strings(const void *left, const void *right)
 static const char *mk_fingerprint_kind_name(mki_system_type kind)
 {
     switch (kind) {
-    case MKI_SYSTEM_CATEGORICAL: return "categorical";
-    case MKI_SYSTEM_VALUED: return "valued";
-    case MKI_SYSTEM_TRAINED: return "trained";
-    default: return "unknown";
+    case MKI_SYSTEM_CATEGORICAL:
+        return "categorical";
+    case MKI_SYSTEM_VALUED:
+        return "valued";
+    case MKI_SYSTEM_TRAINED:
+        return "trained";
+    default:
+        return "unknown";
     }
 }
 
@@ -214,7 +236,8 @@ static mk_status mk_runtime_model_sha256(const mk_system *system, char out[65])
             /* Heap, sized to the row: MKI_MAX_ENTRY_FEATURES bounds compiled
              * rows only, and a runtime row may carry any number of features. */
             features = (const char **)malloc(
-                (row.feature_count == 0 ? 1 : row.feature_count) * sizeof(*features));
+                (row.feature_count == 0 ? 1 : row.feature_count) * sizeof(*features)
+            );
             if (features == NULL) {
                 return MK_ERR_OOM;
             }
@@ -244,13 +267,15 @@ static mk_status mk_runtime_model_sha256(const mk_system *system, char out[65])
     return MK_OK;
 }
 
-static mk_status mk_append_pair(char **text, size_t *length, size_t *capacity,
-                                const char *key, const char *value)
+static mk_status mk_append_pair(char **text, size_t *length, size_t *capacity, const char *key, const char *value)
 {
     mk_status status = mki_append_text(text, length, capacity, key);
-    if (status == MK_OK) status = mki_append_text(text, length, capacity, "=");
-    if (status == MK_OK) status = mki_append_text(text, length, capacity, value);
-    if (status == MK_OK) status = mki_append_text(text, length, capacity, "\n");
+    if (status == MK_OK)
+        status = mki_append_text(text, length, capacity, "=");
+    if (status == MK_OK)
+        status = mki_append_text(text, length, capacity, value);
+    if (status == MK_OK)
+        status = mki_append_text(text, length, capacity, "\n");
     return status;
 }
 
@@ -276,8 +301,10 @@ mk_status mki_system_semantic_fingerprint(
         (payload_out == NULL && digest_out == NULL)) {
         return MK_ERR_INVALID_ARGUMENT;
     }
-    if (payload_out != NULL) *payload_out = NULL;
-    if (digest_out != NULL) *digest_out = NULL;
+    if (payload_out != NULL)
+        *payload_out = NULL;
+    if (digest_out != NULL)
+        *digest_out = NULL;
     builtin = system->builtin;
     scorer = mki_scorer_name(mki_scorer_for(builtin));
     if (system->owns) {
@@ -292,17 +319,28 @@ mk_status mki_system_semantic_fingerprint(
         model_sha256 = builtin->model_sha256;
     }
     status = mk_append_pair(&payload, &length, &capacity, "schema", "merkmal-system-fingerprint-v1");
-    if (status == MK_OK) status = mk_append_pair(&payload, &length, &capacity, "system", builtin->name);
-    if (status == MK_OK) status = mk_append_pair(&payload, &length, &capacity, "system_kind", mk_fingerprint_kind_name(builtin->kind));
-    if (status == MK_OK) status = mk_append_pair(&payload, &length, &capacity, "model_version", model_version);
-    if (status == MK_OK) status = mk_append_pair(&payload, &length, &capacity, "model_sha256", model_sha256);
-    if (status == MK_OK) status = mk_append_pair(&payload, &length, &capacity, "scorer", scorer);
-    if (status == MK_OK) status = mk_append_pair(&payload, &length, &capacity, "geometry", "merkmal-clements-hume-inspired-v1");
-    if (status == MK_OK) status = mk_append_pair(&payload, &length, &capacity, "geometry_sha256", mki_fingerprint_geometry_sha256);
-    if (status == MK_OK) status = mk_append_pair(&payload, &length, &capacity, "diacritics_sha256", mki_fingerprint_diacritics_sha256);
-    if (status == MK_OK) status = mk_append_pair(&payload, &length, &capacity, "resolver_policy", "ipa-resolver-v1");
-    if (status == MK_OK) status = mk_append_pair(&payload, &length, &capacity, "tone_policy", "chao-tone-v1");
-    if (status == MK_OK) status = mk_append_pair(&payload, &length, &capacity, "comparison_policy", "segment-distance-v1");
+    if (status == MK_OK)
+        status = mk_append_pair(&payload, &length, &capacity, "system", builtin->name);
+    if (status == MK_OK)
+        status = mk_append_pair(&payload, &length, &capacity, "system_kind", mk_fingerprint_kind_name(builtin->kind));
+    if (status == MK_OK)
+        status = mk_append_pair(&payload, &length, &capacity, "model_version", model_version);
+    if (status == MK_OK)
+        status = mk_append_pair(&payload, &length, &capacity, "model_sha256", model_sha256);
+    if (status == MK_OK)
+        status = mk_append_pair(&payload, &length, &capacity, "scorer", scorer);
+    if (status == MK_OK)
+        status = mk_append_pair(&payload, &length, &capacity, "geometry", "merkmal-clements-hume-inspired-v1");
+    if (status == MK_OK)
+        status = mk_append_pair(&payload, &length, &capacity, "geometry_sha256", mki_fingerprint_geometry_sha256);
+    if (status == MK_OK)
+        status = mk_append_pair(&payload, &length, &capacity, "diacritics_sha256", mki_fingerprint_diacritics_sha256);
+    if (status == MK_OK)
+        status = mk_append_pair(&payload, &length, &capacity, "resolver_policy", "ipa-resolver-v1");
+    if (status == MK_OK)
+        status = mk_append_pair(&payload, &length, &capacity, "tone_policy", "chao-tone-v1");
+    if (status == MK_OK)
+        status = mk_append_pair(&payload, &length, &capacity, "comparison_policy", "segment-distance-v1");
     if (status != MK_OK) {
         free(payload);
         return status;
@@ -313,9 +351,13 @@ mk_status mki_system_semantic_fingerprint(
         free(payload);
         return MK_ERR_OOM;
     }
-    if (payload_out != NULL) *payload_out = payload;
-    else free(payload);
-    if (digest_out != NULL) *digest_out = digest;
-    else free(digest);
+    if (payload_out != NULL)
+        *payload_out = payload;
+    else
+        free(payload);
+    if (digest_out != NULL)
+        *digest_out = digest;
+    else
+        free(digest);
     return MK_OK;
 }

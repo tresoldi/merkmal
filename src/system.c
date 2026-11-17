@@ -177,7 +177,8 @@ static mk_status mk_score_resolved(
         status = MK_OK;
     } else {
         status = scorer(
-            system->builtin, mki_view_of(a), mki_view_of(b), node_weights, out, coverage);
+            system->builtin, mki_view_of(a), mki_view_of(b), node_weights, out, coverage
+        );
     }
 
     /* Same tier, nothing in common. The score is 0.0 and does not mean
@@ -218,7 +219,8 @@ static mk_status mk_distance_with_coverage(
     }
 
     status = mk_score_resolved(
-        system, &resolved_a, &resolved_b, node_weights, out, coverage, why);
+        system, &resolved_a, &resolved_b, node_weights, out, coverage, why
+    );
     mki_resolution_clear(&resolved_a);
     mki_resolution_clear(&resolved_b);
     if (status != MK_OK) {
@@ -282,7 +284,8 @@ static mk_status mk_join_tokens(
 
     for (i = 0; i < span; i++) {
         mk_status status = mki_append_text(
-            &joined, &joined_len, &joined_cap, mk_string_list_get(tokens, index + i));
+            &joined, &joined_len, &joined_cap, mk_string_list_get(tokens, index + i)
+        );
         if (status != MK_OK) {
             free(joined);
             return status;
@@ -342,8 +345,7 @@ static mk_status mk_longest_segment_at(
 )
 {
     size_t total = mk_string_list_size(tokens);
-    size_t try_span = total - index > MK_SYSTEM_SEGMENT_MAX_SPAN ?
-        MK_SYSTEM_SEGMENT_MAX_SPAN : total - index;
+    size_t try_span = total - index > MK_SYSTEM_SEGMENT_MAX_SPAN ? MK_SYSTEM_SEGMENT_MAX_SPAN : total - index;
 
     *segment = NULL;
     *span = 0;

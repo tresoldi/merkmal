@@ -481,7 +481,8 @@ static PyObject *py_distance_with_coverage(PyObject *self, PyObject *args, PyObj
         goto done;
     }
     status = mk_system_segment_distance_ex(
-        system, a, b, node_weights, &score, &coverage, &why);
+        system, a, b, node_weights, &score, &coverage, &why
+    );
     if (status != MK_OK) {
         status_error(status, "distance_with_coverage");
         goto done;
@@ -491,7 +492,7 @@ static PyObject *py_distance_with_coverage(PyObject *self, PyObject *args, PyObj
          * a 0.0 with coverage 0.0 is "nothing to compare", and a cross-tier
          * score is a declared policy value rather than a measurement. */
         const char *label = why == MK_CMP_CROSS_TIER ? "cross-tier"
-            : (why == MK_CMP_NO_SHARED_DIMENSION ? "no-shared-dimension" : "ok");
+                                                     : (why == MK_CMP_NO_SHARED_DIMENSION ? "no-shared-dimension" : "ok");
         result = Py_BuildValue("(dds)", score, coverage, label);
     }
 
@@ -1239,8 +1240,7 @@ static PyObject *py_bundle_columns(PyObject *self, PyObject *args, PyObject *kwa
     mk_status status;
 
     (void)self;
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OO:bundle_columns", keywords,
-                                     &system_obj, &registry_obj)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OO:bundle_columns", keywords, &system_obj, &registry_obj)) {
         return NULL;
     }
     system = py_bundle_system(system_obj, registry_obj, &bag, "bundle_columns");
@@ -1309,8 +1309,7 @@ static PyObject *py_bundle_parse(PyObject *self, PyObject *args, PyObject *kwarg
     mk_status status;
 
     (void)self;
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OOp:bundle_parse", keywords,
-                                     &text_obj, &system_obj, &registry_obj, &from_grapheme)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OOp:bundle_parse", keywords, &text_obj, &system_obj, &registry_obj, &from_grapheme)) {
         return NULL;
     }
     if (py_utf8_take(&bag, text_obj, "text", &text) < 0) {
@@ -1367,8 +1366,7 @@ static PyObject *py_bundle_compare(PyObject *self, PyObject *args, PyObject *kwa
     mk_status status;
 
     (void)self;
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|OOO:bundle_compare", keywords,
-                                     &a_obj, &b_obj, &system_obj, &registry_obj, &weights_obj)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|OOO:bundle_compare", keywords, &a_obj, &b_obj, &system_obj, &registry_obj, &weights_obj)) {
         return NULL;
     }
     if (py_utf8_take(&bag, a_obj, "a", &a_text) < 0 ||
@@ -1391,8 +1389,7 @@ static PyObject *py_bundle_compare(PyObject *self, PyObject *args, PyObject *kwa
         status_error(status, "bundle_compare");
         goto done;
     }
-    result = Py_BuildValue("(ddddz)", cmp.distance, cmp.coverage, cmp.minimum, cmp.maximum,
-                           py_comparability_name(cmp.why));
+    result = Py_BuildValue("(ddddz)", cmp.distance, cmp.coverage, cmp.minimum, cmp.maximum, py_comparability_name(cmp.why));
 done:
     mk_bundle_free(a);
     mk_bundle_free(b);
@@ -1417,8 +1414,7 @@ static PyObject *py_bundle_compatible(PyObject *self, PyObject *args, PyObject *
     mk_status status;
 
     (void)self;
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|OO:bundle_compatible", keywords,
-                                     &text_obj, &grapheme_obj, &system_obj, &registry_obj)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|OO:bundle_compatible", keywords, &text_obj, &grapheme_obj, &system_obj, &registry_obj)) {
         return NULL;
     }
     if (py_utf8_take(&bag, text_obj, "text", &text) < 0 ||
@@ -1461,8 +1457,7 @@ static PyObject *py_bundle_compatible_graphemes(PyObject *self, PyObject *args, 
     mk_status status;
 
     (void)self;
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OOO:bundle_compatible_graphemes", keywords,
-                                     &text_obj, &system_obj, &registry_obj, &weights_obj)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OOO:bundle_compatible_graphemes", keywords, &text_obj, &system_obj, &registry_obj, &weights_obj)) {
         return NULL;
     }
     if (py_utf8_take(&bag, text_obj, "text", &text) < 0 ||
@@ -1568,7 +1563,8 @@ PyMODINIT_FUNC PyInit__native(void)
         return NULL;
     }
     mk_py_source_marker = PyErr_NewException(
-        "merkmal.SourceMarkerError", PyExc_ValueError, NULL);
+        "merkmal.SourceMarkerError", PyExc_ValueError, NULL
+    );
     if (mk_py_source_marker == NULL) {
         Py_DECREF(module);
         return NULL;

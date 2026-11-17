@@ -36,15 +36,15 @@ static int check_off_tree_features_are_reported(void)
     static const char *const off_tree[][2] = {
         /* Real, scored features that are mapped to a node rather than being
          * leaves under it. */
-        { "bilabial", "velar" },
-        { "stop", "fricative" },
+        {"bilabial", "velar"},
+        {"stop", "fricative"},
         /* A position on an ordered scale, not a point on the tree. */
-        { "tone-onset-1", "tone-offset-1" },
+        {"tone-onset-1", "tone-offset-1"},
         /* Identity does not exempt a feature from the domain... */
-        { "bilabial", "bilabial" },
+        {"bilabial", "bilabial"},
         /* ...and neither does a name the geometry has never heard of. */
-        { "not-a-feature", "not-a-feature" },
-        { "not-a-feature", "voiced" }
+        {"not-a-feature", "not-a-feature"},
+        {"not-a-feature", "voiced"}
     };
     size_t i;
     int failed = 0;
@@ -224,8 +224,8 @@ static int check_sound_distances(
  * would be one callers had to remember to test for. */
 static int check_invalid_preset(void)
 {
-    static const char *const features_a[] = { "consonant", "bilabial", "stop" };
-    static const char *const features_b[] = { "consonant", "bilabial", "nasal" };
+    static const char *const features_a[] = {"consonant", "bilabial", "stop"};
+    static const char *const features_b[] = {"consonant", "bilabial", "nasal"};
     double value = -1.0;
     mk_status status;
 
@@ -239,15 +239,13 @@ static int check_invalid_preset(void)
 
     status = mk_sound_distance(a, b, "no-such-preset", &value);
     if (status != MK_ERR_INVALID_ARGUMENT) {
-        fprintf(stderr, "sound_distance unknown preset: expected %d, got %d\n",
-            MK_ERR_INVALID_ARGUMENT, status);
+        fprintf(stderr, "sound_distance unknown preset: expected %d, got %d\n", MK_ERR_INVALID_ARGUMENT, status);
         return 1;
     }
 
     status = mk_sound_distance(a, b, "flat", &value);
     if (status != MK_OK || !(value > 0.0 && value <= 1.0)) {
-        fprintf(stderr, "sound_distance flat: expected a normalized value, got %d %.10f\n",
-            status, value);
+        fprintf(stderr, "sound_distance flat: expected a normalized value, got %d %.10f\n", status, value);
         return 1;
     }
     return 0;
@@ -259,8 +257,7 @@ int main(void)
     mk_golden_cases cases;
     int failed = 0;
 
-    snprintf(cases_path, sizeof(cases_path),
-        "%s/tests/golden/geometry_cases.tsv", MERKMAL_SOURCE_DIR);
+    snprintf(cases_path, sizeof(cases_path), "%s/tests/golden/geometry_cases.tsv", MERKMAL_SOURCE_DIR);
     if (mk_golden_cases_load(&cases, cases_path) != 0) {
         return 1;
     }

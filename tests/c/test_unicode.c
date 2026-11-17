@@ -30,8 +30,7 @@ static void check(const char *label, const char *input, int compose, const char 
     mk_status status = compose ? mki_unicode_nfc(input, &out) : mki_unicode_nfd(input, &out);
 
     if (status != MK_OK || out == NULL || strcmp(out, expected) != 0) {
-        fprintf(stderr, "%s %s: got \"%s\", expected \"%s\"\n",
-            compose ? "NFC" : "NFD", label, out == NULL ? "(null)" : out, expected);
+        fprintf(stderr, "%s %s: got \"%s\", expected \"%s\"\n", compose ? "NFC" : "NFD", label, out == NULL ? "(null)" : out, expected);
         failures++;
     }
     free(out);
@@ -95,9 +94,7 @@ static int compare(const char *text)
 
     for (compose = 0; compose <= 1; compose++) {
         char *ours = NULL;
-        utf8proc_uint8_t *theirs = compose ?
-            utf8proc_NFC((const utf8proc_uint8_t *)text) :
-            utf8proc_NFD((const utf8proc_uint8_t *)text);
+        utf8proc_uint8_t *theirs = compose ? utf8proc_NFC((const utf8proc_uint8_t *)text) : utf8proc_NFD((const utf8proc_uint8_t *)text);
         mk_status status = compose ? mki_unicode_nfc(text, &ours) : mki_unicode_nfd(text, &ours);
         int same = status == MK_OK && theirs != NULL && strcmp(ours, (const char *)theirs) == 0;
 
@@ -199,9 +196,7 @@ int main(void)
     fixed_vectors();
 #if MK_HAVE_UTF8PROC
     if (strcmp(utf8proc_unicode_version(), mki_unicode_version) != 0) {
-        fprintf(stderr,
-            "utf8proc carries Unicode %s and the tables %s; skipping the oracle\n",
-            utf8proc_unicode_version(), mki_unicode_version);
+        fprintf(stderr, "utf8proc carries Unicode %s and the tables %s; skipping the oracle\n", utf8proc_unicode_version(), mki_unicode_version);
         return failures == 0 ? MK_SKIP : 1;
     }
     against_utf8proc();

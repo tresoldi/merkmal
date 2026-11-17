@@ -103,7 +103,8 @@ static mk_status mk_add_parsed_entry(
             break;
         }
         next_features = (char **)mki_grow_array(
-            features, &feature_cap, feature_count, 1, sizeof(*features), 8);
+            features, &feature_cap, feature_count, 1, sizeof(*features), 8
+        );
         if (next_features == NULL) {
             mki_free_items(features, feature_count);
             return MK_ERR_OOM;
@@ -122,7 +123,8 @@ static mk_status mk_add_parsed_entry(
     }
 
     next_entries = (mki_builtin_entry *)mki_grow_array(
-        *entries, cap, *count, 1, sizeof(**entries), 8);
+        *entries, cap, *count, 1, sizeof(**entries), 8
+    );
     if (next_entries == NULL) {
         mki_free_items(features, feature_count);
         return MK_ERR_OOM;
@@ -371,7 +373,8 @@ static mk_status mk_parse_line(
         }
     } else if ((args = mk_directive_args(trimmed, "grapheme")) != NULL) {
         mk_status status = mk_add_parsed_entry(
-            &parse->entries, &parse->entry_count, &parse->entry_cap, args);
+            &parse->entries, &parse->entry_count, &parse->entry_cap, args
+        );
         if (status != MK_OK) {
             mk_set_diagnostic(diagnostic, line_no, "malformed grapheme row", trimmed);
             return status;
@@ -409,8 +412,7 @@ static mk_status mk_check_model(const mk_model_parse *parse, char **diagnostic)
             diagnostic,
             0,
             "a model needs @model, '@type categorical', and at least one grapheme row",
-            parse->name == NULL ? "@model is missing" :
-                (!parse->saw_categorical ? "@type categorical is missing" : "no grapheme rows")
+            parse->name == NULL ? "@model is missing" : (!parse->saw_categorical ? "@type categorical is missing" : "no grapheme rows")
         );
         return MK_ERR_PARSE;
     }

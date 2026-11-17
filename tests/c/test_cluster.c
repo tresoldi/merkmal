@@ -44,7 +44,7 @@ static const mk_system *system_named(mk_registry *registry, const char *name)
  * two clusters. */
 static void check_parts_carry_features(const mk_system *system)
 {
-    static const char *const spellings[] = { "ai", "au", "aa", "iau" };
+    static const char *const spellings[] = {"ai", "au", "aa", "iau"};
     size_t s;
 
     for (s = 0; s < sizeof(spellings) / sizeof(spellings[0]); s++) {
@@ -93,12 +93,10 @@ static void check_policy_is_data(void)
         !(fabs(mki_clements_hume_cluster_segment_share - 0.2) < 1e-12)) {
         fail("cluster policy", "the compiled shares are not the declared ones");
     }
-    if (fabs(mki_clements_hume_cluster_component_share +
-             mki_clements_hume_cluster_segment_share - 1.0) > 1e-12) {
+    if (fabs(mki_clements_hume_cluster_component_share + mki_clements_hume_cluster_segment_share - 1.0) > 1e-12) {
         fail("cluster policy", "component and segment shares do not sum to 1");
     }
-    if (fabs(mki_clements_hume_cluster_nucleus_share +
-             mki_clements_hume_cluster_offglide_share - 1.0) > 1e-12) {
+    if (fabs(mki_clements_hume_cluster_nucleus_share + mki_clements_hume_cluster_offglide_share - 1.0) > 1e-12) {
         fail("cluster policy", "nucleus and offglide shares do not sum to 1");
     }
 }
@@ -163,16 +161,18 @@ static void check_geminacy_is_featural(const mk_system *system)
         int geminate;
         const char *why;
     } cases[] = {
-        { "aa", 1, "one segment written twice" },
-        { "ai", 0, "two different vowels" },
-        { "au", 0, "two different vowels" },
+        {"aa", 1, "one segment written twice"},
+        {"ai", 0, "two different vowels"},
+        {"au", 0, "two different vowels"},
         /* A creaky ultra-long /a/ against the same vowel with the creaky mark
          * written a second time: "a" U+0330 U+02D0 U+02D0, then the same with a
          * second U+0330. Different bytes, nine identical features. Spelled out
          * in escapes because stacked combining marks render ambiguously, and
          * this case only means anything if the bytes are exact. */
-        { "a\xcc\xb0\xcb\x90\xcb\x90" "a\xcc\xb0\xcb\x90\xcb\x90\xcc\xb0", 1,
-          "a redundant mark does not make it a different segment" },
+        {"a\xcc\xb0\xcb\x90\xcb\x90"
+         "a\xcc\xb0\xcb\x90\xcb\x90\xcc\xb0",
+         1,
+         "a redundant mark does not make it a different segment"},
     };
     size_t i;
 
@@ -190,10 +190,10 @@ static void check_geminacy_is_featural(const mk_system *system)
             continue;
         }
         geminate = mki_features_contain(
-            resolved.features, resolved.feature_count, "geminate");
+            resolved.features, resolved.feature_count, "geminate"
+        );
         if (geminate != cases[i].geminate) {
-            fail(cases[i].why, cases[i].geminate ?
-                "expected geminate" : "expected not geminate");
+            fail(cases[i].why, cases[i].geminate ? "expected geminate" : "expected not geminate");
         }
         mki_resolution_clear(&resolved);
     }
@@ -229,7 +229,12 @@ static void check_two_plain_segments(const mk_system *system)
 static void check_cluster_coverage(const mk_system *system)
 {
     static const char *const pairs[][2] = {
-        {"ai", "au"}, {"ai", "a"}, {"a", "ai"}, {"ai", "ai"}, {"aiu", "ai"}, {"mbr", "br"},
+        {"ai", "au"},
+        {"ai", "a"},
+        {"a", "ai"},
+        {"ai", "ai"},
+        {"aiu", "ai"},
+        {"mbr", "br"},
     };
     static const double seeds[] = {-7.0, 0.0, 2.0};
     size_t i;
@@ -248,7 +253,8 @@ static void check_cluster_coverage(const mk_system *system)
             mk_comparability why = MK_CMP_CROSS_TIER;
 
             if (mk_system_segment_distance_ex(
-                    system, pairs[i][0], pairs[i][1], NULL, &score, &coverage, &why) != MK_OK) {
+                    system, pairs[i][0], pairs[i][1], NULL, &score, &coverage, &why
+                ) != MK_OK) {
                 fail(pairs[i][0], "distance_ex failed");
                 continue;
             }

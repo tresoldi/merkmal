@@ -58,17 +58,17 @@ static const mki_decomposition *mk_find_decomposition(const char *p)
  * mapping. Any other precomposed letter carrying an uninterpretable mark is
  * deliberately left composed, and therefore rejected rather than guessed at. */
 static const mki_decomposition mk_source_conventions[] = {
-    { "ɡ", "g" },
-    { "ʣ", "dz" },
-    { "ʤ", "dʒ" },
-    { "ʥ", "dʑ" },
-    { "ʦ", "ts" },
-    { "ʧ", "tʃ" },
-    { "ʨ", "tɕ" },
-    { "ç", "ç" },
-    { "’", "ʼ" },
-    { "'", "ʼ" },
-    { ":", "ː" },
+    {"ɡ", "g"},
+    {"ʣ", "dz"},
+    {"ʤ", "dʒ"},
+    {"ʥ", "dʑ"},
+    {"ʦ", "ts"},
+    {"ʧ", "tʃ"},
+    {"ʨ", "tɕ"},
+    {"ç", "ç"},
+    {"’", "ʼ"},
+    {"'", "ʼ"},
+    {":", "ː"},
     /* U+01DD TURNED E is a source convention for schwa: CLTS v1.4.1 names it
      * "unrounded mid central vowel", the name this inventory gives U+0259, and
      * no bundled model carries it as a row of its own. A lookalike an author
@@ -84,22 +84,22 @@ static const mki_decomposition mk_source_conventions[] = {
      * applying anything here, so a convention cannot shadow a grapheme a
      * system actually has. `ɫ` resolves for the categorical systems, which lack
      * it, and stays its own segment in PHOIBLE, which has it. */
-    { "ɫ", "lˠ" },
-    { "ǝ", "ə" },
+    {"ɫ", "lˠ"},
+    {"ǝ", "ə"},
     /* U+025A and U+025D are the IPA's precomposed rhotacized central vowels,
      * the usual spelling of American English "butter" and "bird". CLTS v1.4.1
      * names them as it names "ə˞" and "ɜ˞", which every bundled system reads.
      * PHOIBLE carries "ɚ" as a row of its own, and the inventory-first lookup
      * keeps it so. */
-    { "ɚ", "ə˞" },
-    { "ɝ", "ɜ˞" },
+    {"ɚ", "ə˞"},
+    {"ɝ", "ɜ˞"},
     /* U+02C1 MODIFIER LETTER REVERSED GLOTTAL STOP is how Semitist and much
      * Arabic-dialect literature writes pharyngealization; the IPA letter is
      * U+02E4, which every bundled system reads. */
-    { "ˁ", "ˤ" },
+    {"ˁ", "ˤ"},
     /* U+03B5 GREEK SMALL LETTER EPSILON, a lookalike reached for in place of
      * U+025B, as U+01DD is for schwa. */
-    { "ε", "ɛ" }
+    {"ε", "ɛ"}
 };
 
 /* Decompose a token using the compiled table.
@@ -230,7 +230,7 @@ mk_status mk_normalize_grapheme(
     out = NULL;
     len = 0;
     cap = 0;
-    for (p = tmp; *p != '\0'; ) {
+    for (p = tmp; *p != '\0';) {
         if (*p == 'g') {
             status = mki_append_text(&out, &len, &cap, "ɡ");
             p++;
@@ -307,12 +307,12 @@ mk_status mki_segmentation_nfd(
      * conversion is unambiguous. */
     {
         static const char *const superscripts[] = {
-            "\xe2\x81\xb0",  /* ⁰ */
-            "\xc2\xb9",      /* ¹ */
-            "\xc2\xb2",      /* ² */
-            "\xc2\xb3",      /* ³ */
-            "\xe2\x81\xb4",  /* ⁴ */
-            "\xe2\x81\xb5"   /* ⁵ */
+            "\xe2\x81\xb0", /* ⁰ */
+            "\xc2\xb9", /* ¹ */
+            "\xc2\xb2", /* ² */
+            "\xc2\xb3", /* ³ */
+            "\xe2\x81\xb4", /* ⁴ */
+            "\xe2\x81\xb5" /* ⁵ */
         };
         char *out = NULL;
         size_t out_len = 0;
@@ -329,8 +329,7 @@ mk_status mki_segmentation_nfd(
         if (has_ascii_digit) {
             for (p = tmp; *p != '\0'; p++) {
                 if (*p >= '0' && *p <= '5') {
-                    status = mki_append_text(&out, &out_len, &out_cap,
-                                             superscripts[*p - '0']);
+                    status = mki_append_text(&out, &out_len, &out_cap, superscripts[*p - '0']);
                 } else {
                     char one[5];
                     size_t n = mki_utf8_step(p);

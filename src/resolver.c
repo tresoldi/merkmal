@@ -716,14 +716,16 @@ static mk_status mk_synthesize_bare_tone(
         status = mk_add_owned_feature(&features, &feature_count, &feature_cap, "tone-neutral");
     } else {
         status = mk_add_chao_tone_features(
-            &features, &feature_count, &feature_cap, levels, count);
+            &features, &feature_count, &feature_cap, levels, count
+        );
     }
     if (status != MK_OK) {
         goto fail;
     }
 
     status = mk_set_synthesized_entry(
-        out, MKI_RESOLVED_TONE, normalized, features, feature_count, NULL, 0);
+        out, MKI_RESOLVED_TONE, normalized, features, feature_count, NULL, 0
+    );
     if (status != MK_OK) {
         goto fail;
     }
@@ -972,14 +974,16 @@ static mk_status mk_decompose_diacritics(
              * deduplicate to one "long" and make it identical to "aː". */
             if (mki_streq(feature, "long") &&
                 mk_feature_list_contains(
-                    (const char *const *)modifiers, modifier_count, "ultra-long")) {
+                    (const char *const *)modifiers, modifier_count, "ultra-long"
+                )) {
                 /* A third length mark has no level left to promote to. */
                 status = MK_ERR_PARSE;
                 goto fail;
             }
             if (mki_streq(feature, "long") &&
                 mk_feature_list_contains(
-                    (const char *const *)modifiers, modifier_count, "long")) {
+                    (const char *const *)modifiers, modifier_count, "long"
+                )) {
                 mk_replace_owned_feature(modifiers, modifier_count, "long", "ultra-long");
                 recognized_modifier = 1;
                 p += strlen(suffix->mark);
@@ -1104,12 +1108,12 @@ static bool mk_admits_synthesized_clusters(const mk_system *system)
  * length mark is. Inventory rows are looked up before synthesis,
  * so no row is affected. */
 static const char *const mk_contradictory_modifiers[][2] = {
-    { "syllabic", "non-syllabic" },
-    { "apical", "laminal" },
-    { "advanced", "retracted" },
-    { "raised", "lowered" },
-    { "more-rounded", "less-rounded" },
-    { "advanced-tongue-root", "retracted-tongue-root" }
+    {"syllabic", "non-syllabic"},
+    {"apical", "laminal"},
+    {"advanced", "retracted"},
+    {"raised", "lowered"},
+    {"more-rounded", "less-rounded"},
+    {"advanced-tongue-root", "retracted-tongue-root"}
 };
 
 static bool mk_modifiers_contradict(const char *const *features, size_t count)
@@ -1201,7 +1205,8 @@ static mk_status mk_apply_place_modifier(
         for (j = 0; j < scale->level_count; j++) {
             if (!mki_streq(scale->levels[j], modifier) &&
                 mk_feature_list_contains(
-                    (const char *const *)*features, *count, scale->levels[j])) {
+                    (const char *const *)*features, *count, scale->levels[j]
+                )) {
                 mk_remove_owned_feature(*features, count, scale->levels[j]);
                 replaced = 1;
             }
@@ -1309,7 +1314,8 @@ static mk_status mk_add_cluster_component(
 
     {
         mki_cluster_component *next = (mki_cluster_component *)mki_grow_array(
-            *components, cap, *count, 1, sizeof(**components), 4);
+            *components, cap, *count, 1, sizeof(**components), 4
+        );
         if (next == NULL) {
             return MK_ERR_OOM;
         }
@@ -1396,7 +1402,8 @@ static mk_status mk_attach_component_features(
     }
     slot->borrowed_features = (const char **)malloc(
         (resolved->feature_count == 0 ? 1 : resolved->feature_count) *
-        sizeof(*slot->borrowed_features));
+        sizeof(*slot->borrowed_features)
+    );
     if (slot->borrowed_features == NULL) {
         slot->feature_count = 0;
         return MK_ERR_OOM;
@@ -1404,7 +1411,8 @@ static mk_status mk_attach_component_features(
     memcpy(
         slot->borrowed_features,
         resolved->features,
-        resolved->feature_count * sizeof(*slot->borrowed_features));
+        resolved->feature_count * sizeof(*slot->borrowed_features)
+    );
     slot->features = (const char *const *)slot->borrowed_features;
     return MK_OK;
 }
@@ -1483,31 +1491,27 @@ static bool mk_vowel_starts_component(const char *p)
 static bool mk_vowel_component_accepted(const mki_resolution *component)
 {
     return mk_feature_array_marks_nucleus(
-            component->features, component->feature_count) &&
+               component->features, component->feature_count
+           ) &&
         mk_feature_list_contains(
-            component->features, component->feature_count, "vowel");
+               component->features, component->feature_count, "vowel"
+        );
 }
 
 /* Source markup and control tokens are not segments and must not start one. */
 static bool mk_consonant_starts_component(const char *p)
 {
-    return !(*p == '<' ||
-        *p == '>' ||
-        *p == '+' ||
-        *p == '-' ||
-        *p == '/' ||
-        *p == '[' ||
-        *p == ']' ||
-        mki_has_prefix(p, "→") ||
-        mki_has_prefix(p, "∼"));
+    return !(*p == '<' || *p == '>' || *p == '+' || *p == '-' || *p == '/' || *p == '[' || *p == ']' || mki_has_prefix(p, "→") || mki_has_prefix(p, "∼"));
 }
 
 static bool mk_consonant_component_accepted(const mki_resolution *component)
 {
     return mk_feature_list_contains(
-            component->features, component->feature_count, "consonant") &&
+               component->features, component->feature_count, "consonant"
+           ) &&
         !mk_feature_list_contains(
-            component->features, component->feature_count, "vowel");
+               component->features, component->feature_count, "vowel"
+        );
 }
 
 static const mk_component_grammar mk_vowel_component_grammar = {
@@ -1615,7 +1619,8 @@ static mk_status mk_parse_component_once(
     {
         mki_entry_view entry;
         status = mk_lookup_normalized(
-            system, component, component_out->inline_features, &entry, NULL);
+            system, component, component_out->inline_features, &entry, NULL
+        );
         if (status == MK_OK) {
             component_out->grapheme = entry.grapheme;
             component_out->features = entry.features;
@@ -1662,7 +1667,8 @@ static mk_status mk_parse_component_at(
 {
     const char *first_end = NULL;
     mk_status status = mk_parse_component_once(
-        system, grammar, start, &first_end, component_out);
+        system, grammar, start, &first_end, component_out
+    );
 
     if (status != MK_OK) {
         return status;
@@ -1695,7 +1701,8 @@ static mk_status mk_parse_component_at(
 
                 memset(&merged, 0, sizeof(merged));
                 merged_status = mk_lookup_normalized(
-                    system, joined, merged.inline_features, &entry, NULL);
+                    system, joined, merged.inline_features, &entry, NULL
+                );
                 if (merged_status == MK_OK) {
                     merged.grapheme = entry.grapheme;
                     merged.features = entry.features;
@@ -1749,12 +1756,12 @@ typedef struct mk_cluster_grammar {
     /* Features implied by the run as a whole, added before the per-position
      * labels. */
     mk_status (*cluster_features)(
-        char ***features, size_t *count, size_t *cap,
-        const mki_resolution *components, size_t component_count);
+        char ***features, size_t *count, size_t *cap, const mki_resolution *components, size_t component_count
+    );
     /* Features implied by each adjacent pair, added after them. */
     mk_status (*transition_features)(
-        char ***features, size_t *count, size_t *cap,
-        const mki_resolution *components, size_t component_count);
+        char ***features, size_t *count, size_t *cap, const mki_resolution *components, size_t component_count
+    );
 } mk_cluster_grammar;
 
 /* A prenasalised segment is a nasal followed by a non-nasal obstruent. Testing
@@ -1771,11 +1778,14 @@ static mk_status mk_add_prenasalization(
 {
     if (component_count >= 2 &&
         mk_feature_list_contains(
-            components[0].features, components[0].feature_count, "nasal") &&
+            components[0].features, components[0].feature_count, "nasal"
+        ) &&
         !mk_feature_list_contains(
-            components[1].features, components[1].feature_count, "nasal") &&
+            components[1].features, components[1].feature_count, "nasal"
+        ) &&
         mk_feature_list_contains(
-            components[1].features, components[1].feature_count, "obstruent")) {
+            components[1].features, components[1].feature_count, "obstruent"
+        )) {
         return mk_add_owned_feature(features, count, cap, "pre-nasalized");
     }
     return MK_OK;
@@ -1793,7 +1803,8 @@ static mk_status mk_add_vowel_movement(
 
     for (i = 1; i < component_count; i++) {
         mk_status status = mk_add_cluster_movement_features(
-            features, count, cap, &components[i - 1], &components[i]);
+            features, count, cap, &components[i - 1], &components[i]
+        );
         if (status != MK_OK) {
             return status;
         }
@@ -1801,7 +1812,7 @@ static mk_status mk_add_vowel_movement(
     return MK_OK;
 }
 
-static const char *const mk_vowel_cluster_classes[] = { "vowel" };
+static const char *const mk_vowel_cluster_classes[] = {"vowel"};
 static const char *const mk_consonant_cluster_classes[] = {
     "consonant",
     "complex",
@@ -1881,7 +1892,8 @@ static mk_status mk_synthesize_cluster(
                 }
                 for (i = 0; i < tone->feature_count; i++) {
                     status = mk_add_owned_feature(
-                        &features, &feature_count, &feature_cap, tone->features[i]);
+                        &features, &feature_count, &feature_cap, tone->features[i]
+                    );
                     if (status != MK_OK) {
                         goto finish;
                     }
@@ -1915,7 +1927,8 @@ static mk_status mk_synthesize_cluster(
             goto finish;
         }
         status = mk_parse_component_at(
-            system, grammar->component, p, &next, &components[component_count]);
+            system, grammar->component, p, &next, &components[component_count]
+        );
         if (status != MK_OK) {
             goto finish;
         }
@@ -1944,7 +1957,8 @@ static mk_status mk_synthesize_cluster(
     }
     for (i = 0; i < grammar->class_feature_count; i++) {
         status = mk_add_owned_feature(
-            &features, &feature_count, &feature_cap, grammar->class_features[i]);
+            &features, &feature_count, &feature_cap, grammar->class_features[i]
+        );
         if (status != MK_OK) {
             goto finish;
         }
@@ -1953,8 +1967,7 @@ static mk_status mk_synthesize_cluster(
         &features,
         &feature_count,
         &feature_cap,
-        component_count == 2 ?
-            grammar->two_component_feature : grammar->three_component_feature
+        component_count == 2 ? grammar->two_component_feature : grammar->three_component_feature
     );
     if (status != MK_OK) {
         goto finish;
@@ -1967,21 +1980,24 @@ static mk_status mk_synthesize_cluster(
     }
     if (grammar->cluster_features != NULL) {
         status = grammar->cluster_features(
-            &features, &feature_count, &feature_cap, components, component_count);
+            &features, &feature_count, &feature_cap, components, component_count
+        );
         if (status != MK_OK) {
             goto finish;
         }
     }
     for (i = 0; i < component_count; i++) {
         status = mk_add_position_features(
-            &features, &feature_count, &feature_cap, &components[i], i);
+            &features, &feature_count, &feature_cap, &components[i], i
+        );
         if (status != MK_OK) {
             goto finish;
         }
     }
     if (grammar->transition_features != NULL) {
         status = grammar->transition_features(
-            &features, &feature_count, &feature_cap, components, component_count);
+            &features, &feature_count, &feature_cap, components, component_count
+        );
         if (status != MK_OK) {
             goto finish;
         }
@@ -2247,7 +2263,8 @@ static mk_status mk_synthesize_from_diacritics(
         }
     } else {
         status = mk_lookup_normalized(
-            system, base, base_scratch, &base_entry, NULL);
+            system, base, base_scratch, &base_entry, NULL
+        );
         if (status != MK_OK) {
             goto finish;
         }
@@ -2266,7 +2283,8 @@ static mk_status mk_synthesize_from_diacritics(
             int applied = 0;
 
             status = mk_apply_place_modifier(
-                &features, &count, &cap, modifiers[i], &applied);
+                &features, &count, &cap, modifiers[i], &applied
+            );
             if (status == MK_OK && !applied) {
                 status = mk_add_owned_feature(&features, &count, &cap, modifiers[i]);
             }
@@ -2351,7 +2369,8 @@ mk_status mki_resolve(
             mki_entry_view found;
 
             if (mk_lookup_normalized(
-                    system, literal, out->inline_features, &found, &out->path) == MK_OK) {
+                    system, literal, out->inline_features, &found, &out->path
+                ) == MK_OK) {
                 out->grapheme = found.grapheme;
                 out->features = found.features;
                 out->feature_count = found.feature_count;
@@ -2368,7 +2387,8 @@ mk_status mki_resolve(
     }
 
     status = mk_lookup_normalized(
-        system, normalized, out->inline_features, &entry, &out->path);
+        system, normalized, out->inline_features, &entry, &out->path
+    );
     if (status == MK_OK) {
         /* Borrowed: the owned_* fields stay NULL, per the rule in resolver.h.
          * For a compiled inventory `features` aliases out->inline_features,
