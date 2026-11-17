@@ -1,0 +1,28 @@
+# Formatting for the first-party C sources (STYLE.md, Formatting). Matches the
+# style the tree was written in: 4 spaces, function braces on their own line,
+# one parameter per line in multi-line declarations, no line wrapping.
+# Generated tables are excluded in .clang-format-ignore.
+BasedOnStyle: LLVM
+IndentWidth: 4
+UseTab: Never
+BreakBeforeBraces: Linux
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+PointerAlignment: Right
+SortIncludes: Never
+IndentCaseLabels: false
+SpaceAfterCStyleCast: false
+AlignTrailingComments: false
+AlignConsecutiveMacros: false
+ReflowComments: false
+ColumnLimit: 0
+BinPackParameters: false
+BinPackArguments: true
+ContinuationIndentWidth: 4
+BreakBeforeBinaryOperators: None
+AlignAfterOpenBracket: BlockIndent
+AlignOperands: DontAlign
+MaxEmptyLinesToKeep: 2
