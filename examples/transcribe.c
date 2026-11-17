@@ -5,8 +5,11 @@
  * Every allocation the library hands back is freed here, and every fallible
  * call is checked, because that is the part worth copying. The library returns
  * mk_status and writes results through an out-parameter -- there is no errno to
- * consult and nothing aborts, so a caller that ignores a return value gets a
- * NULL and finds out later.
+ * consult and nothing aborts, so a caller that ignores a return value is left
+ * with a NULL or zero output and finds out later. The rules: a `T **out`
+ * receives an owned object to free with its type's destructor; a `const T **`
+ * or `const char *` result is borrowed; a failed call leaves nothing to
+ * free.
  *
  * Build and run it with the rest of the tree; `ctest -R example` runs it. */
 
@@ -27,6 +30,9 @@ static int show_segments(const mk_system *system)
     size_t i;
     int failed = 0;
 
+    /* On MK_OK `tokens` is owned here and freed once the loop is done. Input
+     * the system does not recognize comes back as its own token rather than
+     * being dropped, so a later lookup on a token can still refuse it. */
     status = mk_system_segment_ipa(system, WORD, &tokens);
     if (status != MK_OK) {
         fprintf(stderr, "segment: %s\n", mk_status_string(status));
@@ -41,6 +47,8 @@ static int show_segments(const mk_system *system)
         size_t j;
 
         printf("  %-4s ", token);
+        /* A refusal is reported and skipped: it allocated nothing, so there is
+         * nothing to free. On MK_OK `features` is owned and freed below. */
         status = mk_system_grapheme_features(system, token, &features);
         if (status != MK_OK) {
             printf("(%s)\n", mk_status_string(status));

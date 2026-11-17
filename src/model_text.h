@@ -16,7 +16,7 @@
 
 /* A parsed model, before it is installed into a registry. On MK_OK the caller
  * owns `name` and `entries` and releases them with mki_parsed_model_clear;
- * mki_parse_model_text leaves nothing allocated on failure. */
+ * mki_parse_model_text leaves nothing allocated in it on failure. */
 typedef struct mki_parsed_model {
     char *name;
     mki_builtin_entry *entries;
@@ -25,13 +25,18 @@ typedef struct mki_parsed_model {
 
 /* Parses and validates `model_text`.
  *
- * Validation is strict unless the text says '@validation permissive'. On
- * failure *diagnostic receives an owned message naming the offending line and
- * token; it is NULL on success, and `diagnostic` itself may be NULL when the
- * caller does not want the detail.
+ * Validation is strict unless the text says '@validation permissive'.
+ * `diagnostic` may be NULL when the caller does not want the detail; otherwise
+ * *diagnostic must be NULL on entry, is left NULL on success, and on failure
+ * usually receives an owned message naming the offending line and token. Not
+ * every failure has one: an unsupported @type and most allocation failures
+ * leave it NULL.
  *
- * Returns MK_ERR_PARSE for malformed or invalid text, MK_ERR_UNSUPPORTED_MODEL
- * for a model whose @type this implementation does not have an engine for, and
+ * `out` is zeroed before any work unless `out` or `model_text` is NULL.
+ *
+ * Returns MK_ERR_INVALID_ARGUMENT for a NULL `out` or `model_text`,
+ * MK_ERR_PARSE for malformed or invalid text, MK_ERR_UNSUPPORTED_MODEL for a
+ * model whose @type or @geometry this implementation has no engine for, and
  * MK_ERR_OOM on allocation failure. */
 mk_status mki_parse_model_text(
     const char *model_text,

@@ -130,9 +130,9 @@ static mk_status mk_add_parsed_entry(
     *entries = next_entries;
 
     /* Store the lookup key, not the spelling. Queries are normalized before
-     * they reach an inventory, so a model written with a precomposed "ã" could
-     * never be matched while the same row in a built-in inventory worked --
-     * the generator normalizes those at build time. The two model paths now
+     * they reach an inventory, so a row stored as written with a precomposed
+     * "ã" could never be matched, while the same row in a built-in inventory,
+     * which the generator normalizes at build time, would be. Both model paths
      * share one normalization. */
     {
         char *key = NULL;
@@ -183,20 +183,19 @@ static int mk_compare_grapheme_pointers(const void *a, const void *b)
 /* Whether any grapheme is declared twice.
  *
  * Sorted and walked once rather than compared against every earlier row. The
- * pairwise form was quadratic on text the caller supplies, and
+ * pairwise form is quadratic on text the caller supplies, and
  * mk_registry_add_model_text_n exists for exactly the inputs that makes
- * dangerous -- a mapped file, a Python bytes, a fuzzer's input. A model of
- * 32,000 rows spent 4.7 seconds here against 0.5 for parsing the same text;
- * the same model now costs about what parsing it does.
+ * dangerous -- a mapped file, a Python bytes, a fuzzer's input. On a large
+ * model it would dominate the cost of parsing; sorted, it costs about what
+ * parsing does.
  *
  * The pointers are sorted, not the rows: nothing else may assume an order, and
  * a runtime model is looked up by scanning its rows anyway.
  *
- * Reports one duplicate, not all of them, as before. Which one is reported for
- * a model containing several is no longer file order -- it is whichever sorts
- * first -- and a model with both a duplicate and an unknown feature now reports
- * the duplicate, where it used to report whichever came first by row. The
- * status is MK_ERR_PARSE either way; only the sentence differs. */
+ * Reports one duplicate, not all of them: whichever sorts first, not the first
+ * in file order. Because this runs before the feature checks, a model with
+ * both a duplicate and an unknown feature reports the duplicate. The status is
+ * MK_ERR_PARSE either way; only the sentence differs. */
 static mk_status mk_check_no_duplicate_grapheme(
     const mki_builtin_entry *entries,
     size_t entry_count,
@@ -233,9 +232,11 @@ static mk_status mk_check_no_duplicate_grapheme(
     return MK_OK;
 }
 
-/* Every feature a strict model uses must reach a scoring dimension, and every
- * grapheme must be unique. Both checks exist because a model that fails them
- * still registers and still answers every query: it just answers zero. */
+/* Under strict validation every grapheme must be unique, every feature must be
+ * known to the geometry, and every grapheme must have at least one feature
+ * that scores. A model that fails them would still register and answer every
+ * query, just not usefully: an unknown or unscored feature contributes zero to
+ * every distance. */
 static mk_status mk_validate_strict_entries(
     const mki_builtin_entry *entries,
     size_t entry_count,
@@ -449,9 +450,7 @@ mk_status mki_parse_model_text_n(
     out->entries = NULL;
     out->entry_count = 0;
 
-    /* An embedded NUL would end every strchr and strcmp below early, so the
-     * model would parse as whatever preceded it and register successfully.
-     * Reject it before the copy rather than truncate silently. */
+    /* Before the copy: see model_text.h on why an embedded NUL is refused. */
     if (memchr(model_text, '\0', model_text_length) != NULL) {
         mk_set_diagnostic(diagnostic, 0, "model text contains an embedded NUL byte", "");
         return MK_ERR_PARSE;

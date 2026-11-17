@@ -521,6 +521,14 @@ def test_coverage_separates_identical_from_incomparable() -> None:
     assert coverage == 1.0
     assert math.isclose(score, merkmal.distance("p", "b", system="descriptive"))
 
+    # Clusters too: a diphthong pair is measured, not reported as sharing
+    # nothing, and the distance is the one distance() gives.
+    for a, b in [("ai", "au"), ("ai", "a"), ("aiu", "ai")]:
+        score, coverage, why = merkmal.distance_with_coverage(a, b, system="descriptive")
+        assert coverage == 1.0, (a, b)
+        assert why == "ok", (a, b)
+        assert score == merkmal.distance(a, b, system="descriptive"), (a, b)
+
 
 @requires_full_data
 def test_fixed_space_distance_is_distinct_from_compatibility_score() -> None:

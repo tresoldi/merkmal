@@ -24,7 +24,9 @@ typedef struct mki_entry_view {
     size_t feature_count;
 } mki_entry_view;
 
-/* Finds the row whose grapheme equals `key`, returning 1 on a hit.
+/* Finds the row whose grapheme equals `key`, returning true on a hit and
+ * false on a miss or when `system`, `key` or `out` is NULL. `out` is written
+ * only on a hit.
  *
  * `scratch` must have room for MKI_MAX_ENTRY_FEATURES pointers. For a
  * compiled-in inventory the returned `features` aliases it, so it must outlive

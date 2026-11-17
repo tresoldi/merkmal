@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+### Coverage is measured for clusters
+
+`mk_system_segment_distance_ex` never wrote `*coverage` when either side was a
+synthesized cluster, so a caller got back whatever it had passed in, and the
+comparability it then derived from that value was wrong too. Python seeds
+coverage with `0.0`, so `distance_with_coverage("ai", "au")` reported coverage
+`0.0` and `no-shared-dimension` for every diphthong pair. Cluster coverage now
+combines the parts' coverage with the weights the distance uses (see
+`docs/c-api.md`, Distance with coverage); in the categorical systems that
+synthesize clusters it is `1.0` for any same-tier pair. **No distance changes**:
+checked over 43,808 pairs of cluster and segment spellings in `descriptive` and
+`distinctive`, with and without coverage requested.
+
+### A runtime model row with more than 64 features overflowed the stack
+
+`mk_system_semantic_fingerprint` copied each row of a runtime model into a
+fixed array of `MKI_MAX_ENTRY_FEATURES` (64) pointers before sorting it, but
+that limit applies only to the compiled-in tables: a model text row can list any
+number of features, and one with more than 64 wrote past the array (from C, or
+from Python through `Registry.add_model_text` and the fingerprint). The sorted
+copy is now allocated to the row's size, and running out of memory there returns
+`MK_ERR_OOM`. Fingerprints are unchanged. `tests/c/test_malformed.c` checks a
+200-feature row.
+
 ### Web demo: an embedded NUL is refused instead of truncating the input
 
 The demo passes every string to the library through Emscripten's `ccall`,

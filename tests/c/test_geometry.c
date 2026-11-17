@@ -3,9 +3,9 @@
  * the program that wrote them, and a build of this test cannot quietly rewrite
  * its own expectations.
  *
- * The named feature sets it scores come from tests/golden/geometry_cases.tsv.
- * They used to be C literals in this file, which meant nothing outside this
- * binary could produce the fixtures and adding a case was a code change. */
+ * The named feature sets it scores come from tests/golden/geometry_cases.tsv
+ * rather than C literals here, so something outside this binary can produce
+ * the fixtures and adding a case is a data change. */
 
 #include "merkmal.h"
 
@@ -22,16 +22,15 @@
 
 /* The tree distance is defined over the tree, and says so.
  *
- * These used to write 999 into *out and return MK_OK. 999 is an ordinary
- * looking integer in a function whose real answers run from 0 to 8, so a caller
- * summing or thresholding got nonsense with nothing to test -- and two thirds
- * of the rows in geometry_distances.tsv recorded it as though it were a
- * measurement, for the most natural questions anyone would ask: stop against
- * fricative, bilabial against velar.
+ * Guards against a sentinel distance with MK_OK for features off the tree: a
+ * sentinel looks like an ordinary integer, so a caller summing or thresholding
+ * gets nonsense with nothing to test, and the fixtures would record it as a
+ * measurement for the most natural questions: stop against fricative,
+ * bilabial against velar.
  *
- * Equality was also tested before the domain, so a feature the tree does not
- * contain answered 0 against itself while refusing everything else. A
- * misspelling compared with itself was confidently zero. */
+ * Also guards against testing equality before the domain, which makes a
+ * feature the tree does not contain answer 0 against itself, so a misspelling
+ * compared with itself is confidently zero. */
 static int check_off_tree_features_are_reported(void)
 {
     static const char *const off_tree[][2] = {
@@ -221,8 +220,8 @@ static int check_sound_distances(
     return failed ? 1 : 0;
 }
 
-/* An unknown weight preset is an error, not a number. The scorers used to
- * report it by returning NAN, which callers had to remember to test for. */
+/* An unknown weight preset is an error status, not a number: a NAN result
+ * would be one callers had to remember to test for. */
 static int check_invalid_preset(void)
 {
     static const char *const features_a[] = { "consonant", "bilabial", "stop" };

@@ -5,10 +5,10 @@
  * The same cases in a string literal would read into adjacent rodata and pass
  * silently.
  *
- * The truncated-sequence cases are a regression: mk_utf8_char_len returned the
- * length a lead byte *claims*, and nineteen call sites copied or skipped that
- * many bytes without checking the string had them, so
- * mk_segment_ipa("a\xF0") read four bytes out of a two-byte allocation. */
+ * The truncated-sequence cases guard against trusting the length a lead byte
+ * *claims*: copying or skipping that many bytes without checking the string
+ * has them makes mk_segment_ipa("a\xF0") read four bytes out of a two-byte
+ * allocation. */
 
 #include "merkmal.h"
 
@@ -54,12 +54,12 @@ static const malformed_case cases[] = {
     CASE("long tone run", "a\xC2\xB9\xC2\xB9\xC2\xB9\xC2\xB9\xC2\xB9\xC2\xB9"),
     CASE("boundary only", "+"),
 
-    /* Found by fuzz_resolve. Two consonant components merged into one
-     * inventory row, and the merged resolution was copied out of the frame
-     * that owned it with a plain struct assignment -- so its `features`, which
-     * aliased that frame's inline_features array, pointed at a dead stack slot
-     * by the time mk_synthesize_cluster read it. AddressSanitizer called it a
-     * stack-use-after-return. mk_resolution_move is the fix.
+    /* Found by fuzz_resolve; guards against a stack-use-after-return. Two
+     * consonant components merge into one inventory row. Copying the merged
+     * resolution out of the frame that owns it with a plain struct assignment
+     * would leave its `features`, which alias that frame's inline_features
+     * array, pointing at a dead stack slot by the time mk_synthesize_cluster
+     * reads it; mk_resolution_move is what prevents that.
      *
      * The literal is split so that "\x96" does not swallow the following F as
      * a fourth hex digit. */
@@ -135,15 +135,14 @@ static int run_case(mk_registry *registry, const malformed_case *test)
 
 /* A grapheme declared twice is refused, and refusing it is cheap.
  *
- * The check compared every row against every earlier one, which is quadratic in
- * text the caller supplies -- and mk_registry_add_model_text_n exists for
- * exactly the inputs that makes dangerous: a mapped file, a Python bytes, a
- * fuzzer's input. A model of 32,000 distinct rows, the worst case because
- * nothing short-circuits, spent 4.7 seconds here against 0.5 for parsing the
- * same text. Sorted and walked once it is 85 ms.
+ * Guards against a duplicate check that compares every row against every
+ * earlier one: that is quadratic in text the caller supplies, and
+ * mk_registry_add_model_text_n exists for exactly the inputs that makes
+ * dangerous: a mapped file, a Python bytes, a fuzzer's input. Distinct rows are
+ * the worst case, because nothing short-circuits. CHANGELOG.md has the timings.
  *
- * The size here is a compromise: large enough that a return of the quadratic
- * form would be obvious in the suite's runtime, small enough to stay cheap. */
+ * The size here is a compromise: large enough that a quadratic check would be
+ * obvious in the suite's runtime, small enough to stay cheap. */
 static int check_duplicate_grapheme_is_rejected(void)
 {
     enum { ROWS = 4000 };
@@ -204,9 +203,9 @@ static int check_duplicate_grapheme_is_rejected(void)
     return failed;
 }
 
-/* A runtime model may name features of any length. A label built from one used
- * to be truncated into a different feature -- one the geometry does not know,
- * and which therefore contributes nothing to any distance. */
+/* A runtime model may name features of any length. Guards against a label
+ * built from one being truncated into a different feature -- one the geometry
+ * does not know, and which therefore contributes nothing to any distance. */
 static int check_long_feature_name_is_rejected(void)
 {
     char model[1024];
@@ -248,6 +247,44 @@ static int check_long_feature_name_is_rejected(void)
         }
     }
     mk_string_free(diagnostic);
+    mk_registry_free(registry);
+    return failed;
+}
+
+/* A runtime row may carry more features than MKI_MAX_ENTRY_FEATURES, which
+ * bounds compiled rows only. Guards against the semantic fingerprint copying
+ * such a row into a fixed array: under ASan that is a stack-buffer-overflow. */
+static int check_wide_row_fingerprint(void)
+{
+    char model[4096];
+    size_t len;
+    mk_registry *registry = NULL;
+    const mk_system *wide = NULL;
+    char *digest = NULL;
+    int failed = 0;
+    int i;
+
+    len = (size_t)snprintf(model, sizeof(model),
+                           "@model wide\n@type categorical\n@validation permissive\n"
+                           "grapheme x");
+    for (i = 0; i < 200; i++) {
+        len += (size_t)snprintf(model + len, sizeof(model) - len, " f%03d", i);
+    }
+    snprintf(model + len, sizeof(model) - len, "\n");
+
+    if (mk_registry_new_builtin(&registry) != MK_OK ||
+        mk_registry_add_model_text(registry, model) != MK_OK ||
+        mk_registry_get_system(registry, "wide", &wide) != MK_OK) {
+        fprintf(stderr, "the 200-feature model did not register\n");
+        mk_registry_free(registry);
+        return 1;
+    }
+    if (mk_system_semantic_fingerprint(wide, NULL, &digest) != MK_OK ||
+        digest == NULL || strlen(digest) != 64) {
+        fprintf(stderr, "fingerprint of a 200-feature row failed\n");
+        failed = 1;
+    }
+    mk_string_free(digest);
     mk_registry_free(registry);
     return failed;
 }
@@ -323,5 +360,6 @@ int main(void)
     failed |= check_duplicate_grapheme_is_rejected();
     failed |= check_long_feature_name_is_rejected();
     failed |= check_unterminated_and_embedded_nul();
+    failed |= check_wide_row_fingerprint();
     return failed ? 1 : 0;
 }

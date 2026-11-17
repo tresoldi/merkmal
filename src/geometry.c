@@ -157,11 +157,11 @@ mk_status mk_feature_distance(
         return MK_ERR_INVALID_ARGUMENT;
     }
 
-    /* The domain first. Equality used to be tested before this, so a feature
-     * the tree does not contain -- including a misspelt one -- answered 0
-     * against itself while answering "no path" against everything else. With
-     * both paths in hand, identity needs no special case: the two paths are the
-     * same, every element is common, and the arithmetic below yields 0. */
+    /* The domain first, before any equality test: a feature the tree does not
+     * contain -- a misspelt one included -- has no path against itself either,
+     * not a distance of 0. With both paths in hand, identity needs no special
+     * case: the two paths are the same, every element is common, and the
+     * arithmetic below yields 0. */
     path_a = mk_find_feature_path(feature_a);
     path_b = mk_find_feature_path(feature_b);
     if (path_a == NULL || path_b == NULL) {
@@ -283,6 +283,10 @@ static double mk_dimension_weight(
     return base_weight * mk_resolved_node_weight(preset, node);
 }
 
+/* Finds or appends the group for `node`, without a bounds check. Groups are
+ * made only for nodes mk_feature_node returns, so `groups` needs one slot per
+ * distinct node in mki_clements_hume_feature_to_node; the 128 in mk_score_leaf
+ * is far above what the compiled geometry has. */
 static mk_node_group *mk_get_group(
     mk_node_group *groups,
     size_t *count,
@@ -342,10 +346,11 @@ bool mki_is_node_group_feature(const char *feature)
     return mk_feature_node(feature) != NULL;
 }
 
-/* Returns the entry's position on an ordered scale, or MKI_ORDINAL_UNDEFINED
- * when it carries no label from the scale and the scale has no unmarked
- * default. The first matching level wins; the generator rejects entries
- * carrying two labels from one scale, so there is no ambiguity to resolve. */
+/* The first matching level, in scale order, wins. Compiled rows cannot carry
+ * two labels from one scale (the generator refuses them) and neither can a
+ * synthesized segment (the resolver refuses it); a runtime model row or a
+ * feature set handed to mk_sound_distance can, and is read at whichever of
+ * the two comes first in the scale. */
 static int mk_ordinal_level(
     mk_feature_view view,
     const mki_ordinal_scale *scale
@@ -660,8 +665,8 @@ static mk_status mk_score_valued(
     /* The share of the system's declared dimensions on which both segments
      * actually had a value. Without it, a score of 0.0 is ambiguous between
      * "identical" and "nothing in common to compare" -- and the second happens:
-     * PHOIBLE writes `.` in 30,181 cells, and a pair whose overlap is entirely
-     * `.` scored a confident zero. */
+     * PHOIBLE writes `.` in many cells, and a pair whose overlap is entirely
+     * `.` would score a confident zero. See docs/c-api.md. */
     if (coverage != NULL) {
         *coverage = system->geometry_map_count > 0
             ? (double)compared / (double)system->geometry_map_count
@@ -680,10 +685,9 @@ mki_scorer mki_scorer_for(const mki_builtin_system *system)
         return mk_score_valued;
     }
     if (system->kind != MKI_SYSTEM_CATEGORICAL) {
-        /* MKI_SYSTEM_TRAINED names a kind the library has no scorer for. Saying
-         * so here is what keeps every caller from having to guess: this used to
-         * be read as "valued" by vector.c, as an error by system.c, and as
-         * "not categorical" by resolver.c. */
+        /* MKI_SYSTEM_TRAINED names a kind the library has no scorer for.
+         * Saying so here gives callers one answer to test instead of each
+         * guessing what such a kind means. */
         return NULL;
     }
     /* Declared dimensions of its own, so it is scored on those and never reads

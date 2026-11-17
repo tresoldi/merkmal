@@ -1,10 +1,10 @@
-/* What resolution costs, and how much of it is the inventory scan.
+/* What resolution costs, and how much of it is the inventory lookup.
  *
- * mki_inventory_find walks every row calling mki_streq -- up to 9,728 string
- * comparisons for a miss, and the longest-match tokenizer issues several
- * lookups per token. Whether that is worth replacing with a binary search is a
- * question about measured share of time, not about the shape of the loop, so
- * this reports the whole operation and the scan separately.
+ * mki_inventory_find binary-searches a compiled inventory, and the
+ * longest-match tokenizer issues several lookups per token. How much the
+ * lookup matters is a question about measured share of time, not about the
+ * shape of the search, so this reports the whole operation and the lookup
+ * separately.
  *
  * Built by bench/bench_lookup.sh against the library sources, because
  * mki_inventory_find is internal.
@@ -64,7 +64,7 @@ int main(void)
            (size_t)WORD_COUNT, system->builtin->entry_count);
 
     /* 1. System-aware tokenization: longest match, so several lookups per
-     *    token, which is the case the scan cost compounds in. */
+     *    token, which is the case the lookup cost compounds in. */
     rounds = 200;
     start = clock();
     for (round = 0; round < rounds; round++) {
@@ -104,8 +104,8 @@ int main(void)
     printf("distance      %8.3f s for %8zu pairs    %8.1f us/pair\n",
            elapsed, pairs, elapsed * 1e6 / (double)pairs);
 
-    /* 3. The scan alone, on a miss -- the worst case, and the one a binary
-     *    search would help most. A hit stops early and is cheaper. */
+    /* 3. The lookup alone, on a miss -- the worst case, since a miss runs the
+     *    search to the end. A hit can stop early. */
     rounds = 20000;
     start = clock();
     for (round = 0; round < rounds; round++) {

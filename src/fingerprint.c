@@ -167,9 +167,10 @@ static void mk_hash_text(mk_sha256 *ctx, const char *text)
 }
 
 /* Runtime model text has no durable source file. Hash its semantic inventory:
- * rows and unordered feature sets are sorted, so harmless input reordering
- * cannot change the identity. */
-static void mk_runtime_model_sha256(const mk_system *system, char out[65])
+ * rows are taken in grapheme order and each feature set is sorted, so
+ * harmless input reordering cannot change the identity. Of rows sharing a
+ * grapheme, only the first is hashed. */
+static mk_status mk_runtime_model_sha256(const mk_system *system, char out[65])
 {
     mk_sha256 ctx;
     const mki_builtin_system *builtin = system->builtin;
@@ -193,7 +194,7 @@ static void mk_runtime_model_sha256(const mk_system *system, char out[65])
         }
         if (next != NULL) {
             mki_entry_view row = {NULL, NULL, 0};
-            const char *features[MKI_MAX_ENTRY_FEATURES];
+            const char **features;
             size_t j;
             for (j = 0; j < builtin->entry_count; j++) {
                 if (builtin->entries[j].grapheme != NULL &&
@@ -204,11 +205,18 @@ static void mk_runtime_model_sha256(const mk_system *system, char out[65])
                     break;
                 }
             }
-            /* `next` comes from the same inventory, so this should be
-             * unreachable. Keep the invariant explicit for optimizers and
-             * for future changes to the lookup loop. */
+            /* Unreachable: `next` came from this inventory. The test keeps
+             * the invariant explicit for optimizers and for any change to the
+             * lookup loop. */
             if (row.grapheme == NULL || row.features == NULL) {
                 continue;
+            }
+            /* Heap, sized to the row: MKI_MAX_ENTRY_FEATURES bounds compiled
+             * rows only, and a runtime row may carry any number of features. */
+            features = (const char **)malloc(
+                (row.feature_count == 0 ? 1 : row.feature_count) * sizeof(*features));
+            if (features == NULL) {
+                return MK_ERR_OOM;
             }
             memcpy(features, row.features, row.feature_count * sizeof(*features));
             qsort(features, row.feature_count, sizeof(*features), mk_compare_strings);
@@ -218,6 +226,7 @@ static void mk_runtime_model_sha256(const mk_system *system, char out[65])
                 mk_hash_text(&ctx, features[j]);
                 mk_hash_text(&ctx, j + 1 == row.feature_count ? "\n" : "\t");
             }
+            free(features);
             previous = next;
         }
     }
@@ -232,6 +241,7 @@ static void mk_runtime_model_sha256(const mk_system *system, char out[65])
         }
         out[64] = '\0';
     }
+    return MK_OK;
 }
 
 static mk_status mk_append_pair(char **text, size_t *length, size_t *capacity,
@@ -271,7 +281,10 @@ mk_status mki_system_semantic_fingerprint(
     builtin = system->builtin;
     scorer = mki_scorer_name(mki_scorer_for(builtin));
     if (system->owns) {
-        mk_runtime_model_sha256(system, runtime_digest);
+        status = mk_runtime_model_sha256(system, runtime_digest);
+        if (status != MK_OK) {
+            return status;
+        }
         model_version = "runtime-model-v1";
         model_sha256 = runtime_digest;
     } else {

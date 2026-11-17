@@ -29,6 +29,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* A cell's mask is 64 bits, one per binary value, ordinal level or group
+ * label, so a group may have at most 64 labels; mk_build_columns refuses a
+ * scale of more than 63 levels, since mk_full_mask shifts by the level count.
+ * MK_BUNDLE_MAX_ITERATIONS caps the Dinkelbach loop in mk_extreme. */
 #define MK_BUNDLE_MAX_GROUP_LABELS 64
 #define MK_BUNDLE_MAX_ITERATIONS 200
 
@@ -83,7 +87,7 @@ struct mk_bundle {
     mk_cell *cells;
 };
 
-/* -- columns ------------------------------------------------------------------ */
+/* Columns */
 
 static mk_status mk_scorer_kind_of(const mki_builtin_system *builtin, mk_scorer_kind *out)
 {
@@ -233,7 +237,8 @@ static mk_status mk_build_columns(
             }
         }
     }
-    /* Column names must address columns. */
+    /* Names must be unique: mk_bundle_set, mk_bundle_get and the text form
+     * address a column by name. */
     for (i = 0; i < n; i++) {
         size_t j;
         for (j = 0; j < i; j++) {
@@ -248,7 +253,7 @@ static mk_status mk_build_columns(
     return MK_OK;
 }
 
-/* -- cells from features ------------------------------------------------------ */
+/* Cells from features */
 
 static bool mk_view_has(mk_feature_view view, const char *label)
 {
@@ -351,7 +356,7 @@ static mk_cell mk_cell_from_view(const mk_bundle *b, const mk_column *col, mk_fe
     return mk_cell_na();
 }
 
-/* -- lifecycle ------------------------------------------------------------------ */
+/* Lifecycle */
 
 static mk_status mk_bundle_alloc(const mk_system *system, mk_bundle **out)
 {
@@ -550,7 +555,7 @@ mk_status mk_bundle_column_values(const mk_bundle *bundle, const char *column, m
     return mk_string_list_new(names, n, out);
 }
 
-/* -- text form ------------------------------------------------------------------ */
+/* Text form */
 
 static int mk_popcount(uint64_t x)
 {
@@ -926,7 +931,7 @@ mk_status mk_bundle_from_text(const mk_system *system, const char *text, mk_bund
     return MK_OK;
 }
 
-/* -- scoring ------------------------------------------------------------------ */
+/* Scoring */
 
 /* One possible outcome of a dimension: its weight in the mean (0 when the
  * scorer skips it) and its difference. */
@@ -936,6 +941,9 @@ typedef struct mk_option {
     int counted;
 } mk_option;
 
+/* Per dimension. Options are deduplicated, so an ordinal scale has at most
+ * one per step count plus one uncounted, and binary and group columns a
+ * handful; mk_options stops adding at this bound rather than overrun it. */
 #define MK_MAX_OPTIONS 128
 
 static double mk_binary_number(unsigned bit)
@@ -1074,6 +1082,8 @@ static size_t mk_options(
         return n;
     }
     {
+        /* "Does not apply" plus at most 63 ordinal levels or three binary
+         * values. */
         int values_a[66];
         int values_b[66];
         size_t na = 0;
@@ -1261,7 +1271,7 @@ mk_status mk_bundle_compare(
     return MK_OK;
 }
 
-/* -- compatibility ---------------------------------------------------------------- */
+/* Compatibility */
 
 static bool mk_cells_intersect(const mk_column *col, const mk_cell *a, const mk_cell *b)
 {

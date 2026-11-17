@@ -31,8 +31,10 @@ bool mki_has_prefix(const char *s, const char *prefix);
 bool mki_features_contain(const char *const *items, size_t count, const char *feature);
 
 /* Append to a growable NUL-terminated buffer, doubling capacity as needed.
- * *text may be NULL with *len and *cap zero. Shared because the tokenizer and
- * the resolver both build strings a codepoint at a time. */
+ * *text may be NULL with *len and *cap zero; `suffix` must not be NULL. *len
+ * excludes the terminator. On MK_ERR_OOM, the only failure, *text, *len and
+ * *cap are unchanged and the caller still owns *text. Even an empty suffix
+ * leaves *text allocated and terminated. */
 mk_status mki_append_text(char **text, size_t *len, size_t *cap, const char *suffix);
 
 /* Frees `count` owned strings and the array holding them. Tolerates NULL. */

@@ -140,11 +140,11 @@ static mk_status mk_score_resolved(
     mk_status status;
 
     /* Cross-tier before anything else. A tone and a segment share no dimension
-     * by construction, so scoring them through the geometry returns a number
-     * built entirely from how many features the *other* one has -- 0.61 against
-     * a stop, 0.50 against a vowel -- which is not a statement about tone and
-     * sits below the cost at which an aligner stops matching the two. Gold
-     * alignments never put them in one column. */
+     * by construction, so scoring them through the geometry would return a
+     * number built entirely from how many features the *other* one has, which
+     * is not a statement about tone and sits below the cost at which an aligner
+     * stops matching the two. Gold alignments never put them in one column.
+     * See docs/c-api.md, Distance with coverage. */
     if (mk_is_tonal_autosegment(mki_view_of(a)) != mk_is_tonal_autosegment(mki_view_of(b))) {
         *out = mki_clements_hume_cross_tier_cost;
         if (coverage != NULL) {
@@ -163,16 +163,16 @@ static mk_status mk_score_resolved(
     if (a->cluster_component_count > 0 || b->cluster_component_count > 0) {
         /* Only a categorical system synthesizes clusters, so this never runs
          * for a valued one. See mk_admits_synthesized_clusters in the resolver. */
-        status = mki_cluster_distance(system, a, b, node_weights, out);
+        status = mki_cluster_distance(system, a, b, node_weights, out, coverage);
     } else if (coverage == NULL && mki_streq(a->grapheme, b->grapheme)) {
         /* Two spellings of one segment. The scorer would reach 0.0 anyway; this
          * skips the walk over every leaf, group, and scale.
          *
          * Only when no coverage was asked for. A segment compared with itself
-         * is not fully covered: a valued system skips the dimensions the
-         * segment leaves unset, and PHOIBLE's /p/ leaves 11 of them unset. This
-         * used to answer 1.0 for that pair, which is a different quantity from
-         * the one mk_system_segment_distance_ex documents. */
+         * is not necessarily fully covered: a valued system skips the
+         * dimensions the segment leaves unset (PHOIBLE's /p/ has gaps), so
+         * answering 1.0 here would be coverage relative to the segment, not the
+         * system-relative quantity mk_system_segment_distance_ex documents. */
         *out = 0.0;
         status = MK_OK;
     } else {
@@ -257,10 +257,8 @@ mk_status mk_system_segment_distance_ex(
     if (why != NULL) {
         *why = MK_CMP_OK;
     }
-    /* Every scorer reports its own coverage, so there is nothing to assert on
-     * their behalf here. This used to seed 1.0 and let only the valued path
-     * overwrite it, which meant the categorical answer was stated by a caller
-     * that never looked inside the body it was speaking for. */
+    /* Not seeded here: every scorer reports its own coverage, and a value set
+     * by this caller would speak for a scorer it never looked inside. */
     return mk_distance_with_coverage(system, utf8_a, utf8_b, node_weights, out, coverage, why);
 }
 
@@ -298,9 +296,9 @@ static mk_status mk_join_tokens(
  * merging orthographic tokens.
  *
  * Only when the combined string is explicitly in the inventory or is a known
- * complex segment (affricate, labio-velar, prenasalized stop). The old code
- * called mk_system_is_segment here, which runs the full resolver including
- * consonant-cluster synthesis and therefore merged ANY consonant combination
+ * complex segment (affricate, labio-velar, prenasalized stop). Not
+ * mk_system_is_segment: it accepts any resolution path, including
+ * consonant-cluster synthesis, and so would merge ANY consonant combination
  * (th, ph, st...).
  *
  * A refusal (unknown, malformed, source marker) is a plain no; anything else,
@@ -377,8 +375,9 @@ static mk_status mk_longest_segment_at(
         }
         free(joined);
     }
-    /* Only reached if even one token produced no text, which mk_segment_ipa
-     * never emits; reported as the allocation failure it would have been. */
+    /* Unreachable: a span of one always returns above, because
+     * mki_append_text allocates even for an empty token. Reported as the
+     * allocation failure a NULL `joined` would mean. */
     return MK_ERR_OOM;
 }
 
@@ -440,9 +439,8 @@ mk_status mk_system_segment_ipa(
     }
 
 cleanup:
-    /* Freed once, here. It used to be freed before the adopt and again on the
-     * failure path after it, a double free whenever the adopt ran out of
-     * memory. */
+    /* Freed once, here and nowhere else: freeing it before the adopt as well
+     * would be a double free whenever the adopt fails. */
     mk_string_list_free(orthographic);
     mki_free_items(items, count);
     return status;

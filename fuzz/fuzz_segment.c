@@ -1,8 +1,8 @@
 /* Tokenization and normalization over arbitrary bytes.
  *
  * These take transcription text from wherever the caller got it, so malformed
- * UTF-8 is an input rather than an accident. A truncated sequence used to be
- * read past its end here. */
+ * UTF-8 is an input rather than an accident; in particular a truncated
+ * sequence must not be read past its end. */
 
 #include "merkmal.h"
 

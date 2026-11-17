@@ -18,15 +18,16 @@ static PyObject *mk_py_error = NULL;
 static PyObject *mk_py_source_marker = NULL;
 static const char *registry_capsule_name = "merkmal.registry";
 
-/* The system used when a call names none. One definition: this string used to
- * be written out four times, three in this file and once in __init__.py.
+/* The system used when a call names none. AbstractSegment in __init__.py
+ * repeats the name as its own fallback; the two must agree.
  *
- * `distinctive` rather than `descriptive`. They now recognize the
- * same graphemes -- 0 disagreements over 7,396 Lexibank segment types -- so the
- * choice is purely about which scores better, and on BDPA gold alignments
- * `distinctive` is not distinguishable from LingPy's SCA (-0.39%, CI crossing
- * zero) where `descriptive` is measurably behind it (-0.79%). This changes the
- * numbers any caller gets who does not name a system. */
+ * `distinctive` rather than `descriptive`. Both recognize the same graphemes
+ * over the Lexibank segment types, so the choice is purely about which scores
+ * better, and on BDPA gold alignments `distinctive` is not statistically
+ * distinguishable from LingPy's SCA where `descriptive` is measurably behind
+ * it. CHANGELOG.md ("The default is `distinctive`") and
+ * docs/reference-library-review.md hold the measurements. Changing it changes
+ * the numbers any caller gets who does not name a system. */
 static const char *const default_system_name = "distinctive";
 
 typedef struct py_utf8 {
@@ -54,7 +55,7 @@ static int py_utf8_from_unicode(PyObject *obj, const char *name, py_utf8 *out)
         return -1;
     }
     /* PyBytes_AsStringAndSize, not PyBytes_AsString: the library reads these as
-     * C strings, so "p\x00junk" used to reach it as "p" and be answered as if
+     * C strings, so "p\x00junk" would reach it as "p" and be answered as if
      * that were the input. Taking the length lets an embedded NUL be refused
      * here, where the caller can still see what they passed. */
     {
@@ -76,10 +77,10 @@ static int py_utf8_from_unicode(PyObject *obj, const char *name, py_utf8 *out)
 }
 
 /* Holds the PyBytes behind every borrowed UTF-8 pointer a call takes, so one
- * clear at the end releases them all. Each function used to unwind its own
- * ladder of py_utf8_clear calls at every early return -- four of them in
- * distance alone, each an independent chance to leak one. */
-/* Four, which is exactly the widest call: distance(a, b, system,
+ * py_utf8_args_clear at the single exit releases them all; a py_utf8_clear per
+ * argument at every early return would be a separate chance to leak each one.
+ *
+ * Four slots, which is exactly the widest call: distance(a, b, system,
  * node_weights). py_utf8_take checks the bound and raises SystemError rather
  * than overflowing, so adding a fifth string argument to a function is a loud
  * runtime failure rather than a corruption -- and test_native_wrapper.py
@@ -202,10 +203,10 @@ static int py_str_array_init(py_str_array *arr, PyObject *obj, const char *name)
  *
  * `detail` replaces the status string when the C call produced something more
  * specific -- a model-text diagnostic naming the offending line. It changes the
- * message only. The type is chosen from the status here and nowhere else:
- * add_model_text used to raise NativeError whenever a diagnostic happened to
- * exist, so the exception a caller saw depended on whether the library had
- * something to say rather than on what went wrong. */
+ * message only. The type is chosen from the status here and nowhere else,
+ * never from whether a diagnostic exists, so the exception a caller sees
+ * depends on what went wrong rather than on whether the library had something
+ * to say. */
 static PyObject *status_error_detail(
     mk_status status,
     const char *context,
@@ -335,8 +336,8 @@ static PyObject *py_string_list_to_list(mk_string_list *strings)
     return result;
 }
 
-/* Converts an owned C string list into the immutable Python result type
- * get_features returns. */
+/* Copies a C string list into the immutable Python result type get_features
+ * returns. The list stays the caller's to free. */
 static PyObject *py_string_list_to_frozenset(const mk_string_list *features)
 {
     PyObject *result = PyFrozenSet_New(NULL);
@@ -832,9 +833,9 @@ done:
 }
 
 /* Feature distance is a property of the compiled geometry, which every system
- * shares. It takes no system: the argument it used to accept was validated and
- * then discarded, so a caller passing system="phoible" was told nothing about
- * having been given clements-hume numbers. */
+ * shares, so it takes no system. Accepting one and ignoring it would tell a
+ * caller passing system="phoible" nothing about having been given
+ * clements-hume numbers. */
 static PyObject *py_feature_distance(PyObject *self, PyObject *args)
 {
     PyObject *a_obj;
@@ -1590,9 +1591,6 @@ PyMODINIT_FUNC PyInit__native(void)
         Py_DECREF(module);
         return NULL;
     }
-    /* Normalization is compiled in, so every build carries complete NFC and
-     * NFD at the Unicode version recorded here. That is the value a cache of
-     * merkmal output should key on alongside __version__. */
     /* The linked C library's version. __version__ is the package's; the test
      * suite holds the two equal, so a release cannot bump one alone. */
     if (PyModule_AddStringConstant(module, "LIBRARY_VERSION", mk_version_string()) < 0) {
@@ -1603,14 +1601,16 @@ PyMODINIT_FUNC PyInit__native(void)
         Py_DECREF(module);
         return NULL;
     }
+    /* Normalization is compiled in, so every build carries complete NFC and
+     * NFD at the Unicode version recorded here. That is the value a cache of
+     * merkmal output should key on alongside __version__. */
     if (PyModule_AddStringConstant(module, "UNICODE_VERSION", mk_unicode_version()) < 0) {
         Py_DECREF(module);
         return NULL;
     }
-    /* Retained for compatibility. It used to report whether libutf8proc was
-     * linked, because a build without it normalized some input differently.
-     * No build does any longer, so it is 1 in every build: code that refused
-     * a degraded build keeps working, and has nothing left to refuse. */
+    /* Retained for compatibility with code that checks it to refuse a build
+     * whose normalization is incomplete. Normalization is compiled in, so no
+     * such build exists and it is 1 in every build. */
     if (PyModule_AddIntConstant(module, "HAVE_UTF8PROC", 1) < 0) {
         Py_DECREF(module);
         return NULL;

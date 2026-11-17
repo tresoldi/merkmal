@@ -39,7 +39,7 @@ static void check(const char *label, const char *input, int compose, const char 
 
 static void fixed_vectors(void)
 {
-    /* Issue #3: the fallback returned this decomposed. */
+    /* Issue #3: guards against NFC leaving this decomposed. */
     check("y tilde", "g\x79\xcc\x83nh", 1, "g\xe1\xbb\xb9nh");
     check("y tilde", "g\xe1\xbb\xb9nh", 0, "g\x79\xcc\x83nh");
     /* u + diaeresis (230) + diaeresis below (220): reordered, then the 220

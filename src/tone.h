@@ -9,7 +9,7 @@
 #include "merkmal.h"
 
 /* The Chao pitch level a digit or tone letter denotes, 0-5, or -1 if it is
- * neither. Shared so the tokenizer, the tone-merge step and the recognizer
+ * neither or `p` is NULL. Shared so the tokenizer, the tone-merge step and the recognizer
  * agree on what counts as tone. */
 int mki_chao_level(const char *p);
 
