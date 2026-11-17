@@ -1,385 +1,231 @@
 # merkmal
 
-`merkmal` is a C99 library for mapping supported IPA-like graphemes to
-versioned phonological feature representations and computing configurable
-**experimental dissimilarities** between segments.
+merkmal is a C99 library that maps IPA transcriptions of speech segments to
+phonological feature representations under several feature systems, and
+computes dissimilarities between segments from those representations. It is
+intended for computational historical linguistics and phonological typology:
+as a substitution cost in sequence alignment, for transcription quality
+control, and for comparing segments across feature theories. The library has
+no runtime dependencies; a Python package, a command-line interface and a
+WebAssembly build are thin wrappers around the same C interface.
 
-## What the number means
+## Contents
 
-The scalar `merkmal` returns is an experimental dissimilarity. Read the
-following before building on it:
+- [Feature systems](#feature-systems)
+- [Method](#method)
+- [Scope and interpretation](#scope-and-interpretation)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Documentation](#documentation)
+- [Citation](#citation)
+- [License](#license)
 
-- **It is not a metric.** The valued scorer compares only dimensions where both
-  segments have a parseable value, so the denominator changes with the pair,
-  and a score of `0.2` over five compared dimensions is not the same evidence
-  as `0.2` over thirty. It violates the triangle inequality; in `pbase-hc`,
-  `d(ðˠ, mʲ) = 0.3113 > d(ðˠ, d̪ʲ) + d(d̪ʲ, mʲ) = 0.0943 + 0.2091`. Do not use
-  it where metric properties are assumed — metric-tree indexing, some
-  clustering algorithms, embedding claims.
-- **It is not a probability or naturalness of sound change**, and it is not
-  evidence about historical direction. Nothing in this library observes a
-  change happening. See [data/typologies/README.md](data/typologies/README.md).
-- **It is not a typological statistic.** The bundled models are segment-type
-  catalogs. They do not record which phoneme belongs to which language
-  inventory, whether a segment is contrastive or allophonic, or any genealogy,
-  area, or sampling weight. "PHOIBLE coverage" here means coverage of
-  PHOIBLE-like segment *types*, not of languages.
-- **It does not track how likely a sound change is.** Measured over pairs from
-  named sound laws, historically frequent changes come out *further* apart on
-  average than rare ones: `d(k, tʃ)` far exceeds `d(k, q)`, though velar
-  palatalisation is among the commonest changes in the world and unconditioned
-  uvularisation is rare. Phonetic similarity and diachronic probability are
-  different quantities. Use recurrent correspondence patterns estimated from
-  language-pair data for anything that claims to be about change.
-- **Every zero is on the record.** `tests/golden/contrast_baseline.tsv` records
-  the zero-distance pairs of all eight systems, with reasons;
-  `tools/contrast_baseline.py --check` fails on a regression. The categorical
-  systems currently have none. The valued systems do, because the upstream
-  feature tables genuinely do not distinguish the segments — the P-base UFTC
-  feature set gives /e/ and /i/ identical values on every dimension it defines —
-  so those are published as counts rather than papered over.
-- **The weights are stipulated, not fitted.** They come from tree depth and
-  hand-set scale weights, not from contrast data, perception, or observed sound
-  change. See [docs/method/geometry.md](docs/method/geometry.md).
+## Feature systems
 
-A dependable, transparent segment prior is genuinely useful for alignment,
-candidate generation, transcription quality control, and exploratory
-comparison. Those uses are what this supports today. Historical and typological
-interpretation requires a separate, validated model fitted to language-indexed
-data, which this library does not provide.
+Each feature system is a versioned table of segments and their features,
+compiled into the library from the source data in [data/models/](data/models/).
 
-## It is a substitution cost, not an aligner
+| System | Feature basis | Kind | Source data |
+| --- | --- | --- | --- |
+| `distinctive` (default) | Distinctive features after Clements and Hume (1995), with scalar dimensions | categorical | CLTS 1.4.1 (List et al.) |
+| `descriptive` | Articulatory descriptions of IPA segments, scored through the feature geometry | categorical | CLTS 1.4.1 (List et al.) |
+| `phoible` | PHOIBLE binary features (37 dimensions) | valued | PHOIBLE 2.0 (Moran and McCloy 2019) |
+| `pbase-spe` | SPE features (Chomsky and Halle 1968) | valued | P-base (Mielke) |
+| `pbase-jfh` | Acoustic features of Jakobson, Fant and Halle (1952) | valued | P-base (Mielke) |
+| `pbase-hc`, `pbase-uftc` | The HC and UFTC feature sets of P-base | valued | P-base (Mielke) |
 
-`merkmal` scores one segment against one segment. It has no gap model, no
-alignment, and no sequence operations, and that is a scope decision rather than
-an omission to be filled in later. If you are aligning words, use
-[LingPy](https://lingpy.org/) and give it these distances, or write the
-Needleman-Wunsch yourself — it is thirty lines.
+A *categorical* system describes a segment by a set of feature labels; a
+*valued* system assigns each segment a value (`+`, `-`, `0`, or unknown) on a
+fixed set of dimensions. The provenance of each table, including the upstream
+release and every transformation applied to it, is recorded in
+`data/models/<system>/provenance.json` and summarized in [NOTICE](NOTICE).
 
-The gap cost is yours to choose, so here is what it measured out at rather than
-leaving you to guess. Tuning on held-out BDPA alignments, the optimum sits at
-**0.30–0.50** for the categorical systems and up to 0.80 for the valued ones;
-`bench/bench_alignment.py` re-derives it. It is not transferable between
-systems, because the distance distributions differ.
+Segments that a table does not list are, where possible, derived from listed
+ones: a base segment with diacritics, tone marks or length, a diphthong, an
+affricate or labial-velar written without a tie bar, or a consonant cluster.
 
-Two things worth knowing before you build on the number:
+Callers may also register models of their own at run time, in a line-oriented
+text format ([docs/guide/runtime-model-format.md](docs/guide/runtime-model-format.md)).
 
-- **A tone and a segment are not comparable on a shared scale**, and the value
-  you get today for `d(³³, p)` is a placeholder the project does not defend.
-  Gold alignments never put tone in a column with a segment; a pipeline should
-  not either.
-- **`sound_distance` is the geometry scorer and takes no system.** It agrees
-  with `distance` only for the geometry-scored system (`descriptive`),
-  not for the default.
+## Method
 
-The repository is being reorganized around a small C ABI. The C library
-contains compiled-in built-in models and can also accept caller-supplied
-runtime models. Python support is now a native wrapper around the C
-library. 
+Categorical systems are compared through a feature geometry, a tree of feature
+nodes derived from, but not identical to, the proposal of Clements and Hume
+(1995). Each feature contributes in proportion to the inverse depth of its node;
+ordered properties (vowel height, backness, length, tone level) are compared as
+positions on a scale rather than as unrelated labels. `distinctive` compares
+segments on its own scalar dimensions; `descriptive` compares them through the
+geometry directly. Valued systems compare only the dimensions on which both
+segments have a value.
 
-## Current Status
+Every comparison can also report its *coverage*, the share of the system's
+dimensions on which both segments were compared, and whether the two segments
+were comparable at all (a tone and a segment are not compared on a shared
+scale). Tone is represented by the presence of a tone and an ordered Chao level
+at each position, so that a mid level tone is distinct from the absence of tone.
 
-The C implementation currently covers the high-level operations selected
-for the first native slice:
+The geometry, its weights and its open problems are described in
+[docs/method/geometry.md](docs/method/geometry.md). Comparisons with external
+references (expert alignments, coverage of published wordlists, robustness
+across feature theories) are reported in
+[docs/method/evaluation.md](docs/method/evaluation.md).
 
-- built-in registry creation and system lookup
-- listing built-in systems
-- grapheme feature lookup
-- segment validity checks
-- categorical and valued segment distance
-- geometry feature distance
-- set-based sound distance with weight presets
-- IPA normalization and two tokenization policies (orthographic and
-  system-aware longest match)
-- Chao tone digit merging
-- descriptive source-token validation for vowel clusters, selected
-  author-defined consonant clusters, precomposed Latin source letters,
-  broader affricate spellings, and tone-bearing nuclei
-- registering a simple caller-supplied categorical model from text
+## Scope and interpretation
 
-Built-in C systems currently include:
+The library computes a dissimilarity between two segments. The following
+properties limit what that number can be used for.
 
-- `distinctive` — **the default.** It recognizes the same graphemes as
-  `descriptive` (0 disagreements over 7,396 Lexibank segment types) and scores
-  better: on BDPA gold alignments it is not statistically distinguishable from
-  LingPy's SCA, where `descriptive` is measurably behind it. Reach for this one
-  unless you have a reason not to.
-- `descriptive` — same recognition, scores through the geometry tree rather than
-  its own dimensions. Use it when you want the geometry's numbers, or when you
-  want `sound_distance` on a feature set to agree with `distance` on a grapheme,
-  which only holds for the geometry-scored systems.
-- `pbase-hc`
-- `pbase-jfh` — an *acoustic* feature set (Jakobson–Fant–Halle) mapped onto an
-  articulatory tree for weighting; the mapping is a convenience, not a claim
-  that the two systems align
-- `pbase-spe`
-- `pbase-uftc`
-- `phoible`
+- **It is not a metric.** Valued systems compare only the dimensions both
+  segments define, so the basis of comparison changes from pair to pair, and the
+  triangle inequality does not hold: in `pbase-hc`,
+  d(ðˠ, mʲ) = 0.3113 > d(ðˠ, d̪ʲ) + d(d̪ʲ, mʲ) = 0.0943 + 0.2091.
+- **It is not a probability of sound change.** Phonetic similarity and the
+  frequency of a change are different quantities: velar palatalization is among
+  the most frequent changes attested, yet d(k, tʃ) = 0.37 is far greater than
+  d(k, q) = 0.06 in the default system. Claims about change require models
+  estimated from correspondences between languages.
+- **It is not a typological statistic.** The tables are catalogues of segment
+  types. They do not record which languages have a segment, whether it is
+  contrastive, or any genealogical or areal grouping. A companion package,
+  [python/typology/](python/typology/), provides language-indexed inventories
+  separately.
+- **The weights are stipulated, not estimated.** They follow from the depth of
+  the geometry and from hand-set scale weights, not from perception, contrast or
+  observed change.
+- **It is a substitution cost, not an aligner.** The library has no gap model and
+  no sequence operations. The gap cost that best reproduces expert alignments
+  differs between systems ([evaluation](docs/method/evaluation.md#1-segment-substitution-cost-in-pairwise-alignment)).
+- **Identical values are reported, not hidden.** Pairs of distinct segments with
+  a distance of zero are listed with their reasons in
+  `tests/golden/contrast_baseline.tsv`; they occur only in the valued systems,
+  whose source tables do not distinguish the segments concerned.
 
-`classfeat` is intentionally not part of the first native C slice, but
-the generated-data and API layout leave room for it.
+Results depend on the system, its version and the scoring policy. The semantic
+fingerprint of a system ([docs/method/semantic-fingerprint.md](docs/method/semantic-fingerprint.md))
+identifies all three and should be stored with any result that is kept.
 
-## Build And Install
+## Installation
 
-From the repository root:
+The C library is built with CMake (3.20 or later) and a C99 compiler:
 
 ```sh
-cmake -S . -B build/c-debug -DCMAKE_BUILD_TYPE=Debug
-cmake --build build/c-debug
-ctest --test-dir build/c-debug --output-on-failure
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+ctest --test-dir build
+cmake --install build
 ```
 
-The library has no external dependency. Unicode normalization (NFC and NFD)
-is compiled in from generated tables, so every build of a given commit —
-CMake, the Python wheel, WebAssembly — returns the same strings, at the Unicode
-version `merkmal.UNICODE_VERSION` reports. If `libutf8proc` is installed, the
-`unicode` test uses it as an independent oracle over every code point; to make
-that test mandatory:
+The Python package (CPython 3.12 or later) is built from the same sources:
 
 ```sh
-cmake -S . -B build/c-debug -DMERKMAL_REQUIRE_UTF8PROC=ON
+python -m pip install merkmal
 ```
 
-For installation as a downstream C dependency:
+Installed C consumers can use CMake (`find_package(merkmal CONFIG)`, target
+`merkmal::merkmal`) or pkg-config. Static and shared builds, and a build without
+the share-alike and non-commercial data, are described in
+[docs/guide/installation.md](docs/guide/installation.md).
+
+## Usage
+
+In Python:
+
+```python
+import merkmal
+
+merkmal.get_features("pʰ")                      # frozenset of feature labels
+merkmal.distance("p", "b")                      # 0.1493, default system
+merkmal.distance("p", "b", system="phoible")    # another feature theory
+merkmal.distance_with_coverage("ai", "au")      # score, coverage, comparability
+merkmal.system_segment_ipa("tʃa", system="descriptive")   # ['tʃ', 'a']
+```
+
+From the command line, with machine-readable output:
 
 ```sh
-cmake -S . -B build/release \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_INSTALL_PREFIX=/usr/local \
-  -DMERKMAL_REQUIRE_UTF8PROC=ON
-cmake --build build/release
-cmake --install build/release
+merkmal --system phoible features bʰ
+merkmal --tsv distance ai au
 ```
 
-Installed consumers can use either CMake:
-
-```cmake
-find_package(merkmal CONFIG REQUIRED)
-target_link_libraries(example PRIVATE merkmal::merkmal)
-```
-
-or pkg-config:
-
-```sh
-cc example.c $(pkg-config --cflags --libs merkmal) -o example
-```
-
-See [docs/guide/installation.md](docs/guide/installation.md) for static/shared builds,
-custom prefixes, and the normalization notes. See
-[docs/development/release-policy.md](docs/development/release-policy.md) for release dependency and
-validation policy. See [docs/guide/webassembly.md](docs/guide/webassembly.md) for the
-initial Emscripten and Node smoke-test path.
-
-## C Example
+In C:
 
 ```c
 #include "merkmal.h"
-
 #include <stdio.h>
 
-int main(void) {
+int main(void)
+{
     mk_registry *registry = NULL;
     const mk_system *system = NULL;
-    mk_string_list *features = NULL;
     double distance = 0.0;
 
     if (mk_registry_new_builtin(&registry) != MK_OK) {
         return 1;
     }
-    if (mk_registry_get_system(registry, "descriptive", &system) != MK_OK) {
-        mk_registry_free(registry);
-        return 1;
-    }
-    if (mk_system_grapheme_features(system, "pʰ", &features) == MK_OK) {
-        for (size_t i = 0; i < mk_string_list_size(features); i++) {
-            puts(mk_string_list_get(features, i));
-        }
-        mk_string_list_free(features);
-    }
-    if (mk_system_segment_distance(system, "p", "b", &distance) == MK_OK) {
-        printf("%f\n", distance);
+    if (mk_registry_get_system(registry, "distinctive", &system) == MK_OK &&
+        mk_system_segment_distance(system, "p", "b", &distance) == MK_OK) {
+        printf("%.4f\n", distance);
     }
     mk_registry_free(registry);
     return 0;
 }
 ```
 
-See [docs/guide/c-api.md](docs/guide/c-api.md) for the public C surface and
-[docs/guide/installation.md](docs/guide/installation.md) for installation and downstream
-integration. See
-[docs/guide/runtime-model-format.md](docs/guide/runtime-model-format.md) for the
-line-oriented caller-supplied model format.
+[examples/transcribe.c](examples/transcribe.c) is a complete program: it
+segments a transcription, prints the features of each segment, scores a pair,
+and explains why a segment was refused.
 
-## Python Wrapper
+Two tokenization policies are provided. `segment_ipa` splits at every base
+character not joined by a tie bar; `system_segment_ipa` takes the longest
+sequence the chosen system recognizes as one segment. Neither is a phonological
+analysis (`kp` may be a cluster in a language without labial-velars), and the
+policy and system used should be recorded with any stored tokenization.
 
-The Python package builds `merkmal._native` with the CPython Limited API
-and exposes the supported high-level operations from the top-level
-`merkmal` module.
+## Documentation
 
-```sh
-python -m pip install -e ".[dev]"
-python -m pytest python/tests -q
-python -m build --sdist --wheel
-```
+[docs/README.md](docs/README.md) lists the documentation: the C interface, the
+Python package and command line, the model formats, the method and its
+evaluation, and the development conventions. Changes between releases are
+recorded in [CHANGELOG.md](CHANGELOG.md).
 
-The wheel is built as `cp312-abi3` for broad CPython compatibility.
+## Citation
 
-```python
-import merkmal
+Please cite the software as described in [CITATION.cff](CITATION.cff), and also
+cite the source of the feature data for each system used:
 
-print(merkmal.list_systems())
-print(merkmal.get_features("pʰ"))
-print(merkmal.distance("p", "b"))
-print(merkmal.feature_distance("voiced", "voiceless"))
-print(merkmal.segment_ipa("tʰoŋ⁵⁵"))
-print(merkmal.is_segment("aːi³³", system="descriptive"))
-```
+- List, Johann-Mattis, Cormac Anderson, Tiago Tresoldi, Christoph Rzymski and
+  Robert Forkel. Cross-Linguistic Transcription Systems (CLTS), version 1.4.1.
+  https://github.com/cldf-clts/clts (`distinctive`, `descriptive`).
+- Moran, Steven and Daniel McCloy (eds.). 2019. PHOIBLE 2.0. Jena: Max Planck
+  Institute for the Science of Human History. https://phoible.org/ (`phoible`).
+- Mielke, Jeff. P-base. North Carolina State University (`pbase-*`).
 
-### Tokenization: pick a policy deliberately
+Other works cited above:
 
-`segment_ipa` is *orthographic*: a token starts at each new base code point
-unless a tie bar joins it to the previous one. It is stable and
-language-neutral, but it splits sequences the systems themselves accept as
-single segments.
-
-`system_segment_ipa` is *system-aware*: longest match against the selected
-system's inventory and synthesis grammar.
-
-```python
-merkmal.segment_ipa("tʃa")                              # ['t', 'ʃ', 'a']
-merkmal.system_segment_ipa("tʃa", system="descriptive") # ['tʃ', 'a']
-merkmal.segment_ipa("kpa")                              # ['k', 'p', 'a']
-merkmal.system_segment_ipa("kpa", system="descriptive") # ['kp', 'a']
-```
-
-Longest match is a policy, not a truth: `kp` may be /k.p/ in a language with no
-labial-velar, and `ai` may be hiatus rather than a diphthong. Results depend on
-the selected system and its inventory version, so record both alongside any
-stored tokenization. For curated historical corpora, supplying your own token
-boundaries remains the most reproducible option.
-
-### Tone
-
-Tone is represented by a `tone-present` feature plus per-position level
-features, so a mid-level tone is distinguishable from tonelessness:
-
-```python
-merkmal.distance("a", "a³³")   # > 0; these are not the same segment
-merkmal.distance("a", "a³³", node_weights="ignore-tone")  # 0.0, deliberately
-```
-
-Each position carries an ordered Chao level, so distance is proportional to the
-difference in pitch: `d(a¹¹, a²²) < d(a¹¹, a³³) < d(a¹¹, a⁵⁵)`. Both notations
-work — superscript digits and the IPA tone letters U+02E5–U+02E9 — and `a¹`,
-`a¹¹` and `a¹¹¹` are the same segment.
-
-Chao runs of four or more digits are rejected as a whole rather than being
-reinterpreted in pieces. The valued systems (`pbase-*`, `phoible`) have no
-dimension a tone modifier can move, so they raise `NotImplementedError`
-("unsupported model") for tone-bearing graphemes rather than returning a
-falsely precise zero.
-
-The Python package is intentionally native-only; unsupported legacy helper
-APIs are no longer exported from `merkmal`.
-
-Runtime model registration is exposed through an owned native registry:
-
-```python
-registry = merkmal.Registry()
-registry.add_model_text("""
-@model toy
-@type categorical
-@geometry clements-hume
-grapheme X consonant voiceless bilabial stop
-grapheme Y vowel open front unrounded
-""")
-print(registry.distance("X", "Y", system="toy"))
-```
-
-## Runtime Models
-
-The C registry can accept a complete categorical model supplied as text:
-
-```text
-@model toy
-@type categorical
-@geometry clements-hume
-grapheme X consonant voiceless bilabial stop
-grapheme Y vowel open front unrounded
-```
-
-```c
-mk_registry_add_model_text(registry, model_text);
-```
-
-The format is intentionally line-oriented, UTF-8, and grep-friendly.
-Only categorical models are currently public in this format.
-
-## Repository Structure
-
-```text
-merkmal/
-├── include/                public C headers
-├── src/                    C99 implementation and generated built-in data
-├── cmake/                  CMake and pkg-config package templates
-├── tools/                  data generators for compiled-in C tables
-├── scripts/                active source-data validation and audit scripts
-├── bench/                  footprint and lookup benchmarks, with a baseline
-├── fuzz/                   libFuzzer harnesses and seed corpora
-├── examples/               worked examples, built and run as tests
-├── tests/c/                C tests (docs/development/style.md says which link what)
-├── tests/golden/           parity fixtures for the native implementation
-├── data/models/                 source model data used by generators
-├── data/geometries/             source geometry data
-├── data/diacritics/             source diacritic/tone/modifier mappings
-├── data/typologies/             source typology data reserved for later C support
-├── python/                 native Python wrapper
-└── docs/                   C API and format documentation
-```
-
-Contributing: start with [AGENTS.md](AGENTS.md), the checklist of commands,
-boundaries and required checks. [docs/development/style.md](docs/development/style.md) describes the module layout,
-the `mk_`/`mki_` naming rule, ownership and error conventions, the generated
-data, and the build, sanitizer, analysis and fuzzing commands CI runs.
-
-For a worked example of the C API — tokenizing a transcription, reading each
-segment's features, scoring a pair, and explaining a rejected token — see
-[examples/transcribe.c](examples/transcribe.c).
+- Chomsky, Noam and Morris Halle. 1968. *The sound pattern of English*. New
+  York: Harper & Row.
+- Clements, G. N. and Elizabeth V. Hume. 1995. The internal organization of
+  speech sounds. In John A. Goldsmith (ed.), *The handbook of phonological
+  theory*, 245–306. Oxford: Blackwell.
+- Jakobson, Roman, C. Gunnar M. Fant and Morris Halle. 1952. *Preliminaries to
+  speech analysis: The distinctive features and their correlates*. Cambridge,
+  MA: MIT Press.
 
 ## License
 
-The **source code** is MIT. See [LICENSE](LICENSE).
-
-The **bundled data is not all MIT**, and the compiled-in tables are part of
-every wheel:
+The source code is released under the MIT license ([LICENSE](LICENSE)). The
+feature data compiled into the library carries the terms of its sources:
 
 | Data | License |
 | --- | --- |
-| `descriptive`, `distinctive` | CC BY 4.0 — derived from CLTS v1.4.1 |
-| `phoible` | CC BY-SA 3.0 (upstream terms) |
-| `pbase-hc`, `pbase-jfh`, `pbase-spe`, `pbase-uftc` | CC BY-NC-SA 4.0 (upstream terms) |
-| `classfeat` | MIT |
+| `distinctive`, `descriptive` | CC BY 4.0 |
+| `phoible` | CC BY-SA 3.0 |
+| `pbase-spe`, `pbase-jfh`, `pbase-hc`, `pbase-uftc` | CC BY-NC-SA 4.0 |
 
-The distribution declares
-`MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`. **The P-base tables
-carry a non-commercial clause, and PHOIBLE and P-base carry share-alike.** A
-product or service built on a wheel that bundles them inherits those terms.
-Every bundled table also requires attribution: credit the upstream project each
-manifest names and say that changes were made.
-
-If the non-commercial or share-alike terms are a problem for you, build merkmal
-from source with only the CC BY 4.0 tables — `distinctive` (the default) and
-`descriptive`. The compiled library then contains no PHOIBLE or P-base data:
-
-```sh
-MERKMAL_DATA_PROFILE=cc-by pip install --no-binary merkmal merkmal
-cmake -S . -B build -DMERKMAL_DATA_PROFILE=cc-by     # the C library
-```
-
-`merkmal.DATA_PROFILE` says which build is loaded (`"full"` or `"cc-by"`). The
-published package is always the full one; see
-[docs/guide/installation.md](docs/guide/installation.md#data-profiles).
-
-See [NOTICE](NOTICE), generated from `data/models/*/provenance.json`.
-
-This is a record, not legal advice.
+The distributed package is therefore licensed as
+`MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`: software built on it
+inherits the share-alike terms of PHOIBLE and P-base and the non-commercial
+terms of P-base. A build containing only the CC BY 4.0 data is available
+(`MERKMAL_DATA_PROFILE=cc-by`; see
+[docs/guide/installation.md](docs/guide/installation.md#data-profiles)).
+[NOTICE](NOTICE) gives the attribution each source requires.
