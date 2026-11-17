@@ -94,7 +94,7 @@ def main() -> int:
         if source is None:
             unmatched += 1
             kept = [row[0]] + ["?" if value == "." else value for value in row[1:]]
-            changed_cells += sum(a != b for a, b in zip(row, kept))
+            changed_cells += sum(a != b for a, b in zip(row, kept, strict=True))
             changed_rows += kept != row
             out_rows.append(kept)
             continue

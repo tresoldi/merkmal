@@ -380,7 +380,7 @@ class AbstractSegment:
     @staticmethod
     def columns(*, system: str | None = None) -> list[tuple[str, list[str]]]:
         """Column names and the values each can take, in order."""
-        return _native.bundle_columns(system=system)
+        return cast("list[tuple[str, list[str]]]", _native.bundle_columns(system=system))
 
     @property
     def cells(self) -> dict[str, str]:
@@ -389,14 +389,19 @@ class AbstractSegment:
     def with_cells(self, **cells: str) -> AbstractSegment:
         """A copy with some cells replaced (keyword names are column names)."""
         merged = self.cells | cells
-        return AbstractSegment(";".join(f"{k}={v}" for k, v in merged.items()), system=self.system)
+        text = ";".join(f"{k}={v}" for k, v in merged.items())
+        return AbstractSegment(text, system=self.system)
 
-    def compare(self, other: AbstractSegment | str, *, weights: str | None = None) -> BundleComparison:
+    def compare(
+        self, other: AbstractSegment | str, *, weights: str | None = None
+    ) -> BundleComparison:
         if isinstance(other, str):
             other = AbstractSegment.from_grapheme(other, system=self.system)
         if other.system != self.system:
             raise ValueError("compare: abstract segments of different systems")
-        return BundleComparison(*_native.bundle_compare(self.text, other.text, system=self.system, weights=weights))
+        return BundleComparison(
+            *_native.bundle_compare(self.text, other.text, system=self.system, weights=weights)
+        )
 
     def compatible(self, grapheme: str) -> bool:
         """Whether the grapheme is one of this bundle's completions."""
@@ -404,10 +409,15 @@ class AbstractSegment:
 
     def compatible_graphemes(self, *, weights: str | None = None) -> list[str]:
         """Compatible graphemes, nearest first. For display, never identity."""
-        return _native.bundle_compatible_graphemes(self.text, system=self.system, weights=weights)
+        return cast(
+            "list[str]",
+            _native.bundle_compatible_graphemes(self.text, system=self.system, weights=weights),
+        )
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, AbstractSegment) and (self.system, self.text) == (other.system, other.text)
+        if not isinstance(other, AbstractSegment):
+            return False
+        return (self.system, self.text) == (other.system, other.text)
 
     def __hash__(self) -> int:
         return hash((self.system, self.text))

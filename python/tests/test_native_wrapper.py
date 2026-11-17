@@ -753,7 +753,8 @@ def test_feature_vectors_are_lossless() -> None:
         for grapheme in (row.split("\t")[0] for row in rows if row):
             vector = tuple(merkmal.feature_vector(grapheme, system=system))
             first = by_vector.setdefault(vector, grapheme)
-            assert merkmal.distance(first, grapheme, system=system) == 0.0, (system, first, grapheme)
+            distance = merkmal.distance(first, grapheme, system=system)
+            assert distance == 0.0, (system, first, grapheme)
     assert merkmal.feature_vector("a") != merkmal.feature_vector("e")
 
 
@@ -820,7 +821,10 @@ def test_abstract_segment_bounds_are_exact() -> None:
         columns = dict(merkmal.AbstractSegment.columns(system=system))
         graphemes = [
             g for g in _inventory(system)
-            if all(v not in ("?", "*") for v in merkmal.AbstractSegment.from_grapheme(g, system=system).cells.values())
+            if all(
+                v not in ("?", "*")
+                for v in merkmal.AbstractSegment.from_grapheme(g, system=system).cells.values()
+            )
         ]
         checked = 0
         while checked < 12:
@@ -831,7 +835,12 @@ def test_abstract_segment_bounds_are_exact() -> None:
             for name in names:
                 values = [v for v in columns[name] if v != "n"]
                 draw = rng.random()
-                edits[name] = "?" if draw < 0.4 else "*" if draw < 0.6 else "|".join(rng.sample(values, min(2, len(values))))
+                if draw < 0.4:
+                    edits[name] = "?"
+                elif draw < 0.6:
+                    edits[name] = "*"
+                else:
+                    edits[name] = "|".join(rng.sample(values, min(2, len(values))))
             segment = base.with_cells(**edits)
             got = segment.compare(other)
             options = [
