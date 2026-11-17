@@ -49,7 +49,7 @@ static char *mk_next_token(char **cursor)
     return start;
 }
 
-static void mk_free_entries(mk_builtin_entry *entries, size_t count)
+static void mk_free_entries(mki_builtin_entry *entries, size_t count)
 {
     size_t i;
 
@@ -65,7 +65,7 @@ static void mk_free_entries(mk_builtin_entry *entries, size_t count)
     free(entries);
 }
 
-void mki_parsed_model_clear(mk_parsed_model *model)
+void mki_parsed_model_clear(mki_parsed_model *model)
 {
     if (model == NULL) {
         return;
@@ -78,7 +78,7 @@ void mki_parsed_model_clear(mk_parsed_model *model)
 }
 
 static mk_status mk_add_parsed_entry(
-    mk_builtin_entry **entries,
+    mki_builtin_entry **entries,
     size_t *count,
     size_t *cap,
     char *cursor
@@ -88,7 +88,7 @@ static mk_status mk_add_parsed_entry(
     char **features = NULL;
     size_t feature_count = 0;
     size_t feature_cap = 0;
-    mk_builtin_entry *next_entries;
+    mki_builtin_entry *next_entries;
 
     grapheme = mk_next_token(&cursor);
     if (grapheme == NULL) {
@@ -120,7 +120,7 @@ static mk_status mk_add_parsed_entry(
         return MK_ERR_PARSE;
     }
 
-    next_entries = (mk_builtin_entry *)mki_grow_array(
+    next_entries = (mki_builtin_entry *)mki_grow_array(
         *entries, cap, *count, 1, sizeof(**entries), 8);
     if (next_entries == NULL) {
         mki_free_items(features, feature_count);
@@ -197,7 +197,7 @@ static int mk_compare_grapheme_pointers(const void *a, const void *b)
  * the duplicate, where it used to report whichever came first by row. The
  * status is MK_ERR_PARSE either way; only the sentence differs. */
 static mk_status mk_check_no_duplicate_grapheme(
-    const mk_builtin_entry *entries,
+    const mki_builtin_entry *entries,
     size_t entry_count,
     char **diagnostic
 )
@@ -236,7 +236,7 @@ static mk_status mk_check_no_duplicate_grapheme(
  * grapheme must be unique. Both checks exist because a model that fails them
  * still registers and still answers every query: it just answers zero. */
 static mk_status mk_validate_strict_entries(
-    const mk_builtin_entry *entries,
+    const mki_builtin_entry *entries,
     size_t entry_count,
     char **diagnostic
 )
@@ -289,7 +289,7 @@ static mk_status mk_validate_strict_entries(
 
 mk_status mki_parse_model_text(
     const char *model_text,
-    mk_parsed_model *out,
+    mki_parsed_model *out,
     char **diagnostic
 )
 {
@@ -302,7 +302,7 @@ mk_status mki_parse_model_text(
 mk_status mki_parse_model_text_n(
     const char *model_text,
     size_t model_text_length,
-    mk_parsed_model *out,
+    mki_parsed_model *out,
     char **diagnostic
 )
 {
@@ -314,7 +314,7 @@ mk_status mki_parse_model_text_n(
     int line_no = 0;
     char unknown_directive[256];
     int unknown_directive_line = 0;
-    mk_builtin_entry *entries = NULL;
+    mki_builtin_entry *entries = NULL;
     size_t entry_count = 0;
     size_t entry_cap = 0;
     mk_status status;

@@ -151,12 +151,12 @@ static int mk_compare_strings(const void *left, const void *right)
     return strcmp(*a, *b);
 }
 
-static const char *mk_fingerprint_kind_name(mk_system_type kind)
+static const char *mk_fingerprint_kind_name(mki_system_type kind)
 {
     switch (kind) {
-    case MK_SYSTEM_CATEGORICAL: return "categorical";
-    case MK_SYSTEM_VALUED: return "valued";
-    case MK_SYSTEM_TRAINED: return "trained";
+    case MKI_SYSTEM_CATEGORICAL: return "categorical";
+    case MKI_SYSTEM_VALUED: return "valued";
+    case MKI_SYSTEM_TRAINED: return "trained";
     default: return "unknown";
     }
 }
@@ -172,7 +172,7 @@ static void mk_hash_text(mk_sha256 *ctx, const char *text)
 static void mk_runtime_model_sha256(const mk_system *system, char out[65])
 {
     mk_sha256 ctx;
-    const mk_builtin_system *builtin = system->builtin;
+    const mki_builtin_system *builtin = system->builtin;
     const char *previous = NULL;
     size_t emitted;
 
@@ -192,8 +192,8 @@ static void mk_runtime_model_sha256(const mk_system *system, char out[65])
             }
         }
         if (next != NULL) {
-            mk_entry_view row = {NULL, NULL, 0};
-            const char *features[MK_MAX_ENTRY_FEATURES];
+            mki_entry_view row = {NULL, NULL, 0};
+            const char *features[MKI_MAX_ENTRY_FEATURES];
             size_t j;
             for (j = 0; j < builtin->entry_count; j++) {
                 if (builtin->entries[j].grapheme != NULL &&
@@ -250,7 +250,7 @@ mk_status mki_system_semantic_fingerprint(
     char **digest_out
 )
 {
-    const mk_builtin_system *builtin;
+    const mki_builtin_system *builtin;
     char runtime_digest[65];
     char payload_digest[65];
     char *payload = NULL;

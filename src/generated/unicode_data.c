@@ -1317,7 +1317,7 @@ static const unsigned int mk_composition_result[] = {
     0x11938,
 };
 
-const mk_unicode_tables mki_unicode_tables = {
+const mki_unicode_table_set mki_unicode_tables = {
     mk_ccc_code_points,
     mk_ccc_classes,
     922,

@@ -47,7 +47,7 @@ static void check_parts_carry_features(const mk_system *system)
     size_t s;
 
     for (s = 0; s < sizeof(spellings) / sizeof(spellings[0]); s++) {
-        mk_resolution resolved;
+        mki_resolution resolved;
         size_t i;
 
         if (mki_resolve(system, spellings[s], &resolved) != MK_OK) {
@@ -60,7 +60,7 @@ static void check_parts_carry_features(const mk_system *system)
             continue;
         }
         for (i = 0; i < resolved.cluster_component_count; i++) {
-            const mk_cluster_component *part = &resolved.cluster_components[i];
+            const mki_cluster_component *part = &resolved.cluster_components[i];
             mk_feature_view view = mki_view_of_component(part);
 
             if (part->grapheme == NULL || part->grapheme[0] == '\0') {
@@ -176,7 +176,7 @@ static void check_geminacy_is_featural(const mk_system *system)
     size_t i;
 
     for (i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
-        mk_resolution resolved;
+        mki_resolution resolved;
         int geminate;
 
         if (mki_resolve(system, cases[i].token, &resolved) != MK_OK) {
@@ -203,8 +203,8 @@ static void check_geminacy_is_featural(const mk_system *system)
  * that is not there. */
 static void check_two_plain_segments(const mk_system *system)
 {
-    mk_resolution a;
-    mk_resolution b;
+    mki_resolution a;
+    mki_resolution b;
     double out = -1.0;
 
     if (mki_resolve(system, "p", &a) != MK_OK || mki_resolve(system, "b", &b) != MK_OK) {

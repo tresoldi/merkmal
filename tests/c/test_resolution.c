@@ -18,81 +18,81 @@ typedef struct resolution_case {
     const char *system;
     const char *grapheme;
     mk_status status;
-    mk_resolution_path path;
+    mki_resolution_path path;
     /* A feature the resolution must carry, or NULL to skip the check. */
     const char *feature;
 } resolution_case;
 
 static const resolution_case cases[] = {
     /* Inventory rows, matched as written. */
-    { "descriptive", "p", MK_OK, MK_RESOLVED_INVENTORY, "bilabial" },
-    { "descriptive", "a", MK_OK, MK_RESOLVED_INVENTORY, "vowel" },
-    { "phoible", "b", MK_OK, MK_RESOLVED_INVENTORY, NULL },
+    { "descriptive", "p", MK_OK, MKI_RESOLVED_INVENTORY, "bilabial" },
+    { "descriptive", "a", MK_OK, MKI_RESOLVED_INVENTORY, "vowel" },
+    { "phoible", "b", MK_OK, MKI_RESOLVED_INVENTORY, NULL },
 
     /* The descriptive inventory lists the untied affricate, so it is a plain
      * lookup there and only the tied spelling needs stripping. */
-    { "descriptive", "tʃ", MK_OK, MK_RESOLVED_INVENTORY, NULL },
-    { "descriptive", "t͡ʃ", MK_OK, MK_RESOLVED_TIE_STRIPPED, NULL },
-    { "descriptive", "d͡ʒ", MK_OK, MK_RESOLVED_TIE_STRIPPED, NULL },
+    { "descriptive", "tʃ", MK_OK, MKI_RESOLVED_INVENTORY, NULL },
+    { "descriptive", "t͡ʃ", MK_OK, MKI_RESOLVED_TIE_STRIPPED, NULL },
+    { "descriptive", "d͡ʒ", MK_OK, MKI_RESOLVED_TIE_STRIPPED, NULL },
 
     /* PHOIBLE lists the retracted form instead, so both spellings reach it
      * only after the retraction mark is inserted. This is the one bundled
      * system that exercises that path; if the inventories ever gain an untied
      * row, this case is what will say so. */
-    { "phoible", "tʃ", MK_OK, MK_RESOLVED_AFFRICATE_RETRACTED, NULL },
-    { "phoible", "d͡ʒ", MK_OK, MK_RESOLVED_AFFRICATE_RETRACTED, NULL },
+    { "phoible", "tʃ", MK_OK, MKI_RESOLVED_AFFRICATE_RETRACTED, NULL },
+    { "phoible", "d͡ʒ", MK_OK, MKI_RESOLVED_AFFRICATE_RETRACTED, NULL },
 
     /* Synthesized from a base plus diacritic and tone marks. */
-    { "descriptive", "pʰ", MK_OK, MK_RESOLVED_DIACRITICS, "aspirated" },
-    { "descriptive", "aː", MK_OK, MK_RESOLVED_DIACRITICS, "long" },
-    { "descriptive", "ã", MK_OK, MK_RESOLVED_DIACRITICS, "nasalized" },
-    { "descriptive", "a⁵⁵", MK_OK, MK_RESOLVED_DIACRITICS, "tone-present" },
-    { "descriptive", "ŋ̀", MK_OK, MK_RESOLVED_DIACRITICS, "syllabic" },
+    { "descriptive", "pʰ", MK_OK, MKI_RESOLVED_DIACRITICS, "aspirated" },
+    { "descriptive", "aː", MK_OK, MKI_RESOLVED_DIACRITICS, "long" },
+    { "descriptive", "ã", MK_OK, MKI_RESOLVED_DIACRITICS, "nasalized" },
+    { "descriptive", "a⁵⁵", MK_OK, MKI_RESOLVED_DIACRITICS, "tone-present" },
+    { "descriptive", "ŋ̀", MK_OK, MKI_RESOLVED_DIACRITICS, "syllabic" },
     /* A prefixed nasal is a diacritic, not a cluster: the mark carries the
      * feature and the base resolves on its own. */
-    { "descriptive", "ᵐb", MK_OK, MK_RESOLVED_DIACRITICS, "pre-nasalized" },
-    { "descriptive", "ⁿdʳ", MK_OK, MK_RESOLVED_DIACRITICS, "rhotacized" },
+    { "descriptive", "ᵐb", MK_OK, MKI_RESOLVED_DIACRITICS, "pre-nasalized" },
+    { "descriptive", "ⁿdʳ", MK_OK, MKI_RESOLVED_DIACRITICS, "rhotacized" },
     /* A complex base carrying a diacritic resolves through the diacritic path,
      * which resolves the base recursively. */
-    { "descriptive", "tʂʰ", MK_OK, MK_RESOLVED_DIACRITICS, "aspirated" },
+    { "descriptive", "tʂʰ", MK_OK, MKI_RESOLVED_DIACRITICS, "aspirated" },
 
     /* Synthesized vowel clusters. */
-    { "descriptive", "ai", MK_OK, MK_RESOLVED_VOWEL_CLUSTER, "diphthong" },
-    { "descriptive", "aːi", MK_OK, MK_RESOLVED_VOWEL_CLUSTER, "diphthong" },
-    { "descriptive", "əi³¹", MK_OK, MK_RESOLVED_VOWEL_CLUSTER, "tone-present" },
-    { "descriptive", "ɛï³³", MK_OK, MK_RESOLVED_VOWEL_CLUSTER, "diphthong" },
+    { "descriptive", "ai", MK_OK, MKI_RESOLVED_VOWEL_CLUSTER, "diphthong" },
+    { "descriptive", "aːi", MK_OK, MKI_RESOLVED_VOWEL_CLUSTER, "diphthong" },
+    { "descriptive", "əi³¹", MK_OK, MKI_RESOLVED_VOWEL_CLUSTER, "tone-present" },
+    { "descriptive", "ɛï³³", MK_OK, MKI_RESOLVED_VOWEL_CLUSTER, "diphthong" },
 
     /* Synthesized complex segments written as two letters. */
-    { "descriptive", "kp", MK_OK, MK_RESOLVED_COMPLEX, NULL },
-    { "descriptive", "ɡb", MK_OK, MK_RESOLVED_COMPLEX, NULL },
-    { "descriptive", "kɣ", MK_OK, MK_RESOLVED_COMPLEX, NULL },
-    { "descriptive", "tʂ", MK_OK, MK_RESOLVED_COMPLEX, NULL },
+    { "descriptive", "kp", MK_OK, MKI_RESOLVED_COMPLEX, NULL },
+    { "descriptive", "ɡb", MK_OK, MKI_RESOLVED_COMPLEX, NULL },
+    { "descriptive", "kɣ", MK_OK, MKI_RESOLVED_COMPLEX, NULL },
+    { "descriptive", "tʂ", MK_OK, MKI_RESOLVED_COMPLEX, NULL },
 
     /* Prenasalized stops: recognized as complex segments. */
-    { "descriptive", "mb", MK_OK, MK_RESOLVED_COMPLEX, NULL },
-    { "descriptive", "nd", MK_OK, MK_RESOLVED_COMPLEX, NULL },
-    { "descriptive", "ŋg", MK_OK, MK_RESOLVED_COMPLEX, NULL },
+    { "descriptive", "mb", MK_OK, MKI_RESOLVED_COMPLEX, NULL },
+    { "descriptive", "nd", MK_OK, MKI_RESOLVED_COMPLEX, NULL },
+    { "descriptive", "ŋg", MK_OK, MKI_RESOLVED_COMPLEX, NULL },
 
     /* Rejections. Unknown means no path recognized the input; parse means a
      * path recognized the shape and rejected the content. */
-    { "descriptive", "not-ipa", MK_ERR_UNKNOWN_GRAPHEME, MK_RESOLVED_NONE, NULL },
-    { "descriptive", "³¹", MK_OK, MK_RESOLVED_TONE, "tonal-autosegment" },
-    { "descriptive", "⁰", MK_OK, MK_RESOLVED_TONE, "tone-neutral" },
-    { "descriptive", "˥˩", MK_OK, MK_RESOLVED_TONE, "tone-onset-5" },
-    { "phoible", "³¹", MK_ERR_UNSUPPORTED_MODEL, MK_RESOLVED_NONE, NULL },
-    { "descriptive", "a¹²³⁴", MK_ERR_PARSE, MK_RESOLVED_NONE, NULL },
+    { "descriptive", "not-ipa", MK_ERR_UNKNOWN_GRAPHEME, MKI_RESOLVED_NONE, NULL },
+    { "descriptive", "³¹", MK_OK, MKI_RESOLVED_TONE, "tonal-autosegment" },
+    { "descriptive", "⁰", MK_OK, MKI_RESOLVED_TONE, "tone-neutral" },
+    { "descriptive", "˥˩", MK_OK, MKI_RESOLVED_TONE, "tone-onset-5" },
+    { "phoible", "³¹", MK_ERR_UNSUPPORTED_MODEL, MKI_RESOLVED_NONE, NULL },
+    { "descriptive", "a¹²³⁴", MK_ERR_PARSE, MKI_RESOLVED_NONE, NULL },
     /* A breve plus a length mark puts one segment at two points of the
      * duration scale. Both cluster kinds report it the same way: parse, not
      * unknown, because the shape was recognized and the content refused. The
      * two synthesizers disagreed about this before they shared a scan. */
-    { "descriptive", "aĭː", MK_ERR_PARSE, MK_RESOLVED_NONE, NULL },
-    { "descriptive", "mb̆ː", MK_ERR_PARSE, MK_RESOLVED_NONE, NULL },
+    { "descriptive", "aĭː", MK_ERR_PARSE, MKI_RESOLVED_NONE, NULL },
+    { "descriptive", "mb̆ː", MK_ERR_PARSE, MKI_RESOLVED_NONE, NULL },
     /* No dimension a tone modifier can move, so tone is refused rather than
      * silently dropped. */
-    { "phoible", "a⁵⁵", MK_ERR_UNSUPPORTED_MODEL, MK_RESOLVED_NONE, NULL }
+    { "phoible", "a⁵⁵", MK_ERR_UNSUPPORTED_MODEL, MKI_RESOLVED_NONE, NULL }
 };
 
-static int has_feature(const mk_resolution *resolution, const char *feature)
+static int has_feature(const mki_resolution *resolution, const char *feature)
 {
     size_t i;
 
@@ -107,7 +107,7 @@ static int has_feature(const mk_resolution *resolution, const char *feature)
 static int run_case(const mk_registry *registry, const resolution_case *c)
 {
     const mk_system *system = NULL;
-    mk_resolution resolution;
+    mki_resolution resolution;
     mk_status status;
     int failed = 0;
 
@@ -132,9 +132,9 @@ static int run_case(const mk_registry *registry, const resolution_case *c)
     }
     if (status == MK_OK) {
         /* The ownership rule in resolver.h, checked rather than assumed. */
-        int borrowed = c->path == MK_RESOLVED_INVENTORY ||
-            c->path == MK_RESOLVED_TIE_STRIPPED ||
-            c->path == MK_RESOLVED_AFFRICATE_RETRACTED;
+        int borrowed = c->path == MKI_RESOLVED_INVENTORY ||
+            c->path == MKI_RESOLVED_TIE_STRIPPED ||
+            c->path == MKI_RESOLVED_AFFRICATE_RETRACTED;
         if (borrowed) {
             if (resolution.owned_features != NULL || resolution.owned_grapheme != NULL) {
                 fprintf(stderr, "%s/%s: inventory path should own nothing\n",
@@ -167,17 +167,17 @@ static int run_case(const mk_registry *registry, const resolution_case *c)
  * cleared, because every caller memsets before use and clears on every exit. */
 static int check_clear_is_total(void)
 {
-    mk_resolution resolution;
+    mki_resolution resolution;
 
     memset(&resolution, 0, sizeof(resolution));
     mki_resolution_clear(&resolution);
     mki_resolution_clear(&resolution);
     mki_resolution_clear(NULL);
-    if (resolution.path != MK_RESOLVED_NONE || resolution.features != NULL) {
+    if (resolution.path != MKI_RESOLVED_NONE || resolution.features != NULL) {
         fprintf(stderr, "clear: expected a zeroed resolution\n");
         return 1;
     }
-    if (strcmp(mki_resolution_path_name(MK_RESOLVED_NONE), "none") != 0) {
+    if (strcmp(mki_resolution_path_name(MKI_RESOLVED_NONE), "none") != 0) {
         fprintf(stderr, "path name: expected none\n");
         return 1;
     }
@@ -186,7 +186,7 @@ static int check_clear_is_total(void)
 
 static int check_invalid_arguments(void)
 {
-    mk_resolution resolution;
+    mki_resolution resolution;
     int failed = 0;
 
     if (mki_resolve(NULL, "p", &resolution) != MK_ERR_INVALID_ARGUMENT) {
@@ -205,7 +205,7 @@ static int check_invalid_arguments(void)
  * mki_inventory_find against the same data mki_inventory_row reports. */
 static int check_every_compiled_row(void)
 {
-    const char *scratch[MK_MAX_ENTRY_FEATURES];
+    const char *scratch[MKI_MAX_ENTRY_FEATURES];
     size_t s;
     size_t i;
     size_t j;
@@ -213,12 +213,12 @@ static int check_every_compiled_row(void)
     int failed = 0;
 
     for (s = 0; s < mki_builtin_system_count; s++) {
-        const mk_builtin_system *system = &mki_builtin_systems[s];
+        const mki_builtin_system *system = &mki_builtin_systems[s];
 
         for (i = 0; i < system->entry_count; i++) {
-            mk_entry_view row;
-            mk_entry_view found;
-            const char *found_scratch[MK_MAX_ENTRY_FEATURES];
+            mki_entry_view row;
+            mki_entry_view found;
+            const char *found_scratch[MKI_MAX_ENTRY_FEATURES];
 
             mki_inventory_row(system, i, scratch, &row);
             rows++;
@@ -228,8 +228,8 @@ static int check_every_compiled_row(void)
              * disagree, lookups start missing rows that are present, which is
              * silent -- the grapheme simply stops being a segment. */
             if (i > 0) {
-                mk_entry_view previous;
-                const char *previous_scratch[MK_MAX_ENTRY_FEATURES];
+                mki_entry_view previous;
+                const char *previous_scratch[MKI_MAX_ENTRY_FEATURES];
 
                 mki_inventory_row(system, i - 1, previous_scratch, &previous);
                 if (strcmp(previous.grapheme, row.grapheme) >= 0) {
@@ -244,7 +244,7 @@ static int check_every_compiled_row(void)
                 failed = 1;
                 continue;
             }
-            if (row.feature_count == 0 || row.feature_count > MK_MAX_ENTRY_FEATURES) {
+            if (row.feature_count == 0 || row.feature_count > MKI_MAX_ENTRY_FEATURES) {
                 fprintf(stderr, "%s row %zu (%s): feature count %zu out of range\n",
                         system->name, i, row.grapheme, row.feature_count);
                 failed = 1;

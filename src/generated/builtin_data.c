@@ -4669,7 +4669,7 @@ const char *mki_feature_name(unsigned short id)
 const size_t mki_feature_name_count =
     sizeof(mk_feature_offsets) / sizeof(mk_feature_offsets[0]);
 
-const mk_geometry_leaf mki_clements_hume_leaves[] = {
+const mki_geometry_leaf mki_clements_hume_leaves[] = {
     {.name = "voice", .positive = "voiced", .negative = "voiceless", .weight = 0.5, .parent = "Laryngeal"},
     {.name = "spread_glottis", .positive = "aspirated", .negative = "", .weight = 0.5, .parent = "Laryngeal"},
     {.name = "constricted_glottis", .positive = "glottalized", .negative = "", .weight = 0.5, .parent = "Laryngeal"},
@@ -4727,7 +4727,7 @@ const mk_geometry_leaf mki_clements_hume_leaves[] = {
 const size_t mki_clements_hume_leaf_count =
     sizeof(mki_clements_hume_leaves) / sizeof(mki_clements_hume_leaves[0]);
 
-const mk_feature_node_map mki_clements_hume_feature_to_node[] = {
+const mki_feature_node_map mki_clements_hume_feature_to_node[] = {
     {.feature = "advanced-tongue-root", .node = "TongueRoot"},
     {.feature = "affricate", .node = "Manner"},
     {.feature = "approximant", .node = "Manner"},
@@ -4766,7 +4766,7 @@ const mk_feature_node_map mki_clements_hume_feature_to_node[] = {
 const size_t mki_clements_hume_feature_to_node_count =
     sizeof(mki_clements_hume_feature_to_node) / sizeof(mki_clements_hume_feature_to_node[0]);
 
-const mk_node_depth mki_clements_hume_node_depths[] = {
+const mki_node_depth mki_clements_hume_node_depths[] = {
     {.node = "Coronal", .depth = 3.0},
     {.node = "Dorsal", .depth = 3.0},
     {.node = "Labial", .depth = 3.0},
@@ -4790,7 +4790,7 @@ const mk_node_depth mki_clements_hume_node_depths[] = {
 const size_t mki_clements_hume_node_depth_count =
     sizeof(mki_clements_hume_node_depths) / sizeof(mki_clements_hume_node_depths[0]);
 
-const mk_node_parent mki_clements_hume_node_parents[] = {
+const mki_node_parent mki_clements_hume_node_parents[] = {
     {.node = "Coronal", .parent = "Place"},
     {.node = "Dorsal", .parent = "Place"},
     {.node = "Labial", .parent = "Place"},
@@ -4814,32 +4814,32 @@ const mk_node_parent mki_clements_hume_node_parents[] = {
 const size_t mki_clements_hume_node_parent_count =
     sizeof(mki_clements_hume_node_parents) / sizeof(mki_clements_hume_node_parents[0]);
 
-static const mk_node_weight mk_clements_hume_weight_preset_1[] = {
+static const mki_node_weight mk_clements_hume_weight_preset_1[] = {
     {.node = "Length", .weight = 0},
 };
 
-static const mk_node_weight mk_clements_hume_weight_preset_2[] = {
+static const mki_node_weight mk_clements_hume_weight_preset_2[] = {
     {.node = "Prosodic", .weight = 0},
 };
 
-static const mk_node_weight mk_clements_hume_weight_preset_3[] = {
+static const mki_node_weight mk_clements_hume_weight_preset_3[] = {
     {.node = "Secondary", .weight = 0},
 };
 
-static const mk_node_weight mk_clements_hume_weight_preset_4[] = {
+static const mki_node_weight mk_clements_hume_weight_preset_4[] = {
     {.node = "Tonal", .weight = 0},
 };
 
-static const mk_node_weight mk_clements_hume_weight_preset_5[] = {
+static const mki_node_weight mk_clements_hume_weight_preset_5[] = {
     {.node = "Length", .weight = 0},
     {.node = "Tonal", .weight = 0},
 };
 
-static const mk_node_weight mk_clements_hume_weight_preset_6[] = {
+static const mki_node_weight mk_clements_hume_weight_preset_6[] = {
     {.node = "Tonal", .weight = 2},
 };
 
-static const mk_node_weight mk_clements_hume_weight_preset_7[] = {
+static const mki_node_weight mk_clements_hume_weight_preset_7[] = {
     {.node = "Laryngeal", .weight = 0},
     {.node = "Manner", .weight = 0},
     {.node = "Place", .weight = 0},
@@ -4847,7 +4847,7 @@ static const mk_node_weight mk_clements_hume_weight_preset_7[] = {
     {.node = "TongueRoot", .weight = 0},
 };
 
-const mk_node_weight_preset mki_clements_hume_weight_presets[] = {
+const mki_node_weight_preset mki_clements_hume_weight_presets[] = {
     {.name = "flat", .weights = NULL, .weight_count = 0, .flat = 1},
     {.name = "ignore-length", .weights = mk_clements_hume_weight_preset_1, .weight_count = 1, .flat = 0},
     {.name = "ignore-prosodic", .weights = mk_clements_hume_weight_preset_2, .weight_count = 1, .flat = 0},
@@ -5676,7 +5676,7 @@ static const char *const mk_clements_hume_feature_path_109[] = {
     "consonantal",
 };
 
-const mk_feature_path mki_clements_hume_feature_paths[] = {
+const mki_feature_path mki_clements_hume_feature_paths[] = {
     {.feature = "voice", .path = mk_clements_hume_feature_path_0, .path_count = 4},
     {.feature = "voiced", .path = mk_clements_hume_feature_path_1, .path_count = 4},
     {.feature = "voiceless", .path = mk_clements_hume_feature_path_2, .path_count = 4},
@@ -5874,17 +5874,17 @@ static const char *const mk_clements_hume_ordinal_levels_9[] = {
     "tone-offset-5",
 };
 
-const mk_ordinal_scale mki_clements_hume_ordinal_scales[] = {
-    {.name = "vowel_height", .node = "Dorsal", .levels = mk_clements_hume_ordinal_levels_0, .level_count = 7, .default_level = MK_ORDINAL_UNDEFINED, .weight = 1},
-    {.name = "vowel_backness", .node = "Dorsal", .levels = mk_clements_hume_ordinal_levels_1, .level_count = 5, .default_level = MK_ORDINAL_UNDEFINED, .weight = 0.80000000000000004},
-    {.name = "dorsal_place", .node = "Dorsal", .levels = mk_clements_hume_ordinal_levels_2, .level_count = 6, .default_level = MK_ORDINAL_UNDEFINED, .weight = 0.5},
-    {.name = "coronal_place", .node = "Coronal", .levels = mk_clements_hume_ordinal_levels_3, .level_count = 6, .default_level = MK_ORDINAL_UNDEFINED, .weight = 0.5},
-    {.name = "labial_place", .node = "Labial", .levels = mk_clements_hume_ordinal_levels_4, .level_count = 2, .default_level = MK_ORDINAL_UNDEFINED, .weight = 0.29999999999999999},
-    {.name = "guttural_place", .node = "Pharyngeal", .levels = mk_clements_hume_ordinal_levels_5, .level_count = 3, .default_level = MK_ORDINAL_UNDEFINED, .weight = 0.40000000000000002},
+const mki_ordinal_scale mki_clements_hume_ordinal_scales[] = {
+    {.name = "vowel_height", .node = "Dorsal", .levels = mk_clements_hume_ordinal_levels_0, .level_count = 7, .default_level = MKI_ORDINAL_UNDEFINED, .weight = 1},
+    {.name = "vowel_backness", .node = "Dorsal", .levels = mk_clements_hume_ordinal_levels_1, .level_count = 5, .default_level = MKI_ORDINAL_UNDEFINED, .weight = 0.80000000000000004},
+    {.name = "dorsal_place", .node = "Dorsal", .levels = mk_clements_hume_ordinal_levels_2, .level_count = 6, .default_level = MKI_ORDINAL_UNDEFINED, .weight = 0.5},
+    {.name = "coronal_place", .node = "Coronal", .levels = mk_clements_hume_ordinal_levels_3, .level_count = 6, .default_level = MKI_ORDINAL_UNDEFINED, .weight = 0.5},
+    {.name = "labial_place", .node = "Labial", .levels = mk_clements_hume_ordinal_levels_4, .level_count = 2, .default_level = MKI_ORDINAL_UNDEFINED, .weight = 0.29999999999999999},
+    {.name = "guttural_place", .node = "Pharyngeal", .levels = mk_clements_hume_ordinal_levels_5, .level_count = 3, .default_level = MKI_ORDINAL_UNDEFINED, .weight = 0.40000000000000002},
     {.name = "duration", .node = "Length", .levels = mk_clements_hume_ordinal_levels_6, .level_count = 5, .default_level = 1, .weight = 0.5},
-    {.name = "tone_onset_level", .node = "TonalOnset", .levels = mk_clements_hume_ordinal_levels_7, .level_count = 5, .default_level = MK_ORDINAL_UNDEFINED, .weight = 0.40000000000000002},
-    {.name = "tone_mid_level", .node = "TonalMid", .levels = mk_clements_hume_ordinal_levels_8, .level_count = 5, .default_level = MK_ORDINAL_UNDEFINED, .weight = 0.40000000000000002},
-    {.name = "tone_offset_level", .node = "TonalOffset", .levels = mk_clements_hume_ordinal_levels_9, .level_count = 5, .default_level = MK_ORDINAL_UNDEFINED, .weight = 0.40000000000000002},
+    {.name = "tone_onset_level", .node = "TonalOnset", .levels = mk_clements_hume_ordinal_levels_7, .level_count = 5, .default_level = MKI_ORDINAL_UNDEFINED, .weight = 0.40000000000000002},
+    {.name = "tone_mid_level", .node = "TonalMid", .levels = mk_clements_hume_ordinal_levels_8, .level_count = 5, .default_level = MKI_ORDINAL_UNDEFINED, .weight = 0.40000000000000002},
+    {.name = "tone_offset_level", .node = "TonalOffset", .levels = mk_clements_hume_ordinal_levels_9, .level_count = 5, .default_level = MKI_ORDINAL_UNDEFINED, .weight = 0.40000000000000002},
 };
 
 const size_t mki_clements_hume_ordinal_scale_count =
@@ -5910,7 +5910,7 @@ const double mki_clements_hume_cluster_offglide_share = 0.29999999999999999;
 const double mki_clements_hume_cluster_length_penalty = 0.14999999999999999;
 const double mki_clements_hume_cluster_component_share = 0.80000000000000004;
 const double mki_clements_hume_cluster_segment_share = 0.20000000000000001;
-const mk_diacritic_map mki_default_combining_diacritics[] = {
+const mki_diacritic_map mki_default_combining_diacritics[] = {
     {.mark = "̃", .feature = "nasalized"},
     {.mark = "̆", .feature = "ultra-short"},
     {.mark = "̈", .feature = "centralized"},
@@ -5942,7 +5942,7 @@ const mk_diacritic_map mki_default_combining_diacritics[] = {
 const size_t mki_default_combining_diacritic_count =
     sizeof(mki_default_combining_diacritics) / sizeof(mki_default_combining_diacritics[0]);
 
-const mk_diacritic_map mki_default_suffix_diacritics[] = {
+const mki_diacritic_map mki_default_suffix_diacritics[] = {
     {.mark = "ʰ", .feature = "aspirated"},
     {.mark = "ʱ", .feature = "breathy"},
     {.mark = "ʲ", .feature = "palatalized"},
@@ -5962,7 +5962,7 @@ const mk_diacritic_map mki_default_suffix_diacritics[] = {
 const size_t mki_default_suffix_diacritic_count =
     sizeof(mki_default_suffix_diacritics) / sizeof(mki_default_suffix_diacritics[0]);
 
-const mk_diacritic_map mki_default_prefix_diacritics[] = {
+const mki_diacritic_map mki_default_prefix_diacritics[] = {
     {.mark = "ʰ", .feature = "pre-aspirated"},
     {.mark = "ʲ", .feature = "pre-palatalized"},
     {.mark = "ʷ", .feature = "pre-labialized"},
@@ -6022,7 +6022,7 @@ static const char *const mk_default_tone_mark_6_features[] = {
     "tone-offset-1",
 };
 
-const mk_tone_mark mki_default_tone_marks[] = {
+const mki_tone_mark mki_default_tone_marks[] = {
     {.mark = "̀", .features = mk_default_tone_mark_0_features, .feature_count = 4},
     {.mark = "́", .features = mk_default_tone_mark_1_features, .feature_count = 4},
     {.mark = "̂", .features = mk_default_tone_mark_2_features, .feature_count = 4},
@@ -6129,7 +6129,7 @@ static const char *const mk_default_valued_effect_19_alternatives[] = {
     "dorsal",
 };
 
-const mk_valued_diacritic_effect mki_default_valued_diacritic_effects[] = {
+const mki_valued_diacritic_effect mki_default_valued_diacritic_effects[] = {
     {.modifier = "advanced-tongue-root", .alternatives = mk_default_valued_effect_0_alternatives, .alternative_count = 2, .state = '+'},
     {.modifier = "aspirated", .alternatives = mk_default_valued_effect_1_alternatives, .alternative_count = 2, .state = '+'},
     {.modifier = "breathy", .alternatives = mk_default_valued_effect_2_alternatives, .alternative_count = 2, .state = '+'},
@@ -6155,7 +6155,7 @@ const mk_valued_diacritic_effect mki_default_valued_diacritic_effects[] = {
 const size_t mki_default_valued_diacritic_effect_count =
     sizeof(mki_default_valued_diacritic_effects) / sizeof(mki_default_valued_diacritic_effects[0]);
 
-const mk_decomposition mki_default_decompositions[] = {
+const mki_decomposition mki_default_decompositions[] = {
     {.composed = "À", .decomposed = "À"},
     {.composed = "Á", .decomposed = "Á"},
     {.composed = "Â", .decomposed = "Â"},
@@ -6547,7 +6547,7 @@ const mk_decomposition mki_default_decompositions[] = {
 const size_t mki_default_decomposition_count =
     sizeof(mki_default_decompositions) / sizeof(mki_default_decompositions[0]);
 
-const mk_place_class mki_default_place_classes[] = {
+const mki_place_class mki_default_place_classes[] = {
     {.place = "alveolar", .anterior = "anterior", .distributed = "non-distributed"},
     {.place = "alveolo-palatal", .anterior = "non-anterior", .distributed = "distributed"},
     {.place = "dental", .anterior = "anterior", .distributed = "distributed"},
@@ -7828,7 +7828,7 @@ static const char *const distinctive_scalar_dimensions_53_positive[] = {
     "guttural",
 };
 
-static const mk_scalar_dimension distinctive_scalar_dimensions[] = {
+static const mki_scalar_dimension distinctive_scalar_dimensions[] = {
     {.name = "voice", .geometry_node = "Laryngeal", .positive = distinctive_scalar_dimensions_0_positive, .positive_count = 1, .negative = distinctive_scalar_dimensions_0_negative, .negative_count = 1, .weight = 0.5},
     {.name = "spread_glottis", .geometry_node = "Laryngeal", .positive = distinctive_scalar_dimensions_1_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
     {.name = "constricted_glottis", .geometry_node = "Laryngeal", .positive = distinctive_scalar_dimensions_2_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
@@ -8825,7 +8825,7 @@ static const unsigned short pbase_hc_feature_ids[] = {
 
 #define PBASE_HC_ENTRY_COUNT (sizeof(pbase_hc_entry_graphemes) / sizeof(pbase_hc_entry_graphemes[0]))
 
-static const mk_feature_node_map pbase_hc_geometry_map[] = {
+static const mki_feature_node_map pbase_hc_geometry_map[] = {
     {.feature = "ATR", .node = "TongueRoot"},
     {.feature = "EXTRA", .node = "Prosodic"},
     {.feature = "LONG", .node = "Prosodic"},
@@ -9401,7 +9401,7 @@ static const unsigned short pbase_jfh_feature_ids[] = {
 
 #define PBASE_JFH_ENTRY_COUNT (sizeof(pbase_jfh_entry_graphemes) / sizeof(pbase_jfh_entry_graphemes[0]))
 
-static const mk_feature_node_map pbase_jfh_geometry_map[] = {
+static const mki_feature_node_map pbase_jfh_geometry_map[] = {
     {.feature = "EXTRA", .node = "Prosodic"},
     {.feature = "LONG", .node = "Prosodic"},
     {.feature = "checked", .node = "Laryngeal"},
@@ -10496,7 +10496,7 @@ static const unsigned short pbase_spe_feature_ids[] = {
 
 #define PBASE_SPE_ENTRY_COUNT (sizeof(pbase_spe_entry_graphemes) / sizeof(pbase_spe_entry_graphemes[0]))
 
-static const mk_feature_node_map pbase_spe_geometry_map[] = {
+static const mki_feature_node_map pbase_spe_geometry_map[] = {
     {.feature = "EXTRA", .node = "Prosodic"},
     {.feature = "LONG", .node = "Prosodic"},
     {.feature = "anterior", .node = "Coronal"},
@@ -11973,7 +11973,7 @@ static const unsigned short pbase_uftc_feature_ids[] = {
 
 #define PBASE_UFTC_ENTRY_COUNT (sizeof(pbase_uftc_entry_graphemes) / sizeof(pbase_uftc_entry_graphemes[0]))
 
-static const mk_feature_node_map pbase_uftc_geometry_map[] = {
+static const mki_feature_node_map pbase_uftc_geometry_map[] = {
     {.feature = "ATR", .node = "TongueRoot"},
     {.feature = "C-place", .node = "Place"},
     {.feature = "EXTRA", .node = "Prosodic"},
@@ -16390,7 +16390,7 @@ static const unsigned short phoible_feature_ids[] = {
 
 #define PHOIBLE_ENTRY_COUNT (sizeof(phoible_entry_graphemes) / sizeof(phoible_entry_graphemes[0]))
 
-static const mk_feature_node_map phoible_geometry_map[] = {
+static const mki_feature_node_map phoible_geometry_map[] = {
     {.feature = "advancedTongueRoot", .node = "TongueRoot"},
     {.feature = "anterior", .node = "Coronal"},
     {.feature = "approximant", .node = "Manner"},
@@ -16475,14 +16475,14 @@ static const double phoible_dimension_weights[] = {
 };
 
 
-const mk_builtin_system mki_builtin_systems[] = {
-    {.name = "descriptive", .version = "1.0.0", .model_sha256 = "40639a101b8795ad09b399032c49f58a97600e34a3fbe44e5cf5ddb96d327ee6", .kind = MK_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DESCRIPTIVE_ENTRY_COUNT, .entry_graphemes = descriptive_entry_graphemes, .entry_feature_at = descriptive_entry_feature_at, .entry_feature_n = descriptive_entry_feature_n, .feature_ids = descriptive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
-    {.name = "distinctive", .version = "1.0.0", .model_sha256 = "ec5b1d6d8de4130dd07056f254bdce285c4186b2f6db98c456c194f682a61e56", .kind = MK_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DISTINCTIVE_ENTRY_COUNT, .entry_graphemes = distinctive_entry_graphemes, .entry_feature_at = distinctive_entry_feature_at, .entry_feature_n = distinctive_entry_feature_n, .feature_ids = distinctive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = distinctive_scalar_dimensions, .scalar_dimension_count = DISTINCTIVE_SCALAR_DIMENSIONS_COUNT},
-    {.name = "pbase-hc", .version = "1.0.0", .model_sha256 = "b6fca8fea88c07aa65d66783c92cebc832c8393c252bdba29ac0a07bd7eede3f", .kind = MK_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_HC_ENTRY_COUNT, .entry_graphemes = pbase_hc_entry_graphemes, .entry_feature_at = pbase_hc_entry_feature_at, .entry_feature_n = pbase_hc_entry_feature_n, .feature_ids = pbase_hc_feature_ids, .geometry_map = pbase_hc_geometry_map, .geometry_map_count = PBASE_HC_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_hc_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
-    {.name = "pbase-jfh", .version = "1.0.0", .model_sha256 = "f155c702b36dc96545ce2b74ef852bc19709dd9baccedc30b6afeecfc50f4ee0", .kind = MK_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_JFH_ENTRY_COUNT, .entry_graphemes = pbase_jfh_entry_graphemes, .entry_feature_at = pbase_jfh_entry_feature_at, .entry_feature_n = pbase_jfh_entry_feature_n, .feature_ids = pbase_jfh_feature_ids, .geometry_map = pbase_jfh_geometry_map, .geometry_map_count = PBASE_JFH_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_jfh_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
-    {.name = "pbase-spe", .version = "1.0.0", .model_sha256 = "95a4bf806f9755404224ebab9def82d9a8803b182ee75061d615a833b2937734", .kind = MK_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_SPE_ENTRY_COUNT, .entry_graphemes = pbase_spe_entry_graphemes, .entry_feature_at = pbase_spe_entry_feature_at, .entry_feature_n = pbase_spe_entry_feature_n, .feature_ids = pbase_spe_feature_ids, .geometry_map = pbase_spe_geometry_map, .geometry_map_count = PBASE_SPE_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_spe_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
-    {.name = "pbase-uftc", .version = "1.0.0", .model_sha256 = "d846557f3214895a91182e2313bce4b5ed2b38482e447310e1554149529b76a2", .kind = MK_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_UFTC_ENTRY_COUNT, .entry_graphemes = pbase_uftc_entry_graphemes, .entry_feature_at = pbase_uftc_entry_feature_at, .entry_feature_n = pbase_uftc_entry_feature_n, .feature_ids = pbase_uftc_feature_ids, .geometry_map = pbase_uftc_geometry_map, .geometry_map_count = PBASE_UFTC_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_uftc_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
-    {.name = "phoible", .version = "2.0.0", .model_sha256 = "f3cf0e1fd8170c537a793ef4d012bfec58ba297c04e116db6c79eaeec306b774", .kind = MK_SYSTEM_VALUED, .entries = NULL, .entry_count = PHOIBLE_ENTRY_COUNT, .entry_graphemes = phoible_entry_graphemes, .entry_feature_at = phoible_entry_feature_at, .entry_feature_n = phoible_entry_feature_n, .feature_ids = phoible_feature_ids, .geometry_map = phoible_geometry_map, .geometry_map_count = PHOIBLE_GEOMETRY_MAP_COUNT, .dimension_weights = phoible_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
+const mki_builtin_system mki_builtin_systems[] = {
+    {.name = "descriptive", .version = "1.0.0", .model_sha256 = "40639a101b8795ad09b399032c49f58a97600e34a3fbe44e5cf5ddb96d327ee6", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DESCRIPTIVE_ENTRY_COUNT, .entry_graphemes = descriptive_entry_graphemes, .entry_feature_at = descriptive_entry_feature_at, .entry_feature_n = descriptive_entry_feature_n, .feature_ids = descriptive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
+    {.name = "distinctive", .version = "1.0.0", .model_sha256 = "ec5b1d6d8de4130dd07056f254bdce285c4186b2f6db98c456c194f682a61e56", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DISTINCTIVE_ENTRY_COUNT, .entry_graphemes = distinctive_entry_graphemes, .entry_feature_at = distinctive_entry_feature_at, .entry_feature_n = distinctive_entry_feature_n, .feature_ids = distinctive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = distinctive_scalar_dimensions, .scalar_dimension_count = DISTINCTIVE_SCALAR_DIMENSIONS_COUNT},
+    {.name = "pbase-hc", .version = "1.0.0", .model_sha256 = "b6fca8fea88c07aa65d66783c92cebc832c8393c252bdba29ac0a07bd7eede3f", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_HC_ENTRY_COUNT, .entry_graphemes = pbase_hc_entry_graphemes, .entry_feature_at = pbase_hc_entry_feature_at, .entry_feature_n = pbase_hc_entry_feature_n, .feature_ids = pbase_hc_feature_ids, .geometry_map = pbase_hc_geometry_map, .geometry_map_count = PBASE_HC_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_hc_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
+    {.name = "pbase-jfh", .version = "1.0.0", .model_sha256 = "f155c702b36dc96545ce2b74ef852bc19709dd9baccedc30b6afeecfc50f4ee0", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_JFH_ENTRY_COUNT, .entry_graphemes = pbase_jfh_entry_graphemes, .entry_feature_at = pbase_jfh_entry_feature_at, .entry_feature_n = pbase_jfh_entry_feature_n, .feature_ids = pbase_jfh_feature_ids, .geometry_map = pbase_jfh_geometry_map, .geometry_map_count = PBASE_JFH_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_jfh_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
+    {.name = "pbase-spe", .version = "1.0.0", .model_sha256 = "95a4bf806f9755404224ebab9def82d9a8803b182ee75061d615a833b2937734", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_SPE_ENTRY_COUNT, .entry_graphemes = pbase_spe_entry_graphemes, .entry_feature_at = pbase_spe_entry_feature_at, .entry_feature_n = pbase_spe_entry_feature_n, .feature_ids = pbase_spe_feature_ids, .geometry_map = pbase_spe_geometry_map, .geometry_map_count = PBASE_SPE_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_spe_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
+    {.name = "pbase-uftc", .version = "1.0.0", .model_sha256 = "d846557f3214895a91182e2313bce4b5ed2b38482e447310e1554149529b76a2", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_UFTC_ENTRY_COUNT, .entry_graphemes = pbase_uftc_entry_graphemes, .entry_feature_at = pbase_uftc_entry_feature_at, .entry_feature_n = pbase_uftc_entry_feature_n, .feature_ids = pbase_uftc_feature_ids, .geometry_map = pbase_uftc_geometry_map, .geometry_map_count = PBASE_UFTC_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_uftc_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
+    {.name = "phoible", .version = "2.0.0", .model_sha256 = "f3cf0e1fd8170c537a793ef4d012bfec58ba297c04e116db6c79eaeec306b774", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PHOIBLE_ENTRY_COUNT, .entry_graphemes = phoible_entry_graphemes, .entry_feature_at = phoible_entry_feature_at, .entry_feature_n = phoible_entry_feature_n, .feature_ids = phoible_feature_ids, .geometry_map = phoible_geometry_map, .geometry_map_count = PHOIBLE_GEOMETRY_MAP_COUNT, .dimension_weights = phoible_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
 };
 
 const size_t mki_builtin_system_count =

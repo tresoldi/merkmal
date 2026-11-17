@@ -47,7 +47,7 @@ static void mk_free_owned_system(mk_system *system)
     }
     free(system->owned_name);
     for (i = 0; i < system->owned.entry_count; i++) {
-        mk_builtin_entry *entry = &system->owned.entries[i];
+        mki_builtin_entry *entry = &system->owned.entries[i];
         size_t j;
 
         free(entry->grapheme);
@@ -209,7 +209,7 @@ mk_status mk_registry_add_model_text_n(
     char **diagnostic_out
 )
 {
-    mk_parsed_model model;
+    mki_parsed_model model;
     mk_system **next_systems;
     mk_system *slot;
     mk_status status;
@@ -265,7 +265,7 @@ mk_status mk_registry_add_model_text_n(
      * that every reader sees. */
     slot->owned_name = model.name;
     slot->owned.name = model.name;
-    slot->owned.kind = MK_SYSTEM_CATEGORICAL;
+    slot->owned.kind = MKI_SYSTEM_CATEGORICAL;
     slot->owned.entries = model.entries;
     slot->owned.entry_count = model.entry_count;
     slot->builtin = &slot->owned;

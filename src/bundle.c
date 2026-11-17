@@ -56,10 +56,10 @@ typedef struct mk_column {
     const char *node;
     double base_weight;
     double divisor;
-    const mk_scalar_dimension *dimension;
-    const mk_geometry_leaf *leaf;
+    const mki_scalar_dimension *dimension;
+    const mki_geometry_leaf *leaf;
     size_t valued_index;
-    const mk_ordinal_scale *scale;
+    const mki_ordinal_scale *scale;
     const char *labels[MK_BUNDLE_MAX_GROUP_LABELS];
     size_t label_count;
 } mk_column;
@@ -85,11 +85,11 @@ struct mk_bundle {
 
 /* -- columns ------------------------------------------------------------------ */
 
-static mk_status mk_scorer_kind_of(const mk_builtin_system *builtin, mk_scorer_kind *out)
+static mk_status mk_scorer_kind_of(const mki_builtin_system *builtin, mk_scorer_kind *out)
 {
-    if (builtin->kind == MK_SYSTEM_VALUED) {
+    if (builtin->kind == MKI_SYSTEM_VALUED) {
         *out = MK_SK_VALUED;
-    } else if (builtin->kind != MK_SYSTEM_CATEGORICAL) {
+    } else if (builtin->kind != MKI_SYSTEM_CATEGORICAL) {
         return MK_ERR_UNSUPPORTED_MODEL;
     } else if (builtin->scalar_dimension_count > 0) {
         *out = MK_SK_SCALAR;
@@ -99,7 +99,7 @@ static mk_status mk_scorer_kind_of(const mk_builtin_system *builtin, mk_scorer_k
     return MK_OK;
 }
 
-static size_t mk_count_columns(const mk_builtin_system *builtin, mk_scorer_kind scorer)
+static size_t mk_count_columns(const mki_builtin_system *builtin, mk_scorer_kind scorer)
 {
     size_t n = 0;
     size_t i;
@@ -112,7 +112,7 @@ static size_t mk_count_columns(const mk_builtin_system *builtin, mk_scorer_kind 
     n += mki_clements_hume_ordinal_scale_count;
     if (scorer == MK_SK_LEAF) {
         for (i = 0; i < mki_clements_hume_feature_to_node_count; i++) {
-            const mk_feature_node_map *map = &mki_clements_hume_feature_to_node[i];
+            const mki_feature_node_map *map = &mki_clements_hume_feature_to_node[i];
             int first = 1;
 
             if (!mki_is_node_group_feature(map->feature)) {
@@ -144,7 +144,7 @@ static mk_column *mk_find_group(mk_column *columns, size_t count, const char *no
 }
 
 static mk_status mk_build_columns(
-    const mk_builtin_system *builtin,
+    const mki_builtin_system *builtin,
     mk_scorer_kind scorer,
     mk_column **out,
     size_t *count_out
@@ -172,7 +172,7 @@ static mk_status mk_build_columns(
     } else {
         if (scorer == MK_SK_SCALAR) {
             for (i = 0; i < builtin->scalar_dimension_count; i++) {
-                const mk_scalar_dimension *d = &builtin->scalar_dimensions[i];
+                const mki_scalar_dimension *d = &builtin->scalar_dimensions[i];
                 mk_column *c = &columns[n++];
 
                 c->kind = MK_COL_BINARY;
@@ -184,7 +184,7 @@ static mk_status mk_build_columns(
             }
         } else {
             for (i = 0; i < mki_clements_hume_leaf_count; i++) {
-                const mk_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
+                const mki_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
                 mk_column *c = &columns[n++];
 
                 c->kind = MK_COL_BINARY;
@@ -196,7 +196,7 @@ static mk_status mk_build_columns(
             }
         }
         for (i = 0; i < mki_clements_hume_ordinal_scale_count; i++) {
-            const mk_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
+            const mki_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
             mk_column *c = &columns[n++];
 
             if (scale->level_count > 63) {
@@ -211,7 +211,7 @@ static mk_status mk_build_columns(
         }
         if (scorer == MK_SK_LEAF) {
             for (i = 0; i < mki_clements_hume_feature_to_node_count; i++) {
-                const mk_feature_node_map *map = &mki_clements_hume_feature_to_node[i];
+                const mki_feature_node_map *map = &mki_clements_hume_feature_to_node[i];
                 mk_column *c;
 
                 if (!mki_is_node_group_feature(map->feature)) {
@@ -303,7 +303,7 @@ static mk_cell mk_cell_from_view(const mk_bundle *b, const mk_column *col, mk_fe
 
     if (col->kind == MK_COL_ORDINAL) {
         int level = mki_ordinal_level(view, col->scale);
-        return level == MK_ORDINAL_UNDEFINED ? mk_cell_na() : mk_cell_mask((uint64_t)1 << level);
+        return level == MKI_ORDINAL_UNDEFINED ? mk_cell_na() : mk_cell_mask((uint64_t)1 << level);
     }
     if (col->kind == MK_COL_GROUP) {
         uint64_t mask = 0;
@@ -333,7 +333,7 @@ static mk_cell mk_cell_from_view(const mk_bundle *b, const mk_column *col, mk_fe
         return mk_cell_na();
     }
     if (b->scorer == MK_SK_SCALAR) {
-        const mk_scalar_dimension *d = col->dimension;
+        const mki_scalar_dimension *d = col->dimension;
         if (mk_any_label(view, d->positive, d->positive_count)) {
             return mk_cell_mask(MK_BIN_PLUS);
         }
@@ -436,7 +436,7 @@ static void mk_fill_from_view(mk_bundle *b, mk_feature_view view)
 
 mk_status mk_bundle_from_grapheme(const mk_system *system, const char *utf8_grapheme, mk_bundle **out)
 {
-    mk_resolution resolved;
+    mki_resolution resolved;
     mk_status status;
 
     if (utf8_grapheme == NULL || out == NULL) {
@@ -948,7 +948,7 @@ static double mk_binary_number(unsigned bit)
 static mk_option mk_contribution(
     const mk_bundle *b,
     const mk_column *col,
-    const mk_node_weight_preset *preset,
+    const mki_node_weight_preset *preset,
     int va,
     int vb
 )
@@ -1039,7 +1039,7 @@ static size_t mk_options(
     const mk_column *col,
     const mk_cell *ca,
     const mk_cell *cb,
-    const mk_node_weight_preset *preset,
+    const mki_node_weight_preset *preset,
     mk_option *out
 )
 {
@@ -1182,7 +1182,7 @@ mk_status mk_bundle_compare(
     mk_bundle_comparison *out
 )
 {
-    const mk_node_weight_preset *preset = NULL;
+    const mki_node_weight_preset *preset = NULL;
     mk_option *options;
     size_t *offsets;
     size_t *counts;
@@ -1327,8 +1327,8 @@ mk_status mk_bundle_compatible_graphemes(
     mk_string_list **out
 )
 {
-    const mk_builtin_system *builtin;
-    const char *scratch[MK_MAX_ENTRY_FEATURES];
+    const mki_builtin_system *builtin;
+    const char *scratch[MKI_MAX_ENTRY_FEATURES];
     mk_ranked *ranked;
     const char **names;
     size_t n = 0;
@@ -1351,7 +1351,7 @@ mk_status mk_bundle_compatible_graphemes(
         return status != MK_OK ? status : MK_ERR_OOM;
     }
     for (i = 0; i < builtin->entry_count; i++) {
-        mk_entry_view entry;
+        mki_entry_view entry;
         mk_feature_view view;
         mk_bundle_comparison cmp;
 

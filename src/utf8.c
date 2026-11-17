@@ -74,7 +74,7 @@ bool mki_is_combining_mark(const char *p)
         (cp >= 0xFE20 && cp <= 0xFE2F);
 }
 
-static bool mk_is_map_mark(const mk_diacritic_map *map, size_t count, const char *p)
+static bool mk_is_map_mark(const mki_diacritic_map *map, size_t count, const char *p)
 {
     size_t i;
 

@@ -6,7 +6,7 @@
 
 #include <stddef.h>
 
-typedef struct mk_unicode_tables {
+typedef struct mki_unicode_table_set {
     /* Canonical combining classes; code points absent here have class 0. */
     const unsigned int *ccc_code_points;
     const unsigned char *ccc_classes;
@@ -25,9 +25,9 @@ typedef struct mk_unicode_tables {
     const unsigned int *composition_second;
     const unsigned int *composition_result;
     size_t composition_count;
-} mk_unicode_tables;
+} mki_unicode_table_set;
 
-extern const mk_unicode_tables mki_unicode_tables;
+extern const mki_unicode_table_set mki_unicode_tables;
 
 /* The Unicode version the tables were generated from, such as "15.1.0". */
 extern const char *const mki_unicode_version;

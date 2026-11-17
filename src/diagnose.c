@@ -35,7 +35,7 @@ mk_status mk_system_diagnose(
     mk_diagnosis *out
 )
 {
-    mk_resolution entry;
+    mki_resolution entry;
     mk_status status;
     size_t len;
     size_t cut;

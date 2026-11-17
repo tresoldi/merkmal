@@ -5,10 +5,10 @@
 #include <string.h>
 
 void mki_inventory_row(
-    const mk_builtin_system *system,
+    const mki_builtin_system *system,
     size_t index,
     const char **scratch,
-    mk_entry_view *out
+    mki_entry_view *out
 )
 {
     size_t count;
@@ -37,10 +37,10 @@ void mki_inventory_row(
 }
 
 bool mki_inventory_find(
-    const mk_builtin_system *system,
+    const mki_builtin_system *system,
     const char *key,
     const char **scratch,
-    mk_entry_view *out
+    mki_entry_view *out
 )
 {
     size_t i;

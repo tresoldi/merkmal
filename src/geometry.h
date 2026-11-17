@@ -17,7 +17,7 @@
 
 /* mk_feature_view is public, in merkmal.h. Scoring reads feature sets and
  * nothing else: it has no use for a grapheme, an inventory row, or a resolved
- * entry. Taking mk_builtin_entry made five call sites fabricate one on the
+ * entry. Taking mki_builtin_entry made five call sites fabricate one on the
  * stack, two of them inventing a grapheme string that the scorer then read to
  * decide identity. */
 
@@ -38,14 +38,14 @@ bool mki_is_node_group_feature(const char *feature);
 
 /* A feature set's position on an ordered scale, exactly as the scorers read
  * it: the first level label present, else the scale's unmarked default, else
- * MK_ORDINAL_UNDEFINED. */
-int mki_ordinal_level(mk_feature_view view, const mk_ordinal_scale *scale);
+ * MKI_ORDINAL_UNDEFINED. */
+int mki_ordinal_level(mk_feature_view view, const mki_ordinal_scale *scale);
 
 /* The weighting the scorers use, for code that scores outside a feature view
  * (abstract segments, bundle.c). Same functions, so a bundle made from a
  * grapheme weighs each dimension exactly as the scorer does. */
-mk_status mki_resolve_weight_preset(const char *name, const mk_node_weight_preset **out);
-double mki_dimension_weight(const mk_node_weight_preset *preset, const char *node, double base_weight);
+mk_status mki_resolve_weight_preset(const char *name, const mki_node_weight_preset **out);
+double mki_dimension_weight(const mki_node_weight_preset *preset, const char *node, double base_weight);
 double mki_node_depth_value(const char *node);
 const char *mki_feature_node(const char *feature);
 
@@ -74,7 +74,7 @@ bool mki_ordinal_conflict(
  * spellings of the same segment resolve to the same features and score 0.0
  * through the ordinary path. */
 typedef mk_status (*mki_scorer)(
-    const mk_builtin_system *system,
+    const mki_builtin_system *system,
     mk_feature_view a,
     mk_feature_view b,
     const char *node_weights,
@@ -101,7 +101,7 @@ typedef mk_status (*mki_scorer)(
  * `scalar_dimension_count` inside the categorical body chose scalar against
  * leaf. The second was invisible from this header, and it was the one that
  * picked the scorer for `distinctive` -- the default system. */
-mki_scorer mki_scorer_for(const mk_builtin_system *system);
+mki_scorer mki_scorer_for(const mki_builtin_system *system);
 
 /* A stable label for a scorer, for diagnostics and test output: "leaf",
  * "scalar", "valued", or "none" for a kind nothing scores. Static storage;

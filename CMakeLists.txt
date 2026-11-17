@@ -138,7 +138,7 @@ else()
         -Wwrite-strings      # a string literal bound to a mutable char *
         # -Wcast-qual is the one that cost something. It found 28 sites where a
         # destructor cast const away to free storage it owned, because
-        # mk_builtin_entry declared owned pointers const. Nothing was wrong at
+        # mki_builtin_entry declared owned pointers const. Nothing was wrong at
         # any of the 28 -- the cast was load-bearing and correct -- but a type
         # that needs a cast to be freed cannot be checked, and the next reader
         # to free the wrong branch of that union of lifetimes would have found

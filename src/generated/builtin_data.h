@@ -12,11 +12,11 @@
 
 #include <stddef.h>
 
-typedef enum mk_system_type {
-    MK_SYSTEM_CATEGORICAL = 1,
-    MK_SYSTEM_VALUED = 2,
-    MK_SYSTEM_TRAINED = 3
-} mk_system_type;
+typedef enum mki_system_type {
+    MKI_SYSTEM_CATEGORICAL = 1,
+    MKI_SYSTEM_VALUED = 2,
+    MKI_SYSTEM_TRAINED = 3
+} mki_system_type;
 
 /* One inventory row as pointers, and the storage that backs it.
  *
@@ -27,23 +27,23 @@ typedef enum mk_system_type {
  * beside the genuinely-const compiled tables, which cost the two destructors
  * twenty-eight casts to free what they owned.
  *
- * Readers do not touch this type. They go through mk_entry_view in
+ * Readers do not touch this type. They go through mki_entry_view in
  * inventory.h, which is const because a reader really is only borrowing. */
-typedef struct mk_builtin_entry {
+typedef struct mki_builtin_entry {
     char *grapheme;
     char **features;
     size_t feature_count;
-} mk_builtin_entry;
+} mki_builtin_entry;
 
 /* The most feature labels one inventory row may carry.
  *
  * Compiled rows store 16-bit feature ids, so handing one out as
  * `const char *const *` needs an array of pointers to write into. The resolver
- * carries that array inside mk_resolution rather than allocating per lookup,
+ * carries that array inside mki_resolution rather than allocating per lookup,
  * which is why this bound exists and why raising it costs stack on every
  * lookup. tools/generate_c_data.py refuses to emit a row that exceeds it; the
  * widest row in the bundled inventories carries 44. */
-#define MK_MAX_ENTRY_FEATURES 64
+#define MKI_MAX_ENTRY_FEATURES 64
 
 /* The interned string pool. Every distinct grapheme and feature label appears
  * once; the tables hold byte offsets into it.
@@ -65,13 +65,13 @@ extern const size_t mki_feature_name_count;
  * and which were inverted weights, and the disclaimer existed only in the
  * Python. The generator now does the arithmetic and the field says what it
  * holds. */
-typedef struct mk_geometry_leaf {
+typedef struct mki_geometry_leaf {
     const char *name;
     const char *positive;
     const char *negative;
     double weight;
     const char *parent;
-} mk_geometry_leaf;
+} mki_geometry_leaf;
 
 /* An ordered scale, for properties where the difference between two values is a
  * quantity rather than a mismatch. Vowel height, Chao tone level, and duration
@@ -87,90 +87,90 @@ typedef struct mk_geometry_leaf {
  *
  * default_level is the value a segment takes when it carries no label from the
  * scale: 0-based index for scales with an unmarked default (a plain vowel is
- * short), or MK_ORDINAL_UNDEFINED where absence means the property does not
+ * short), or MKI_ORDINAL_UNDEFINED where absence means the property does not
  * apply (a consonant has no vowel height, a toneless segment no tone level).
  * An undefined scale is skipped for that pair, exactly as the leaf loop skips a
  * feature neither segment carries. */
-#define MK_ORDINAL_UNDEFINED (-1)
+#define MKI_ORDINAL_UNDEFINED (-1)
 
-typedef struct mk_ordinal_scale {
+typedef struct mki_ordinal_scale {
     const char *name;
     const char *node;
     const char *const *levels;
     size_t level_count;
     int default_level;
     double weight;
-} mk_ordinal_scale;
+} mki_ordinal_scale;
 
-typedef struct mk_feature_node_map {
+typedef struct mki_feature_node_map {
     const char *feature;
     const char *node;
-} mk_feature_node_map;
+} mki_feature_node_map;
 
-typedef struct mk_node_depth {
+typedef struct mki_node_depth {
     const char *node;
     double depth;
-} mk_node_depth;
+} mki_node_depth;
 
-typedef struct mk_node_parent {
+typedef struct mki_node_parent {
     const char *node;
     const char *parent;
-} mk_node_parent;
+} mki_node_parent;
 
-typedef struct mk_node_weight {
+typedef struct mki_node_weight {
     const char *node;
     double weight;
-} mk_node_weight;
+} mki_node_weight;
 
-typedef struct mk_node_weight_preset {
+typedef struct mki_node_weight_preset {
     const char *name;
-    const mk_node_weight *weights;
+    const mki_node_weight *weights;
     size_t weight_count;
     int flat;
-} mk_node_weight_preset;
+} mki_node_weight_preset;
 
-typedef struct mk_diacritic_map {
+typedef struct mki_diacritic_map {
     const char *mark;
     const char *feature;
-} mk_diacritic_map;
+} mki_diacritic_map;
 
 /* A precomposed letter and its canonical decomposition, restricted to marks
  * the feature system understands. Compiled in so that lookup accepts the
  * same graphemes with or without utf8proc. */
-typedef struct mk_decomposition {
+typedef struct mki_decomposition {
     const char *composed;
     const char *decomposed;
-} mk_decomposition;
+} mki_decomposition;
 
 /* The coronal class features a place implies, as the generator derives them
  * for inventory rows. Runtime synthesis uses it when a place diacritic moves a
  * segment to another place. */
-typedef struct mk_place_class {
+typedef struct mki_place_class {
     const char *place;
     const char *anterior;
     const char *distributed;
-} mk_place_class;
+} mki_place_class;
 
-typedef struct mk_tone_mark {
+typedef struct mki_tone_mark {
     const char *mark;
     const char *const *features;
     size_t feature_count;
-} mk_tone_mark;
+} mki_tone_mark;
 
-typedef struct mk_valued_diacritic_effect {
+typedef struct mki_valued_diacritic_effect {
     const char *modifier;
     const char *const *alternatives;
     size_t alternative_count;
     char state;
-} mk_valued_diacritic_effect;
+} mki_valued_diacritic_effect;
 
-typedef struct mk_feature_path {
+typedef struct mki_feature_path {
     const char *feature;
     const char *const *path;
     size_t path_count;
-} mk_feature_path;
+} mki_feature_path;
 
-typedef struct mk_scalar_dimension {
+typedef struct mki_scalar_dimension {
     const char *name;
     const char *geometry_node;
     const char *const *positive;
@@ -178,11 +178,11 @@ typedef struct mk_scalar_dimension {
     const char *const *negative;
     size_t negative_count;
     double weight;
-} mk_scalar_dimension;
+} mki_scalar_dimension;
 
 /* A system's inventory comes in one of two storages, and `entries` says which.
  *
- * Non-NULL `entries` is a runtime model: rows are mk_builtin_entry, owned by
+ * Non-NULL `entries` is a runtime model: rows are mki_builtin_entry, owned by
  * the registry, and the four interned fields are NULL. NULL `entries` is a
  * compiled-in inventory: rows live in entry_graphemes / entry_feature_at /
  * entry_feature_n / feature_ids, all of them offsets and ids into the pool.
@@ -193,34 +193,34 @@ typedef struct mk_scalar_dimension {
  * owned_name for a runtime one -- borrowed either way, so it stays const.
  *
  * Read rows through inventory.h rather than reaching into either form. */
-typedef struct mk_builtin_system {
+typedef struct mki_builtin_system {
     const char *name;
     const char *version;
     const char *model_sha256;
-    mk_system_type kind;
-    mk_builtin_entry *entries;
+    mki_system_type kind;
+    mki_builtin_entry *entries;
     size_t entry_count;
     const unsigned int *entry_graphemes;
     const unsigned int *entry_feature_at;
     const unsigned char *entry_feature_n;
     const unsigned short *feature_ids;
-    const mk_feature_node_map *geometry_map;
+    const mki_feature_node_map *geometry_map;
     size_t geometry_map_count;
     const double *dimension_weights;
-    const mk_scalar_dimension *scalar_dimensions;
+    const mki_scalar_dimension *scalar_dimensions;
     size_t scalar_dimension_count;
-} mk_builtin_system;
+} mki_builtin_system;
 
 /* Which data profile this build carries: "full", or "cc-by" for the build
  * restricted to tables without share-alike or non-commercial terms. */
 extern const char *const mki_data_profile;
 
-extern const mk_builtin_system mki_builtin_systems[];
+extern const mki_builtin_system mki_builtin_systems[];
 extern const size_t mki_builtin_system_count;
 /* Hashes of the data inputs shared by every built-in fingerprint. */
 extern const char *const mki_fingerprint_geometry_sha256;
 extern const char *const mki_fingerprint_diacritics_sha256;
-extern const mk_geometry_leaf mki_clements_hume_leaves[];
+extern const mki_geometry_leaf mki_clements_hume_leaves[];
 extern const size_t mki_clements_hume_leaf_count;
 /* What a tone costs against a segment. Declared in the geometry file; see
  * `tier_policy` there for why it is 1.0 and what the alternatives cost. */
@@ -233,33 +233,33 @@ extern const double mki_clements_hume_cluster_offglide_share;
 extern const double mki_clements_hume_cluster_length_penalty;
 extern const double mki_clements_hume_cluster_component_share;
 extern const double mki_clements_hume_cluster_segment_share;
-extern const mk_ordinal_scale mki_clements_hume_ordinal_scales[];
+extern const mki_ordinal_scale mki_clements_hume_ordinal_scales[];
 extern const size_t mki_clements_hume_ordinal_scale_count;
-extern const mk_feature_node_map mki_clements_hume_feature_to_node[];
+extern const mki_feature_node_map mki_clements_hume_feature_to_node[];
 extern const size_t mki_clements_hume_feature_to_node_count;
-extern const mk_node_depth mki_clements_hume_node_depths[];
+extern const mki_node_depth mki_clements_hume_node_depths[];
 extern const size_t mki_clements_hume_node_depth_count;
-extern const mk_node_parent mki_clements_hume_node_parents[];
+extern const mki_node_parent mki_clements_hume_node_parents[];
 extern const size_t mki_clements_hume_node_parent_count;
-extern const mk_node_weight_preset mki_clements_hume_weight_presets[];
+extern const mki_node_weight_preset mki_clements_hume_weight_presets[];
 extern const size_t mki_clements_hume_weight_preset_count;
-extern const mk_feature_path mki_clements_hume_feature_paths[];
+extern const mki_feature_path mki_clements_hume_feature_paths[];
 extern const size_t mki_clements_hume_feature_path_count;
-extern const mk_diacritic_map mki_default_combining_diacritics[];
+extern const mki_diacritic_map mki_default_combining_diacritics[];
 extern const size_t mki_default_combining_diacritic_count;
-extern const mk_diacritic_map mki_default_suffix_diacritics[];
+extern const mki_diacritic_map mki_default_suffix_diacritics[];
 extern const size_t mki_default_suffix_diacritic_count;
-extern const mk_diacritic_map mki_default_prefix_diacritics[];
+extern const mki_diacritic_map mki_default_prefix_diacritics[];
 extern const size_t mki_default_prefix_diacritic_count;
-extern const mk_place_class mki_default_place_classes[];
+extern const mki_place_class mki_default_place_classes[];
 extern const size_t mki_default_place_class_count;
 extern const char *const mki_default_metadata_features[];
 extern const size_t mki_default_metadata_feature_count;
-extern const mk_decomposition mki_default_decompositions[];
+extern const mki_decomposition mki_default_decompositions[];
 extern const size_t mki_default_decomposition_count;
-extern const mk_tone_mark mki_default_tone_marks[];
+extern const mki_tone_mark mki_default_tone_marks[];
 extern const size_t mki_default_tone_mark_count;
-extern const mk_valued_diacritic_effect mki_default_valued_diacritic_effects[];
+extern const mki_valued_diacritic_effect mki_default_valued_diacritic_effects[];
 extern const size_t mki_default_valued_diacritic_effect_count;
 
 #endif

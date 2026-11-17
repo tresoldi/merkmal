@@ -14,7 +14,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    mk_parsed_model model;
+    mki_parsed_model model;
     char *diagnostic = NULL;
 
     /* The bytes go in as they are. The harness used to copy them into a

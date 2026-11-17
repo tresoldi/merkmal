@@ -83,12 +83,12 @@ static char mk_vector_valued_state(const mk_feature_view *view, const char *feat
     return '\0';
 }
 
-static bool mk_vector_is_valued(const mk_builtin_system *builtin)
+static bool mk_vector_is_valued(const mki_builtin_system *builtin)
 {
-    return builtin->kind != MK_SYSTEM_CATEGORICAL;
+    return builtin->kind != MKI_SYSTEM_CATEGORICAL;
 }
 
-static bool mk_vector_uses_scalar_dimensions(const mk_builtin_system *builtin)
+static bool mk_vector_uses_scalar_dimensions(const mki_builtin_system *builtin)
 {
     return builtin->scalar_dimensions != NULL && builtin->scalar_dimension_count > 0;
 }
@@ -113,7 +113,7 @@ static size_t mk_vector_node_group_count(void)
     return n;
 }
 
-size_t mki_vector_width_of(const mk_builtin_system *builtin)
+size_t mki_vector_width_of(const mki_builtin_system *builtin)
 {
     if (mk_vector_is_valued(builtin)) {
         return builtin->geometry_map_count;
@@ -177,7 +177,7 @@ mk_status mk_system_vector_labels(const mk_system *system, mk_string_list **out)
         }
         if (!mk_vector_uses_scalar_dimensions(system->builtin)) {
             for (i = 0; i < mki_clements_hume_feature_to_node_count && status == MK_OK; i++) {
-                const mk_feature_node_map *map = &mki_clements_hume_feature_to_node[i];
+                const mki_feature_node_map *map = &mki_clements_hume_feature_to_node[i];
                 size_t len;
 
                 if (!mki_is_node_group_feature(map->feature)) {
@@ -209,11 +209,11 @@ mk_status mk_system_vector_labels(const mk_system *system, mk_string_list **out)
  * on this scale". Read exactly as the scorers read it, unmarked default
  * included; ignoring the default made a vowel with no explicit level look
  * like a segment the scale does not apply to. */
-static double mk_vector_scale_value(const mk_feature_view *view, const mk_ordinal_scale *scale)
+static double mk_vector_scale_value(const mk_feature_view *view, const mki_ordinal_scale *scale)
 {
     int level = mki_ordinal_level(*view, scale);
 
-    if (level == MK_ORDINAL_UNDEFINED) {
+    if (level == MKI_ORDINAL_UNDEFINED) {
         return 0.0;
     }
     return (double)(level + 1) / (double)scale->level_count;
@@ -221,7 +221,7 @@ static double mk_vector_scale_value(const mk_feature_view *view, const mk_ordina
 
 /* Fill `values` from an already-resolved feature list. */
 static void mk_vector_fill(
-    const mk_builtin_system *builtin,
+    const mki_builtin_system *builtin,
     const mk_feature_view *view,
     double *values
 )
@@ -254,7 +254,7 @@ static void mk_vector_fill(
 
     if (mk_vector_uses_scalar_dimensions(builtin)) {
         for (i = 0; i < builtin->scalar_dimension_count; i++) {
-            const mk_scalar_dimension *dim = &builtin->scalar_dimensions[i];
+            const mki_scalar_dimension *dim = &builtin->scalar_dimensions[i];
 
             if (mk_vector_has_any(view, dim->positive, dim->positive_count)) {
                 values[slot++] = 1.0;
@@ -266,7 +266,7 @@ static void mk_vector_fill(
         }
     } else {
         for (i = 0; i < mki_clements_hume_leaf_count; i++) {
-            const mk_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
+            const mki_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
 
             if (leaf->positive[0] != '\0' && mk_vector_has(view, leaf->positive)) {
                 values[slot++] = 1.0;
@@ -287,7 +287,7 @@ static void mk_vector_fill(
      * another label, 0 the node is unset. Equal columns are equal label sets at
      * the node, which is all the scorer asks of a group. */
     for (i = 0; i < mki_clements_hume_feature_to_node_count; i++) {
-        const mk_feature_node_map *map = &mki_clements_hume_feature_to_node[i];
+        const mki_feature_node_map *map = &mki_clements_hume_feature_to_node[i];
         size_t k;
         int touched = 0;
 
@@ -328,7 +328,7 @@ mk_status mk_system_feature_vector(
     size_t *written
 )
 {
-    mk_resolution entry;
+    mki_resolution entry;
     mk_feature_view view;
     mk_status status;
     size_t width;
@@ -358,9 +358,9 @@ mk_status mk_system_feature_vector(
 
 mk_status mk_system_inventory(const mk_system *system, mk_string_list **out)
 {
-    const char *scratch[MK_MAX_ENTRY_FEATURES];
+    const char *scratch[MKI_MAX_ENTRY_FEATURES];
     const char **items;
-    mk_entry_view row;
+    mki_entry_view row;
     size_t count;
     size_t i;
     mk_status status;

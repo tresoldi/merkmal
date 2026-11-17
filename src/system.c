@@ -12,14 +12,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const char *mk_kind_name(mk_system_type kind)
+static const char *mk_kind_name(mki_system_type kind)
 {
     switch (kind) {
-    case MK_SYSTEM_CATEGORICAL:
+    case MKI_SYSTEM_CATEGORICAL:
         return "categorical";
-    case MK_SYSTEM_VALUED:
+    case MKI_SYSTEM_VALUED:
         return "valued";
-    case MK_SYSTEM_TRAINED:
+    case MKI_SYSTEM_TRAINED:
         return "trained";
     default:
         return "unknown";
@@ -60,7 +60,7 @@ mk_status mk_system_is_segment(
     bool *out
 )
 {
-    mk_resolution entry;
+    mki_resolution entry;
     mk_status status;
 
     if (out == NULL) {
@@ -92,7 +92,7 @@ mk_status mk_system_grapheme_features(
     mk_string_list **out
 )
 {
-    mk_resolution entry;
+    mki_resolution entry;
     mk_status status;
 
     if (out == NULL) {
@@ -134,8 +134,8 @@ static mk_status mk_distance_with_coverage(
     mk_comparability *why
 )
 {
-    mk_resolution resolved_a;
-    mk_resolution resolved_b;
+    mki_resolution resolved_a;
+    mki_resolution resolved_b;
     mki_scorer scorer;
     mk_status status;
 
@@ -328,13 +328,13 @@ mk_status mk_system_segment_ipa(
              * full resolver including consonant-cluster synthesis and
              * therefore merged ANY consonant combination (th, ph, st…). */
             {
-                mk_resolution res;
+                mki_resolution res;
                 status = mki_resolve(system, joined, &res);
                 if (status == MK_OK) {
-                    bool merge = (res.path == MK_RESOLVED_INVENTORY ||
-                                  res.path == MK_RESOLVED_TIE_STRIPPED ||
-                                  res.path == MK_RESOLVED_AFFRICATE_RETRACTED ||
-                                  res.path == MK_RESOLVED_COMPLEX);
+                    bool merge = (res.path == MKI_RESOLVED_INVENTORY ||
+                                  res.path == MKI_RESOLVED_TIE_STRIPPED ||
+                                  res.path == MKI_RESOLVED_AFFRICATE_RETRACTED ||
+                                  res.path == MKI_RESOLVED_COMPLEX);
                     mki_resolution_clear(&res);
                     if (merge) {
                         candidate = joined;
