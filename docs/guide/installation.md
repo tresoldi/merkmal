@@ -1,49 +1,51 @@
 # Installation
 
-`merkmal` installs as a normal C library with:
+merkmal installs as a C library consisting of:
 
-- `include/merkmal.h`
-- `libmerkmal` as a static or shared library, depending on `BUILD_SHARED_LIBS`
-- a CMake package exporting `merkmal::merkmal`
-- a pkg-config file named `merkmal.pc`
+- the header `include/merkmal.h`;
+- `libmerkmal`, static or shared according to `BUILD_SHARED_LIBS`;
+- a CMake package exporting the target `merkmal::merkmal`;
+- a pkg-config file, `merkmal.pc`.
 
-## Build And Install
+The build requires CMake 3.20 or later and a C99 compiler.
+
+## Build and install
 
 ```sh
 cmake -S . -B build/release \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_INSTALL_PREFIX=/usr/local \
-  -DMERKMAL_REQUIRE_UTF8PROC=ON
+  -DCMAKE_INSTALL_PREFIX=/usr/local
 cmake --build build/release
 cmake --install build/release
 ```
 
-Use a user-writable prefix while testing packaging:
+To test packaging, a user-writable prefix can be used:
 
 ```sh
 cmake -S . -B build/stage \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_INSTALL_PREFIX="$PWD/build/install" \
-  -DMERKMAL_REQUIRE_UTF8PROC=ON
+  -DCMAKE_INSTALL_PREFIX="$PWD/build/install"
 cmake --build build/stage
 cmake --install build/stage
 ```
 
-## Static Or Shared
+## Static or shared
 
-CMake follows the standard `BUILD_SHARED_LIBS` option:
+The library follows the standard CMake option `BUILD_SHARED_LIBS`:
 
 ```sh
 cmake -S . -B build/shared -DBUILD_SHARED_LIBS=ON
 cmake -S . -B build/static -DBUILD_SHARED_LIBS=OFF
 ```
 
-The public header uses `MK_API` for exported symbols. Consumers normally do not
-need to define anything manually when they use the installed CMake target.
+The public header marks exported symbols with `MK_API`. A consumer that links
+the installed CMake target needs to define nothing itself: for a shared build
+the target carries the definition `MERKMAL_SHARED`, which selects the DLL
+import declarations on Windows.
 
 ## Data profiles
 
-`MERKMAL_DATA_PROFILE` chooses which built-in systems the library carries:
+`MERKMAL_DATA_PROFILE` selects the built-in systems the library carries:
 
 | Profile | Systems | Data licenses |
 | --- | --- | --- |
@@ -54,50 +56,52 @@ need to define anything manually when they use the installed CMake target.
 cmake -S . -B build/cc-by -DMERKMAL_DATA_PROFILE=cc-by
 ```
 
-The profiles are chosen by the license each system's provenance manifest
-declares, not by name, and each is a committed table:
-`src/generated/builtin_data.c` and `src/generated/cc-by/builtin_data.c`
-(regenerate with `tools/generate_c_data.py --profile cc-by`). A system the
-profile omits is `MK_ERR_UNKNOWN_SYSTEM`, exactly as an unknown name is.
+A profile selects systems by the license declared in each system's provenance
+manifest, not by name. Each profile is a committed, generated table:
+`src/generated/builtin_data.c` for `full` and
+`src/generated/cc-by/builtin_data.c` for `cc-by` (regenerated with
+`python tools/generate_c_data.py --profile cc-by`). A system that the profile
+omits is reported as `MK_ERR_UNKNOWN_SYSTEM`, exactly as an unknown name is.
+The profile of a built library is reported by `mk_data_profile` (Python:
+`merkmal.DATA_PROFILE`).
 
-For Python, build from source with the variable set:
+The Python package is built with a given profile from source, with the
+variable set:
 
 ```sh
 MERKMAL_DATA_PROFILE=cc-by pip install --no-binary merkmal merkmal   # from PyPI
 MERKMAL_DATA_PROFILE=cc-by pip install .                             # from a checkout
 ```
 
-merkmal is published as a single package, built with the full profile. The
-cc-by profile is a build option for users who need it, not a second
-distribution. Note what it does and does not change: the compiled library
-carries only the cc-by tables, but the source distribution you build it from
-still contains the full table file, as every merkmal source tree does.
+merkmal is published as a single package, built with the `full` profile; the
+`cc-by` profile is a build option, not a separate distribution. The compiled
+library then carries only the CC BY tables, but the source distribution from
+which it is built still contains the full table file, as every merkmal source
+tree does.
 
 ## Unicode normalization
 
 The library has no external dependency. NFC and NFD are compiled in from
 `src/generated/unicode_data.c`, which `tools/generate_unicode_data.py` writes
-from the Unicode Character Database of the generating Python. Every build —
-static, shared, Python, WebAssembly — normalizes identically, at the version in
-`mki_unicode_version` (exposed to Python as `merkmal.UNICODE_VERSION`).
+from the Unicode Character Database of the Python interpreter that runs it.
+Every build (static, shared, Python, WebAssembly) therefore normalizes
+identically, at the Unicode version reported by `mk_unicode_version` (Python:
+`merkmal.UNICODE_VERSION`). The installed CMake package and `merkmal.pc`
+declare no dependency.
 
-Earlier versions used `libutf8proc` when it was installed and an IPA-focused
-approximation when it was not, and the two returned different strings for the
-same input. That distinction is gone, and the installed CMake package and
-`merkmal.pc` no longer name utf8proc.
+`libutf8proc` is used only as a test oracle:
 
-`libutf8proc` survives only as a test oracle:
-
-- `MERKMAL_USE_UTF8PROC` (default `ON`) looks for it, and if found the
+- `MERKMAL_USE_UTF8PROC` (default `ON`) searches for it. If it is found, the
   `unicode` test compares the built-in normalizer with it over every code
-  point and 400,000 generated mark sequences. When utf8proc carries a
-  different Unicode version than the tables, the test reports a skip.
+  point and 400,000 generated sequences of combining marks. When utf8proc
+  carries a different Unicode version from the tables, the test reports a
+  skip.
 - `MERKMAL_REQUIRE_UTF8PROC` (default `OFF`) makes its absence a configuration
-  error, for CI jobs that must run the oracle.
+  error, for continuous-integration jobs that must run the oracle.
 
 Neither option changes the library that is built.
 
-## CMake Consumers
+## CMake consumers
 
 ```cmake
 find_package(merkmal CONFIG REQUIRED)
@@ -106,13 +110,13 @@ add_executable(example example.c)
 target_link_libraries(example PRIVATE merkmal::merkmal)
 ```
 
-If merkmal was installed to a custom prefix:
+If merkmal was installed under a custom prefix:
 
 ```sh
 cmake -S consumer -B consumer/build -DCMAKE_PREFIX_PATH=/path/to/merkmal-prefix
 ```
 
-## pkg-config Consumers
+## pkg-config consumers
 
 ```sh
 cc example.c $(pkg-config --cflags --libs merkmal) -o example
@@ -124,11 +128,11 @@ For static linking:
 cc example.c $(pkg-config --cflags --libs --static merkmal) -o example
 ```
 
-If merkmal was installed to a custom prefix:
+If merkmal was installed under a custom prefix:
 
 ```sh
 export PKG_CONFIG_PATH=/path/to/merkmal-prefix/lib/pkgconfig:$PKG_CONFIG_PATH
 ```
 
-On systems that install libraries under `lib64`, use the matching
-`lib64/pkgconfig` directory.
+On systems that install libraries under `lib64`, the corresponding directory
+is `lib64/pkgconfig`.

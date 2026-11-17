@@ -1,60 +1,28 @@
 # C API
 
 The public C API is declared in [`include/merkmal.h`](../../include/merkmal.h).
-It is C99-compatible and uses explicit status codes instead of exceptions.
-Public functions are annotated with `MK_API` so shared-library builds export
-only the supported ABI surface.
-
-## Migrating from the pre-release 1.0 surface
-
-Three breaking changes, all of them mechanical, made while the tree was
-versioned 1.0.0 (it was stepped back to 0.9.0 before any release). The surface
-is not yet promised stable; that promise is for 1.0.0.
-
-| before | after |
-|---|---|
-| `mk_free_string(s)` | `mk_string_free(s)` |
-| `mk_system_is_segment(sys, g, int *out)` | `mk_system_is_segment(sys, g, bool *out)` |
-| `mk_sound_distance(fa, na, fb, nb, w, out)` | `mk_sound_distance(view_a, view_b, w, out)` |
-
-`mk_string_free` is a rename only. It reads the way the other destructors
-already did — `mk_string_list_free`, `mk_registry_free` — where the type comes
-first and the verb last.
-
-`bool` comes from `<stdbool.h>`, which the header now includes. This is an ABI
-change as well as an API one on any platform where `_Bool` and `int` differ in
-size, so it rides the SOVERSION bump; recompile rather than relink.
-
-`mk_sound_distance` takes two `mk_feature_view` values instead of four
-arguments. The view is a public value type, a `const char *const *` and a
-`size_t`, and it borrows: both the array and the strings must outlive the call.
-
-```c
-mk_feature_view a;
-mk_feature_view b;
-
-a.features = features_a;
-a.count = feature_a_count;
-b.features = features_b;
-b.count = feature_b_count;
-mk_sound_distance(a, b, NULL, &distance);
-```
+It is C99 and reports failure through explicit status codes. Public functions
+are annotated with `MK_API`, so a shared-library build exports only the
+supported interface. The interface is not yet declared stable; changes between
+releases are recorded in [CHANGELOG.md](../../CHANGELOG.md).
 
 ## Ownership
 
 Objects returned through output parameters are owned by the caller unless
 documented otherwise.
 
-- Free registries with `mk_registry_free`.
-- Free string lists with `mk_string_list_free`.
-- Free returned strings with `mk_string_free`.
+- Registries are freed with `mk_registry_free`, bundles with `mk_bundle_free`,
+  string lists with `mk_string_list_free`, and returned strings with
+  `mk_string_free`.
 - Strings returned by `mk_string_list_get` and `mk_system_name` are borrowed
   and remain valid only while the owning object is alive.
+- `mk_system_kind`, `mk_status_string` and the build-identity functions return
+  static storage, which must not be freed.
 
 `mk_string_list` is the library's only collection type. Feature sets are
 string lists whose order carries no meaning.
 
-## Scientific system identity
+## System identity
 
 ```c
 char *payload = NULL;
@@ -70,8 +38,9 @@ The payload is canonical UTF-8 `key=value` text and the digest is its
 lowercase SHA-256 hash. It identifies the selected model, scorer, geometry and
 diacritic data, resolver, tone grammar, and baseline comparison policy. It
 does not identify choices made by a particular calculation, such as a
-non-default node-weight preset or a caller's tokenization policy; retain those
-with the fingerprint. Either output may be `NULL`, but not both.
+non-default node-weight preset or the caller's tokenization policy; these are
+to be recorded with the fingerprint. Either output may be `NULL`, but not both.
+See [docs/method/semantic-fingerprint.md](../method/semantic-fingerprint.md).
 
 ## Diagnosing a refusal
 
@@ -87,11 +56,11 @@ mk_status mk_system_diagnose(const mk_system *system, const char *utf8_grapheme,
                              mk_diagnosis *out);
 ```
 
-Checking someone's transcriptions is the workflow a validated inventory and a
-fast C core should be best in the world at, and there the diagnosis *is* the
-product. A bare `MK_ERR_UNKNOWN_GRAPHEME` does not tell an author whether they
-mistyped one combining mark, used a convention this library does not read, or
-wrote a sound it genuinely lacks.
+The diagnosis supports the checking of transcriptions. A bare
+`MK_ERR_UNKNOWN_GRAPHEME` does not distinguish a mistyped combining mark, a
+convention the library does not read, and a segment the system does not
+contain. `mk_system_diagnose` reports the status, the longest prefix (cut at a
+character boundary) that does resolve, and the character that follows it:
 
 | input | status | valid prefix | offending |
 | --- | --- | --- | --- |
@@ -100,13 +69,14 @@ wrote a sound it genuinely lacks.
 | `¹²³⁴` | parse error | `¹²³` | `⁴` |
 | `<?>` | source markup, not a sound | — | `<` |
 
-The longest resolving prefix localizes the problem and is usually the repair.
-`mk_system_diagnose` returns `MK_OK` unless its arguments are unusable — a
-refused grapheme is the normal case and is reported in `out->status`.
+The prefix localizes the problem and is often the intended segment.
+`mk_system_diagnose` returns `MK_OK` unless its arguments are unusable (NULL
+arguments return `MK_ERR_INVALID_ARGUMENT`, a failed allocation `MK_ERR_OOM`):
+a refused grapheme is the normal case and is reported in `out->status`.
 
-There is deliberately **no "nearest valid grapheme"**. An edit-distance search
-over the inventory would be a guess presented as an answer, and the prefix is
-both cheaper and more often right.
+The library does not suggest a "nearest valid grapheme". An edit-distance
+search over the inventory would present a guess as an answer; the prefix is
+cheaper to compute and does not claim more than is known.
 
 ## Distance with coverage
 
@@ -118,53 +88,58 @@ mk_status mk_system_segment_distance_ex(const mk_system *system,
                                         mk_comparability *why);
 ```
 
-`coverage` is required — it is what this entry point is for. `why` may be NULL.
+`coverage` is required (NULL returns `MK_ERR_INVALID_ARGUMENT`); `why` may be
+NULL. Otherwise the statuses are those of
+`mk_system_segment_distance_with_weights`, and on failure `*out` and
+`*coverage` are `0.0`.
 
-A valued system skips any dimension where either segment has no value, so `0.0`
-is ambiguous between "identical" and "nothing in common to compare". PHOIBLE
-writes `.` in 30,181 cells and its tone letters are `.` on every dimension, so
-`˦˨` scores `0.0` against every segment in the table.
+A valued system skips any dimension on which either segment has no value (`0`
+or `?` in PHOIBLE, `.` in the P-base systems), so a distance of `0.0` does not
+distinguish "identical" from "nothing in common to compare". PHOIBLE's tone
+letters, for example, have a value on no dimension except `tone`, on which no
+other segment has one, so `˦˨` scores `0.0` against every entry in the table:
+against a segment with no dimension compared, against another tone letter on
+that single dimension.
 
-`*coverage` is measured against the system's declared dimensions, not against
-the segments, so a segment compared with itself reports less than 1.0 whenever
-it has a gap: `("p", "p")` on PHOIBLE is 27/38.
+`*coverage` is the share of the system's declared dimensions on which both
+segments have a value, in `[0, 1]`. It is measured against the system, not the
+segments, so in a valued system a segment compared with itself reports less
+than 1.0 whenever it leaves a dimension without a value: `("p", "p")` in
+`phoible` is 27/38. `d(˦˨, d)` in `phoible` is `(0.0, 0.0)`; `d(e, i)` in
+`pbase-uftc`, which that table does not distinguish, is `(0.0, 0.75)`. The
+library sets no threshold: what counts as too weak a comparison depends on the
+application.
+
+Categorical systems weigh every dimension that either segment specifies, so an
+ordinary pair is fully covered. A pair that reaches no scored dimension at all
+reports `0.0`.
 
 For a synthesized cluster (a diphthong, an untied consonant sequence), coverage
-combines the coverage of each part comparison with the same weights the
-distance gives that part: nucleus and offglides, then components and the whole
-segment. The length penalties that make `ai` further from `a` than `a` is from
-itself measure no dimension and do not enter it. Only categorical systems
-synthesize clusters, so an ordinary cluster pair is fully covered.
+combines the coverage of each part comparison with the weights the distance
+gives that part: nucleus and offglides, then components and the whole segment.
+The length penalties that place `ai` further from `a` than `a` is from itself
+measure no dimension and do not enter the coverage. Only categorical systems
+synthesize clusters, so a cluster pair is fully covered unless one of its part
+comparisons is not.
 
 `*why` reports whether the pair was comparable at all:
 
 | value | meaning |
 | --- | --- |
 | `MK_CMP_OK` | same tier, shared dimensions; the score is a measurement |
-| `MK_CMP_CROSS_TIER` | a tone against a segment. The score is the geometry file's declared `tier_policy.cross_tier_cost`, not a measurement |
-| `MK_CMP_NO_SHARED_DIMENSION` | same tier, no dimension both have a value on. A `0.0` here means "nothing to compare", not "identical" |
+| `MK_CMP_CROSS_TIER` | a tone against a segment. The score is the geometry file's declared `tier_policy.cross_tier_cost`, not a measurement, and coverage is `0.0` |
+| `MK_CMP_NO_SHARED_DIMENSION` | same tier, no dimension on which both have a value. A `0.0` here means "nothing to compare", not "identical" |
 
-**Cross-tier is a policy, and the policy is data.** `tier_policy.cross_tier_cost`
-lives in `data/geometries/clements-hume.json`, so changing it is a versioned data
-change with a diff rather than a tree edit — and a later evidence-derived scorer
-can carry its own without disturbing this one. It is 1.0, meaning incomparable:
-gold alignments never place a tone in a column with a segment, and
-`bench/sweep_tone_distance.py` saturates above roughly 0.7, so the data cannot
-distinguish any cost in that region from refusing to compare. Scoring a tone
-through the geometry instead gives 0.61 against a stop and 0.50 against a vowel,
-which are functions of how many features the *other* segment has rather than
-statements about tone.
-
-`*coverage` is the share of the system's declared dimensions on which both
-segments had a value, in `[0, 1]`. `d(˦˨, d)` in PHOIBLE is `(0.0, 0.0)`;
-`d(e, i)` in P-base UFTC, genuinely indistinguishable there, is `(0.0, 0.75)`.
-The library sets no threshold — what counts as too weak a comparison depends on
-the work.
-
-Categorical systems weigh any dimension either segment specifies, so an ordinary
-pair is fully covered and the ambiguity does not arise. A pair reaching no
-scored dimension at all still reports `0.0` rather than claiming a comparison
-that did not happen.
+The cross-tier cost is part of the data, not of the code: it is
+`tier_policy.cross_tier_cost` in
+[`data/geometries/clements-hume.json`](../../data/geometries/clements-hume.json),
+so a change to it is a versioned data change. Its value is 1.0, meaning
+incomparable. The reasons are given in the note beside it in that file: expert
+alignments never place a tone in the same column as a segment, the alignment
+sweep in `bench/sweep_tone_distance.py` does not distinguish costs above about
+0.7 from refusing to compare, and a cost computed through the geometry would
+depend on how many features the other segment has rather than on any property
+of tone.
 
 ## Feature vectors
 
@@ -175,43 +150,47 @@ mk_status mk_system_feature_vector(const mk_system *system, const char *utf8_gra
                                    double *values, size_t capacity, size_t *written);
 ```
 
-Everything else here returns feature *labels*, which is the right shape for
-reasoning about a segment and the wrong one for a model that wants numbers.
+The other lookup functions return feature *labels*. These functions return a
+fixed-width numeric vector, for statistical and machine-learning models that
+require numbers. `values` must have room for `mk_system_vector_width` entries;
+when the buffer is too small the call returns `MK_ERR_INVALID_ARGUMENT` and
+`*written` reports the width needed. A grapheme that does not resolve returns
+its refusal status with `*written` set to 0.
 
-The encoding follows `soundvectors` (Rubehn, Nieder, Forkel & List 2024), so the
-numbers mean what the rest of the ecosystem means by them:
+The encoding follows `soundvectors` (Rubehn et al. 2024):
 
 | value | meaning |
 | ---: | --- |
 | `+1` | the feature is present |
 | `-1` | it applies to this kind of segment and is absent |
 | `0` | it does not apply (or, in a table that does not distinguish the two, the source does not say) |
-| `NaN` | a valued system's `?`: the value is not known here (PHOIBLE since model 2.0.0) |
+| `NaN` | a valued system's `?`: the value is not known |
 
-That last row is why this is worth having in the library rather than in each
-caller: a valued system writes `anterior=.` for "no value" and `anterior=-` for
-"absent", and a hand-written mapping tends to collapse them.
+The distinction between the last three rows is the reason the mapping is part
+of the library: a valued system separates "does not apply" (`0` in PHOIBLE),
+"unknown" (`?`) and "absent" (`-`), and a mapping written by each caller can
+easily conflate them.
 
-**Ordered scales** cannot use `0` for a middle level, since `0` already means "no
-value". A scale of *n* levels maps level *i* to *i/n*, so scale columns land in
-`(0, 1]` and `0` still means the scale does not apply. `vowel_height` is 0.14 for
-`/i/`, 0.43 for `/e/`, 1.0 for `/a/`, and 0 for `/p/`.
+**Ordered scales** cannot use `0` for a middle level, since `0` already means
+that the scale does not apply. A scale of *n* levels maps level *i* to *i/n*,
+so scale columns lie in `(0, 1]`. In `distinctive`, `vowel_height` is 0.14 for
+`i`, 0.43 for `e`, 1.0 for `a`, and 0 for `p`.
 
-**The basis differs by system**, because the systems differ, and it is exactly
-the dimensions the system's scorer reads, so equal vectors mean distance zero.
-A valued system's columns are its own inventory columns. A system declaring
-`scalar_dimensions` uses those, then the geometry's ordered scales. The rest use
-the geometry's leaves, its ordered scales, and one-hot node-group columns named
-`Node=label` (+1 the label is present, −1 the node is set by another label, 0
-the node is unset). Widths today are 64 for `distinctive`, 68 for
-`descriptive`, 38 for `phoible`, 23 for `pbase-hc`.
-Call `mk_system_vector_labels` rather than assuming either width or order; the
-labels are unique within a system, so a column is addressable by name.
+**The basis differs by system.** The columns are exactly the dimensions the
+system's scorer reads, so graphemes with equal vectors are at distance zero. A
+valued system's columns are its own inventory columns. A system that declares
+`scalar_dimensions` uses those, followed by the geometry's ordered scales. The
+remaining systems use the geometry's leaves, its ordered scales, and one-hot
+node-group columns named `Node=label` (+1 when the label is present, −1 when
+the node is set by another label, 0 when the node is unset). The widths in the
+built-in data are 64 for `distinctive`, 68 for `descriptive`, 38 for `phoible`
+and 23 for `pbase-hc`. Callers should obtain the width and order from
+`mk_system_vector_width` and `mk_system_vector_labels` rather than assume them;
+the labels are unique within a system, so a column can be addressed by name.
 
-There is no call that vectorizes a token list. It is a loop over
-`mk_system_feature_vector`, and the library does not own sequence-level
-operations; the library deliberately supplies segment-level costs, not
-sequence-level alignment.
+There is no function that vectorizes a token list: that is a loop over
+`mk_system_feature_vector`. The library provides segment-level operations
+only.
 
 ## Abstract segments
 
@@ -227,14 +206,15 @@ mk_status mk_bundle_compatible_graphemes(const mk_bundle *b, const char *weights
                                          mk_string_list **out);
 ```
 
-A feature bundle with no grapheme as identity: one cell per dimension the
-system's scorer reads, each holding the values the segment may have. The
-comparison gives the scorer's distance over the dimensions both sides specify,
-its coverage, and the exact minimum and maximum over every completion. Cell
-grammar and semantics: `docs/method/abstract-segments.md`. A bundle borrows its
-system; free it before the registry.
+A bundle is a feature specification without a grapheme: one cell per dimension
+the system's scorer reads, each holding the values the segment may have. A
+comparison reports the scorer's distance over the dimensions both sides
+specify, its coverage, and the exact minimum and maximum over every completion.
+The cell grammar and semantics are described in
+[docs/method/abstract-segments.md](../method/abstract-segments.md). A bundle
+borrows its system and must be freed before the registry.
 
-## Status Codes
+## Status codes
 
 `mk_status` values are:
 
@@ -248,33 +228,38 @@ system; free it before the registry.
 - `MK_ERR_SOURCE_MARKER`
 - `MK_ERR_DUPLICATE_SYSTEM`: a registry already holds a system by that name
 - `MK_ERR_NO_TREE_PATH`: `mk_feature_distance` on a feature with no path in the geometry tree
-- `MK_ERR_UNKNOWN_FEATURE`: `mk_sound_distance` or a bundle given a label the geometry does not know
+- `MK_ERR_UNKNOWN_FEATURE`: `mk_sound_distance` or a bundle given a label or column the geometry does not know
 
-Three of these mean "not a segment" and are worth telling apart, because a
-caller checking transcriptions wants to act differently on each:
+New values are appended, so existing values keep their numbers. A `switch`
+with a `default` label is unaffected by an addition; one that enumerates every
+value will warn until it handles the new one.
+
+Three statuses mean "not a segment", and a caller checking transcriptions will
+usually treat them differently:
 
 | status | meaning |
 | --- | --- |
-| `MK_ERR_UNKNOWN_GRAPHEME` | no path recognized this; the library may lack the segment, or the spelling may be wrong |
-| `MK_ERR_PARSE` | a path recognized the *shape* and rejected the content — an over-long Chao run is tone, spelled wrong |
-| `MK_ERR_SOURCE_MARKER` | not a transcription at all: CLTS's `<?>`, CLDF's `<<...>>`, or a `+`/`_`/`#` boundary marker. The **source** has a gap here; merkmal is not missing anything |
+| `MK_ERR_UNKNOWN_GRAPHEME` | no path recognized the input; the system may lack the segment, or the spelling may be wrong |
+| `MK_ERR_PARSE` | a path recognized the *shape* and rejected the content, as with a Chao run of four or more digits |
+| `MK_ERR_SOURCE_MARKER` | not a transcription: CLTS's `<?>`, CLDF's `<<...>>`, or a `+`, `_` or `#` boundary marker. The gap is in the source, not in the library |
 
-`mk_system_is_segment` reports `false` for all three and returns `MK_OK`: the
-predicate is total, and the reason comes from `mk_system_grapheme_features`.
+A fourth refusal, `MK_ERR_UNSUPPORTED_MODEL`, is returned for a tone-bearing
+grapheme in a system without tone support (see
+[Systems without tone support](#systems-without-tone-support)).
 
-`MK_ERR_SOURCE_MARKER` was appended to the enum, so the other values keep their
-numbers. A `switch` with a `default` is unaffected; one that enumerates every
-value will warn until it handles the new one.
+`mk_system_is_segment` reports `false` for the three statuses in the table and
+returns `MK_OK`; `mk_system_grapheme_features` or `mk_system_diagnose` gives
+the reason.
 
-Use `mk_status_string(status)` for a stable English diagnostic label suitable
-for logs and error messages. The returned string is static storage owned by
-the library and must not be freed.
+`mk_status_string(status)` returns a stable English label suitable for logs
+and error messages, in static storage that must not be freed. A value outside
+the enumeration gives `"unknown status"`.
 
 ```c
 const char *mk_status_string(mk_status status);
 ```
 
-## Build Identity
+## Build identity
 
 ```c
 #define MK_VERSION_MAJOR 0
@@ -287,12 +272,13 @@ const char *mk_data_profile(void);     /* "full" or "cc-by" */
 const char *mk_unicode_version(void);  /* Unicode version of the NFC/NFD tables */
 ```
 
-The macros describe the header a caller compiled against and the functions the
-library actually linked, which can differ under a shared-library upgrade. All
-three functions return static storage and cannot fail. The version is the
-API's; the profile and Unicode version are what else can move a result between
-builds of one version, and `mk_system_semantic_fingerprint` is what to store
-alongside any result kept.
+The macros describe the header a caller compiled against and the functions
+the library actually linked; the two can differ after a shared-library
+upgrade. All three functions return static storage and cannot fail. The
+version is that of the API. The data profile and the Unicode version can also
+change a result between builds of one version, and
+`mk_system_semantic_fingerprint` is the value to store with any result that is
+kept.
 
 ## Registry
 
@@ -307,37 +293,35 @@ mk_status mk_registry_add_model_text_n(mk_registry *registry, const char *model_
 ```
 
 `mk_registry_new_builtin` creates a registry containing the compiled-in
-models. `mk_registry_add_model_text` appends a caller-supplied runtime
-model; see [runtime-model-format.md](runtime-model-format.md). Runtime models
-are copied into the registry and do not depend on the lifetime of
-`model_text`.
+systems; `mk_registry_list_systems` lists them in registration order,
+compiled-in systems first. `mk_registry_add_model_text` adds a caller-supplied
+runtime model in the format described in
+[runtime-model-format.md](runtime-model-format.md). The model text is copied
+into the registry and need not outlive the call. On any failure the registry
+is unchanged.
 
-A name already in the registry is refused with `MK_ERR_DUPLICATE_SYSTEM`,
-including the compiled-in names. `mk_registry_get_system` returns the first
-match, so a second system under an existing name would install successfully and
-then be unreachable for the rest of the registry's life. Nothing is installed
-when the name is taken, so the registry is unchanged and the caller can rename
-and retry. There is no shadowing: a runtime model cannot override a built-in by
-reusing its name.
+A name already in the registry, including the name of a compiled-in system, is
+refused with `MK_ERR_DUPLICATE_SYSTEM`. Since `mk_registry_get_system` looks a
+system up by name, a second system under an existing name would be
+unreachable; the caller can instead rename the model and retry. A runtime
+model therefore cannot replace a built-in system by reusing its name.
 
-Runtime models are validated strictly unless they say `@validation
-permissive`: every feature must reach a scoring dimension, graphemes must be
-unique, and unrecognized lines are rejected. Without that check, a model
-whose features the geometry does not know registers successfully and then
-answers `0.0` for every comparison, which is indistinguishable from "these
-segments are identical". Use `mk_registry_add_model_text_ex` to receive an
-owned diagnostic naming the offending line and token; free it with
-`mk_string_free`.
+Runtime models are validated strictly unless they declare `@validation
+permissive`: every feature must be known to the geometry, every grapheme must
+carry a feature that is scored, graphemes must be unique, and unrecognized
+lines are rejected. Without this check, a model whose features the geometry
+does not know would register and then return `0.0` for every comparison,
+which cannot be told apart from "these segments are identical".
+`mk_registry_add_model_text_ex` returns, on failure, an owned diagnostic
+naming the offending line and token; it is freed with `mk_string_free`.
 
 The first two forms take a NUL-terminated string.
-`mk_registry_add_model_text_n` takes a pointer and a byte count instead, for a
-caller holding a buffer that owes the library no terminator — a mapped file,
-a Python `bytes`, a fuzzer's input. Nothing past `model_text_length` is read.
-The other two forms are this one with `strlen`.
-
-An embedded NUL byte returns `MK_ERR_PARSE` rather than truncating. The format
-is line-oriented text, and a NUL in the middle would otherwise end the model
-early and register the part before it as though it were the whole thing.
+`mk_registry_add_model_text_n` takes a pointer and a byte count, for a buffer
+without a terminator, such as a mapped file or a Python `bytes` object, and
+reads nothing past `model_text_length`. The other two forms are equivalent to
+this one with `strlen`. An embedded NUL byte returns `MK_ERR_PARSE` rather than
+truncating the text: the format is line-oriented, and a NUL would otherwise
+end the model early and register the part before it as the whole model.
 
 System pointers returned by `mk_registry_get_system` remain valid until the
 registry is freed. Adding a model does not invalidate an existing system
@@ -348,32 +332,45 @@ pointer.
 ```c
 mk_status mk_system_name(const mk_system *system, const char **out);
 mk_status mk_system_kind(const mk_system *system, const char **out);
+mk_status mk_system_inventory(const mk_system *system, mk_string_list **out);
 mk_status mk_system_is_segment(const mk_system *system, const char *utf8_grapheme, bool *out);
 mk_status mk_system_grapheme_features(const mk_system *system, const char *utf8_grapheme, mk_string_list **out);
 mk_status mk_system_segment_distance(const mk_system *system, const char *utf8_a, const char *utf8_b, double *out);
 mk_status mk_system_segment_distance_with_weights(const mk_system *system, const char *utf8_a, const char *utf8_b, const char *node_weights, double *out);
 ```
 
-`mk_system_name` and `mk_system_kind` answer for a caller holding a system
-pointer rather than the name it looked the system up by. The kind — one of
-`categorical`, `valued`, `trained` — is worth asking for because coverage means
-different things by it: a valued system's is a real fraction, a categorical
-one's is 1.0 for any pair reaching a scored dimension. Their lifetimes differ
-behind identical signatures: the name is registry-owned, the kind is static.
+`mk_system_name` and `mk_system_kind` serve a caller that holds a system
+pointer but not the name under which it was looked up. The kind is one of
+`categorical`, `valued` or `trained`; no built-in system is of kind
+`trained`. The kind determines what coverage means: in a valued system it is a
+fraction of the declared dimensions, in a categorical one it is 1.0 for any
+pair that reaches a scored dimension. The two functions have the same
+signature but different lifetimes: the name is owned by the registry, the kind
+is static.
 
-`node_weights` may be `NULL`, `"ignore-tone"`, `"ignore-prosodic"`,
-`"segmental"`, `"tone-heavy"`, `"tone-only"`, or `"flat"`.
+`mk_system_inventory` lists the graphemes of the system's own table (in UTF-8
+byte order for a compiled-in system, in file order for a runtime model).
+Graphemes the resolver derives from a base segment and diacritics are not
+included, since that set is unbounded.
 
-For the `descriptive` system, lookup and distance also support synthesized
-source-token segments used by lexical datasets. These include vowel clusters
-such as `ai`, `aːi`, `əi³¹`, and precomposed-vowel clusters such as `ɛï³³`,
-precomposed vowel/modifier segments such as `ṵː`, broader affricate spellings
-such as `tʂʰ` and `kɣ`, explicit prenasalized forms such as `ᵐb` and `ⁿdʳ`,
-labial-velar stops such as `kpʷ` and `ɡb`, and tone-bearing sonorant nuclei
-such as `ŋ̀`.
+`node_weights` may be `NULL` (the default weights) or one of the presets
+`"flat"`, `"ignore-length"`, `"ignore-prosodic"`, `"ignore-secondary"`,
+`"ignore-tone"`, `"segmental"`, `"tone-heavy"` and `"tone-only"`, defined in
+[`data/geometries/clements-hume.json`](../../data/geometries/clements-hume.json).
+An unknown preset returns `MK_ERR_INVALID_ARGUMENT`.
 
-Synthesized vowel clusters expose position-qualified and movement features
-instead of contradictory unqualified component qualities:
+In the categorical systems (among the built-in ones, `distinctive` and
+`descriptive`), lookup and distance also accept segments that are not listed in the table but
+are synthesized from listed ones, as they occur in lexical datasets: vowel
+sequences such as `ai`, `aːi`, `əi³¹` and `ɛï³³`, precomposed vowels with
+modifiers such as `ṵː`, affricates written without a tie bar such as `tʂʰ` and
+`kɣ`, prenasalized consonants such as `ᵐb`, `ⁿdʳ`, `mb` and `nd`, labial-velar
+stops such as `kpʷ` and `ɡb`, and tone-bearing syllabic consonants such as
+`ŋ̀`. The valued systems do not synthesize segments; they accept only the
+sequences their source tables list.
+
+A synthesized vowel sequence carries position-qualified and movement features
+rather than the contradictory unqualified qualities of its components:
 
 ```text
 vowel
@@ -383,24 +380,20 @@ n2-close
 move-height-open-close
 ```
 
-The behavior is currently descriptive-only. Other categorical systems are a
-roadmap item, and valued systems need a separate design pass.
+`mk_system_is_segment` is a predicate for screening untrusted source data
+before feature lookup; `mk_system_grapheme_features` returns the refusal
+status for input it does not accept. A token that is only tone, such as `³¹`
+or `˦˨`, is accepted by the categorical systems as a tone segment carrying the
+unscored feature `tonal-autosegment`; source markup is refused with
+`MK_ERR_SOURCE_MARKER`.
 
-Use `mk_system_is_segment` as the non-throwing predicate before feature lookup
-when processing untrusted source data. `mk_system_grapheme_features` reports
-`MK_ERR_UNKNOWN_GRAPHEME` for unknown or invalid tokens.
-Standalone tone clusters such as `³¹`, slash-delimited tone/control forms such
-as `¹/¹`, and source markup/control tokens remain invalid. Bare `mb`, `nd`,
-`mp`, `nt`, and `ŋg` are recognized as prenasalized consonant clusters; an
-earlier two-item blocklist rejected `mb` and `nd` while accepting `mp` and
-`nt`.
-
-## Geometry And Unicode
+## Geometry and Unicode
 
 ```c
 mk_status mk_feature_distance(const char *feature_a, const char *feature_b, int *out);
 mk_status mk_sound_distance(mk_feature_view a, mk_feature_view b, const char *node_weights, double *out);
 mk_status mk_normalize_grapheme(const char *utf8_in, char **utf8_out);
+mk_status mk_unicode_normalize(const char *utf8_in, mk_normalization_form form, char **utf8_out);
 mk_status mk_segment_ipa(const char *utf8_in, mk_string_list **out);
 mk_status mk_system_segment_ipa(const mk_system *system, const char *utf8_in, mk_string_list **out);
 mk_status mk_merge_tone_digits(const mk_string_list *segments, mk_string_list **out);
@@ -408,87 +401,119 @@ mk_status mk_segment_ipa_merged(const char *utf8_in, mk_string_list **out);
 mk_status mk_split_tone(const char *segment, char **base_out, char **tone_out);
 ```
 
-`mk_feature_distance` counts hops along the geometry tree, and is defined only
-over the 110 features the tree contains. A feature the geometry reaches some
-other way has no tree path and no tree distance: `bilabial` and `velar` are
-mapped to the `Place` node rather than being leaves under it, and an
-ordered-scale level such as `tone-onset-1` is a position on a scale. Roughly two
-in five of the labels a categorical system can return are in that group, and
-either feature being off the tree returns `MK_ERR_NO_TREE_PATH`.
+`mk_feature_distance` counts the edges between two features along the
+geometry tree, and is defined only for the 110 features the tree contains.
+Many features that a system returns are reached by the scorer in another way
+and have no tree path: `bilabial` and `velar` are mapped to the `Place` node
+rather than being leaves under it, and an ordered-scale level such as
+`tone-onset-1` is a position on a scale. If either feature is off the tree,
+the function returns `MK_ERR_NO_TREE_PATH` and leaves `*out` unwritten.
 
-That is a status, not a sentinel distance. The real answers are small
-integers, so a sentinel such as `999` would look like an ordinary one, and a
-caller summing or thresholding would get nonsense with nothing to test. The
-domain is checked before identity: a feature the tree does not contain,
-misspellings included, is `MK_ERR_NO_TREE_PATH` even against itself rather than
-a confident `0`. For features on the tree identity needs no special case: the
-two paths are equal and the count comes out 0.
+A status is used rather than a sentinel distance because the real results are
+small integers, and a sentinel such as `999` would be indistinguishable from
+an ordinary value to a caller that sums or thresholds them. The domain is
+checked before identity: a feature the tree does not contain, including a
+misspelt one, returns `MK_ERR_NO_TREE_PATH` even when compared with itself.
 
-It is a tree measurement, not a phonological distance. For two segments use
-`mk_system_segment_distance`, which reads node groups and ordered scales too and
-is defined for every feature a system returns.
+The result is a tree measurement, not a phonological distance. Segments are
+compared with `mk_system_segment_distance`, which also reads node groups and
+ordered scales and is defined for every feature a system returns.
 
 `mk_sound_distance` scores two caller-supplied feature sets against the
-compiled geometry, with no system involved. A label the geometry does not know,
-scored or metadata, returns `MK_ERR_UNKNOWN_FEATURE` rather than being skipped:
-a skipped `foo` or `-voice` would score exactly like no label at all, and a
-typo would pass as a measurement. Labels are privative: a negative value is
-the opposite label (`voiceless`), never a sign (`-voice`).
+compiled geometry, without a system. Both views are borrowed for the duration
+of the call: the array and the strings belong to the caller. A label that the
+geometry knows neither as a scored nor as a metadata feature returns
+`MK_ERR_UNKNOWN_FEATURE` rather than being skipped, since a skipped label
+(`foo`, or a misspelling) would score exactly like an absent one. Labels are
+privative: a negative value is expressed by the opposite label (`voiceless`),
+never by a sign (`-voice`).
 
-There are two tokenization policies, and the choice matters.
-`mk_segment_ipa` is orthographic: a token starts at each new base code
-point unless a tie bar joins it to the previous one. It is stable and
-language-neutral, but it disagrees with what a system accepts — it splits
-`tʃa` into `t`, `ʃ`, `a` even though the descriptive system recognizes
-untied `tʃ` as one segment. `mk_system_segment_ipa` does longest match
-against the selected system instead, giving `[tʃ, a]` and `[kp, a]`.
+```c
+mk_feature_view a;
+mk_feature_view b;
 
-Longest match is a policy, not a truth: `kp` may be /k.p/ in a language
-with no labial-velar. Results depend on the selected system and its
-inventory version, so record both with any stored tokenization. Input the
-system does not recognize is passed through as its orthographic token
-rather than dropped, so the function is total.
+a.features = features_a;
+a.count = feature_a_count;
+b.features = features_b;
+b.count = feature_b_count;
+mk_sound_distance(a, b, NULL, &distance);
+```
 
-`mk_split_tone` inverts the merge: `"a¹³"` becomes `("a", "¹³")`. Consumers
-that model tone as a dimension of its own need it, because the merged form
-fuses the nucleus and its tone into one string. `*tone_out` is `NULL` for an
-untoned segment, which is not an error; a token that is nothing but tone
-digits returns `MK_ERR_UNKNOWN_GRAPHEME`, matching the standalone-tone policy
-above. Both outputs are caller-owned and freed with `mk_string_free`.
+There are two tokenization policies, and the choice affects the results.
+`mk_segment_ipa` is orthographic: a token starts at each new base code point
+unless a tie bar joins it to the previous one. It is stable and
+language-neutral, but it does not agree with what a system accepts: it splits
+`tʃa` into `t`, `ʃ`, `a`, although the categorical systems recognize untied
+`tʃ` as one segment. `mk_system_segment_ipa` instead takes the longest match
+against the selected system, giving `[tʃ, a]` and `[kp, a]`.
 
-The split is orthographic, like `mk_segment_ipa` and for the same reason: it
-finds the first Chao digit and cuts there without reading the run. `"a¹²³⁴"`
-splits into `("a", "¹²³⁴")` and returns `MK_OK`, even though four digits are
-rejected as a contour and `mk_system_is_segment` reports `false` for that token.
-Its one error is about shape — there is no base to split off — never about the
-content of the run. A caller who needs the content checked has
-`mk_system_is_segment` and `mk_system_grapheme_features`, which return
-`MK_ERR_PARSE` where this returns a clean split.
+Longest match is a policy, not an analysis: `kp` may be /k.p/ in a language
+without labial-velars. Results depend on the selected system and its
+inventory version, and both should be recorded with any stored tokenization.
+Input the system does not recognize is passed through as its orthographic
+token rather than dropped, so the function is total over its input.
+
+`mk_merge_tone_digits` attaches each token consisting only of Chao tone
+characters to the nearest preceding syllabic segment (one containing a vowel
+letter or U+0329) within the same `+`-delimited word, so that `tʰ`, `o`, `ŋ`,
+`⁵⁵` becomes `tʰ`, `o⁵⁵`, `ŋ`. A tone token with no such segment before it,
+and a token consisting only of `⁰`, is dropped. `mk_segment_ipa_merged` is
+`mk_segment_ipa` followed by this merge.
+
+`mk_split_tone` is the inverse of the merge: `"a¹³"` becomes `("a", "¹³")`. It
+serves consumers that model tone as a separate dimension, since the merged
+form joins the nucleus and its tone in one string. `*tone_out` is `NULL` for
+an untoned segment, which is not an error. A token that consists only of tone
+characters returns `MK_ERR_UNKNOWN_GRAPHEME`, since there is no base to split
+off. Both outputs are owned by the caller and freed with `mk_string_free`.
+
+The split is orthographic, like `mk_segment_ipa`: it cuts at the first Chao
+character without reading the run. `"a¹²³⁴"` splits into `("a", "¹²³⁴")` and
+returns `MK_OK`, although a run of four levels is not a valid contour and
+`mk_system_is_segment` reports `false` for that token. Its only error concerns
+shape (no base to split off), never the content of the run. Callers that need
+the content checked use `mk_system_is_segment` or
+`mk_system_grapheme_features`, which return `MK_ERR_PARSE` for that token.
+
+`mk_normalize_grapheme` returns merkmal's NFC form of a grapheme together with
+its IPA rewrites; `mk_unicode_normalize` applies plain Unicode canonical
+normalization (NFC or NFD, UAX #15) without IPA rewrites, and passes malformed
+bytes through unchanged. The tokenizers work in NFD. All of these use compiled
+Unicode tables and normalize identically in every build; see
+[installation.md](installation.md#unicode-normalization).
 
 ### Chao digits are pitch, not tone-category numbers
 
-Tone merging recognises **superscript** Chao digits (`⁰`–`⁵`) and the IPA tone
-letters (`˥˦˧˨˩`), and no other digits. Excluding ASCII digits is deliberate
-rather than an omission. A Chao digit is a pitch level, and a sequence of them
-is a contour: `a⁵⁵` is high-level, `a³¹` is mid-falling, and the feature system
-expands them into `tone-onset-*`, `tone-mid-*` and `tone-offset-*` features.
+Tone is recognized in two notations: the **superscript** Chao digits (`⁰`–`⁵`)
+used in Sinological transcription, and the IPA tone letters U+02E5–U+02E9
+(`˥˦˧˨˩`), which are the primary IPA notation. The tone letters run from high
+to low: `˥` is level 5. There is no tone letter for level 0. No other digits
+are read as tone.
 
-ASCII digits in transcriptions usually mean something else entirely — a tone
-*category* label from a romanisation. Jyutping `ji6`, Vietnamese `mot6`,
-Yoruba `ori3` and Pinyin `i1` number contrastive tone categories, and those
-numbers encode no pitch: Jyutping tone 6 is not "Chao level 6", which does not
-exist. Reading them as Chao digits would synthesise pitch features that the
-notation never asserted, so ASCII digits stay unrecognised and surface as an
-unknown grapheme.
+A Chao digit is a pitch level, and a sequence of digits is a contour: `a⁵⁵` is
+high level, `a³¹` mid falling. The feature system expands them into
+`tone-onset-*`, `tone-mid-*` and `tone-offset-*` features.
 
-A corpus using category numbers should carry tone in its own column rather
-than inline, and let the consumer decide what the labels mean.
+ASCII digits in transcriptions usually denote something else: a tone
+*category* in a romanization. Jyutping `ji6`, Vietnamese `mot6`, Yoruba `ori3`
+and Pinyin `i1` number contrastive tone categories, and these numbers encode no
+pitch: Jyutping tone 6 is not Chao level 6, which does not exist. Reading them
+as Chao digits would assert pitch features that the notation does not assert,
+so ASCII digits are not recognized and a token containing them is an unknown
+grapheme. A corpus that uses category numbers should carry tone in a separate
+column and leave its interpretation to the consumer.
+
+`⁰` denotes Chao's neutral tone, a syllable without tone in a language that
+otherwise has tone. It is not a pitch level: as a tone token of its own it
+carries `tone-present` and `tone-neutral` and none of the ordered levels. It is
+not combined with pitch levels in one run (`MK_ERR_PARSE`), and it is not
+accepted bound to a nucleus (`a⁰` is `MK_ERR_UNKNOWN_GRAPHEME`).
 
 #### Level-to-feature mapping
 
-Every tone-bearing form asserts `tone-present`, which is what separates a
-mid-level tone from tonelessness. Each of the three positions then carries one
-ordered level, `tone-onset-1` through `tone-offset-5`:
+Every tone-bearing form carries `tone-present`, which distinguishes a mid level
+tone from the absence of tone. Each of the three positions then carries one
+ordered level, from `tone-onset-1` to `tone-offset-5`:
 
 | notation | onset | mid | offset |
 | --- | --- | --- | --- |
@@ -497,39 +522,29 @@ ordered level, `tone-onset-1` through `tone-offset-5`:
 | `a⁵³¹` | 5 | 3 | 1 |
 
 One digit sets all three positions. Two digits name the endpoints and the mid
-slot takes the midpoint of the glide, so `a¹`, `a¹¹` and `a¹¹¹` are the same
-segment. Three digits set the positions directly.
+position takes the midpoint of the glide, so `a¹`, `a¹¹` and `a¹¹¹` are the
+same segment. Three digits set the positions directly.
 
-Because the levels are an ordered scale rather than independent flags, cost is
-proportional to the difference in pitch: `d(a¹¹, a²²) < d(a¹¹, a³³) < d(a¹¹,
-a⁵⁵)`. The earlier encoding used a register bit plus a height bit, under which
-levels 2 and 4 differ on both and so scored as far apart as 1 and 5.
+Because the levels form an ordered scale rather than independent features, the
+cost of a difference grows with the difference in pitch:
+`d(a¹¹, a²²) < d(a¹¹, a³³) < d(a¹¹, a⁵⁵)`.
 
-Both notations are accepted and mean the same thing: the superscript digits
-`⁰`–`⁵` used in Sinological transcription, and the IPA tone letters
-U+02E5–U+02E9 (`˥˦˧˨˩`), which are the primary IPA notation. Note the tone
-letters run high to low: `˥` is level 5.
-
-**Four or more digits are rejected as a whole.** There is no resampling policy,
-and reinterpreting the run in pieces produced contradictory features: `a¹²³⁴`
-used to be accepted carrying two different onset levels at once. `mk_segment_ipa`
-keeps a run in a single token and the recognizer rejects that token whole, so
-tokenization, `mk_system_is_segment`, and feature lookup share one tone grammar.
-`mk_system_is_segment` reports `false`; `mk_system_grapheme_features` returns
-`MK_ERR_PARSE` so the caller can tell malformed tone from an unknown grapheme.
+**A run of four or more levels is rejected as a whole.** No resampling policy
+is defined, and reading the run in parts would assign contradictory levels to
+one position. `mk_segment_ipa` keeps the run in a single token and the
+recognizer rejects that token, so tokenization, `mk_system_is_segment` and
+feature lookup share one tone grammar. `mk_system_is_segment` reports `false`;
+`mk_system_grapheme_features` returns `MK_ERR_PARSE`, so that malformed tone
+can be told apart from an unknown grapheme.
 
 #### Systems without tone support
 
-The valued systems (`pbase-*`, `phoible`) have no dimension a tone modifier can
-move. PHOIBLE declares a `tone` column mapped under `Tonal`, but no diacritic
-effect ever sets it, so every tone-bearing grapheme kept `tone=.` and `a¹¹`
-compared equal to `a⁵⁵`. Those systems now return `MK_ERR_UNSUPPORTED_MODEL`
-for a tone-bearing grapheme rather than a zero that would read as established
-tonal equality.
-
-`mk_normalize_grapheme` returns NFC and the tokenizers work in NFD, both from
-compiled Unicode tables, identically in every build; see
-[distribution.md](installation.md#unicode-normalization).
+The valued systems (`pbase-*`, `phoible`) define no dimension that a tone mark
+on a segment can set, so a tone-bearing segment would score as if it carried
+no tone, and `a¹¹` would compare equal to `a⁵⁵`. These systems therefore return
+`MK_ERR_UNSUPPORTED_MODEL` for a tone-bearing segment and for a bare tone token
+that their table does not list, rather than a zero that would read as tonal
+identity.
 
 ## Containers
 
@@ -541,5 +556,12 @@ void mk_string_list_free(mk_string_list *list);
 ```
 
 `mk_string_list_new` copies caller-provided UTF-8 strings into an owned list.
-It is useful for APIs such as `mk_merge_tone_digits` where callers provide
-segments that did not originate from `mk_segment_ipa`.
+It serves functions such as `mk_merge_tone_digits` when the segments do not
+come from `mk_segment_ipa`.
+
+## References
+
+- Rubehn, Arne, Jessica Nieder, Robert Forkel and Johann-Mattis List. 2024.
+  Generating feature vectors from phonetic transcriptions in cross-linguistic
+  data formats. In *Proceedings of the Society for Computation in Linguistics
+  2024*.

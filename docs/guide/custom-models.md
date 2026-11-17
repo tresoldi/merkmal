@@ -1,11 +1,10 @@
 # Custom models
 
-The C library now treats built-in models as compiled data and accepts
-caller-supplied runtime models through the registry API. It does not search
-environment variables or load model directories by itself.
+The built-in models are compiled into the library. A caller can add models of
+its own at run time through the registry API; the library does not read
+environment variables or search model directories.
 
-For the first native slice, runtime models use a simple line-oriented UTF-8
-format:
+A runtime model is a line-oriented UTF-8 text:
 
 ```text
 @model toy
@@ -15,28 +14,29 @@ grapheme X consonant voiceless bilabial stop
 grapheme Y vowel open front unrounded
 ```
 
-Pass the complete model text to:
+The complete text is passed to the registry:
 
 ```c
 mk_registry_add_model_text(registry, model_text);
 ```
 
-Validation is strict by default: every feature must be one the geometry knows,
-or the model is rejected. That check exists because an unknown feature reaches
-no scoring dimension, so a model built from unknown features registers cleanly
-and then returns `0.0` for every comparison. Add `@validation permissive` to
-opt out for exploratory work, and use `mk_registry_add_model_text_ex` to get a
-message naming the offending line and token.
+Validation is strict by default: every feature must be known to the geometry,
+or the model is rejected. An unknown feature reaches no scoring dimension, so
+a model built from unknown features would register and then return `0.0` for
+every comparison. `@validation permissive` disables the check for exploratory
+work, and `mk_registry_add_model_text_ex` returns a message naming the
+offending line and token.
 
-See [runtime-model-format.md](runtime-model-format.md) for the current format
-and [geometry.md](../method/geometry.md) for the feature names the geometry knows.
-Only categorical runtime models are public for now; the parser and C data model
-leave room for valued and class-feature formats later.
+The format is specified in
+[runtime-model-format.md](runtime-model-format.md), and the feature names the
+geometry knows are listed in [geometry.md](../method/geometry.md). Only
+categorical runtime models are supported.
 
-The Python `Registry.add_model_text` method also accepts an optional `manifest`
-mapping. When supplied, it must include `name`, `version`, `source`,
-`interpretation`, and `license`; the name must match `@model`. The manifest is
-retained by that registry, returned by `model_manifest()`, and included in
-`operation_fingerprint()` so a custom inventory's scholarly context travels
-with cached results. The compact native C API remains available without this
-Python metadata layer.
+In Python, `Registry.add_model_text` also accepts an optional `manifest`
+mapping. When given, it must include `name`, `version`, `source`,
+`interpretation` and `license`, and the name must match `@model`. The manifest
+is kept by that registry, returned by `Registry.model_manifest()`, and included
+in `Registry.operation_fingerprint()`, so that the scholarly context of a
+custom inventory is recorded with results derived from it. The model is
+registered before the manifest is checked, so a model whose manifest is
+rejected remains registered. The C API has no manifest.

@@ -1,16 +1,34 @@
 # WebAssembly
 
-The C core is designed to work in WebAssembly with compiled-in built-in models
-and no required filesystem access.
+The C core builds for WebAssembly with the built-in models compiled in, and
+needs no filesystem access.
 
-## Current Surface Decision
+## Interface
 
-The first WebAssembly target is the raw C ABI exported by `include/merkmal.h`.
-A small JavaScript convenience wrapper can be added later after the C ABI has
-settled. Keeping the first target at the C layer avoids prematurely designing a
-JS API before downstream consumers are known.
+Two interfaces are available.
 
-## Emscripten CMake Build
+- **The C ABI.** The library built with Emscripten is linked into a
+  WebAssembly program, which calls the functions of `include/merkmal.h`
+  directly, as the Node smoke test does. This is the canonical interface
+  ([ADR 0001](../development/adr/0001-c-api-is-the-canonical-interface.md)).
+- **The JSON adapter used by the browser demonstration.**
+  [`web/merkmal_wasm.c`](../../web/merkmal_wasm.c) wraps the C API in a small
+  set of functions (`merkmal_list_systems`, `merkmal_grapheme_features`,
+  `merkmal_segment_distance`, `merkmal_tokenize`, `merkmal_distance_matrix`,
+  `merkmal_normalize`, `merkmal_diagnose`, `merkmal_register_model`,
+  `merkmal_version`) that take strings and return a JSON string. Every
+  returned string except that of `merkmal_version` is owned by the caller and
+  must be released with `merkmal_free`. The adapter includes `merkmal.h` and
+  nothing else from `src/`. It is the interface of the demonstration page
+  (`web/index.html`, `web/app.js`), not a stable JavaScript API.
+
+`web/build-wasm.sh` builds the adapter into `web/merkmal.js` and
+`web/merkmal.wasm` and records the source commit in `web/BUILD_INFO`. These
+files are committed
+([ADR 0003](../development/adr/0003-generated-artifacts-are-committed.md)) and
+must be rebuilt after any change under `src/` or `include/`.
+
+## Emscripten CMake build
 
 With Emscripten activated:
 
@@ -23,27 +41,27 @@ cmake --build build/wasm
 ```
 
 Normalization is compiled in, so the WebAssembly build normalizes exactly as
-the native library and the Python wheel do; `MERKMAL_USE_UTF8PROC=OFF` only
-stops CMake looking for the test oracle. The `c-fallback` CI job runs the full
-C suite on a runner without utf8proc, which is the same configuration.
+the native library and the Python package do; `MERKMAL_USE_UTF8PROC=OFF` only
+stops CMake from searching for the test oracle. The `c-fallback` job in
+continuous integration runs the full C test suite without utf8proc, which is
+the same configuration.
 
-## Node Smoke Test
+## Node smoke test
 
-The repository includes a smoke test that compiles a standalone WebAssembly
-program and runs it with Node:
+A smoke test compiles a standalone WebAssembly program and runs it with Node:
 
 ```sh
 tests/wasm/run_node_smoke.sh
 ```
 
-The smoke test exercises:
+It requires `emcc` and `node`, and exercises:
 
-- built-in registry construction
-- built-in system lookup
-- feature lookup
-- segment distance
-- grapheme normalization
-- IPA segmentation with tone digit merging
+- construction of the built-in registry;
+- lookup of a built-in system;
+- feature lookup;
+- segment distance;
+- grapheme normalization;
+- IPA segmentation with tone merging.
 
-The Emscripten link command uses `-sFILESYSTEM=0`, so the test fails if the
-exercised built-in-model path needs filesystem access.
+The program is linked with `-sFILESYSTEM=0`, so the test fails if any of these
+operations requires filesystem access.
