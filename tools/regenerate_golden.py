@@ -2,28 +2,32 @@
 """Regenerate the checked-in golden fixtures from the installed native build.
 
 The fixtures are parity data: the C tests replay them and fail on any change.
-That is the point, so this script is deliberately not wired into the build. Run
-it only when a model-data or scoring change is *intended*, and review the diff
-as data, not as noise:
+For that reason this script is not part of the build. It is run only when a
+change to model data or scoring is intended, and its diff is reviewed as a
+change of data:
 
     python -m pip install -e . --no-build-isolation
     python tools/regenerate_golden.py --check      # report drift, change nothing
     python tools/regenerate_golden.py              # rewrite the fixtures
 
-Everything is produced here, through the installed native build. The C tests
-are consumers only, so no test can rewrite the values it is checked against,
-and this needs no CMake build.
+All values are produced here, through the installed native build; the C tests
+only read them, so no test can rewrite the values it is checked against, and no
+CMake build is needed.
 
-The grapheme and pair lists are taken from the existing files, so this rewrites
-values without silently changing what is covered. A row whose grapheme or pair
-no longer resolves is reported and dropped; that is a contract change and
-should be justified in the changelog.
+The grapheme and pair lists are taken from the existing files, so values are
+rewritten without changing what is covered. A row whose grapheme or pair no
+longer resolves is reported and dropped; that is a change of contract and
+needs a CHANGELOG.md entry.
 
-Scope: only the `{model}_features.tsv` and `{model}_distances.tsv` fixtures the
-active C tests replay. The `_full` fixtures and the `classfeat` fixtures are
-archived pre-C Python parity data, and rewriting them from the C build would
-destroy the record they exist to keep. See tests/golden/README.md for the drift
-that record currently shows.
+Scope: the fixtures the C tests replay, namely `{model}_features.tsv`,
+`{model}_distances.tsv`, and the geometry fixtures keyed by
+`geometry_cases.tsv`. The `_full` and `classfeat` fixtures are archived output
+of the earlier Python implementation and are left as they are, since
+rewriting them from the C build would remove the record they keep. See
+tests/golden/README.md.
+
+With --check, nothing is written and the exit status is 1 if any fixture would
+change or any row would be dropped.
 """
 
 from __future__ import annotations
@@ -37,7 +41,7 @@ import merkmal
 ROOT = Path(__file__).resolve().parent.parent
 GOLDEN = ROOT / "tests" / "golden"
 
-# classfeat is not part of the native C slice; its fixtures are historical.
+# classfeat is not a system of the C library; its fixtures are archived.
 SYSTEMS = [
     "descriptive",
     "distinctive",
@@ -61,8 +65,8 @@ def write_rows(path: Path, header: str, rows: list[list[str]]) -> None:
 
 def format_distance(value: float, previous: str) -> str:
     # These files are not uniformly formatted: most rows carry a fixed 10-decimal
-    # string, a few carry repr(). Matching whichever the row already used keeps
-    # the diff to rows whose *value* actually moved.
+    # string, a few carry repr(). Keeping whichever form the row already uses
+    # limits the diff to rows whose value changed.
     try:
         if previous == f"{float(previous):.10f}":
             return f"{value:.10f}"
@@ -105,11 +109,9 @@ GEOMETRY_CASES = GOLDEN / "geometry_cases.tsv"
 def read_geometry_cases() -> dict[str, list[str]]:
     """The named feature sets the geometry fixtures are keyed by.
 
-    These live in a versioned file rather than inside the test binary, so this
-    script can produce the fixtures that tests/c/test_geometry.c replays. The
-    test used to write them itself, from feature sets defined as C literals in
-    its own source, which meant the program that graded the answers was the
-    program that had written them.
+    They live in a versioned file rather than in the test source, so that this
+    script, and not tests/c/test_geometry.c, produces the fixtures the test
+    replays: the program that checks the values does not also write them.
     """
     header, rows = read_rows(GEOMETRY_CASES)
     return {row[0]: row[1].split("|") for row in rows}

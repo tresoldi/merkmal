@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Audit phonological contrast preservation across merkmal's feature systems."""
+"""Report, per feature system, which contrasts in an inventory it preserves.
+
+For each built-in system: the segments it recognizes, the pairs it places at
+distance 0 (collapsed contrasts), the number of distinct distance values over
+all scored pairs, and the pairs collapsed by more than one system.
+
+    python tools/contrast_audit.py [SEGMENT ...]
+"""
 
 from __future__ import annotations
 

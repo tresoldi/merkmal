@@ -1,28 +1,21 @@
-"""Language-indexed phonological typology, built on merkmal's segment distances.
+"""Language-indexed phonological typology over PHOIBLE inventories.
 
-Deliberately a companion package rather than part of the C library. Two reasons,
-and the second is the one that matters:
+A companion package to merkmal rather than part of the C library: its data
+(PHOIBLE 2.0, see ``data/provenance.json``) is not needed to score a segment,
+and sampling weight, genealogy and areal membership are outside the scope of
+the core library, which describes segment types, not languages.
 
-1. The data is 500 KB against the core's 544 KB of compiled tables, and none of
-   it is needed to score a segment.
-2. Sampling weight, genealogy and areal membership are exactly what the core has
-   spent its life refusing to have opinions about. Keeping them out here means
-   the discipline in `merkmal`'s README survives the arrival of a language
-   column, instead of being quietly dropped because there is now one.
+**Every cross-language figure is unweighted.** PHOIBLE is not a balanced sample
+of the world's languages. In the bundled data (``sample_composition()``),
+Atlantic-Congo accounts for 17.0% of the 3,020 inventories and Pama-Nyungan for
+10.7%; Africa has 885 inventories and Papunesia 224; and 531 languages have
+more than one doculect, up to 11. A segment frequency computed over this sample
+is a frequency in PHOIBLE, not in the world's languages.
 
-**Every cross-language number here is unweighted, and this module will not let
-you see one without its sample.** PHOIBLE is not a balanced sample of the
-world's languages and was never meant to be: Atlantic-Congo is 17% of its
-inventories and Pama-Nyungan 10.7%, Africa has 885 inventories against
-Papunesia's 224, and 531 languages carry more than one doculect -- up to 11.
-A segment frequency computed over that is a frequency *in PHOIBLE*, which is a
-real and useful thing and is not the same claim as a frequency in the world's
-languages.
-
-So `segment_frequency` returns a `Frequency` carrying its own sample
-composition, and printing it prints both. Choosing a weighting scheme is the
-caller's to make, because it is a research decision -- pick a genealogy, pick a
-level, defend it -- and not one a library should make silently on their behalf.
+For that reason ``segment_frequency`` returns a ``Frequency`` that carries its
+sample composition, and its string form prints both. The package applies no
+weighting: the choice of a genealogy, a level and a weighting scheme is a
+research decision left to the caller.
 """
 
 from __future__ import annotations
@@ -56,6 +49,12 @@ __all__ = [
 
 @dataclass(frozen=True)
 class Language:
+    """A language as PHOIBLE's language table gives it.
+
+    Coordinates are kept as the source's strings; ``family`` and
+    ``macroarea`` may be empty.
+    """
+
     glottocode: str
     name: str
     family: str
@@ -68,9 +67,9 @@ class Language:
 class Inventory:
     """One doculect's phoneme inventory.
 
-    `inventory` is PHOIBLE's contribution id, not a language: 531 languages have
-    more than one, and treating them as languages is the commonest way to
-    double-count.
+    ``inventory`` is PHOIBLE's contribution id, not a language: a language
+    may have several inventories, and counting inventories as languages
+    counts those languages more than once.
     """
 
     inventory: str
@@ -81,11 +80,15 @@ class Inventory:
         return len(self.segments)
 
     def readable(self, system: str = "phoible") -> tuple[str, ...]:
-        """The segments merkmal can score; use ``readability`` to retain gaps."""
+        """The segments ``system`` can score; ``readability`` also lists the rest."""
         return self.readability(system).readable
 
     def readability(self, system: str = "phoible") -> InventoryReadability:
-        """Partition this inventory by whether ``system`` can score its segments."""
+        """Partition this inventory by whether ``system`` can score its segments.
+
+        A segment for which ``merkmal.is_segment`` raises is counted as
+        unreadable.
+        """
         readable: list[str] = []
         unreadable: list[str] = []
         for segment in self.segments:
@@ -94,7 +97,7 @@ class Inventory:
                     readable.append(segment)
                 else:
                     unreadable.append(segment)
-            except Exception:  # noqa: BLE001 - the report, not a silent filter
+            except Exception:  # noqa: BLE001 - reported as unreadable, not dropped
                 unreadable.append(segment)
         return InventoryReadability(
             inventory=self.inventory,
@@ -115,20 +118,27 @@ class InventoryReadability:
 
     @property
     def total(self) -> int:
+        """The number of segments in the inventory."""
         return len(self.readable) + len(self.unreadable)
 
     @property
     def coverage(self) -> float:
+        """The share of segments that are readable, in ``[0, 1]``; 0.0 if none."""
         return len(self.readable) / self.total if self.total else 0.0
 
 
 @dataclass(frozen=True)
 class InventoryComparison:
-    """An inventory-distance result together with its evidential coverage.
+    """An inventory distance with the coverage of the evidence behind it.
 
-    ``score`` is calculated only over readable material. It must therefore
-    travel with readability and the coverage of the selected segment matches;
-    a low score with poor coverage is a weak comparison, not close inventories.
+    ``score`` is computed over readable segments only, so it is interpretable
+    only together with ``left`` and ``right`` (the readability of each
+    inventory), ``mean_match_coverage`` (the mean coverage of the selected
+    nearest-neighbour matches) and ``comparability`` (the matches counted by
+    comparability label, ``"no-score"`` for a segment with no scorable
+    match). A low score with low coverage indicates a weak comparison, not
+    similar inventories. ``system_fingerprint`` is the SHA-256 of the
+    system's semantic fingerprint.
     """
 
     score: float
@@ -142,7 +152,7 @@ class InventoryComparison:
 
     @property
     def input_coverage(self) -> float:
-        """Share of input segment tokens that the system could read."""
+        """The share of both inventories' segments that the system can read."""
         total = self.left.total + self.right.total
         readable = len(self.left.readable) + len(self.right.readable)
         return readable / total if total else 0.0
@@ -150,6 +160,7 @@ class InventoryComparison:
 
 @lru_cache(maxsize=1)
 def languages() -> dict[str, Language]:
+    """PHOIBLE's languages, keyed by Glottocode. Read once and cached."""
     out = {}
     with (DATA / "languages.tsv").open(newline="", encoding="utf-8") as handle:
         for row in csv.DictReader(handle, delimiter="\t"):
@@ -162,6 +173,7 @@ def languages() -> dict[str, Language]:
 
 @lru_cache(maxsize=1)
 def inventories() -> tuple[Inventory, ...]:
+    """Every PHOIBLE inventory, in the source's order. Read once and cached."""
     out = []
     with (DATA / "inventories.tsv").open(newline="", encoding="utf-8") as handle:
         for row in csv.DictReader(handle, delimiter="\t"):
@@ -170,15 +182,17 @@ def inventories() -> tuple[Inventory, ...]:
     return tuple(out)
 
 
-# ------------------------------------------------------------------- sampling
+# Sampling
 
 
 @dataclass(frozen=True)
 class SampleComposition:
-    """What the sample behind a number is made of.
+    """The composition of the sample behind a cross-language figure.
 
-    Attached to every cross-language result, because the number alone invites
-    being read as a fact about languages rather than about PHOIBLE.
+    Attached to every cross-language result, so that the figure is not read as
+    a fact about languages rather than about the sample. ``families`` and
+    ``macroareas`` count inventories, not languages; an inventory whose
+    language is not in the language table counts as ``"(unknown)"``.
     """
 
     inventories: int
@@ -188,9 +202,11 @@ class SampleComposition:
 
     @property
     def duplicated_languages(self) -> int:
+        """Inventories beyond the first of each language."""
         return self.inventories - self.languages
 
     def describe(self) -> str:
+        """One sentence: the counts and the three largest families and areas."""
         top = sorted(self.families.items(), key=lambda kv: -kv[1])[:3]
         share = ", ".join(
             f"{name} {100 * n / self.inventories:.1f}%" for name, n in top
@@ -208,6 +224,7 @@ class SampleComposition:
 
 
 def sample_composition(sample: tuple[Inventory, ...] | None = None) -> SampleComposition:
+    """The composition of ``sample``, by default every inventory."""
     sample = sample if sample is not None else inventories()
     meta = languages()
     families: collections.Counter[str] = collections.Counter()
@@ -224,25 +241,27 @@ def sample_composition(sample: tuple[Inventory, ...] | None = None) -> SampleCom
     )
 
 
-# ---------------------------------------------------------------- frequencies
+# Frequencies
 
 
 @dataclass(frozen=True)
 class Frequency:
     """A segment's occurrence across inventories, with its sample attached.
 
-    `counts` is how many *inventories* contain the segment, never how many
-    languages: the two differ by 834 here and conflating them is the sampling
-    error this package exists to make hard.
+    ``counts`` is the number of inventories that contain each segment, not
+    the number of languages; the two differ whenever a language has more than
+    one inventory in the sample.
     """
 
     counts: dict[str, int]
     sample: SampleComposition
 
     def share(self, segment: str) -> float:
+        """The share of the sample's inventories that contain ``segment``."""
         return self.counts.get(segment, 0) / self.sample.inventories
 
     def most_common(self, n: int = 20) -> list[tuple[str, int, float]]:
+        """The ``n`` most frequent segments as ``(segment, count, share)``."""
         rows = sorted(self.counts.items(), key=lambda kv: -kv[1])[:n]
         return [(s, c, c / self.sample.inventories) for s, c in rows]
 
@@ -252,10 +271,10 @@ class Frequency:
 
 
 def segment_frequency(sample: tuple[Inventory, ...] | None = None) -> Frequency:
-    """How many inventories contain each segment.
+    """The number of inventories in ``sample`` (default: all) containing each segment.
 
-    The classic typological statistic and the one most damaged by the skew, so
-    it comes back wrapped in its sample rather than as a bare dict.
+    The statistic most affected by the sample's skew, so it is returned with
+    its sample composition rather than as a bare mapping.
     """
     sample = sample if sample is not None else inventories()
     counts: collections.Counter[str] = collections.Counter()
@@ -264,7 +283,7 @@ def segment_frequency(sample: tuple[Inventory, ...] | None = None) -> Frequency:
     return Frequency(dict(counts), sample_composition(sample))
 
 
-# ------------------------------------------------------------------ distances
+# Distances
 
 
 def inventory_comparison(
@@ -272,26 +291,23 @@ def inventory_comparison(
     b: Inventory,
     system: str = "phoible",
 ) -> InventoryComparison:
-    """Compare inventories without discarding transcription/model coverage.
+    """Compare two inventories, with the coverage of the comparison.
 
-    Every segment of each inventory is matched to its nearest counterpart in the
-    other, and the two mean nearest-neighbour distances are averaged. Size
-    difference needs no separate penalty and does not get one: an inventory with
-    segments the other lacks pays for them when those segments have to find a
-    match, and pays in proportion to how unlike anything available they are.
+    Each readable segment of each inventory is matched to its nearest readable
+    segment in the other under ``merkmal.distance_with_coverage``, and the
+    score is the mean of the two directions' mean nearest-neighbour
+    distances, in ``[0, 1]``. A segment with no scorable match counts as 1.0;
+    the score is 1.0 when either inventory has no readable segment.
 
-    An explicit size term was tried first and was wrong. Charging
-    `(larger - smaller) / larger` made English closer to Yue Chinese (0.045) than
-    to French (0.158), because the first pair differs by one segment and the
-    second by six -- while French was twice as close by segment content. A
-    measure of inventory *similarity* that is mostly a measure of inventory
-    *size* is worse than useless, because it looks like the thing it is not.
+    There is no separate term for a difference in size: segments one
+    inventory has and the other lacks already contribute their distance to
+    the nearest available segment. An explicit size term would make the score
+    depend mostly on inventory size rather than on segment content.
 
-    Sample-independent: this compares two inventories and asks nothing about how
-    either was collected. Not a metric, for the same reason the segment distance
-    is not one. Nearest-neighbour matching is greedy rather than an optimal
-    assignment, which is a deliberate cheapness. The returned object reports
-    both input readability and the coverage/status of the selected matches.
+    The comparison concerns the two inventories only and does not depend on
+    the sample. The score is not a metric, for the same reasons the segment
+    distance is not one. Matching is nearest-neighbour, not an optimal
+    one-to-one assignment.
     """
     left = a.readability(system)
     right = b.readability(system)
@@ -328,7 +344,7 @@ def inventory_comparison(
                     score, coverage, status = merkmal.distance_with_coverage(
                         segment, other, system=system
                     )
-                except Exception:  # noqa: BLE001 - unscoreable stays maximally far
+                except Exception:  # noqa: BLE001 - an unscorable pair stays at 1.0
                     continue
                 if score < best:
                     best, best_coverage, best_status = score, coverage, status
@@ -348,36 +364,33 @@ def inventory_distance(
     b: Inventory,
     system: str = "phoible",
 ) -> float:
-    """Return ``inventory_comparison(a, b, system).score`` for compatibility.
+    """Return ``inventory_comparison(a, b, system).score``.
 
-    New analyses should use :func:`inventory_comparison`: a bare distance hides
-    unreadable material and selected-match coverage.
+    The bare score omits unreadable segments and match coverage;
+    :func:`inventory_comparison` reports both.
     """
     return inventory_comparison(a, b, system).score
 
 
-# ------------------------------------------------------------- feature economy
+# Feature economy
 
 
 def feature_economy(inventory: Inventory, system: str = "phoible") -> float:
-    """Segments per feature the inventory actually uses.
+    """The feature economy of an inventory: segments per feature used.
 
-    Clements' observation: inventories reuse a small number of features across
-    many segments rather than spending one feature per segment. The ratio is
-    inventory size over the number of features on which any of its segments
-    takes a value, so a higher number means more segments wrung from the same
-    featural machinery.
+    Following Clements (2003), the ratio of the number of readable segments to
+    the number of features (vector columns of ``system``) on which at least
+    one of them has a nonzero, known value. A higher value means more segments
+    built from the same features. Features are counted, not (feature, value)
+    pairs, as in Clements' definition. Returns 0.0 for an inventory with no
+    readable segment or no feature used.
 
-    Counted per *feature*, not per (feature, value) pair. The first version
-    counted pairs, which roughly halves the number and is not the quantity
-    Clements defines.
+    The value depends on the feature system, whose number of dimensions
+    differs, so it compares inventories within one system only. It describes
+    one inventory and does not depend on the sample.
 
-    The absolute value depends on the feature system -- a set with more
-    dimensions produces a lower ratio for the same inventory -- so it compares
-    inventories within one system and not across systems.
-
-    Per-inventory, so the sampling question does not arise: this is a fact about
-    one language's phonology however the sample around it was drawn.
+    Clements, G. N. 2003. Feature economy in sound systems. *Phonology* 20(3):
+    287-333.
     """
     segments = inventory.readable(system)
     if not segments:

@@ -15,8 +15,8 @@ if ! command -v clang-format >/dev/null 2>&1; then
     exit 127
 fi
 # Major versions of clang-format can lay out the same code differently, so a
-# failure with no code change usually means a different version: say which
-# one decided.
+# failure without a code change usually means a different version; the
+# version is printed so that the report names it.
 echo "check_format: $(clang-format --version)"
 
 files=$(git ls-files '*.c' '*.h' | grep -v '^src/generated/')

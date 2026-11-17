@@ -2,17 +2,16 @@
 # Run the static analyzers over the first-party sources.
 #
 # Two analyzers, because they find different things: GCC's -fanalyzer is
-# strongest on allocation and NULL flow, Clang's is strongest on dead stores and
+# strongest on allocation and NULL flow, Clang's on dead stores and
 # path-sensitive logic.
 #
-# Accepted findings, deliberately not fixed:
+# Accepted findings, not fixed:
 #
 #   src/resolver.c  deadcode.DeadStores on `p` in two diacritic match arms.
-#     Each arm ends `p += <width>; break;` so that every arm reads the same way;
-#     the last one's advance is redundant only because it happens to be last.
-#     Uniformity is worth more than the two lines.
+#     Each arm ends `p += <width>; break;` so that every arm has the same form;
+#     the advance in the last one is redundant only because it is last.
 #
-# Anything else is a regression and should be fixed or added here with a reason.
+# Any other finding is a regression, to be fixed or listed here with a reason.
 
 set -eu
 
@@ -48,6 +47,6 @@ else
 fi
 
 # Report, do not gate: the accepted-findings filter above is the gate, and it is
-# narrow enough that a new finding shows up as output.
+# narrow enough that a new finding appears in the output.
 printf 'Done. Any output above other than the section headers is a new finding.\n'
 exit $status

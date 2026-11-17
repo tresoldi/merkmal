@@ -1,34 +1,31 @@
 #!/usr/bin/env python3
 """Score merkmal's segment distance as an alignment substitution cost.
 
-merkmal supplies a substitution cost and deliberately not a gap model or an
-aligner. The question this answers is
-therefore narrow and is the only one the library is responsible for: *as a
-substitution cost*, is it as good as what the field already uses?
+merkmal supplies a substitution cost, not a gap model or an aligner, so the
+question is narrow: as a substitution cost, how does it compare with an
+established one?
 
-The comparison is against LingPy's SCA sound classes, the incumbent. Both run
-through the identical Needleman-Wunsch here, with the gap cost tuned per scorer
-on a held-out half, so the only thing that differs is the substitution matrix.
-This is not a claim about LingPy-the-system, which also uses prosodic strings,
-swap detection and secondary alignment; it is a claim about the matrix.
+The comparison is with the SCA sound classes of LingPy. Both scorers run
+through the same Needleman-Wunsch implementation here, with the gap cost tuned
+per scorer on a held-out half, so that only the substitution matrix differs.
+The result concerns the matrix, not LingPy as a whole, which also uses
+prosodic strings, swap detection and secondary alignment.
 
-Reference data is BDPA, the Benchmark Database of Phonetic Alignments: gold
-multiple alignments from which pairwise alignments are projected. Point it at a
-BDPA checkout:
+The reference data is BDPA, the Benchmark Database of Phonetic Alignments:
+gold multiple alignments from which pairwise alignments are projected. The
+script takes a BDPA checkout:
 
-    bench/bench_alignment.py --bdpa ~/lexibank_clone/bdpa
+    bench/bench_alignment.py --bdpa <bdpa-checkout>
 
-Results are compared against bench/alignment_baseline.txt and written back with
---record. Coverage is reported alongside accuracy and that pairing is the point:
-on pairs merkmal can fully read it comes close to SCA, and over the whole
-benchmark it falls well behind, because it cannot read 30% of them. Reporting
-the second number without the first would be as misleading as the reverse.
+Results are compared with bench/alignment_baseline.txt and written to it with
+--record. Accuracy is reported over all pairs and over the pairs the system can
+read in full, and the two are to be read together. In the recorded baseline,
+`distinctive` reads 93.2% of the 2,250 pairs; on those its column accuracy does
+not differ significantly from SCA's, and over all pairs it is lower.
 
-A warning paid for in retracted results: BDPA appends annotation rows (`LOCAL`,
-`SWAPS`) that are shaped exactly like language rows. The first version of this
-file read them as doculects, which put 8% of pairs -- sequences of `*` and `.`
--- into a phonological benchmark, and inflated every reported figure by roughly
-four points. Anything that reads these files by shape must exclude them.
+BDPA appends annotation rows (`LOCAL`, `SWAPS` and others) with the same shape
+as language rows; their cells are markup (`*`, `.`), not transcription. They
+are excluded here, and any reader of these files must exclude them likewise.
 """
 
 from __future__ import annotations
@@ -49,13 +46,13 @@ GAP_GRID = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 BOOTSTRAP = 400
 
 
-# --------------------------------------------------------------- gold data
+# Gold data
 
 
-# BDPA appends annotation rows to an alignment block. They are named, tab-
-# separated and the same width as a language row, so anything that reads by
-# shape picks them up as doculects. Their cells are BDPA's own markup (`*`
-# local-identity, `.` unmarked), not transcription.
+# BDPA appends annotation rows to an alignment block. They are named,
+# tab-separated and as wide as a language row, so a reader that goes by shape
+# takes them for doculects. Their cells are BDPA's own markup (`*` local
+# identity, `.` unmarked), not transcription.
 MSA_ANNOTATION_ROWS = {"LOCAL", "SWAPS", "CROSSED", "MERGE"}
 MSA_MARKUP_CELLS = {"*", ".", "-", ""}
 
@@ -73,8 +70,8 @@ def read_msa(path: Path) -> list[list[str]]:
         cells = [c.strip() for c in parts[1:]]
         if name in MSA_ANNOTATION_ROWS:
             continue
-        # Belt and braces: a row made only of markup is not a transcription,
-        # whatever it is called.
+        # A row made only of markup is not a transcription, whatever its
+        # name; this also catches annotation rows not listed above.
         if all(c in MSA_MARKUP_CELLS for c in cells):
             continue
         rows.append(cells)
@@ -84,9 +81,9 @@ def read_msa(path: Path) -> list[list[str]]:
 def gold_pairs_grouped(bdpa: Path, rng: random.Random | None = None) -> dict[str, list]:
     """Gold pairwise alignments keyed by the alignment they came from.
 
-    Needed because up to PAIRS_PER_MSA pairs share a wordlist and a set of
-    doculects, so any evaluation split has to cut between alignments and not
-    between pairs.
+    Grouped because up to PAIRS_PER_MSA pairs share a wordlist and a set of
+    doculects, so an evaluation split that is to avoid leakage must cut
+    between alignments, not between pairs.
     """
     files = sorted((bdpa / "raw" / "msa").glob("*.msa"))
     if not files:
@@ -111,15 +108,15 @@ def gold_pairs_grouped(bdpa: Path, rng: random.Random | None = None) -> dict[str
 
 
 def gold_pairs(bdpa: Path) -> list[tuple[list[str], list[str], list[tuple[str, str]]]]:
-    """Flat, shuffled view of the above. Ordering is part of the baseline."""
+    """All gold pairs in one shuffled list; the order is part of the baseline."""
     rng = random.Random(SEED)
     groups = gold_pairs_grouped(bdpa, rng)
     out = [pair for name in groups for pair in groups[name]]
-    rng.shuffle(out)  # same rng instance and state as before grouping existed
+    rng.shuffle(out)  # the same rng, so the order matches the recorded baseline
     return out
 
 
-# ---------------------------------------------------------------- aligning
+# Aligning
 
 
 def needleman_wunsch(s1, s2, sub, gap):
@@ -192,7 +189,7 @@ def tune(pairs, sub):
     return max(GAP_GRID, key=lambda g: score(pairs, sub, g)[0])
 
 
-# ----------------------------------------------------------------- scorers
+# Scorers
 
 
 def merkmal_sub(system):
@@ -247,7 +244,7 @@ def readable(pair, system):
     return True
 
 
-# ------------------------------------------------------------------ report
+# Report
 
 
 def bootstrap_delta(pairs, sub_a, gap_a, sub_b, gap_b):

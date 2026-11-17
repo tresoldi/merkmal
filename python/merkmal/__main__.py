@@ -1,4 +1,4 @@
-"""Allow ``python -m merkmal`` to invoke the CLI."""
+"""Entry point for ``python -m merkmal``, the same as the ``merkmal`` command."""
 
 from __future__ import annotations
 

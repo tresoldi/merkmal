@@ -1,18 +1,10 @@
 #!/usr/bin/env python3
 """Rewrite data/models/phoible/inventory.tsv cells from the pinned upstream table.
 
-The extraction that produced this inventory was not self-consistent. Measured
-against `cldf-datasets/phoible` v2.0.1, the release `provenance.json` pins:
-
-- 3,729 cells where upstream says `0` -- the feature does not apply -- were
-  written `-`, which asserts it applies and is absent;
-- 761 cells where upstream gives `+` or `-` were written `.`, dropping a value
-  the source states;
-- 686 cells where upstream gives a per-phase contour such as `+,-` were resolved
-  to a single sign, while 3,788 other contours were written `.`.
-
-None of that is visible in a distance: it moves scores without ever failing a
-check. This script applies one rule to every cell instead:
+The upstream table is `cldf/parameters.csv` of `cldf-datasets/phoible` v2.0.1,
+the release that `provenance.json` pins. Each cell of a row whose grapheme
+matches upstream (after NFD and with script g folded to ASCII g) is rewritten
+by one rule:
 
     +           -> +
     -           -> -
@@ -22,20 +14,22 @@ check. This script applies one rule to every cell instead:
     (empty)     -> ?    the source does not say
 
 `0` and `?` are different claims and are kept apart: `0` says the feature does
-not apply, `?` that its value is not known here. Both used to be written `.`.
-Neither is compared in a point distance, so splitting them moves no score; they
-differ for abstract segments (`docs/method/abstract-segments.md`), where `?` can be
-completed and `0` cannot.
+not apply, `?` that its value is not known here. Neither is compared in a point
+distance; they differ for abstract segments
+(`docs/method/abstract-segments.md`), where `?` can be completed and `0`
+cannot.
 
-Contours become `?` rather than one phase because picking one phase of `+,-`
-invents a claim the source does not make. `mk_system_segment_distance_ex`
-reports the coverage cost.
+A contour becomes `?` rather than one of its phases, because choosing a phase
+of `+,-` makes a claim the source does not make. `mk_system_segment_distance_ex`
+reports the resulting loss of coverage.
 
-Only rows whose grapheme matches upstream are touched. The row *sets* also
-differ -- 17 graphemes here that v2.0.1 lacks, 58 there that this inventory
-lacks -- and reconciling those is a separate question about which release's
-segment list to carry, not a cell-level defect. Their old `.` cells cannot be
-told apart, so they become `?`: the source for them does not say.
+The row sets of this inventory and of v2.0.1 differ; which release's segment
+list to carry is a separate question, and rows without an upstream match keep
+their values. In those rows, and in columns upstream does not have, a `.` cell
+does not say whether the feature applies, so it becomes `?`.
+
+With --check, nothing is written and the exit status is 1 if any cell would
+change.
 
     tools/rebuild_phoible_inventory.py <path-to-cldf/parameters.csv>
     tools/rebuild_phoible_inventory.py <path> --check

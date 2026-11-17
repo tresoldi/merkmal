@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Validate model directories and geometry files.
 
-Checks: all model.json files are valid, all referenced data files
-exist and have expected structure, geometry tree is well-formed.
+Checks that every model.json is valid, that the data files it references
+exist and have the expected structure, that each bundled model's provenance is
+complete, and that the geometry is well-formed and agrees with the generator.
 
 Usage:
     validate_models.py                 # validate the bundled models
     validate_models.py PATH [PATH ...] # validate your own model dir(s)
 
-The second form is for users bringing their own model: point it at a
-directory containing a model.json. See docs/guide/custom-models.md.
+The second form validates a user-supplied model: each PATH is a directory
+containing a model.json. See docs/guide/custom-models.md.
 """
 
 from __future__ import annotations
@@ -57,12 +58,11 @@ GEOMETRY_NAMES: set[str] = set()
 
 
 def check_identifier(value: str, where: str) -> None:
-    """Surrounding whitespace makes an identifier silently fail to match.
+    """Reject an empty identifier or one with surrounding whitespace.
 
-    data/models/pbase-jfh/model.json mapped "vocalic " with a trailing space for
-    long enough to ship: the header said "vocalic", the two never matched, and
-    the entire dimension was absent from every distance while every check
-    passed.
+    A trailing space (`"vocalic "` against a header column `vocalic`) makes a
+    mapping match nothing, and the dimension then drops out of every distance
+    without any other check failing.
     """
     if value != value.strip():
         error(f"{where}: {value!r} has leading/trailing whitespace")
@@ -181,8 +181,8 @@ def validate_geometry() -> None:
                 error(f"weight preset {preset_name!r}[{node_name!r}] is not a finite non-negative number")
     ok(f"{len(presets)} weight presets, all naming real nodes")
 
-    # The theory-fidelity metadata the review asked for, so the name cannot
-    # quietly drift back to claiming it implements a published model.
+    # The geometry must state that it is inspired by, not an implementation
+    # of, a published model, and list its departures from it.
     if "departures" not in data or not data["departures"]:
         error("Missing 'departures': a project-specific tree must list how it differs from its inspiration")
     if data.get("theory_fidelity") != "inspired-by":
@@ -195,12 +195,15 @@ KNOWN_SPDX = {"MIT", "CC-BY-4.0", "CC-BY-SA-3.0", "CC-BY-SA-4.0", "CC-BY-NC-SA-4
 
 
 def check_provenance(model_dir: Path, mj: dict) -> None:
-    """A version number is not provenance.
+    """Check that provenance.json records where a table came from.
 
-    "1.0.0" says nothing about which upstream release the table came from or
-    what transformed it, so the build is not reproducible and the attribution
-    is not checkable. UNVERIFIED entries are allowed and reported: recording
-    that something is unknown is the point, guessing it is not.
+    A version number alone does not say which upstream release the table came
+    from or how it was transformed, so neither the build nor the attribution
+    could be checked. The manifest must have every required field, a known
+    SPDX license that agrees with model.json, and a current SHA-256 for every
+    other file in the directory. A field whose value starts with UNVERIFIED is
+    accepted with a warning: an unknown is recorded as unknown rather than
+    guessed.
     """
     path = model_dir / "provenance.json"
     if not path.exists():
@@ -252,9 +255,8 @@ def check_categorical_coverage(mj: dict, rows: list[list[str]]) -> None:
     A categorical model describes each segment with a sound name, and the
     generator turns the words of that name into features. A word that no
     geometry leaf, feature_to_node entry, or scalar dimension mentions is
-    parsed, stored, returned to callers, and then ignored by the scorer. That
-    is how "devoiced", "apical", "unreleased", and the whole length series used
-    to make no difference to any distance.
+    parsed, stored, returned to callers, and then ignored by the scorer, so
+    it would make no difference to any distance.
     """
     if not GEOMETRY_FEATURES:
         return
@@ -501,20 +503,14 @@ def check_scalar_weight_agreement() -> None:
 
     A categorical model may score through its own `scalar_dimensions` instead of
     the geometry leaves. Where a dimension shares a name with a leaf, the two
-    have to cost the same, or `docs/method/geometry.md` describes neither of them.
-
-    They used to disagree on all 35 shared names, for two reasons: a dimension
-    was weighted at its geometry *node's* depth while the leaf of the same name
-    sits one level below that node, and an explicit `weight` on a leaf was
-    dropped on the scalar path -- `vocoid` is declared 0.8 and was scoring 1.0
-    in `distinctive`, the system meant to become the default. Both are fixed in
-    `tools/generate_c_data.py`; this is what stops them coming back.
+    must cost the same, or `docs/method/geometry.md` describes neither of them.
+    The check compares the weight the generator emits for each such dimension
+    with the leaf's own weight: its declared `weight` if it has one (`vocoid`
+    declares 0.8), otherwise the reciprocal of its depth.
     """
     # Ask the generator itself what weight it will emit, rather than restating
-    # its rule here. A guard that reimplements the thing it guards passes when
-    # both copies are wrong together, which is how the original divergence
-    # survived: docs/method/geometry.md stated one rule and the generator applied
-    # another, and nothing compared them.
+    # its rule here: a check that reimplements what it checks passes when both
+    # copies are wrong in the same way.
     sys.path.insert(0, str(ROOT / "tools"))
     try:
         import generate_c_data
@@ -524,9 +520,9 @@ def check_scalar_weight_agreement() -> None:
     geometry_obj = json.loads(
         (ROOT / "data" / "geometries" / "clements-hume.json").read_text(encoding="utf-8")
     )
-    # Depth convention has to come from the generator too. `geometry_leaves`
-    # counts from the root's children, not from the root, and reimplementing
-    # that here by eye is precisely how a guard ends up certifying a mismatch.
+    # The depth convention also comes from the generator: `geometry_leaves`
+    # counts from the root's children, not from the root, and a separate
+    # implementation here could get that wrong and pass a mismatch.
     leaves = {
         name: (1.0 / depth if explicit is None else float(explicit))
         for name, _pos, _neg, depth, _parent, explicit in generate_c_data.geometry_leaves(

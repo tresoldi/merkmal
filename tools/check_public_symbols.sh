@@ -2,15 +2,10 @@
 # Prove that the built library exports the public API and nothing else.
 #
 # C has one symbol namespace, so a static consumer sees every external name in
-# the archive whether or not it is part of the contract. For a long time 66 of
-# the 97 names in libmerkmal.a were internal -- mki_resolve, mki_streq,
-# mki_parse_model_text and the compiled tables -- and they were spelled mk_,
-# exactly like the 31 that are promises. Nothing distinguished the two, so
-# The claim that mk_ meant "public" was true only by intention.
-#
-# The rule this enforces: mk_ is the public contract, mki_ is internal. Adding a
-# cross-module helper called mk_something is now a test failure rather than a
-# silent widening of the API.
+# the archive whether or not it is part of the contract. The prefix is what
+# distinguishes the two: mk_ is the public contract, mki_ is internal. This
+# check makes the convention enforceable, so that a cross-module helper named
+# mk_something fails the test rather than widening the API unnoticed.
 #
 # Usage: check_public_symbols.sh <path-to-libmerkmal.a>
 

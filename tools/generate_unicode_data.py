@@ -1,13 +1,9 @@
 """Generate the Unicode normalization tables compiled into the C library.
 
-merkmal used libutf8proc for its final NFC and NFD passes when it was
-installed and an IPA-focused approximation when it was not, so one commit gave
-different strings on different machines: a fallback build returned `ỹ`
-decomposed where a utf8proc build composed it, and two utf8proc builds could
-still disagree when their utf8proc versions carried different Unicode versions.
-These tables make normalization a property of the source tree. Every build --
-CMake, the Python extension, WebAssembly -- runs the same NFC and NFD, at the
-Unicode version recorded in the output.
+Compiled-in tables make normalization a property of the source tree rather
+than of an installed library: every build (CMake, the Python extension,
+WebAssembly) runs the same NFC and NFD, at the Unicode version recorded in the
+output.
 
 The tables come from Python's `unicodedata`, so the Unicode version is the one
 the generating interpreter carries. `tools/check_generated_data.py` compares
@@ -76,7 +72,7 @@ def compositions() -> list[tuple[int, int, int]]:
         mapping = canonical_mapping(cp)
         if mapping is None or len(mapping) != 2:
             continue
-        # A pair NFC actually rebuilds. This is what excludes the composition
+        # Keep only pairs that NFC recomposes. This test excludes the composition
         # exclusions and the non-starter decompositions without listing them.
         if unicodedata.normalize("NFC", chr(mapping[0]) + chr(mapping[1])) != chr(cp):
             continue

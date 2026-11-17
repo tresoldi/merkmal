@@ -1,37 +1,38 @@
 #!/usr/bin/env python3
-"""Exhaustive contrast audit across every built-in system.
+"""Contrast audit of every built-in system against a recorded baseline.
 
-Three properties, checked over the whole bundled inventory plus composed forms,
-not a sample:
+Three properties, checked over each system's inventory plus composed forms
+(modified bases, bare tones and cluster spellings):
 
-1. **No undeclared collapse.** Two distinct graphemes scoring exactly zero is a
-   claim that they denote the same thing. Every such pair must be on the record
-   with a reason.
+1. **No undeclared collapse.** Two distinct graphemes at distance exactly zero
+   are claimed to denote the same thing. In a categorical system every such
+   pair must be recorded in tests/golden/contrast_baseline.tsv with a reason.
 
 2. **No dead labels.** Every label a system can return must be able to change
-   some distance. A label reaching no scoring dimension is silently ignored.
+   some distance; a label that reaches no scoring dimension is ignored without
+   notice.
 
-3. **No unreachable dimensions.** The mirror of (2), and the one that was
-   missing: a scoring leaf no grapheme can activate is decorative, and its whole
-   node then collapses into one boolean. That is how every manner distinction
-   came to cost the same.
+3. **No unreachable dimensions.** The converse of (2): a scoring leaf, ordinal
+   scale or declared model dimension that no grapheme can activate contributes
+   nothing, and the distinctions of its node reduce to fewer than it declares.
 
     python tools/contrast_baseline.py            # report
     python tools/contrast_baseline.py --check    # fail on any regression
     python tools/contrast_baseline.py --write    # re-record the baseline
 
-Sampling: the categorical systems are swept exhaustively, since that is where
-the every-zero-declared contract lives. The valued systems are capped at
-`--max-valued-forms` (default 700, evenly spaced) because their scorer walks
-every declared dimension per pair and PHOIBLE alone would be over eight million
-comparisons. The cap is printed on every run; pass `0` for the full sweep.
+Sampling: the categorical systems are swept exhaustively, because the
+requirement that every zero be declared applies to them. The valued systems are
+capped at `--max-valued-forms` forms (default 700, evenly spaced), because
+their scorer walks every declared dimension per pair and an exhaustive sweep of
+PHOIBLE alone exceeds eight million pairs. The cap is printed on every run;
+`0` removes it.
 
-The record is two-tier by necessity. Categorical collapses are few, so each is
-listed. Valued collapses are properties of the *upstream* feature table -- the
-P-base UFTC feature set does not distinguish /e/ from /i/ at all -- so they run
-to tens of thousands and are recorded as a count with examples. Inventing
-feature values to remove them would be fabricating data; the honest treatment is
-to publish the number and let it be checked for regression.
+The record has two tiers. Categorical collapses are few, and each is listed.
+Valued collapses are properties of the upstream feature tables (the P-base
+UFTC feature set, for example, does not distinguish /e/ from /i/), and they
+number in the thousands per system, so each system is recorded as a count with
+examples. Removing them would require feature values the source does not give;
+the count is recorded instead, and --check fails if it rises.
 """
 
 from __future__ import annotations
@@ -54,9 +55,9 @@ VALUED = ["pbase-hc", "pbase-jfh", "pbase-spe", "pbase-uftc", "phoible"]
 
 HEADER = ["SYSTEM", "KIND", "GRAPHEME_A", "GRAPHEME_B", "COUNT", "STATUS", "REASON"]
 
-# The bare inventory is not the whole space a system accepts: modifiers compose
-# into forms no row covers, and `aː` versus `aːː` scored zero for exactly that
-# reason while an inventory-only audit reported a clean sheet.
+# The inventory is not the whole space a system accepts: modifiers compose into
+# forms no row covers (`aː` against `aːː`, for instance), and a collapse among
+# them is invisible to an inventory-only audit.
 COMPOSED_SUFFIXES = [
     "ː", "ːː", "ˑ", "̃", "ʲ", "ʷ", "ˠ", "ˤ", "ʰ", "̥", "³³", "⁵⁵", "⁵¹",
     # Reach the diacritics that no inventory row carries, or the leaves for
@@ -65,24 +66,22 @@ COMPOSED_SUFFIXES = [
 ]
 COMPOSED_PREFIXES = ["ʷ", "ʲ", "ᵐ"]
 
-# The valued systems have 1,000-3,500 forms each and their scorer walks every
-# declared dimension per pair, so an exhaustive sweep of PHOIBLE alone is over
-# eight million comparisons. Their sweep is capped, deterministically, and the
-# cap is reported: a silent truncation would read as "covered everything". The
-# categorical systems stay exhaustive, because that is where the
-# every-zero-declared contract lives.
+# The valued systems' sweeps resolve 2,000 to 4,000 forms each (as this script
+# prints them), and their scorer walks every declared dimension per pair, so an
+# exhaustive sweep of PHOIBLE alone exceeds eight million pairs. Their sweep is
+# capped, deterministically, and the cap is reported, so that a truncated sweep
+# is not read as a complete one. The categorical systems stay exhaustive,
+# because the requirement that every zero be declared applies to them.
 DEFAULT_MAX_VALUED_FORMS = 700
 
-# A caution about the valued counts, learned by tripping over it. The cap makes
-# them a property of *which* 700 forms were sampled, and the sample is drawn
-# evenly from whatever the sweep covers. So changing the sweep's input -- adding
-# bare tone forms, adding cluster spellings -- reselects the sample and moves the
-# counts, with nothing about the library having changed. `ai` and `au` are
-# inventory rows in P-base, not synthesized clusters, which is how a
-# categorical-only change moved `pbase-jfh` from 5,722 to 6,067.
-#
-# So a rise here is only evidence of regression when the swept population is
-# unchanged. When the population deliberately grows, re-record and say so.
+# Under the cap, the valued counts depend on which forms were sampled, and the
+# sample is drawn evenly from whatever the sweep covers. Changing the sweep's
+# input (adding bare tone forms or cluster spellings, for example) therefore
+# reselects the sample and moves the counts without any change to the library;
+# `ai` and `au` are inventory rows in P-base, so even a change aimed at the
+# categorical systems can move a valued count. A rise is evidence of a
+# regression only when the swept population is unchanged; when it is enlarged
+# on purpose, the baseline is re-recorded and the commit says so.
 
 VALUED_REASON = (
     "upstream: the {system} feature table assigns these graphemes identical "
@@ -99,9 +98,9 @@ def read_inventory(system: str) -> list[str]:
         return sorted({row[0] for row in reader if row})
 
 
-# Bare tone tokens are segments and are not inventory rows, so a sweep built
-# only from the inventory never sees them. They are the whole recognition space
-# for the tonal dimensions: every level, every two- and three-level contour, the
+# Bare tone tokens are segments but not inventory rows, so a sweep built only
+# from the inventory never reaches them. These are the whole recognition space
+# of the tonal dimensions: every level, every two- and three-level contour, the
 # tone letters, and Chao's neutral tone.
 TONE_LEVELS = "¹²³⁴⁵"
 BARE_TONE_FORMS = (
@@ -112,10 +111,10 @@ BARE_TONE_FORMS = (
 )
 
 
-# Cluster spellings are recognized by every categorical system now, and no
-# inventory row carries them, so an inventory-derived sweep never sees them --
-# the same blind spot bare tone had. Taken from Lexibank by token frequency:
-# what people write, not what came to mind.
+# Every categorical system recognizes cluster spellings, and no inventory row
+# carries them, so an inventory-derived sweep never reaches them. The list is
+# taken from Lexibank by token frequency, so that it reflects the spellings
+# found in transcribed data.
 CLUSTER_FORMS = ['ai', 'au', 'ei', 'ou', 'aːi', 'əu', 'ui', 'ia', 'oi', 'ɛi', 'eu', 'ɑi', 'əi', 'ɑu', 'aɪ', 'aːu', 'ɔi', 'uɔ', 'aa', 'ua', 'ɐu', 'ai̯', 'ao', 'ɔu', 'eɪ', 'aʊ', 'ae', 'ea', 'iɛ', 'uə', 'oa', 'au̯', 'ɔɪ', 'ie', 'mb', 'ɐi']
 
 
@@ -124,19 +123,19 @@ _CHAO_LETTERS = {"˩": 1, "˨": 2, "˧": 3, "˦": 4, "˥": 5}
 
 
 def chao_contour(token: str) -> tuple[int, int, int] | None:
-    """The (onset, mid, offset) pitch triple a bare tone token denotes.
+    """The (onset, mid, offset) pitch triple a bare tone token denotes, or None.
 
-    Mirrors what the resolver does, so that two spellings of the same tone can
-    be recognized as such *from the notation* rather than from the feature sets
-    they produce -- which would be circular, since identical features are why
-    they score zero in the first place.
+    Mirrors the resolver, so that two spellings of the same tone are recognized
+    as such from the notation rather than from the feature sets they produce;
+    the latter would be circular, since identical features are why they score
+    zero.
 
     One level fills all three slots; two interpolate the middle; three are taken
     as written. So `⁵`, `⁵⁵`, `⁵⁵⁵` and `˥` are one tone spelled four ways, and
     `˥˩` is `⁵¹`.
 
     The midpoint rounds *up*, matching the resolver: `¹²` fills its middle slot
-    with 2, not 1. That is a stipulation, and it has a visible consequence --
+    with 2, not 1. That is a stipulation, with a visible consequence:
     `¹²` is the same tone as `¹²²` and a different one from `¹¹²`, so a rise
     reaches its target early rather than late. Rounding the other way would swap
     which of those two collapses. This function must not choose independently:
@@ -249,11 +248,10 @@ def uncompared(system: str, pairs: list[tuple[str, str]]) -> int:
     """How many of these zero-distance pairs shared no comparable dimension.
 
     A bare count of collapses reads every zero as a claim of identity. In a
-    valued system most of them are not: they are pairs where the feature table
-    says nothing about either segment on any dimension the other has a value
-    for. Splitting the count keeps a rise in "the table is silent here" from
-    looking like a rise in "these are the same sound" -- which matters, because
-    correcting PHOIBLE's `0` cells to `.` moved exactly the first number.
+    valued system many are not: they are pairs for which the feature table has
+    no dimension on which both segments have a value. Counting them separately
+    keeps a rise in "the table is silent here" from looking like a rise in
+    "these are the same sound".
     """
     total = 0
     for a, b in pairs:
@@ -270,12 +268,12 @@ def dead_labels(system: str, covered: list[str]) -> list[str]:
     geometry = json.loads(GEOMETRY.read_text(encoding="utf-8"))
     metadata = set(geometry.get("metadata_features", {}))
     # Cluster parses report a label per component (`n1-front`, `n2-stop`) and a
-    # trajectory (`move-height-open-close`). They are open-ended -- any base
-    # feature can appear under any prefix -- so they are declared by prefix
-    # rather than enumerated. They do not score, and saying so is the point:
-    # a caller reading `move-height-open-close` would otherwise reasonably
-    # assume it participates. The components themselves are scored, by
-    # mk_distance_cluster_to_segment in system.c.
+    # trajectory (`move-height-open-close`). They are open-ended (any base
+    # feature can appear under any prefix), so the geometry declares them by
+    # prefix rather than enumerating them. They do not score, and the
+    # declaration states that, since a caller reading `move-height-open-close`
+    # could otherwise assume it participates. The components themselves are
+    # scored, by mk_distance_cluster_to_segment in system.c.
     prefixes = tuple(geometry.get("metadata_feature_prefixes", {}))
     # An ordered level is skipped when the other segment has no value on the
     # scale, so probing it against an unrelated label always scores zero. The
@@ -351,12 +349,10 @@ def unreachable_dimensions(system: str, covered: list[str]) -> list[str]:
 def unreachable_model_dimensions(system: str, covered: list[str]) -> list[str]:
     """Scoring dimensions the *model* declares that no grapheme can activate.
 
-    `unreachable_dimensions` above audits the geometry. That is the wrong
-    artifact for a system that scores through its own `scalar_dimensions` and
-    never reads a geometry leaf -- which is what `distinctive` does. Auditing
-    only the geometry is how nine tone dimensions survived the ordinal tone
-    rewrite: they were left behind by the old two-bit Chao encoding, no grapheme
-    has been able to reach them since, and every check in this repository passed.
+    `unreachable_dimensions` audits the geometry. A system that scores through
+    its own `scalar_dimensions` and never reads a geometry leaf, as
+    `distinctive` does, needs this separate check: a declared dimension that no
+    grapheme reaches is invisible to an audit of the geometry.
 
     A dimension is reachable if any grapheme carries any of its labels. One pole
     is enough: presence against absence still separates two segments.
@@ -388,8 +384,8 @@ def read_baseline() -> dict[tuple[str, str, str, str], tuple[str, str, str]]:
     with BASELINE.open(encoding="utf-8", newline="") as handle:
         reader = csv.reader(handle, delimiter="\t")
         next(reader)
-        # Rows from an older layout are ignored rather than crashing the audit;
-        # they simply read as "not yet declared".
+        # Rows with fewer columns than the current layout are ignored rather
+        # than failing the audit; they read as "not yet declared".
         return {
             (row[0], row[1], row[2], row[3]): (row[4], row[5], row[6])
             for row in reader
@@ -447,9 +443,9 @@ def main() -> int:
                     )
                 elif spelling_equivalent(a, b):
                     # The same tone written differently. Chao's notation is
-                    # redundant by design -- a level tone may be one, two or
-                    # three digits, or a tone letter -- so these zeros are the
-                    # library agreeing with the notation, not losing a contrast.
+                    # redundant (a level tone may be one, two or three digits,
+                    # or a tone letter), so these zeros follow the notation
+                    # and do not lose a contrast.
                     status = "spelling-equivalent"
                     reason = (
                         "the same Chao contour written differently: a level tone "
@@ -476,9 +472,8 @@ def main() -> int:
             print(f"  of those, {blank} shared no comparable dimension "
                   f"({100 * blank / len(found):.1f}%)" if found else "")
             # The reason is derived from this run, not reviewed by hand, so it is
-            # always recomputed. Carrying the stored one forward is how a stale
-            # sentence outlives the numbers it describes -- which it did once
-            # here already, for the tone spelling rows.
+            # always recomputed: a stored reason carried forward could describe
+            # numbers that no longer hold.
             status = "upstream-indistinguishable"
             reason = VALUED_REASON.format(system=system)
             if found:
