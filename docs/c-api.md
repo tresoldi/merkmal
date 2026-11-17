@@ -178,7 +178,8 @@ numbers mean what the rest of the ecosystem means by them:
 | ---: | --- |
 | `+1` | the feature is present |
 | `-1` | it applies to this kind of segment and is absent |
-| `0` | it does not apply, or the source does not say |
+| `0` | it does not apply (or, in a table that does not distinguish the two, the source does not say) |
+| `NaN` | a valued system's `?`: the value is not known here (PHOIBLE since model 2.0.0) |
 
 That last row is why this is worth having in the library rather than in each
 caller: a valued system writes `anterior=.` for "no value" and `anterior=-` for
@@ -189,10 +190,14 @@ value". A scale of *n* levels maps level *i* to *i/n*, so scale columns land in
 `(0, 1]` and `0` still means the scale does not apply. `vowel_height` is 0.14 for
 `/i/`, 0.43 for `/e/`, 1.0 for `/a/`, and 0 for `/p/`.
 
-**The basis differs by system**, because the systems differ: a valued system's
-columns are its own inventory columns, a system declaring `scalar_dimensions`
-uses those, and the rest use the geometry they score through. Widths today are
-54 for `distinctive`, 62 for `descriptive`, 38 for `phoible`, 23 for `pbase-hc`.
+**The basis differs by system**, because the systems differ, and it is exactly
+the dimensions the system's scorer reads, so equal vectors mean distance zero.
+A valued system's columns are its own inventory columns. A system declaring
+`scalar_dimensions` uses those, then the geometry's ordered scales. The rest use
+the geometry's leaves, its ordered scales, and one-hot node-group columns named
+`Node=label` (+1 the label is present, −1 the node is set by another label, 0
+the node is unset). Widths today are 64 for `distinctive`, 68 for
+`descriptive`, 38 for `phoible`, 23 for `pbase-hc`.
 Call `mk_system_vector_labels` rather than assuming either width or order; the
 labels are unique within a system, so a column is addressable by name.
 
@@ -200,6 +205,27 @@ There is no call that vectorizes a token list. It is a loop over
 `mk_system_feature_vector`, and the library does not own sequence-level
 operations; the library deliberately supplies segment-level costs, not
 sequence-level alignment.
+
+## Abstract segments
+
+```c
+mk_status mk_bundle_new(const mk_system *system, mk_bundle **out);
+mk_status mk_bundle_from_grapheme(const mk_system *system, const char *g, mk_bundle **out);
+mk_status mk_bundle_from_text(const mk_system *system, const char *text, mk_bundle **out);
+mk_status mk_bundle_set(mk_bundle *b, const char *column, const char *cell);
+mk_status mk_bundle_compare(const mk_bundle *a, const mk_bundle *b, const char *weights,
+                            mk_bundle_comparison *out);
+mk_status mk_bundle_compatible(const mk_bundle *b, const char *g, bool *out);
+mk_status mk_bundle_compatible_graphemes(const mk_bundle *b, const char *weights,
+                                         mk_string_list **out);
+```
+
+A feature bundle with no grapheme as identity: one cell per dimension the
+system's scorer reads, each holding the values the segment may have. The
+comparison gives the scorer's distance over the dimensions both sides specify,
+its coverage, and the exact minimum and maximum over every completion. Cell
+grammar and semantics: `docs/abstract-segments.md`. A bundle borrows its
+system; free it before the registry.
 
 ## Status Codes
 

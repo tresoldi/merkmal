@@ -334,6 +334,14 @@ static void mk_process_node_feature(
     }
 }
 
+int mki_is_node_group_feature(const char *feature)
+{
+    if (feature == NULL || mk_is_leaf_feature(feature) || mk_is_ordinal_level_feature(feature)) {
+        return 0;
+    }
+    return mk_feature_node(feature) != NULL;
+}
+
 /* Returns the entry's position on an ordered scale, or MK_ORDINAL_UNDEFINED
  * when it carries no label from the scale and the scale has no unmarked
  * default. The first matching level wins; the generator rejects entries
@@ -351,6 +359,11 @@ static int mk_ordinal_level(
         }
     }
     return scale->default_level;
+}
+
+int mki_ordinal_level(mk_feature_view view, const mk_ordinal_scale *scale)
+{
+    return mk_ordinal_level(view, scale);
 }
 
 static void mk_accumulate_ordinal_scales(
@@ -579,7 +592,9 @@ static int mk_label_value(
         const char *label = view.features[i];
         if (strncmp(label, feature, feature_len) == 0 && label[feature_len] == '=') {
             char state = label[feature_len + 1];
-            if (state == '.') {
+            /* Not compared: '0' the feature does not apply, '?' its value is
+             * unknown here, '.' a table that does not say which of the two. */
+            if (state == '.' || state == '0' || state == '?') {
                 return 0;
             }
             if (state == '+') {
@@ -701,10 +716,43 @@ mk_status mk_sound_distance(
     double *out
 )
 {
+    size_t i;
+
     if (out == NULL ||
         (a.count > 0 && a.features == NULL) ||
         (b.count > 0 && b.features == NULL)) {
         return MK_ERR_INVALID_ARGUMENT;
     }
+    *out = 0.0;
+    for (i = 0; i < a.count; i++) {
+        if (!mki_geometry_knows_feature(a.features[i])) {
+            return MK_ERR_UNKNOWN_FEATURE;
+        }
+    }
+    for (i = 0; i < b.count; i++) {
+        if (!mki_geometry_knows_feature(b.features[i])) {
+            return MK_ERR_UNKNOWN_FEATURE;
+        }
+    }
     return mki_scorer_for(NULL)(NULL, a, b, node_weights, out, NULL);
+}
+
+mk_status mki_resolve_weight_preset(const char *name, const mk_node_weight_preset **out)
+{
+    return mk_resolve_weight_preset(name, out);
+}
+
+double mki_dimension_weight(const mk_node_weight_preset *preset, const char *node, double base_weight)
+{
+    return mk_dimension_weight(preset, node, base_weight);
+}
+
+double mki_node_depth_value(const char *node)
+{
+    return mk_node_depth_value(node);
+}
+
+const char *mki_feature_node(const char *feature)
+{
+    return mk_feature_node(feature);
 }

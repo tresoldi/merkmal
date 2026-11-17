@@ -29,6 +29,25 @@ int mki_geometry_knows_feature(const char *feature);
  * being a declared label. Metadata features are known but never scored. */
 int mki_geometry_scores_feature(const char *feature);
 
+/* Whether the leaf scorer compares this feature as a member of a node group:
+ * it maps to a geometry node and is neither a leaf value nor a level of an
+ * ordered scale. Such features are the one-hot columns of a leaf-scored
+ * system's feature vector. */
+int mki_is_node_group_feature(const char *feature);
+
+/* A feature set's position on an ordered scale, exactly as the scorers read
+ * it: the first level label present, else the scale's unmarked default, else
+ * MK_ORDINAL_UNDEFINED. */
+int mki_ordinal_level(mk_feature_view view, const mk_ordinal_scale *scale);
+
+/* The weighting the scorers use, for code that scores outside a feature view
+ * (abstract segments, bundle.c). Same functions, so a bundle made from a
+ * grapheme weighs each dimension exactly as the scorer does. */
+mk_status mki_resolve_weight_preset(const char *name, const mk_node_weight_preset **out);
+double mki_dimension_weight(const mk_node_weight_preset *preset, const char *node, double base_weight);
+double mki_node_depth_value(const char *node);
+const char *mki_feature_node(const char *feature);
+
 /* Non-zero when a feature set holds two values of one ordered scale. */
 int mki_ordinal_conflict(
     const char *const *features,

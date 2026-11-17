@@ -75,7 +75,15 @@ typedef enum mk_status {
      *
      * Appended to the enum rather than inserted, so existing values keep their
      * numbers. */
-    MK_ERR_NO_TREE_PATH
+    MK_ERR_NO_TREE_PATH,
+    /** A caller-supplied feature label the geometry does not know.
+     *
+     * mk_sound_distance used to skip such a label, so `foo` or `-voice` scored
+     * exactly like no label at all and a typo passed as a measurement.
+     *
+     * Appended to the enum rather than inserted, so existing values keep their
+     * numbers. */
+    MK_ERR_UNKNOWN_FEATURE
 } mk_status;
 
 /** Returns the stable English label for a status code. */
@@ -238,7 +246,11 @@ MK_API mk_status mk_feature_distance(
  * compiled geometry with no system, registry, or grapheme involved.
  *
  * `node_weights` names a weight preset, or is NULL for the default. An unknown
- * preset returns MK_ERR_INVALID_ARGUMENT rather than a score. */
+ * preset returns MK_ERR_INVALID_ARGUMENT rather than a score.
+ *
+ * A label the geometry does not know, scored or metadata, returns
+ * MK_ERR_UNKNOWN_FEATURE. Labels are privative: a negative value is the
+ * opposite label (`voiceless`), never a sign (`-voice`). */
 MK_API mk_status mk_sound_distance(
     mk_feature_view a,
     mk_feature_view b,
@@ -405,10 +417,15 @@ MK_API mk_status mk_system_vector_width(const mk_system *system, size_t *out);
 
 /** Column names for a system's feature vectors, in order.
  *
- * The basis differs by system, because the systems do: a valued system's
- * columns are its own inventory columns, a system declaring scalar_dimensions
- * uses those, and the rest use the geometry they score through. Ask rather than
- * assume. Free with mk_string_list_free.
+ * The basis differs by system, because the systems do. The columns are exactly
+ * the dimensions the system's scorer reads, so graphemes with equal vectors
+ * are at distance zero:
+ * - a valued system: its own inventory columns;
+ * - a system declaring scalar_dimensions: those, then the geometry's ordered
+ *   scales (vowel height, backness, ...);
+ * - the rest: the geometry's leaves, its ordered scales, then one column per
+ *   node-group label, named `Node=label` (`Manner=fricative`).
+ * Ask rather than assume. Free with mk_string_list_free.
  */
 MK_API mk_status mk_system_vector_labels(const mk_system *system, mk_string_list **out);
 
@@ -450,7 +467,9 @@ MK_API mk_status mk_unicode_normalize(
  *
  * - `+1` the feature is present
  * - `-1` it applies to this kind of segment and is absent
- * - `0` it does not apply, or the source does not say
+ * - `0` it does not apply (or, in a table that does not distinguish the two,
+ *   it does not apply or the source does not say)
+ * - `NaN` a valued system's `?`: the value is not known here
  *
  * Ordered scales cannot use `0` for a middle level, since `0` already means "no
  * value". A scale of n levels maps level i to i/n, so scale columns land in
@@ -462,6 +481,79 @@ MK_API mk_status mk_system_feature_vector(
     double *values,
     size_t capacity,
     size_t *written
+);
+
+/* Abstract segments: feature bundles with no grapheme as identity.
+ *
+ * A bundle belongs to one system and has one cell per dimension that system's
+ * scorer reads: binary columns, ordered scales (`vowel_height`), and, for
+ * leaf-scored systems, one cell per node group (`Manner`). A cell holds every
+ * value the segment may have. Text form of a cell:
+ *
+ *   0  the dimension does not apply      ?  unknown, applies     *  unknown, may not apply
+ *   binary   + - (and n, the P-base third value, in valued systems); alternatives a|b
+ *   ordinal  a level, a range lo..hi, alternatives a|b
+ *   group    a label, alternatives l1|l2 (exactly one of them), or one exact set l1&l2
+ *
+ * and `|0` adds "may not apply" to anything. A whole bundle is
+ * `column=cell;column=cell...`; columns left out are `*`.
+ *
+ * Identity is the system (record its semantic fingerprint) and the cells,
+ * never a grapheme. See docs/abstract-segments.md. */
+typedef struct mk_bundle mk_bundle;
+
+/** A bundle against a bundle.
+ * `distance`: the system's scorer formula over the dimensions specified on
+ * both sides, with its own skip rules; a bundle made from a grapheme scores as
+ * that grapheme does. `coverage`: for a valued system, the share of declared
+ * dimensions compared, as mk_system_segment_distance_ex reports it; for a
+ * categorical one, the compared weight over the compared weight plus the
+ * weight left unspecified. `minimum` and `maximum`: the exact extremes of the
+ * distance over every completion of the unspecified cells. */
+typedef struct mk_bundle_comparison {
+    double distance;
+    double coverage;
+    double minimum;
+    double maximum;
+    mk_comparability why;
+} mk_bundle_comparison;
+
+/** A bundle with every cell `*`. Free with mk_bundle_free. */
+MK_API mk_status mk_bundle_new(const mk_system *system, mk_bundle **out);
+/** A fully specified bundle from a grapheme. Clusters the resolver
+ *  synthesizes and tones return MK_ERR_UNSUPPORTED_MODEL: neither is one
+ *  feature set on the segmental tier. */
+MK_API mk_status mk_bundle_from_grapheme(const mk_system *system, const char *utf8_grapheme, mk_bundle **out);
+/** Parses the text form above. An unknown column is MK_ERR_UNKNOWN_FEATURE,
+ *  a bad cell MK_ERR_PARSE. */
+MK_API mk_status mk_bundle_from_text(const mk_system *system, const char *text, mk_bundle **out);
+MK_API mk_status mk_bundle_copy(const mk_bundle *bundle, mk_bundle **out);
+MK_API void mk_bundle_free(mk_bundle *bundle);
+/** Canonical text, every column in order. Owned; free with mk_string_free. */
+MK_API mk_status mk_bundle_to_text(const mk_bundle *bundle, char **out);
+MK_API mk_status mk_bundle_column_count(const mk_bundle *bundle, size_t *out);
+/** Borrowed; valid as long as the registry. */
+MK_API mk_status mk_bundle_column_name(const mk_bundle *bundle, size_t index, const char **out);
+/** The values a column can take, in order. */
+MK_API mk_status mk_bundle_column_values(const mk_bundle *bundle, const char *column, mk_string_list **out);
+MK_API mk_status mk_bundle_set(mk_bundle *bundle, const char *column, const char *cell);
+/** Owned canonical text of one cell; free with mk_string_free. */
+MK_API mk_status mk_bundle_get(const mk_bundle *bundle, const char *column, char **cell_out);
+/** Both bundles must belong to the same system object. */
+MK_API mk_status mk_bundle_compare(
+    const mk_bundle *a,
+    const mk_bundle *b,
+    const char *node_weights,
+    mk_bundle_comparison *out
+);
+/** Whether the grapheme is one of the bundle's completions. */
+MK_API mk_status mk_bundle_compatible(const mk_bundle *bundle, const char *utf8_grapheme, bool *out);
+/** The system's graphemes compatible with the bundle, nearest first (ties by
+ *  grapheme). For display: the ranking never decides identity. */
+MK_API mk_status mk_bundle_compatible_graphemes(
+    const mk_bundle *bundle,
+    const char *node_weights,
+    mk_string_list **out
 );
 
 /** Creates an owned copy of a caller-provided string list. */

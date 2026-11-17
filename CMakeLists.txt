@@ -59,6 +59,7 @@ if(MERKMAL_REQUIRE_UTF8PROC AND NOT UTF8PROC_FOUND)
 endif()
 
 set(MERKMAL_SOURCES
+    src/bundle.c
     src/cluster.c
     src/diagnose.c
     src/fingerprint.c
@@ -170,6 +171,10 @@ if(MERKMAL_BUILD_TESTS)
     add_executable(test_inventory tests/c/test_inventory.c)
     target_link_libraries(test_inventory PRIVATE merkmal)
     add_test(NAME inventory COMMAND test_inventory)
+
+    add_executable(test_bundle tests/c/test_bundle.c)
+    target_link_libraries(test_bundle PRIVATE merkmal)
+    add_test(NAME bundle COMMAND test_bundle)
 
     # Compiling the header alone is the test: one that needs the caller to
     # have included <stddef.h> first passes everywhere inside this project and
