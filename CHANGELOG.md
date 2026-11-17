@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### The runtime model text format declares its version
+
+A model may begin with `@format_version 1`. It is optional, and a model without
+it is read as version 1, so existing models are unaffected. A model declaring a
+newer version than the library reads is refused with `MK_ERR_UNSUPPORTED_MODEL`
+and a diagnostic instead of being read as this format. See
+`docs/runtime-model-format.md`.
+
 ### Coverage is measured for clusters
 
 `mk_system_segment_distance_ex` never wrote `*coverage` when either side was a

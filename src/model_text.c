@@ -303,6 +303,49 @@ mk_status mki_parse_model_text(
     return mki_parse_model_text_n(model_text, strlen(model_text), out, diagnostic);
 }
 
+/* The newest runtime model text format this library reads. A model that
+ * declares a newer one is refused rather than read as if it were this one: a
+ * later format may give an existing line a different meaning. */
+#define MK_MODEL_TEXT_FORMAT_VERSION 1L
+
+/* Checks the value of a `@format_version` line: a positive decimal integer no
+ * newer than MK_MODEL_TEXT_FORMAT_VERSION. */
+static mk_status mk_check_format_version(const char *token, int line_no, char **diagnostic)
+{
+    const char *p;
+    long version = 0;
+
+    if (token == NULL || token[0] == '\0') {
+        mk_set_diagnostic(diagnostic, line_no, "@format_version needs a version number", "(missing)");
+        return MK_ERR_PARSE;
+    }
+    for (p = token; *p != '\0'; p++) {
+        if (*p < '0' || *p > '9') {
+            mk_set_diagnostic(diagnostic, line_no, "@format_version must be a positive integer", token);
+            return MK_ERR_PARSE;
+        }
+        /* Saturates rather than overflows: any version past the supported one
+         * is refused the same way. */
+        if (version <= MK_MODEL_TEXT_FORMAT_VERSION) {
+            version = version * 10 + (*p - '0');
+        }
+    }
+    if (version < 1) {
+        mk_set_diagnostic(diagnostic, line_no, "@format_version must be a positive integer", token);
+        return MK_ERR_PARSE;
+    }
+    if (version > MK_MODEL_TEXT_FORMAT_VERSION) {
+        mk_set_diagnostic(
+            diagnostic,
+            line_no,
+            "model text format version is newer than this library reads (it reads version 1)",
+            token
+        );
+        return MK_ERR_UNSUPPORTED_MODEL;
+    }
+    return MK_OK;
+}
+
 /* What the parser has gathered so far. Everything a pointer here holds is
  * owned by the parse until mki_parse_model_text_n hands it to `out`. */
 typedef struct mk_model_parse {
@@ -358,6 +401,9 @@ static mk_status mk_parse_line(
             );
             return MK_ERR_PARSE;
         }
+    } else if ((args = mk_directive_args(trimmed, "@format_version")) != NULL) {
+        token = mk_next_token(&args);
+        return mk_check_format_version(token, line_no, diagnostic);
     } else if ((args = mk_directive_args(trimmed, "@model")) != NULL) {
         token = mk_next_token(&args);
         free(parse->name);

@@ -288,6 +288,55 @@ static int check_wide_row_fingerprint(void)
     return failed;
 }
 
+/* `@format_version`: absent or 1 reads as today; a newer version is refused
+ * with a diagnostic rather than read as if it were this format; anything that
+ * is not a positive integer is a parse error. */
+static int check_format_version(void)
+{
+    static const struct {
+        const char *line;
+        mk_status expected;
+    } versions[] = {
+        {"", MK_OK},
+        {"@format_version 1\n", MK_OK},
+        {"@format_version 01\n", MK_OK},
+        {"@format_version 2\n", MK_ERR_UNSUPPORTED_MODEL},
+        {"@format_version 99999999999999999999999\n", MK_ERR_UNSUPPORTED_MODEL},
+        {"@format_version 0\n", MK_ERR_PARSE},
+        {"@format_version -1\n", MK_ERR_PARSE},
+        {"@format_version 1.5\n", MK_ERR_PARSE},
+        {"@format_version one\n", MK_ERR_PARSE},
+    };
+    size_t i;
+    int failed = 0;
+
+    for (i = 0; i < sizeof(versions) / sizeof(versions[0]); i++) {
+        char model[256];
+        mk_registry *registry = NULL;
+        char *diagnostic = NULL;
+        mk_status status;
+
+        snprintf(model, sizeof(model), "%s@model versioned\n@type categorical\n@geometry clements-hume\n"
+                                       "grapheme X consonant voiceless bilabial stop\n",
+                 versions[i].line);
+        if (mk_registry_new_builtin(&registry) != MK_OK) {
+            return 1;
+        }
+        status = mk_registry_add_model_text_ex(registry, model, &diagnostic);
+        if (status != versions[i].expected) {
+            fprintf(stderr, "format version case %zu: got %s, expected %s\n", i, mk_status_string(status), mk_status_string(versions[i].expected));
+            failed = 1;
+        }
+        if (status != MK_OK && diagnostic == NULL) {
+            fprintf(stderr, "format version case %zu: refused without a diagnostic\n", i);
+            failed = 1;
+        }
+        mk_string_free(diagnostic);
+        mk_registry_free(registry);
+    }
+    return failed;
+}
+
 /* mk_registry_add_model_text_n takes bytes, so it is the one entry point that
  * can be handed a model with no terminator and a model containing a NUL.
  *
@@ -359,5 +408,6 @@ int main(void)
     failed |= check_long_feature_name_is_rejected();
     failed |= check_unterminated_and_embedded_nul();
     failed |= check_wide_row_fingerprint();
+    failed |= check_format_version();
     return failed ? 1 : 0;
 }
