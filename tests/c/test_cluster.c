@@ -2,9 +2,9 @@
  *
  * A cluster is a segment written as more than one part -- a diphthong, an
  * untied affricate, a geminate. Scoring one is a composition policy with five
- * stipulated numbers behind it, and until this file the only way to reach any
- * of it was a public distance call, which reports one double and says nothing
- * about how the parts contributed.
+ * stipulated numbers behind it. A public distance call reports one double and
+ * says nothing about how the parts contributed, so this file calls the seam
+ * itself.
  *
  * The first half asserts the thing that makes the seam work: a resolved cluster
  * carries its parts' features, so scoring never resolves a spelling twice. The
@@ -38,9 +38,10 @@ static const mk_system *system_named(mk_registry *registry, const char *name)
     return system;
 }
 
-/* The parts a cluster resolved from must arrive carrying features. When they
- * carried only a spelling, scoring re-ran the whole resolution seam on each of
- * them -- up to six times for one comparison of two clusters. */
+/* The parts a cluster resolved from must arrive carrying features. Guards
+ * against parts that carry only a spelling, which makes scoring re-run the
+ * whole resolution seam on each of them, several times for one comparison of
+ * two clusters. */
 static void check_parts_carry_features(const mk_system *system)
 {
     static const char *const spellings[] = { "ai", "au", "aa", "iau" };

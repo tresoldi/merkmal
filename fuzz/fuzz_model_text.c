@@ -17,14 +17,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     mki_parsed_model model;
     char *diagnostic = NULL;
 
-    /* The bytes go in as they are. The harness used to copy them into a
-     * NUL-terminated buffer because that was the only entry point; feeding the
-     * length-taking form directly means libFuzzer's own redzoned allocation is
-     * what the parser reads, so a read one byte past the input is a report
-     * rather than a read into the harness's spare terminator.
-     *
-     * It also gets embedded NUL bytes into the parser, which the copy could
-     * never express. */
+    /* The bytes go in as they are, through the length-taking form, rather than
+     * copied into a NUL-terminated buffer: libFuzzer's own redzoned allocation
+     * is then what the parser reads, so a read one byte past the input is a
+     * report rather than a read into a spare terminator. It also gets embedded
+     * NUL bytes into the parser, which a C-string copy could never express. */
     if (mki_parse_model_text_n((const char *)data, size, &model, &diagnostic) == MK_OK) {
         mki_parsed_model_clear(&model);
     }

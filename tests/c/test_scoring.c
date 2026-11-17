@@ -1,15 +1,14 @@
 /* Tests the scoring seam directly.
  *
- * Which scorer a system reaches used to be decided in two places on two
- * different fields: a `kind` test in system.c chose categorical against valued,
- * and a test on `scalar_dimension_count` inside the categorical body chose
- * scalar against leaf. The second was invisible from geometry.h and it was the
- * one that picked the scorer for `distinctive`, the default system. These cases
- * assert which scorer a system selects, so a change that quietly moves a system
- * from one to another fails here rather than passing unnoticed.
+ * Which scorer a system reaches depends on two fields: `kind` chooses
+ * categorical against valued, and `scalar_dimension_count` chooses scalar
+ * against leaf -- the second is what picks the scorer for `distinctive`, the
+ * default system. These cases assert which scorer a system selects, so a
+ * change that quietly moves a system from one to another fails here rather
+ * than passing unnoticed.
  *
- * The second half covers mk_system_segment_distance_ex, which had no C test at
- * all: its only coverage was through the Python wrapper. */
+ * The second half covers mk_system_segment_distance_ex from C, so its
+ * coverage does not depend on the Python wrapper. */
 
 #include "geometry.h"
 #include "merkmal.h"
@@ -136,10 +135,10 @@ static void check_coverage(mk_registry *registry)
     }
 
     /* A segment against itself is not fully covered. A valued system skips the
-     * dimensions the segment leaves unset, and PHOIBLE's /p/ leaves 11 of its
-     * 38 cells at `.`. This answered 1.0 until the identity shortcut stopped
-     * speaking for the scorer: that 1.0 was coverage relative to the segment,
-     * where the documented quantity is relative to the system's dimensions. */
+     * dimensions the segment leaves unset, and PHOIBLE's /p/ leaves some of
+     * its cells at `.`. Guards against the identity shortcut speaking for the
+     * scorer: its 1.0 would be coverage relative to the segment, where the
+     * documented quantity is relative to the system's dimensions. */
     if (mk_system_segment_distance_ex(
             phoible, "p", "p", NULL, &score, &coverage, &why) != MK_OK) {
         fail("phoible p/p", "status");

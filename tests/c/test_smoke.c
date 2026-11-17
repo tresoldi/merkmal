@@ -639,9 +639,9 @@ int main(void)
     failed |= expect_segment(descriptive, "_", 0, "is segment underscore control");
     failed |= expect_segment(descriptive, "S", 0, "is segment S annotation");
     failed |= expect_segment(descriptive, "T", 0, "is segment T annotation");
-    /* Bare tone tokens are segments now. CLTS writes tone as its own segment
-     * -- "t o ³³" -- which is the form the field's CLDF wordlists use, and
-     * rejecting it left 26 Lexibank datasets unreadable. The slash forms
+    /* Bare tone tokens are segments. CLTS writes tone as its own segment
+     * -- "t o ³³" -- which is the form the field's CLDF wordlists use, so
+     * rejecting it would leave Lexibank datasets unreadable. The slash forms
      * resolve because normalization takes the BIPA side of "source/BIPA". */
     failed |= expect_segment(descriptive, "¹/¹", 1, "is segment slash tone 11");
     failed |= expect_segment(descriptive, "³/¹", 1, "is segment slash tone 31");
@@ -654,9 +654,9 @@ int main(void)
      * with a pitch level, which is not a spelling this grammar reads. */
     failed |= expect_segment(descriptive, "¹²³⁴", 0, "is segment overlong tone run");
     failed |= expect_segment(descriptive, "⁰³", 0, "is segment neutral plus level");
-    /* Previously rejected: "mb" and "nd" by a two-item blocklist that accepted
-     * "mp" and "nt", and the precomposed tone vowels while their canonically
-     * equivalent NFD spellings were accepted. */
+    /* Guards against rejecting "mb" and "nd" while accepting "mp" and "nt",
+     * and against rejecting the precomposed tone vowels while accepting their
+     * canonically equivalent NFD spellings. */
     failed |= expect_segment(descriptive, "mb", 1, "is segment bare mb");
     failed |= expect_segment(descriptive, "nd", 1, "is segment bare nd");
     failed |= expect_segment(descriptive, "ě", 1, "is segment precomposed e caron");
@@ -721,8 +721,8 @@ int main(void)
         "distance tone clusters"
     );
 
-    /* Node-weight presets, reached through the scoring seam. Every preset was
-     * previously verified only from Python. */
+    /* Node-weight presets, reached through the scoring seam, so every preset
+     * is verified from C and not only from Python. */
     {
         static const char *const presets[] = {
             "flat", "segmental", "ignore-tone", "ignore-length",
@@ -768,8 +768,8 @@ int main(void)
         }
 
         /* An unknown preset is MK_ERR_INVALID_ARGUMENT on every scoring path.
-         * The cluster path used to compose its components' fallback values into
-         * a plausible number and report MK_OK. */
+         * Guards against the cluster path composing its components' fallback
+         * values into a plausible number and reporting MK_OK. */
         distance = -1.0;
         failed |= expect_status(
             mk_system_segment_distance_with_weights(
@@ -920,9 +920,9 @@ int main(void)
 
     {
         /* IPA tone letters are Chao digits written differently and must survive
-         * merging. The tokenizer grouped them into a tone run that the merge
-         * step could not decode, so it judged the run all-zero and dropped it:
-         * "a˥" came back as a toneless "a". */
+         * merging. Guards against the merge step failing to decode a run of
+         * them, judging it all-zero and dropping it, so that "a˥" comes back as
+         * a toneless "a". */
         mk_string_list *segments = NULL;
         double letters = 0.0;
         double digits = 0.0;
@@ -1052,9 +1052,7 @@ int main(void)
     );
     failed |= expect_status(mk_registry_get_system(registry, "toy", &toy), MK_OK, "get runtime model");
 
-    /* System identity. Both were exported, documented and never called by
-     * anything -- not a test, not the example, not the Python extension. The
-     * kind matters to a caller because coverage means different things by it:
+    /* System identity. The kind matters to a caller because coverage means different things by it:
      * a valued system's is a real fraction, a categorical one's is 1.0 for any
      * pair that reaches a scored dimension.
      *
@@ -1104,8 +1102,8 @@ int main(void)
     }
 
     /* A name already in the registry is refused rather than appended.
-     * mk_registry_get_system returns the first match, so a second `toy` used to
-     * install with MK_OK and then be unreachable for the rest of the registry's
+     * mk_registry_get_system returns the first match, so a second `toy`
+     * installed with MK_OK would be unreachable for the rest of the registry's
      * life -- the caller told it worked, every query answered from the first
      * one. The compiled-in names are held to the same rule. */
     {
@@ -1176,10 +1174,10 @@ int main(void)
 
     {
         /* A runtime model's graphemes are lookup keys, so they go through the
-         * same normalization a query does. A row written with a precomposed
-         * "ã" used to be unreachable: the key stayed composed while every
-         * query was decomposed, so neither spelling ever matched. Both must
-         * now resolve, and so must the ligature the source conventions fold. */
+         * same normalization a query does. Guards against a row written with
+         * a precomposed "ã" being unreachable: a key left composed while every
+         * query is decomposed matches neither spelling. Both must resolve, and
+         * so must the ligature the source conventions fold. */
         const mk_system *composed = NULL;
 
         failed |= expect_status(

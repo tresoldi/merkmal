@@ -7,10 +7,10 @@
  * point. Every run must return MK_OK or MK_ERR_OOM. Under the address
  * sanitizer a crash, double free or leak on any of those paths fails the test.
  *
- * This is what found mk_system_segment_ipa freeing its orthographic tokens
- * twice when the final list allocation failed, and the cluster synthesizer
+ * Guards against mk_system_segment_ipa freeing its orthographic tokens twice
+ * when the final list allocation fails, and against the cluster synthesizer
  * leaking a parsed component ("kpa", "pʰa", "mbu", "tsʰo") when recording it
- * failed. */
+ * fails. */
 #include "merkmal.h"
 #include "profile.h"
 

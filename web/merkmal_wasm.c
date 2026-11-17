@@ -1,8 +1,10 @@
 /* WebAssembly adapter: a JSON-in, JSON-out surface over the C ABI.
  *
- * Every entry point returns a caller-owned string (JSON) that JavaScript must
- * hand back to merkmal_free. The library is reached only through its compiled-in
- * models, so this links with -sFILESYSTEM=0. */
+ * Every entry point that returns `char *` returns a caller-owned JSON string
+ * that JavaScript must hand back to merkmal_free. merkmal_version is the
+ * exception: its string is static and must not be freed. The library is
+ * reached only through its compiled-in models, so this links with
+ * -sFILESYSTEM=0. */
 
 #include "merkmal.h"
 
@@ -38,7 +40,12 @@ EMSCRIPTEN_KEEPALIVE char *merkmal_register_model(const char *model_text);
 EMSCRIPTEN_KEEPALIVE const char *merkmal_version(void);
 EMSCRIPTEN_KEEPALIVE void merkmal_free(char *text);
 
-/* ---- growable JSON buffer -------------------------------------------- */
+/* Growable JSON buffer
+ *
+ * An allocation failure frees the buffer and leaves data NULL; every later
+ * append is then a no-op, and jb_finish returns an "oom" error object (or
+ * NULL if even that cannot be allocated). Callers need not check each
+ * append. */
 
 typedef struct {
     char *data;
@@ -130,7 +137,10 @@ static char *jb_finish(jbuf *b)
     return b->data;
 }
 
-/* ---- helpers --------------------------------------------------------- */
+/* Helpers */
+
+/* One built-in registry for the life of the module, never freed. Returns NULL
+ * if it cannot be created; the next call tries again. */
 
 static mk_registry *shared_registry(void)
 {
@@ -162,7 +172,7 @@ static mk_status get_system(const char *name, const mk_system **out)
     return mk_registry_get_system(reg, name, out);
 }
 
-/* ---- exported functions ---------------------------------------------- */
+/* Exported functions */
 
 EMSCRIPTEN_KEEPALIVE
 char *merkmal_list_systems(void)

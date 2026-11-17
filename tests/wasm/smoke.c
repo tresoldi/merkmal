@@ -48,10 +48,10 @@ int main(void)
         failed = fail_status(status, "features");
         goto cleanup;
     }
-    /* Membership, not cardinality. This assertion was pinned to a count of 5,
-     * which the descriptive inventory outgrew; the exact feature set is what
-     * the golden fixtures are for, and what this test needs to know is that
-     * the lookup path works under Emscripten at all. */
+    /* Membership, not cardinality: a pinned count breaks whenever the
+     * descriptive inventory grows. The exact feature set is what the golden
+     * fixtures are for; what this test needs to know is that the lookup path
+     * works under Emscripten at all. */
     if (!has_feature(features, "aspirated") ||
         !has_feature(features, "bilabial") ||
         !has_feature(features, "voiceless")) {
@@ -62,10 +62,8 @@ int main(void)
     mk_string_list_free(features);
     features = NULL;
 
-    /* Invariants, not a pinned value. This compared against 0.375, which is the
-     * pre-C Python figure preserved in the archived `_full` fixtures; the C
-     * library answers 0.125. Exact values belong in the golden fixtures, which
-     * are regenerated deliberately when scoring changes. */
+    /* Invariants, not a pinned value. Exact values belong in the golden
+     * fixtures, which are regenerated deliberately when scoring changes. */
     status = mk_system_segment_distance(system, "p", "p", &distance);
     if (status != MK_OK) {
         failed = fail_status(status, "distance-identity");

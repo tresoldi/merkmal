@@ -5,8 +5,7 @@
 
 #include <stddef.h>
 
-/* Shared by every fixture-replaying test. The TSV reader was copied verbatim
- * into three of them. */
+/* Shared by every fixture-replaying test, so the TSV reader exists once. */
 
 /* Reads one tab-delimited field into `out`, advancing `*cursor` past it and
  * past the tab. Returns non-zero when the field was non-empty. */

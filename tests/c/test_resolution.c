@@ -1,7 +1,7 @@
 /* Tests the resolution seam directly.
  *
- * Resolution used to be observable only as a boolean from mk_system_is_segment
- * or a feature set from mk_system_grapheme_features, so a test could say that
+ * Through mk_system_is_segment or mk_system_grapheme_features, resolution is
+ * observable only as a boolean or a feature set, so a test there can say that
  * a spelling was accepted but not how — whether it came from the inventory,
  * from tie-bar stripping, or from one of four synthesizers. These cases assert
  * the path, so a change that quietly moves a segment from one construction to
@@ -83,8 +83,8 @@ static const resolution_case cases[] = {
     { "descriptive", "a¹²³⁴", MK_ERR_PARSE, MKI_RESOLVED_NONE, NULL },
     /* A breve plus a length mark puts one segment at two points of the
      * duration scale. Both cluster kinds report it the same way: parse, not
-     * unknown, because the shape was recognized and the content refused. The
-     * two synthesizers disagreed about this before they shared a scan. */
+     * unknown, because the shape was recognized and the content refused.
+     * Guards against the two synthesizers reporting it differently. */
     { "descriptive", "aĭː", MK_ERR_PARSE, MKI_RESOLVED_NONE, NULL },
     { "descriptive", "mb̆ː", MK_ERR_PARSE, MKI_RESOLVED_NONE, NULL },
     /* No dimension a tone modifier can move, so tone is refused rather than
@@ -198,8 +198,8 @@ static int check_invalid_arguments(void)
 
 /* Every compiled row, through the interned storage.
  *
- * The golden fixtures cover the graphemes they name; this covers all 9,728
- * rows, which is what makes a bad pool offset or a truncated feature run show
+ * The golden fixtures cover the graphemes they name; this covers every row
+ * of every compiled system, which is what makes a bad pool offset or a truncated feature run show
  * up as a failure rather than as a wrong answer for some segment nobody
  * sampled. Each row must also resolve back to itself: that exercises
  * mki_inventory_find against the same data mki_inventory_row reports. */
