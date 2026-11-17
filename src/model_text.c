@@ -2,11 +2,13 @@
 
 #include "model_text.h"
 
+#include "array.h"
 #include "geometry.h"
 #include "normalize.h"
 #include "strings.h"
 
 #include <ctype.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -99,16 +101,13 @@ static mk_status mk_add_parsed_entry(
         if (feature == NULL) {
             break;
         }
-        if (feature_count + 1 > feature_cap) {
-            size_t new_cap = feature_cap == 0 ? 8 : feature_cap * 2;
-            next_features = (char **)realloc(features, new_cap * sizeof(*features));
-            if (next_features == NULL) {
-                mki_free_items(features, feature_count);
-                return MK_ERR_OOM;
-            }
-            features = next_features;
-            feature_cap = new_cap;
+        next_features = (char **)mki_grow_array(
+            features, &feature_cap, feature_count, 1, sizeof(*features), 8);
+        if (next_features == NULL) {
+            mki_free_items(features, feature_count);
+            return MK_ERR_OOM;
         }
+        features = next_features;
         features[feature_count] = mki_strdup_internal(feature);
         if (features[feature_count] == NULL) {
             mki_free_items(features, feature_count);
@@ -121,16 +120,13 @@ static mk_status mk_add_parsed_entry(
         return MK_ERR_PARSE;
     }
 
-    if (*count + 1 > *cap) {
-        size_t new_cap = *cap == 0 ? 8 : *cap * 2;
-        next_entries = (mk_builtin_entry *)realloc(*entries, new_cap * sizeof(**entries));
-        if (next_entries == NULL) {
-            mki_free_items(features, feature_count);
-            return MK_ERR_OOM;
-        }
-        *entries = next_entries;
-        *cap = new_cap;
+    next_entries = (mk_builtin_entry *)mki_grow_array(
+        *entries, cap, *count, 1, sizeof(**entries), 8);
+    if (next_entries == NULL) {
+        mki_free_items(features, feature_count);
+        return MK_ERR_OOM;
     }
+    *entries = next_entries;
 
     /* Store the lookup key, not the spelling. Queries are normalized before
      * they reach an inventory, so a model written with a precomposed "ã" could
@@ -339,6 +335,9 @@ mk_status mki_parse_model_text_n(
         return MK_ERR_PARSE;
     }
 
+    if (model_text_length == SIZE_MAX) {
+        return MK_ERR_OOM;
+    }
     copy = (char *)malloc(model_text_length + 1);
     if (copy == NULL) {
         return MK_ERR_OOM;

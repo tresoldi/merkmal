@@ -752,23 +752,7 @@ typedef struct mk_text {
 
 static bool mk_text_add(mk_text *t, const char *s)
 {
-    size_t len = strlen(s);
-    if (t->length + len + 1 > t->capacity) {
-        size_t cap = t->capacity == 0 ? 256 : t->capacity;
-        char *grown;
-        while (t->length + len + 1 > cap) {
-            cap *= 2;
-        }
-        grown = (char *)realloc(t->data, cap);
-        if (grown == NULL) {
-            return false;
-        }
-        t->data = grown;
-        t->capacity = cap;
-    }
-    memcpy(t->data + t->length, s, len + 1);
-    t->length += len;
-    return true;
+    return mki_append_text(&t->data, &t->length, &t->capacity, s) == MK_OK;
 }
 
 static bool mk_cell_text(const mk_bundle *b, const mk_column *col, const mk_cell *c, mk_text *t)

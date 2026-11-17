@@ -1,5 +1,8 @@
 #include "strings.h"
 
+#include "array.h"
+
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -60,18 +63,16 @@ mk_status mki_append_text(char **buf, size_t *len, size_t *cap, const char *s)
     char *next;
 
     n = strlen(s);
-    if (*len + n + 1 > *cap) {
-        size_t new_cap = *cap == 0 ? 32 : *cap;
-        while (*len + n + 1 > new_cap) {
-            new_cap *= 2;
-        }
-        next = (char *)realloc(*buf, new_cap);
-        if (next == NULL) {
-            return MK_ERR_OOM;
-        }
-        *buf = next;
-        *cap = new_cap;
+    /* Room for the suffix and the terminator. A suffix so long that n + 1
+     * overflows is refused by the helper as a failed allocation. */
+    if (n == SIZE_MAX) {
+        return MK_ERR_OOM;
     }
+    next = (char *)mki_grow_array(*buf, cap, *len, n + 1, 1, 32);
+    if (next == NULL) {
+        return MK_ERR_OOM;
+    }
+    *buf = next;
     memcpy(*buf + *len, s, n);
     *len += n;
     (*buf)[*len] = '\0';

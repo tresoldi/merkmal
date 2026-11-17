@@ -2,6 +2,7 @@
 
 #include "unicode_norm.h"
 
+#include "array.h"
 #include "generated/unicode_data.h"
 
 #include <stdlib.h>
@@ -30,20 +31,13 @@ typedef struct mk_code_points {
 
 static mk_status mk_push(mk_code_points *buffer, unsigned int cp)
 {
-    if (buffer->count == buffer->cap) {
-        size_t cap = buffer->cap == 0 ? 32 : buffer->cap * 2;
-        unsigned int *next;
+    unsigned int *next = (unsigned int *)mki_grow_array(
+        buffer->items, &buffer->cap, buffer->count, 1, sizeof(*next), 32);
 
-        if (cap > ((size_t)-1) / sizeof(*next)) {
-            return MK_ERR_OOM;
-        }
-        next = (unsigned int *)realloc(buffer->items, cap * sizeof(*next));
-        if (next == NULL) {
-            return MK_ERR_OOM;
-        }
-        buffer->items = next;
-        buffer->cap = cap;
+    if (next == NULL) {
+        return MK_ERR_OOM;
     }
+    buffer->items = next;
     buffer->items[buffer->count++] = cp;
     return MK_OK;
 }

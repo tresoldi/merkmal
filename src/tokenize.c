@@ -7,6 +7,7 @@
 
 #include "merkmal.h"
 
+#include "array.h"
 #include "ipa.h"
 #include "normalize.h"
 #include "string_list.h"
@@ -26,17 +27,12 @@
  * dereferences because it could not make that argument either. */
 static mk_status mk_push_token(char ***items, size_t *count, size_t *cap, char *token)
 {
-    if (*count + 1 > *cap) {
-        char **next;
-        size_t new_cap = *cap == 0 ? 8 : *cap * 2;
+    char **next = (char **)mki_grow_array(*items, cap, *count, 1, sizeof(**items), 8);
 
-        next = (char **)realloc(*items, new_cap * sizeof(**items));
-        if (next == NULL) {
-            return MK_ERR_OOM;
-        }
-        *items = next;
-        *cap = new_cap;
+    if (next == NULL) {
+        return MK_ERR_OOM;
     }
+    *items = next;
     (*items)[(*count)++] = token;
     return MK_OK;
 }

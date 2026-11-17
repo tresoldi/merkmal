@@ -1,5 +1,6 @@
 #include "resolver.h"
 
+#include "array.h"
 #include "cluster.h"
 #include "fingerprint.h"
 
@@ -354,17 +355,14 @@ mk_status mk_system_segment_ipa(
             status = MK_ERR_OOM;
             goto fail;
         }
-        if (count + 1 > cap) {
-            char **next;
-            size_t new_cap = cap == 0 ? 8 : cap * 2;
-            next = (char **)realloc(items, new_cap * sizeof(*items));
+        {
+            char **next = (char **)mki_grow_array(items, &cap, count, 1, sizeof(*items), 8);
             if (next == NULL) {
                 free(candidate);
                 status = MK_ERR_OOM;
                 goto fail;
             }
             items = next;
-            cap = new_cap;
         }
         items[count++] = candidate;
         index += chosen;

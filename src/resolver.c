@@ -3,6 +3,7 @@
 
 #include "resolver.h"
 
+#include "array.h"
 #include "ipa.h"
 #include "normalize.h"
 #include "strings.h"
@@ -224,15 +225,11 @@ static mk_status mk_add_owned_feature(char ***items, size_t *count, size_t *cap,
         mk_feature_list_contains((const char *const *)*items, *count, feature)) {
         return MK_OK;
     }
-    if (*count + 1 > *cap) {
-        size_t new_cap = *cap == 0 ? 8 : *cap * 2;
-        next = (char **)realloc(*items, new_cap * sizeof(**items));
-        if (next == NULL) {
-            return MK_ERR_OOM;
-        }
-        *items = next;
-        *cap = new_cap;
+    next = (char **)mki_grow_array(*items, cap, *count, 1, sizeof(**items), 8);
+    if (next == NULL) {
+        return MK_ERR_OOM;
     }
+    *items = next;
     (*items)[*count] = mki_strdup_internal(feature);
     if ((*items)[*count] == NULL) {
         return MK_ERR_OOM;
@@ -1313,15 +1310,13 @@ static mk_status mk_add_cluster_component(
     mk_cluster_component *slot;
     char *grapheme;
 
-    if (*count + 1 > *cap) {
-        size_t new_cap = *cap == 0 ? 4 : *cap * 2;
-        mk_cluster_component *next = (mk_cluster_component *)realloc(
-            *components, new_cap * sizeof(**components));
+    {
+        mk_cluster_component *next = (mk_cluster_component *)mki_grow_array(
+            *components, cap, *count, 1, sizeof(**components), 4);
         if (next == NULL) {
             return MK_ERR_OOM;
         }
         *components = next;
-        *cap = new_cap;
     }
     grapheme = (char *)malloc(len + 1);
     if (grapheme == NULL) {

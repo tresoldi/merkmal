@@ -59,6 +59,7 @@ if(MERKMAL_REQUIRE_UTF8PROC AND NOT UTF8PROC_FOUND)
 endif()
 
 set(MERKMAL_SOURCES
+    src/array.c
     src/bundle.c
     src/cluster.c
     src/diagnose.c
@@ -264,10 +265,22 @@ if(MERKMAL_BUILD_TESTS)
     endif()
     add_test(NAME cluster COMMAND test_cluster)
 
+    # The checked growth helper, on its own: its overflow paths cannot be
+    # reached through the public API with any input that fits in memory.
+    add_executable(test_array tests/c/test_array.c src/array.c)
+    target_include_directories(test_array PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    if(MERKMAL_ENABLE_SANITIZER)
+        target_compile_options(test_array
+            PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER} -fno-omit-frame-pointer
+        )
+        target_link_options(test_array PRIVATE -fsanitize=${MERKMAL_ENABLE_SANITIZER})
+    endif()
+    add_test(NAME array COMMAND test_array)
+
     # The built-in NFC and NFD. With utf8proc found, the test also compares
     # every code point and generated mark sequences against it; utf8proc is a
     # test oracle here, never a dependency of the library.
-    add_executable(test_unicode tests/c/test_unicode.c src/unicode_norm.c src/generated/unicode_data.c)
+    add_executable(test_unicode tests/c/test_unicode.c src/array.c src/unicode_norm.c src/generated/unicode_data.c)
     target_include_directories(test_unicode
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -306,6 +319,7 @@ if(MERKMAL_BUILD_TESTS)
         test_resolution
         test_scoring
         test_cluster
+        test_array
         test_unicode
     )
         target_compile_options(${target} PRIVATE ${MERKMAL_C_WARNINGS})
