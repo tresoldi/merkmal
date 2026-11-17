@@ -42,22 +42,87 @@ static bool mk_is_suffix_modifier(const char *p)
     return mki_is_modifier_letter_or_symbol(p);
 }
 
+/* The tokens finished so far and the one being built.
+ *
+ * `current` is owned here until it is pushed onto `items`; everything in
+ * `items` is owned here until mki_string_list_adopt takes the array. So one
+ * cleanup at the end of mk_segment_ipa frees whatever exists on any path.
+ *
+ * `has_base` says the current token already holds a base code point, so the
+ * next base starts a new token; `after_tie` says a tie bar was just appended,
+ * so the next base joins this one instead. */
+typedef struct mk_tokenizer {
+    char **items;
+    size_t count;
+    size_t cap;
+    char *current;
+    size_t current_len;
+    size_t current_cap;
+    bool has_base;
+    bool after_tie;
+} mk_tokenizer;
+
+/* Finishes the token being built, if there is one. On failure `current` stays
+ * owned by the tokenizer. */
+static mk_status mk_end_token(mk_tokenizer *t)
+{
+    if (t->current_len == 0) {
+        return MK_OK;
+    }
+    if (mk_push_token(&t->items, &t->count, &t->cap, t->current) != MK_OK) {
+        return MK_ERR_OOM;
+    }
+    t->current = NULL;
+    t->current_len = 0;
+    t->current_cap = 0;
+    return MK_OK;
+}
+
+/* Finishes the current token and forgets the base/tie context: a space, a tone
+ * run or a boundary separates what comes before from what comes after. */
+static mk_status mk_break(mk_tokenizer *t)
+{
+    t->has_base = false;
+    t->after_tie = false;
+    return mk_end_token(t);
+}
+
+/* Pushes `n` bytes at `start` as a token of their own. */
+static mk_status mk_push_copy(mk_tokenizer *t, const char *start, size_t n)
+{
+    char *token = (char *)malloc(n + 1);
+
+    if (token == NULL) {
+        return MK_ERR_OOM;
+    }
+    memcpy(token, start, n);
+    token[n] = '\0';
+    if (mk_push_token(&t->items, &t->count, &t->cap, token) != MK_OK) {
+        free(token);
+        return MK_ERR_OOM;
+    }
+    return MK_OK;
+}
+
+/* Appends one code point of `n` bytes (at most four) to the current token. */
+static mk_status mk_append_code_point(mk_tokenizer *t, const char *p, size_t n)
+{
+    char one[5];
+
+    memcpy(one, p, n);
+    one[n] = '\0';
+    return mki_append_text(&t->current, &t->current_len, &t->current_cap, one);
+}
+
 mk_status mk_segment_ipa(
     const char *utf8_in,
     mk_string_list **out
 )
 {
+    mk_tokenizer t = {NULL, 0, 0, NULL, 0, 0, false, false};
+    char *normalized = NULL;
     const char *p;
-    char **items;
-    size_t count;
-    size_t cap;
-    char *normalized;
     mk_status status;
-    char *current;
-    size_t current_len;
-    size_t current_cap;
-    int has_base;
-    int after_tie;
 
     if (utf8_in == NULL || out == NULL) {
         return MK_ERR_INVALID_ARGUMENT;
@@ -69,183 +134,81 @@ mk_status mk_segment_ipa(
         return status;
     }
 
-    items = NULL;
-    count = 0;
-    cap = 0;
-    current = NULL;
-    current_len = 0;
-    current_cap = 0;
-    has_base = 0;
-    after_tie = 0;
     p = normalized;
-
     while (*p != '\0') {
         size_t n;
 
         if (*p == ' ') {
-            if (current_len > 0) {
-                if (mk_push_token(&items, &count, &cap, current) != MK_OK) {
-                    free(current);
-                    free(normalized);
-                    mki_free_items(items, count);
-                    return MK_ERR_OOM;
-                }
-                current = NULL;
-                current_len = 0;
-                current_cap = 0;
-            }
-            has_base = 0;
-            after_tie = 0;
+            /* A space separates tokens and is not one. */
+            status = mk_break(&t);
             p++;
-            continue;
-        }
-
-        if (mki_is_chao_digit(p) || mki_is_boundary(p)) {
-            if (current_len > 0) {
-                if (mk_push_token(&items, &count, &cap, current) != MK_OK) {
-                    free(current);
-                    free(normalized);
-                    mki_free_items(items, count);
-                    return MK_ERR_OOM;
-                }
-                current = NULL;
-                current_len = 0;
-                current_cap = 0;
-            }
-            has_base = 0;
-            after_tie = 0;
-        }
-
-        if (mki_is_chao_digit(p)) {
+        } else if (mki_is_chao_digit(p)) {
+            /* A run of Chao digits is one token. */
             const char *start = p;
-            char *token;
+
+            status = mk_break(&t);
+            if (status != MK_OK) {
+                goto cleanup;
+            }
             while (mki_is_chao_digit(p)) {
                 p += mki_utf8_step(p);
             }
-            n = (size_t)(p - start);
-            token = (char *)malloc(n + 1);
-            if (token == NULL) {
-                free(normalized);
-                mki_free_items(items, count);
-                return MK_ERR_OOM;
-            }
-            memcpy(token, start, n);
-            token[n] = '\0';
-            if (mk_push_token(&items, &count, &cap, token) != MK_OK) {
-                free(token);
-                free(current);
-                free(normalized);
-                mki_free_items(items, count);
-                return MK_ERR_OOM;
-            }
-            continue;
+            status = mk_push_copy(&t, start, (size_t)(p - start));
         } else if (mki_is_boundary(p)) {
-            char *token;
+            /* A boundary marker is a token of its own. */
+            status = mk_break(&t);
+            if (status != MK_OK) {
+                goto cleanup;
+            }
             n = mki_utf8_step(p);
-            token = (char *)malloc(n + 1);
-            if (token == NULL) {
-                free(normalized);
-                mki_free_items(items, count);
-                return MK_ERR_OOM;
-            }
-            memcpy(token, p, n);
-            token[n] = '\0';
+            status = mk_push_copy(&t, p, n);
             p += n;
-            if (mk_push_token(&items, &count, &cap, token) != MK_OK) {
-                free(token);
-                free(current);
-                free(normalized);
-                mki_free_items(items, count);
-                return MK_ERR_OOM;
-            }
-            continue;
         } else if (mki_has_prefix(p, "͡") || mki_has_prefix(p, "͜")) {
+            /* A tie bar joins the next base to this token. */
             n = mki_utf8_step(p);
-            status = mki_append_text(&current, &current_len, &current_cap, mki_has_prefix(p, "͡") ? "͡" : "͜");
-            if (status != MK_OK) {
-                free(current);
-                free(normalized);
-                mki_free_items(items, count);
-                return status;
-            }
-            after_tie = 1;
+            status = mk_append_code_point(&t, p, n);
+            t.after_tie = true;
             p += n;
-            continue;
-        } else if (mki_is_combining_mark(p)) {
-            char one[5];
+        } else if (mki_is_combining_mark(p) || mk_is_suffix_modifier(p)) {
+            /* Diacritics and modifier letters attach to the current token. */
             n = mki_utf8_step(p);
-            memcpy(one, p, n);
-            one[n] = '\0';
-            status = mki_append_text(&current, &current_len, &current_cap, one);
-            if (status != MK_OK) {
-                free(current);
-                free(normalized);
-                mki_free_items(items, count);
-                return status;
-            }
+            status = mk_append_code_point(&t, p, n);
             p += n;
-            continue;
-        } else if (mk_is_suffix_modifier(p)) {
-            char one[5];
-            n = mki_utf8_step(p);
-            memcpy(one, p, n);
-            one[n] = '\0';
-            status = mki_append_text(&current, &current_len, &current_cap, one);
-            if (status != MK_OK) {
-                free(current);
-                free(normalized);
-                mki_free_items(items, count);
-                return status;
-            }
-            p += n;
-            continue;
         } else {
-            char one[5];
-            if (has_base && !after_tie && current_len > 0) {
-                if (mk_push_token(&items, &count, &cap, current) != MK_OK) {
-                    free(current);
-                    free(normalized);
-                    mki_free_items(items, count);
-                    return MK_ERR_OOM;
+            /* A base code point starts a new token unless a tie joins it. */
+            if (t.has_base && !t.after_tie) {
+                status = mk_end_token(&t);
+                if (status != MK_OK) {
+                    goto cleanup;
                 }
-                current = NULL;
-                current_len = 0;
-                current_cap = 0;
             }
             n = mki_utf8_step(p);
-            memcpy(one, p, n);
-            one[n] = '\0';
-            status = mki_append_text(&current, &current_len, &current_cap, one);
-            if (status != MK_OK) {
-                free(current);
-                free(normalized);
-                mki_free_items(items, count);
-                return status;
-            }
-            has_base = 1;
-            after_tie = 0;
+            status = mk_append_code_point(&t, p, n);
+            t.has_base = true;
+            t.after_tie = false;
             p += n;
-            continue;
+        }
+        if (status != MK_OK) {
+            goto cleanup;
         }
     }
 
-    if (current_len > 0) {
-        if (mk_push_token(&items, &count, &cap, current) != MK_OK) {
-            free(current);
-            free(normalized);
-            mki_free_items(items, count);
-            return MK_ERR_OOM;
-        }
-        current = NULL;
+    status = mk_end_token(&t);
+    if (status != MK_OK) {
+        goto cleanup;
     }
+    if (mki_string_list_adopt(t.items, t.count, out) != MK_OK) {
+        status = MK_ERR_OOM;
+        goto cleanup;
+    }
+    t.items = NULL;
+    t.count = 0;
+
+cleanup:
+    free(t.current);
     free(normalized);
-
-    if (mki_string_list_adopt(items, count, out) != MK_OK) {
-        mki_free_items(items, count);
-        return MK_ERR_OOM;
-    }
-
-    return MK_OK;
+    mki_free_items(t.items, t.count);
+    return status;
 }
 
 mk_status mk_segment_ipa_merged(

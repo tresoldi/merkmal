@@ -8,6 +8,7 @@
 #include "strings.h"
 
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -299,6 +300,135 @@ mk_status mki_parse_model_text(
     return mki_parse_model_text_n(model_text, strlen(model_text), out, diagnostic);
 }
 
+/* What the parser has gathered so far. Everything a pointer here holds is
+ * owned by the parse until mki_parse_model_text_n hands it to `out`. */
+typedef struct mk_model_parse {
+    char *name;
+    bool saw_categorical;
+    bool strict;
+    /* The first line nothing recognized, kept rather than rejected because
+     * '@validation permissive' may come later in the file. Diagnostic text
+     * only, so truncation is acceptable. */
+    char unknown_directive[256];
+    int unknown_directive_line;
+    mki_builtin_entry *entries;
+    size_t entry_count;
+    size_t entry_cap;
+} mk_model_parse;
+
+/* The arguments of `line` if it is the directive `keyword` followed by
+ * whitespace, and NULL otherwise. A keyword alone on its line, or run into
+ * other text ("@modelx"), is not the directive. */
+static char *mk_directive_args(char *line, const char *keyword)
+{
+    size_t n = strlen(keyword);
+
+    if (strncmp(line, keyword, n) == 0 && isspace((unsigned char)line[n])) {
+        return line + n;
+    }
+    return NULL;
+}
+
+/* One trimmed, non-blank, non-comment line. */
+static mk_status mk_parse_line(
+    mk_model_parse *parse,
+    char *trimmed,
+    int line_no,
+    char **diagnostic
+)
+{
+    char *args;
+    char *token;
+
+    if ((args = mk_directive_args(trimmed, "@validation")) != NULL) {
+        token = mk_next_token(&args);
+        if (token != NULL && strcmp(token, "permissive") == 0) {
+            parse->strict = false;
+        } else if (token != NULL && strcmp(token, "strict") == 0) {
+            parse->strict = true;
+        } else {
+            mk_set_diagnostic(
+                diagnostic,
+                line_no,
+                "@validation must be 'strict' or 'permissive'",
+                token == NULL ? "(missing)" : token
+            );
+            return MK_ERR_PARSE;
+        }
+    } else if ((args = mk_directive_args(trimmed, "@model")) != NULL) {
+        token = mk_next_token(&args);
+        free(parse->name);
+        parse->name = token == NULL ? NULL : mki_strdup_internal(token);
+        if (token != NULL && parse->name == NULL) {
+            return MK_ERR_OOM;
+        }
+    } else if ((args = mk_directive_args(trimmed, "@type")) != NULL) {
+        token = mk_next_token(&args);
+        parse->saw_categorical = token != NULL && strcmp(token, "categorical") == 0;
+        if (!parse->saw_categorical) {
+            return MK_ERR_UNSUPPORTED_MODEL;
+        }
+    } else if ((args = mk_directive_args(trimmed, "grapheme")) != NULL) {
+        mk_status status = mk_add_parsed_entry(
+            &parse->entries, &parse->entry_count, &parse->entry_cap, args);
+        if (status != MK_OK) {
+            mk_set_diagnostic(diagnostic, line_no, "malformed grapheme row", trimmed);
+            return status;
+        }
+    } else if ((args = mk_directive_args(trimmed, "@geometry")) != NULL) {
+        token = mk_next_token(&args);
+        /* Runtime geometry registration is not implemented yet. Do not accept
+         * a name and silently score it with another geometry: that makes a
+         * reproducibility declaration false. */
+        if (token == NULL || strcmp(token, "clements-hume") != 0) {
+            mk_set_diagnostic(
+                diagnostic,
+                line_no,
+                "unsupported runtime geometry (only 'clements-hume' is compiled)",
+                token == NULL ? "(missing)" : token
+            );
+            return MK_ERR_UNSUPPORTED_MODEL;
+        }
+    } else if (mk_directive_args(trimmed, "feature") != NULL) {
+        /* Readability rows. They carry no information the scorer uses, so they
+         * are accepted but never treated as a declaration. */
+    } else if (parse->unknown_directive_line == 0) {
+        parse->unknown_directive_line = line_no;
+        snprintf(parse->unknown_directive, sizeof(parse->unknown_directive), "%s", trimmed);
+    }
+    return MK_OK;
+}
+
+/* The checks that need the whole file: the required directives, and under
+ * strict validation, no unrecognized line and every row's features known. */
+static mk_status mk_check_model(const mk_model_parse *parse, char **diagnostic)
+{
+    if (parse->name == NULL || !parse->saw_categorical || parse->entry_count == 0) {
+        mk_set_diagnostic(
+            diagnostic,
+            0,
+            "a model needs @model, '@type categorical', and at least one grapheme row",
+            parse->name == NULL ? "@model is missing" :
+                (!parse->saw_categorical ? "@type categorical is missing" : "no grapheme rows")
+        );
+        return MK_ERR_PARSE;
+    }
+    if (!parse->strict) {
+        return MK_OK;
+    }
+    if (parse->unknown_directive_line != 0) {
+        mk_set_diagnostic(
+            diagnostic,
+            parse->unknown_directive_line,
+            "strict validation: unrecognized line; ignoring it would hide a typo, "
+            "so use '@validation permissive' to allow it",
+            parse->unknown_directive
+        );
+        return MK_ERR_PARSE;
+    }
+    return mk_validate_strict_entries(parse->entries, parse->entry_count, diagnostic);
+}
+
 mk_status mki_parse_model_text_n(
     const char *model_text,
     size_t model_text_length,
@@ -306,17 +436,10 @@ mk_status mki_parse_model_text_n(
     char **diagnostic
 )
 {
+    mk_model_parse parse = {NULL, false, true, {0}, 0, NULL, 0, 0};
     char *copy;
     char *line;
-    char *name = NULL;
-    int saw_categorical = 0;
-    int strict = 1;
     int line_no = 0;
-    char unknown_directive[256];
-    int unknown_directive_line = 0;
-    mki_builtin_entry *entries = NULL;
-    size_t entry_count = 0;
-    size_t entry_cap = 0;
     mk_status status;
 
     if (out == NULL || model_text == NULL) {
@@ -325,7 +448,6 @@ mk_status mki_parse_model_text_n(
     out->name = NULL;
     out->entries = NULL;
     out->entry_count = 0;
-    unknown_directive[0] = '\0';
 
     /* An embedded NUL would end every strchr and strcmp below early, so the
      * model would parse as whatever preceded it and register successfully.
@@ -357,72 +479,9 @@ mk_status mki_parse_model_text_n(
         line_no++;
         trimmed = mk_trim(line);
         if (trimmed[0] != '\0' && trimmed[0] != '#') {
-            if (strncmp(trimmed, "@validation", 11) == 0 && isspace((unsigned char)trimmed[11])) {
-                char *cursor = trimmed + 11;
-                char *token = mk_next_token(&cursor);
-                if (token != NULL && strcmp(token, "permissive") == 0) {
-                    strict = 0;
-                } else if (token != NULL && strcmp(token, "strict") == 0) {
-                    strict = 1;
-                } else {
-                    mk_set_diagnostic(
-                        diagnostic,
-                        line_no,
-                        "@validation must be 'strict' or 'permissive'",
-                        token == NULL ? "(missing)" : token
-                    );
-                    status = MK_ERR_PARSE;
-                    goto failed;
-                }
-            } else if (strncmp(trimmed, "@model", 6) == 0 && isspace((unsigned char)trimmed[6])) {
-                char *cursor = trimmed + 6;
-                char *token = mk_next_token(&cursor);
-                free(name);
-                name = token == NULL ? NULL : mki_strdup_internal(token);
-                if (token != NULL && name == NULL) {
-                    status = MK_ERR_OOM;
-                    goto failed;
-                }
-            } else if (strncmp(trimmed, "@type", 5) == 0 && isspace((unsigned char)trimmed[5])) {
-                char *cursor = trimmed + 5;
-                char *token = mk_next_token(&cursor);
-                saw_categorical = token != NULL && strcmp(token, "categorical") == 0;
-                if (!saw_categorical) {
-                    status = MK_ERR_UNSUPPORTED_MODEL;
-                    goto failed;
-                }
-            } else if (strncmp(trimmed, "grapheme", 8) == 0 && isspace((unsigned char)trimmed[8])) {
-                char *cursor = trimmed + 8;
-                status = mk_add_parsed_entry(&entries, &entry_count, &entry_cap, cursor);
-                if (status != MK_OK) {
-                    mk_set_diagnostic(diagnostic, line_no, "malformed grapheme row", trimmed);
-                    goto failed;
-                }
-            } else if (strncmp(trimmed, "@geometry", 9) == 0 && isspace((unsigned char)trimmed[9])) {
-                char *cursor = trimmed + 9;
-                char *token = mk_next_token(&cursor);
-                /* Runtime geometry registration is not implemented yet. Do
-                 * not accept a name and silently score it with another
-                 * geometry: that makes a reproducibility declaration false. */
-                if (token == NULL || strcmp(token, "clements-hume") != 0) {
-                    mk_set_diagnostic(
-                        diagnostic,
-                        line_no,
-                        "unsupported runtime geometry (only 'clements-hume' is compiled)",
-                        token == NULL ? "(missing)" : token
-                    );
-                    status = MK_ERR_UNSUPPORTED_MODEL;
-                    goto failed;
-                }
-            } else if (strncmp(trimmed, "feature", 7) == 0 && isspace((unsigned char)trimmed[7])) {
-                /* Readability rows. They carry no information the scorer uses,
-                 * so they are accepted but never treated as a declaration. */
-            } else if (unknown_directive_line == 0) {
-                /* Remembered rather than rejected here: @validation may appear
-                 * further down the file. */
-                unknown_directive_line = line_no;
-                /* Diagnostic text again, so truncation is acceptable. */
-                snprintf(unknown_directive, sizeof(unknown_directive), "%s", trimmed);
+            status = mk_parse_line(&parse, trimmed, line_no, diagnostic);
+            if (status != MK_OK) {
+                goto failed;
             }
         }
         line = next;
@@ -430,44 +489,19 @@ mk_status mki_parse_model_text_n(
     free(copy);
     copy = NULL;
 
-    if (name == NULL || !saw_categorical || entry_count == 0) {
-        mk_set_diagnostic(
-            diagnostic,
-            0,
-            "a model needs @model, '@type categorical', and at least one grapheme row",
-            name == NULL ? "@model is missing" :
-                (!saw_categorical ? "@type categorical is missing" : "no grapheme rows")
-        );
-        status = MK_ERR_PARSE;
+    status = mk_check_model(&parse, diagnostic);
+    if (status != MK_OK) {
         goto failed;
     }
 
-    if (strict) {
-        if (unknown_directive_line != 0) {
-            mk_set_diagnostic(
-                diagnostic,
-                unknown_directive_line,
-                "strict validation: unrecognized line; ignoring it would hide a typo, "
-                "so use '@validation permissive' to allow it",
-                unknown_directive
-            );
-            status = MK_ERR_PARSE;
-            goto failed;
-        }
-        status = mk_validate_strict_entries(entries, entry_count, diagnostic);
-        if (status != MK_OK) {
-            goto failed;
-        }
-    }
-
-    out->name = name;
-    out->entries = entries;
-    out->entry_count = entry_count;
+    out->name = parse.name;
+    out->entries = parse.entries;
+    out->entry_count = parse.entry_count;
     return MK_OK;
 
 failed:
     free(copy);
-    free(name);
-    mk_free_entries(entries, entry_count);
+    free(parse.name);
+    mk_free_entries(parse.entries, parse.entry_count);
     return status;
 }
