@@ -45,7 +45,7 @@ distribution.
 
 def load_manifests() -> list[tuple[Path, dict]]:
     out = []
-    for path in sorted(ROOT.glob("models/*/provenance.json")):
+    for path in sorted(ROOT.glob("data/models/*/provenance.json")):
         out.append((path, json.loads(path.read_text(encoding="utf-8"))))
     return out
 

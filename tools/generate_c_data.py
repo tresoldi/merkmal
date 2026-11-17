@@ -72,7 +72,7 @@ PROFILE_OUTPUTS = {
 
 
 def system_license(name: str) -> str:
-    manifest = json.loads((ROOT / "models" / name / "provenance.json").read_text(encoding="utf-8"))
+    manifest = json.loads((ROOT / "data" / "models" / name / "provenance.json").read_text(encoding="utf-8"))
     return str(manifest["license_spdx"])
 
 
@@ -92,7 +92,7 @@ def model_metadata(name: str) -> tuple[str, str]:
     cannot hash alike. Provenance is intentionally excluded: correcting a
     citation must not change a segment-distance result.
     """
-    directory = ROOT / "models" / name
+    directory = ROOT / "data" / "models" / name
     digest = hashlib.sha256()
     for path in sorted(directory.iterdir()):
         if not path.is_file() or path.name == "provenance.json":
@@ -350,7 +350,7 @@ def parse_sound_name(
 # say "obstruent", "continuant", "anterior" or "consonantal", so the geometry
 # leaves for those never fired and every manner distinction collapsed into a
 # single Manner group boolean: /p/~/f/, /p/~/r/ and /k/~/ʔ/ all cost the same.
-# These derivations are the same ones models/distinctive/model.json already
+# These derivations are the same ones data/models/distinctive/model.json already
 # spells out in its scalar_dimensions; applying them here makes the leaves real
 # for the categorical path too.
 SONORANT_MANNERS = frozenset({"nasal", "lateral", "approximant", "trill", "tap", "vowel"})
@@ -531,15 +531,15 @@ def geometry_node_parents(tree: dict[str, object], parent: str = "") -> list[tup
 
 
 def load_geometry() -> dict[str, object]:
-    return json.loads((ROOT / "geometries" / "clements-hume.json").read_text(encoding="utf-8"))
+    return json.loads((ROOT / "data" / "geometries" / "clements-hume.json").read_text(encoding="utf-8"))
 
 
 def load_diacritics() -> dict[str, object]:
-    return json.loads((ROOT / "diacritics" / "ipa-clts.json").read_text(encoding="utf-8"))
+    return json.loads((ROOT / "data" / "diacritics" / "ipa-clts.json").read_text(encoding="utf-8"))
 
 
 def load_categorical(name: str, geometry: dict[str, object]) -> tuple[str, list[tuple[str, list[str]]], list[tuple[str, str]], list[float], list[dict[str, object]]]:
-    model_dir = ROOT / "models" / name
+    model_dir = ROOT / "data" / "models" / name
     raw = json.loads((model_dir / "model.json").read_text(encoding="utf-8"))
     _, inventory_rows = read_tsv(model_dir / "inventory.tsv")
     feature_categories: dict[str, str] = {}
@@ -596,7 +596,7 @@ def load_categorical(name: str, geometry: dict[str, object]) -> tuple[str, list[
 
 
 def load_valued(name: str, geometry: dict[str, object]) -> tuple[str, list[tuple[str, list[str]]], list[tuple[str, str]], list[float], list[dict[str, object]]]:
-    model_dir = ROOT / "models" / name
+    model_dir = ROOT / "data" / "models" / name
     raw = json.loads((model_dir / "model.json").read_text(encoding="utf-8"))
     header, inventory_rows = read_tsv(model_dir / "inventory.tsv")
 
@@ -1288,11 +1288,11 @@ def generate(output: Path, profile: str = "full") -> None:
     chunks.append(emit_geometry(geometry))
     chunks.append(
         "const char *const mki_fingerprint_geometry_sha256 = "
-        + c_string(sha256_file(ROOT / "geometries" / "clements-hume.json")) + ";"
+        + c_string(sha256_file(ROOT / "data" / "geometries" / "clements-hume.json")) + ";"
     )
     chunks.append(
         "const char *const mki_fingerprint_diacritics_sha256 = "
-        + c_string(sha256_file(ROOT / "diacritics" / "ipa-clts.json")) + ";"
+        + c_string(sha256_file(ROOT / "data" / "diacritics" / "ipa-clts.json")) + ";"
     )
     chunks.append("")
     chunks.append(emit_ordinal_scales(geometry))

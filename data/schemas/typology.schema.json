@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/tresoldi/merkmal/schemas/typology.schema.json",
+  "$id": "https://github.com/tresoldi/merkmal/data/schemas/typology.schema.json",
   "title": "merkmal typology",
   "description": "Asymmetric direction costs encoding diachronic priors. See docs/custom-models.md.",
   "type": "object",

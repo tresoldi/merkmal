@@ -1,6 +1,6 @@
 # The geometry: `merkmal-clements-hume-inspired-v1`
 
-`geometries/clements-hume.json` describes a tree of phonological nodes and
+`data/geometries/clements-hume.json` describes a tree of phonological nodes and
 leaves that the scorer walks to turn a feature-set difference into a number.
 
 **It is inspired by Clements & Hume (1995), not an implementation of it.** The
@@ -146,7 +146,7 @@ Since then, `sonorant`, `continuant`, `anterior`, `distributed` and
 inventory NAME strings never say those words, so the leaves existed and no
 grapheme could activate them, and every manner distinction collapsed into a
 single `Manner` boolean. The generator now derives them from the manner and
-place labels — the same derivation `models/distinctive/model.json` already
+place labels — the same derivation `data/models/distinctive/model.json` already
 spelled out in its `scalar_dimensions`. `scripts/contrast_baseline.py` fails if
 any scoring dimension becomes unreachable again.
 
@@ -225,7 +225,7 @@ length conventions. Nasalisation now sits under `Manner` and ejectivity under
 
 A deeper variant, present as source data. It is not compiled into the native C
 library. Python callers may load it explicitly with
-`merkmal.load_geometry("geometries/deep-clements-hume.json")` and score already
+`merkmal.load_geometry("data/geometries/deep-clements-hume.json")` and score already
 resolved feature sets with `geometry_distance(...)`; this path is experimental
 and deliberately separate from native `distance(...)`. It carries the same
 caveats and must be fingerprinted and calibrated independently.

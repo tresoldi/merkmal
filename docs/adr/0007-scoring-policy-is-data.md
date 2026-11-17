@@ -9,7 +9,7 @@ that a reviewer has to recognize as a change in results.
 
 ## Decision
 
-These numbers live in the geometry file, `geometries/clements-hume.json`:
+These numbers live in the geometry file, `data/geometries/clements-hume.json`:
 `tier_policy.cross_tier_cost`, and `cluster_policy` (nucleus and offglide
 shares, component and segment shares, the length penalty). The generator
 compiles them into the tables; the rules that apply them stay in C

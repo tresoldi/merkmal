@@ -18,7 +18,7 @@ following before building on it:
   clustering algorithms, embedding claims.
 - **It is not a probability or naturalness of sound change**, and it is not
   evidence about historical direction. Nothing in this library observes a
-  change happening. See [typologies/README.md](typologies/README.md).
+  change happening. See [data/typologies/README.md](data/typologies/README.md).
 - **It is not a typological statistic.** The bundled models are segment-type
   catalogs. They do not record which phoneme belongs to which language
   inventory, whether a segment is contrastive or allophonic, or any genealogy,
@@ -329,10 +329,10 @@ merkmal/
 ├── examples/               worked examples, built and run as tests
 ├── tests/c/                C tests (STYLE.md says which link what)
 ├── tests/golden/           parity fixtures for the native implementation
-├── models/                 source model data used by generators
-├── geometries/             source geometry data
-├── diacritics/             source diacritic/tone/modifier mappings
-├── typologies/             source typology data reserved for later C support
+├── data/models/                 source model data used by generators
+├── data/geometries/             source geometry data
+├── data/diacritics/             source diacritic/tone/modifier mappings
+├── data/typologies/             source typology data reserved for later C support
 ├── python/                 native Python wrapper
 └── docs/                   C API and format documentation
 ```
@@ -380,6 +380,6 @@ cmake -S . -B build -DMERKMAL_DATA_PROFILE=cc-by     # the C library
 published package is always the full one; see
 [docs/distribution.md](docs/distribution.md#data-profiles).
 
-See [NOTICE](NOTICE), generated from `models/*/provenance.json`.
+See [NOTICE](NOTICE), generated from `data/models/*/provenance.json`.
 
 This is a record, not legal advice.

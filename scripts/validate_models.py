@@ -22,8 +22,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-MODELS_DIR = ROOT / "models"
-GEOM_DIR = ROOT / "geometries"
+MODELS_DIR = ROOT / "data" / "models"
+GEOM_DIR = ROOT / "data" / "geometries"
 
 errors: list[str] = []
 warnings: list[str] = []
@@ -59,7 +59,7 @@ GEOMETRY_NAMES: set[str] = set()
 def check_identifier(value: str, where: str) -> None:
     """Surrounding whitespace makes an identifier silently fail to match.
 
-    models/pbase-jfh/model.json mapped "vocalic " with a trailing space for
+    data/models/pbase-jfh/model.json mapped "vocalic " with a trailing space for
     long enough to ship: the header said "vocalic", the two never matched, and
     the entire dimension was absent from every distance while every check
     passed.
@@ -522,7 +522,7 @@ def check_scalar_weight_agreement() -> None:
         sys.path.pop(0)
 
     geometry_obj = json.loads(
-        (ROOT / "geometries" / "clements-hume.json").read_text(encoding="utf-8")
+        (ROOT / "data" / "geometries" / "clements-hume.json").read_text(encoding="utf-8")
     )
     # Depth convention has to come from the generator too. `geometry_leaves`
     # counts from the root's children, not from the root, and reimplementing
@@ -535,7 +535,7 @@ def check_scalar_weight_agreement() -> None:
     }
     shared = 0
     bad = 0
-    for path in sorted((ROOT / "models").glob("*/model.json")):
+    for path in sorted((ROOT / "data" / "models").glob("*/model.json")):
         system = path.parent.name
         if json.loads(path.read_text(encoding="utf-8")).get("type") != "categorical":
             continue

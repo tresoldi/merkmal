@@ -28,8 +28,8 @@ touches; STYLE.md, Building and checking, has the full table.
   `-DMERKMAL_ENABLE_SANITIZER=address` and `=undefined`.
 - `scripts/check_format.sh`
 - `scripts/run_static_analysis.sh` (any finding beyond the documented one is new)
-- `python scripts/check_generated_data.py` after touching `models/`,
-  `geometries/`, `diacritics/`, `tools/` or `src/generated/builtin_data.h`
+- `python scripts/check_generated_data.py` after touching `data/models/`,
+  `data/geometries/`, `data/diacritics/`, `tools/` or `src/generated/builtin_data.h`
 - `python scripts/regenerate_golden.py --check`, `scripts/validate_models.py`,
   `scripts/contrast_baseline.py --check`, `scripts/generate_notice.py --check`
 - Python: `python -m ruff check python/merkmal python/tests scripts tools bench typology setup.py`
@@ -43,7 +43,7 @@ touches; STYLE.md, Building and checking, has the full table.
   [ADR 0001](docs/adr/0001-c-api-is-the-canonical-interface.md).
 - `mk_` names are public, `mki_` names internal; the `public_symbols` test
   fails on a leak.
-- Canonical data lives in `models/`, `geometries/` and `diacritics/`. Changing
+- Canonical data lives in `data/models/`, `data/geometries/` and `data/diacritics/`. Changing
   it changes distances, golden fixtures and semantic fingerprints; follow
   docs/release-policy.md, Data Releases.
 

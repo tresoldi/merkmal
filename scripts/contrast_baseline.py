@@ -46,7 +46,7 @@ from pathlib import Path
 import merkmal
 
 ROOT = Path(__file__).resolve().parent.parent
-GEOMETRY = ROOT / "geometries" / "clements-hume.json"
+GEOMETRY = ROOT / "data" / "geometries" / "clements-hume.json"
 BASELINE = ROOT / "tests" / "golden" / "contrast_baseline.tsv"
 
 CATEGORICAL = ["descriptive", "distinctive"]
@@ -92,7 +92,7 @@ VALUED_REASON = (
 
 
 def read_inventory(system: str) -> list[str]:
-    path = ROOT / "models" / system / "inventory.tsv"
+    path = ROOT / "data" / "models" / system / "inventory.tsv"
     with path.open(encoding="utf-8", newline="") as handle:
         reader = csv.reader(handle, delimiter="\t")
         next(reader)
@@ -361,7 +361,7 @@ def unreachable_model_dimensions(system: str, covered: list[str]) -> list[str]:
     A dimension is reachable if any grapheme carries any of its labels. One pole
     is enough: presence against absence still separates two segments.
     """
-    path = ROOT / "models" / system / "model.json"
+    path = ROOT / "data" / "models" / system / "model.json"
     if not path.exists():
         return []
     declared = json.loads(path.read_text(encoding="utf-8")).get("scalar_dimensions", [])
@@ -525,7 +525,7 @@ def main() -> int:
             print(f"  ORPHANED MODEL DIMENSIONS ({len(orphans)}):")
             for name in orphans:
                 print(f"    {name}")
-        elif (ROOT / "models" / system / "model.json").exists():
+        elif (ROOT / "data" / "models" / system / "model.json").exists():
             print("  every declared model dimension is reachable")
 
     if args.write:

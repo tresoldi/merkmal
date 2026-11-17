@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rewrite models/phoible/inventory.tsv cells from the pinned upstream table.
+"""Rewrite data/models/phoible/inventory.tsv cells from the pinned upstream table.
 
 The extraction that produced this inventory was not self-consistent. Measured
 against `cldf-datasets/phoible` v2.0.1, the release `provenance.json` pins:
@@ -50,7 +50,7 @@ import unicodedata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-INVENTORY = ROOT / "models" / "phoible" / "inventory.tsv"
+INVENTORY = ROOT / "data" / "models" / "phoible" / "inventory.tsv"
 
 
 def fold(grapheme: str) -> str:

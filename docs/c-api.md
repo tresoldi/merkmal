@@ -145,7 +145,7 @@ synthesize clusters, so an ordinary cluster pair is fully covered.
 | `MK_CMP_NO_SHARED_DIMENSION` | same tier, no dimension both have a value on. A `0.0` here means "nothing to compare", not "identical" |
 
 **Cross-tier is a policy, and the policy is data.** `tier_policy.cross_tier_cost`
-lives in `geometries/clements-hume.json`, so changing it is a versioned data
+lives in `data/geometries/clements-hume.json`, so changing it is a versioned data
 change with a diff rather than a tree edit — and a later evidence-derived scorer
 can carry its own without disturbing this one. It is 1.0, meaning incomparable:
 gold alignments never place a tone in a column with a segment, and

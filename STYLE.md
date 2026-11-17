@@ -16,7 +16,7 @@ compiler extensions outside the `MK_API` visibility macro in `merkmal.h`.
 | --- | --- |
 | `include/merkmal.h` | The entire public API. The only header that is installed. |
 | `src/*.c`, `src/*.h` | One module per `.c`; its header, if any, is internal. |
-| `src/generated/` | Tables generated from `models/`, `geometries/` and `diacritics/`. Never edit by hand. |
+| `src/generated/` | Tables generated from `data/models/`, `data/geometries/` and `data/diacritics/`. Never edit by hand. |
 | `python/src/merkmal_module.c` | The CPython extension. Uses `merkmal.h` only. |
 | `web/merkmal_wasm.c` | The WebAssembly adapter (JSON in, JSON out). Uses `merkmal.h` only. |
 | `tests/c/` | C tests. Most link the public library; the internal-seam tests link `merkmal_internal`. |

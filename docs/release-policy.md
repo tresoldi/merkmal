@@ -77,13 +77,13 @@ Before tagging a release:
 A data release is separate from a code release, because it changes observable
 numbers even when no code changed.
 
-- Any change to `models/`, `geometries/`, or `diacritics/` that moves a
+- Any change to `data/models/`, `data/geometries/`, or `data/diacritics/` that moves a
   distance or a feature set is a **major** model version, not a patch. Say so
   in `CHANGELOG.md` with what moved and why.
 - Regenerate golden fixtures with `scripts/regenerate_golden.py` and read the
   diff. Do not accept a regenerated fixture without reviewing it: those values
   are the library's contract.
-- Re-stamp `models/*/provenance.json` (the input hashes are checked) and
+- Re-stamp `data/models/*/provenance.json` (the input hashes are checked) and
   regenerate `NOTICE`.
 - If PHOIBLE data is touched, re-verify it against the release its manifest
   pins:
