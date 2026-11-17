@@ -8,7 +8,8 @@
 #include "merkmal.h"
 #include "system.h"
 
-/* The width for a system, without needing an mk_system wrapper. */
+/* The width for a system, without needing an mk_system wrapper. `builtin`
+ * must not be NULL. */
 size_t mki_vector_width_of(const mki_builtin_system *builtin);
 
 #endif

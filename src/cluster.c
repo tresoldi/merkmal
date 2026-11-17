@@ -24,11 +24,8 @@ static bool mk_segment_carries_length(mk_feature_view view)
         mk_view_has(view, "ultra-long");
 }
 
-/* Distance between two feature views, through whichever scorer the system uses.
- *
- * Identity is settled here rather than by the scorer, which sees features and
- * no grapheme: two spellings of one segment resolve to the same parts and would
- * reach 0.0 anyway, so this skips the walk. */
+/* Distance between two feature views, through whichever scorer the system
+ * uses. Not checked for a NULL scorer: see mki_cluster_distance in cluster.h. */
 static mk_status mk_score_views(
     const mk_system *system,
     mk_feature_view a,
@@ -41,7 +38,12 @@ static mk_status mk_score_views(
         system->builtin, a, b, node_weights, out, NULL);
 }
 
-/* One part of a cluster against a resolved segment. */
+/* One part of a cluster against a resolved segment.
+ *
+ * Identity is settled by grapheme here and in mk_part_to_part rather than by
+ * the scorer, which sees features and no grapheme: two spellings of one
+ * segment resolve to the same parts and would reach 0.0 anyway, so the test
+ * only skips the walk. */
 static mk_status mk_part_to_segment(
     const mk_system *system,
     const mki_cluster_component *part,
@@ -124,18 +126,18 @@ static mk_status mk_cluster_to_segment(
     /* The extra-component penalty says a two-part spelling is further from a
      * one-part segment than a one-part spelling is. That is right for `ai`
      * against `a`, and double-counting for `aa` against `aː`: the length the
-     * penalty charges for is the very thing the other side spells out. It made
-     * a doubled vowel further from the long vowel (0.233) than a plain short
-     * one was (0.064), and doubling is how Uralic, Austronesian and much
-     * African data write length.
+     * penalty charges for is the very thing the other side spells out. Charged,
+     * it would put a doubled vowel further from the long vowel than a plain
+     * short one is, and doubling is how Uralic, Austronesian and much African
+     * data write length.
      *
      * Waived, not reversed. `aa` lands where `a` does rather than closer,
      * because whether a doubled vowel means length or a genuine sequence is a
-     * property of the source that nothing here can read per form. Claiming it
-     * means length is the move that cost a PHOIBLE contrast when it was applied
-     * to `ɫ`.
+     * property of the source that nothing here can read per form, and claiming
+     * more than the source says is how contrasts get merged.
      *
-     * The waiver is a rule and stays here; the 0.15 it waives is data. */
+     * The waiver is a rule and stays here; the penalty it waives is data
+     * (`cluster_policy` in the geometry file). */
     if (!(mk_view_has(mki_view_of(cluster), "geminate") &&
           mk_segment_carries_length(mki_view_of(segment)))) {
         score += mki_clements_hume_cluster_length_penalty *

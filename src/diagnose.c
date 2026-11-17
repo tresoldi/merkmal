@@ -1,11 +1,10 @@
 /* Why a grapheme was refused. See merkmal.h for the contract.
  *
- * Rejection used to be a single status and nothing else, which is enough for
- * "can I score this?" and useless for the workflow a validated inventory and a
- * fast C core should be best in the world at: checking someone's
- * transcriptions. There the diagnosis *is* the product. "Unknown grapheme" does
- * not tell an author whether they mistyped one combining mark, used a
- * convention this library does not read, or wrote a sound it genuinely lacks.
+ * A status alone is enough for "can I score this?" and not for checking
+ * someone's transcriptions, where the diagnosis is the point. "Unknown
+ * grapheme" does not tell an author whether they mistyped one combining mark,
+ * used a convention this library does not read, or wrote a sound it genuinely
+ * lacks.
  *
  * What is reported is what can be established cheaply and stated without
  * guessing:
@@ -57,10 +56,10 @@ mk_status mk_system_diagnose(
     out->status = status;
 
     len = strlen(utf8_grapheme);
-    /* Walk the character boundaries forward and remember the last prefix that
-     * resolved. Forward rather than backward because the answer is usually
-     * short: one base letter and a mark or two, so the loop stops early on the
-     * common case instead of retrying the whole string first. */
+    /* Try every character boundary and keep the longest prefix that
+     * resolves. A failing prefix does not end the walk: a longer one may still
+     * resolve. Each try resolves a NUL-terminated copy, since mki_resolve reads
+     * up to the terminator. */
     cut = 0;
     while (cut < len) {
         size_t step = mki_utf8_step(utf8_grapheme + cut);

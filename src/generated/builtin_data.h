@@ -4,9 +4,10 @@
 /* The shape of the compiled-in data, and the tables themselves.
  *
  * Everything here is emitted by tools/generate_c_data.py into builtin_data.c
- * or describes what it emits. A module that reads a table includes this
- * header; a module that does not, does not. These declarations used to sit in
- * a shared internal.h that every translation unit pulled in whole. */
+ * or describes what it emits. This header is written by hand: the generator
+ * reads its struct fields and MKI_MAX_ENTRY_FEATURES rather than restating
+ * them. A module that reads a table includes this header; a module that does
+ * not, does not. */
 
 #include "merkmal.h"
 
@@ -22,10 +23,9 @@ typedef enum mki_system_type {
  *
  * Only a model parsed at runtime ever holds rows this way; every compiled-in
  * inventory sets `entries` to NULL and uses the interned form below. So every
- * pointer here is heap storage owned by the system that holds the row, and the
- * types say so: they were `const char *` for no better reason than sitting
- * beside the genuinely-const compiled tables, which cost the two destructors
- * twenty-eight casts to free what they owned.
+ * pointer here is heap storage owned by whatever holds the row -- the parsed
+ * model, then the mk_system that adopts it -- and the types are not const, so
+ * the destructors free them without casts.
  *
  * Readers do not touch this type. They go through mki_entry_view in
  * inventory.h, which is const because a reader really is only borrowing. */
@@ -35,36 +35,36 @@ typedef struct mki_builtin_entry {
     size_t feature_count;
 } mki_builtin_entry;
 
-/* The most feature labels one inventory row may carry.
+/* The most feature labels one compiled inventory row may carry.
  *
  * Compiled rows store 16-bit feature ids, so handing one out as
  * `const char *const *` needs an array of pointers to write into. The resolver
  * carries that array inside mki_resolution rather than allocating per lookup,
  * which is why this bound exists and why raising it costs stack on every
- * lookup. tools/generate_c_data.py refuses to emit a row that exceeds it; the
- * widest row in the bundled inventories carries 44. */
+ * lookup. tools/generate_c_data.py reads this value and refuses to emit a row
+ * that exceeds it. Runtime model rows are not checked against it. */
 #define MKI_MAX_ENTRY_FEATURES 64
 
 /* The interned string pool. Every distinct grapheme and feature label appears
- * once; the tables hold byte offsets into it.
+ * once, NUL-terminated; the tables hold offsets into it, and rows hold 16-bit
+ * feature ids that mki_feature_name maps to offsets. Offsets rather than
+ * `const char *` because a pointer per feature slot costs a relocation each,
+ * and offsets need none.
  *
- * The tables used to hold a `const char *` for each of roughly 260,000 feature
- * slots -- 2.08 MB of pointers, and one relocation each, to name 35 KB of
- * text. Offsets need no relocations, which is what made the WebAssembly
- * payload shrink. */
+ * The pool is cut into 2048-byte chunks, since C99 only guarantees string
+ * literals of 4095 characters, and no string straddles a chunk:
+ *
+ *   offset = chunk index << 11 | byte within the chunk
+ *
+ * The returned strings are static storage. */
 const char *mki_pool_string(unsigned int offset);
 const char *mki_feature_name(unsigned short id);
 extern const size_t mki_feature_name_count;
 
-/* `weight` is what the dimension costs, already resolved.
- *
- * It used to be `depth`, and the runtime read it as 1/depth. A leaf declaring
- * an explicit "weight" in the geometry file was then emitted as the depth that
- * would produce it, so the table held 1.25 and 2.5 as "depths" of leaves that
- * are not at those depths. The C side had no way to tell which rows were depths
- * and which were inverted weights, and the disclaimer existed only in the
- * Python. The generator now does the arithmetic and the field says what it
- * holds. */
+/* `weight` is what the dimension costs, already resolved: the leaf's explicit
+ * "weight" in the geometry file, else 1/depth. Not a depth for the runtime to
+ * invert: an explicit weight would then have to be emitted as a fictitious
+ * depth, and nothing on the C side could tell the two apart. */
 typedef struct mki_geometry_leaf {
     const char *name;
     const char *positive;
@@ -78,9 +78,10 @@ typedef struct mki_geometry_leaf {
  * are all like this: /i/ is further from /a/ than from /e/, and half-long sits
  * between short and long.
  *
- * Encoding these as independent privative flags loses that. It made /i/ score
- * further from /e/ than from /a/, made a half-long vowel further from a long one
- * than a plain vowel was, and made the Chao code non-monotonic in the digit.
+ * Encoding these as independent privative flags loses that. It would make /i/
+ * score further from /e/ than from /a/, make a half-long vowel further from a
+ * long one than a plain vowel is, and make the Chao code non-monotonic in the
+ * digit.
  *
  * Cost is |level_a - level_b| / (level_count - 1) * weight, so one step on a
  * seven-point height scale costs a sixth of the full range.
@@ -134,9 +135,10 @@ typedef struct mki_diacritic_map {
     const char *feature;
 } mki_diacritic_map;
 
-/* A precomposed letter and its canonical decomposition, restricted to marks
- * the feature system understands. Compiled in so that lookup accepts the
- * same graphemes with or without utf8proc. */
+/* A precomposed letter and its canonical decomposition, restricted to letters
+ * whose every mark the feature system understands. A letter carrying any other
+ * mark stays composed, and is rejected rather than read as a base plus a mark
+ * the system would misread. */
 typedef struct mki_decomposition {
     const char *composed;
     const char *decomposed;
@@ -183,14 +185,16 @@ typedef struct mki_scalar_dimension {
 /* A system's inventory comes in one of two storages, and `entries` says which.
  *
  * Non-NULL `entries` is a runtime model: rows are mki_builtin_entry, owned by
- * the registry, and the four interned fields are NULL. NULL `entries` is a
- * compiled-in inventory: rows live in entry_graphemes / entry_feature_at /
- * entry_feature_n / feature_ids, all of them offsets and ids into the pool.
+ * the mk_system holding this struct (and so by its registry), and the four
+ * interned fields are NULL. NULL `entries` is a compiled-in inventory: row i
+ * is grapheme entry_graphemes[i] (a pool offset) and the entry_feature_n[i]
+ * feature ids starting at feature_ids[entry_feature_at[i]].
  *
  * `entries` is the one unqualified pointer here because it is the one that is
- * never rodata. The rest point into compiled tables in both storages, and
- * `name` points at a literal for a compiled system and at mk_system's
- * owned_name for a runtime one -- borrowed either way, so it stays const.
+ * never rodata. The rest point into compiled tables, or are NULL for a runtime
+ * model, and `name` points at a literal for a compiled system and at
+ * mk_system's owned_name for a runtime one -- borrowed either way, so it stays
+ * const.
  *
  * Read rows through inventory.h rather than reaching into either form. */
 typedef struct mki_builtin_system {

@@ -167,8 +167,9 @@ static void mk_hash_text(mk_sha256 *ctx, const char *text)
 }
 
 /* Runtime model text has no durable source file. Hash its semantic inventory:
- * rows and unordered feature sets are sorted, so harmless input reordering
- * cannot change the identity. */
+ * rows are taken in grapheme order and each feature set is sorted, so
+ * harmless input reordering cannot change the identity. Of rows sharing a
+ * grapheme, only the first is hashed. */
 static void mk_runtime_model_sha256(const mk_system *system, char out[65])
 {
     mk_sha256 ctx;
@@ -204,9 +205,9 @@ static void mk_runtime_model_sha256(const mk_system *system, char out[65])
                     break;
                 }
             }
-            /* `next` comes from the same inventory, so this should be
-             * unreachable. Keep the invariant explicit for optimizers and
-             * for future changes to the lookup loop. */
+            /* Unreachable: `next` came from this inventory. The test keeps
+             * the invariant explicit for optimizers and for any change to the
+             * lookup loop. */
             if (row.grapheme == NULL || row.features == NULL) {
                 continue;
             }

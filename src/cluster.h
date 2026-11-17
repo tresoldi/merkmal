@@ -6,9 +6,8 @@
  *
  * This is a composition policy over the resolver and the geometry rather than a
  * geometry rule -- it reads resolved parts and calls a scorer -- so it sits
- * above both and below the public operations. It lived in system.c, which meant
- * the file holding the public entry points also held 220 lines of stipulated
- * scoring policy that nothing could reach except through a distance call.
+ * above both and below the public operations, in a module of its own rather
+ * than among the public entry points in system.c.
  *
  * The numbers it composes with are data, in the geometry file's
  * `cluster_policy`, for the reason the tier cost is: changing what a diphthong
@@ -18,14 +17,19 @@
 #include "resolver.h"
 #include "system.h"
 
-/* Distance between two resolutions where at least one is a cluster.
+/* Distance between two resolutions where at least one is a cluster, in
+ * [0, 1]: 0.0 for equal graphemes, and 1.0 if neither side is a cluster after
+ * all.
  *
  * Reads the parts the resolver already worked out and never re-resolves a
  * spelling. Either side may be a plain segment: a cluster against one is scored
  * nucleus-first, with the remaining parts averaged.
  *
- * Only a categorical system synthesizes clusters, so this is never reached for
- * a valued one -- see mk_admits_synthesized_clusters in the resolver. */
+ * `system` must have a scorer (mki_scorer_for non-NULL); the caller checks,
+ * and this does not. Only a categorical system synthesizes clusters, so this
+ * is never reached for a valued one -- see mk_admits_synthesized_clusters in
+ * the resolver. MK_ERR_INVALID_ARGUMENT for a NULL argument or, once anything
+ * is scored, an unknown `node_weights` preset. */
 mk_status mki_cluster_distance(
     const mk_system *system,
     const mki_resolution *a,

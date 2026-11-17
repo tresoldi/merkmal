@@ -16,9 +16,9 @@
  *    0  the feature does not apply, or the source does not say
  *
  * Ordered scales cannot use that, because 0 already means "not applicable" and
- * a scale's middle level is not that. A scale with n levels maps level i to
- * i/n, so its values live in (0, 1] and 0 stays free to mean "no value on this
- * scale". Mixing a bounded ordinal with a three-valued flag in one vector is a
+ * a scale's middle level is not that. A scale with n levels maps its k-th level,
+ * counting from 1, to k/n, so its values live in (0, 1] and 0 stays free to
+ * mean "no value on this scale". Mixing a bounded ordinal with a three-valued flag in one vector is a
  * little untidy; ambiguity about what 0 means would be worse.
  *
  * The basis differs by system because the systems genuinely differ: a valued
@@ -43,13 +43,11 @@
 
 #include <string.h>
 
-/* Whether a feature list carries `label`. */
 static bool mk_vector_has(const mk_feature_view *view, const char *label)
 {
     return mki_features_contain(view->features, view->count, label);
 }
 
-/* Any of `labels` present. */
 static bool mk_vector_has_any(
     const mk_feature_view *view,
     const char *const *labels,
@@ -83,6 +81,8 @@ static char mk_vector_valued_state(const mk_feature_view *view, const char *feat
     return '\0';
 }
 
+/* Every kind but categorical, MKI_SYSTEM_TRAINED included, which no scorer
+ * reads (see mki_scorer_for). */
 static bool mk_vector_is_valued(const mki_builtin_system *builtin)
 {
     return builtin->kind != MKI_SYSTEM_CATEGORICAL;
@@ -97,9 +97,9 @@ static bool mk_vector_uses_scalar_dimensions(const mki_builtin_system *builtin)
  * graphemes with equal vectors are at distance zero. A valued system's columns
  * are its own; a system with scalar dimensions has those plus the geometry's
  * ordered scales; a leaf-scored system has the geometry's leaves, its ordered
- * scales, and one column per node-group label. The scales and node groups used
- * to be missing where the scorer read them, so in `distinctive` /a/ and /e/
- * had the same vector, and in `descriptive` /l/ and /ɮ/. */
+ * scales, and one column per node-group label. Leaving out a scale or a node
+ * group the scorer reads would give segments it separates equal vectors: /a/
+ * and /e/ in `distinctive`, /l/ and /ɮ/ in `descriptive`. */
 static size_t mk_vector_node_group_count(void)
 {
     size_t i;
@@ -205,10 +205,10 @@ mk_status mk_system_vector_labels(const mk_system *system, mk_string_list **out)
     return status;
 }
 
-/* An ordered scale's column: level i of n as i/n, so 0 keeps meaning "no value
- * on this scale". Read exactly as the scorers read it, unmarked default
- * included; ignoring the default made a vowel with no explicit level look
- * like a segment the scale does not apply to. */
+/* An ordered scale's column: the k-th of n levels, counting from 1, as k/n, so
+ * 0 keeps meaning "no value on this scale". Read exactly as the scorers read
+ * it, unmarked default included; ignoring the default would make a vowel with
+ * no explicit level look like a segment the scale does not apply to. */
 static double mk_vector_scale_value(const mk_feature_view *view, const mki_ordinal_scale *scale)
 {
     int level = mki_ordinal_level(*view, scale);
@@ -219,7 +219,8 @@ static double mk_vector_scale_value(const mk_feature_view *view, const mki_ordin
     return (double)(level + 1) / (double)scale->level_count;
 }
 
-/* Fill `values` from an already-resolved feature list. */
+/* Writes exactly mki_vector_width_of(builtin) values; the caller has checked
+ * that `values` has room. */
 static void mk_vector_fill(
     const mki_builtin_system *builtin,
     const mk_feature_view *view,
