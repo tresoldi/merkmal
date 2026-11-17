@@ -18,13 +18,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Push an owned token onto the array, growing it as needed.
+/* Push an owned token onto the array, growing it as needed. On failure the
+ * token is still the caller's.
  *
- * This replaced five copies of the same realloc block, one of which ran ahead
- * of the branch that used it so that two later `items[count++]` writes had no
- * visible bound. Those were safe -- the pre-grow covered them -- but only by an
- * argument spanning forty lines, and Clang's analyzer reported them as null
- * dereferences because it could not make that argument either. */
+ * Every push goes through here so that each `items[count++]` sits directly
+ * after the growth that bounds it. Growing ahead of time for writes made
+ * further down would be safe only by an argument spread over many lines, and
+ * Clang's analyzer cannot follow it either: it reports those writes as null
+ * dereferences. */
 static mk_status mk_push_token(char ***items, size_t *count, size_t *cap, char *token)
 {
     char **next = (char **)mki_grow_array(*items, cap, *count, 1, sizeof(**items), 8);
@@ -104,7 +105,9 @@ static mk_status mk_push_copy(mk_tokenizer *t, const char *start, size_t n)
     return MK_OK;
 }
 
-/* Appends one code point of `n` bytes (at most four) to the current token. */
+/* Appends one code point of `n` bytes to the current token. Safe because `one`
+ * has room for a four-byte code point and its terminator, and `n` comes from
+ * mki_utf8_step, which never returns more than four. */
 static mk_status mk_append_code_point(mk_tokenizer *t, const char *p, size_t n)
 {
     char one[5];

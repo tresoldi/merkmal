@@ -58,7 +58,6 @@ mk_status mki_string_list_adopt(
 
     list = (mk_string_list *)calloc(1, sizeof(*list));
     if (list == NULL) {
-        /* The caller still owns `items` and can free it. */
         return MK_ERR_OOM;
     }
     list->items = items;

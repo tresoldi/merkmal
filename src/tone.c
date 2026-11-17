@@ -18,13 +18,11 @@
  *
  * The superscript digits carry levels 0-5. The IPA tone letters U+02E5-U+02E9
  * are the same notation written differently and run high to low, 5 down to 1;
- * there is no tone letter for level 0. Returns the level, or -1 when this is
- * not a Chao digit at all.
+ * there is no tone letter for level 0.
  *
- * There were three of these, with three different accepted alphabets. The
- * tokenizer grouped tone letters into a run that the merge step could not read
- * and therefore discarded as all-zero, so "a˥" lost its tone; and the
- * recognizer accepted tone letters but not the superscript zero. */
+ * One decoder, so that every caller accepts the same alphabet. If the
+ * tokenizer grouped a run the merge step could not read, the merge step would
+ * discard it as all-zero and "a˥" would lose its tone. */
 int mki_chao_level(const char *p)
 {
     if (p == NULL) {

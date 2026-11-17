@@ -7,16 +7,18 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-/* Byte length of the UTF-8 sequence at `p`, never past the terminator.
+/* Byte length of the UTF-8 sequence at `p`, from 1 to 4, never past the
+ * terminator.
  *
  * A lead byte only claims a length; the string need not have it. This returns
  * the smaller of the claimed length and the bytes actually present, and 1 for
  * an invalid lead, so a scan always advances and never steps over the NUL.
+ * `p` itself must not point at the terminator: there the answer is 1.
  *
- * The bounded form is the only one exposed on purpose. This was
- * mk_utf8_char_len(unsigned char), taking just the lead byte, so nineteen call
- * sites copied or skipped as many bytes as a truncated sequence claimed:
- * mk_segment_ipa("a\xF0") read four bytes out of a two-byte allocation. */
+ * The bounded form is the only one exposed on purpose. A length taken from the
+ * lead byte alone would let a caller copy or skip as many bytes as a truncated
+ * sequence claims: mk_segment_ipa("a\xF0") would read four bytes out of a
+ * two-byte allocation. */
 size_t mki_utf8_step(const char *p);
 
 /* The code point at `p`, decoded from the bytes actually present. A truncated

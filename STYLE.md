@@ -77,8 +77,9 @@ The rule is in the signature:
 - **Inputs are borrowed** and must outlive the call only.
 - Internal structs filled in place are released with `mki_*_clear`, which
   frees what they own, resets every field, and is safe to call twice.
-  `mki_resolve` and `mki_parse_model_text` zero their output before any work,
-  so a clear after a failure is always safe.
+  `mki_resolve` and `mki_parse_model_text` zero their output once their
+  arguments are valid, so a clear after any later failure is safe; on
+  MK_ERR_INVALID_ARGUMENT the output is untouched.
 - `mki_string_list_adopt` takes ownership of the array it is given only on
   success; `mki_string_list_from_borrowed` copies.
 

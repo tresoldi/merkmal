@@ -2,8 +2,8 @@
 
 #include "strings.h"
 
-/* The vowel letters the cluster grammar and the tone-merge step both need.
- * This set was written out twice, in two files, in two different orders. */
+/* The vowel letters the cluster grammar and the tone-merge step both need,
+ * written out once so the two cannot disagree. */
 bool mki_is_vowel_letter(const char *p)
 {
     return *p == 'a' || *p == 'e' || *p == 'i' || *p == 'o' || *p == 'u' ||

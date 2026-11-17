@@ -62,10 +62,10 @@ bool mki_inventory_find(
     }
 
     /* Compiled inventories are emitted sorted by the grapheme's UTF-8 bytes,
-     * which is the order strcmp imposes, so this is a binary search. It was a
-     * walk over every row: a miss in phoible's 3,142 rows cost 25.9 us, and a
-     * resolution performs up to three lookups while longest-match tokenization
-     * performs several resolutions per token. */
+     * which is the order strcmp imposes, so this is a binary search. Not a
+     * walk over every row: a miss would cost the whole of phoible's inventory,
+     * and a resolution performs up to three lookups while longest-match
+     * tokenization performs several resolutions per token. */
     {
         size_t low = 0;
         size_t high = system->entry_count;

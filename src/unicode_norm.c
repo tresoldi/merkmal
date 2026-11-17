@@ -42,9 +42,11 @@ static mk_status mk_push(mk_code_points *buffer, unsigned int cp)
     return MK_OK;
 }
 
-/* Decodes one well-formed UTF-8 scalar value, or returns 0 when the bytes at
- * `p` are not one: a stray continuation byte, a truncated or overlong
- * sequence, a surrogate, or a value past U+10FFFF. */
+/* Decodes one well-formed UTF-8 scalar value into *out and returns its length
+ * in bytes, or returns 0 when the bytes at `p` are not one: a stray
+ * continuation byte, a truncated or overlong sequence, a surrogate, or a value
+ * past U+10FFFF. Never reads past the terminator, which is not a continuation
+ * byte. */
 static size_t mk_decode(const unsigned char *p, unsigned int *out)
 {
     unsigned int cp;
@@ -137,6 +139,8 @@ static mk_status mk_push_decomposed(mk_code_points *buffer, unsigned int cp)
             mki_unicode_tables.decomposition_count,
             cp,
             &at)) {
+        /* The generated table holds full decompositions, already applied
+         * recursively, so the parts are pushed as they are. */
         const unsigned int *parts =
             mki_unicode_tables.decomposition_pool + mki_unicode_tables.decomposition_offsets[at];
         size_t count = mki_unicode_tables.decomposition_lengths[at];

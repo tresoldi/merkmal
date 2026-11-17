@@ -11,7 +11,8 @@
  *
  * Bytes that are not well-formed UTF-8 are passed through unchanged and treated
  * as starters with no decomposition, so neither function fails on hostile
- * input except by running out of memory. */
+ * input except by running out of memory (MK_ERR_OOM). A NULL argument is
+ * MK_ERR_INVALID_ARGUMENT. On failure *utf8_out is NULL. */
 
 #include "merkmal.h"
 

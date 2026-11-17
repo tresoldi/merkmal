@@ -63,11 +63,9 @@ static void mk_free_owned_system(mk_system *system)
     system->owns = false;
 }
 
-/*
- * Allocates each system separately. The registry array may be reallocated
+/* Allocates each system separately. The registry array may be reallocated
  * when a runtime model is added, but a system returned to the caller must not
- * move as a result of that operation.
- */
+ * move as a result of that operation. */
 mk_status mk_registry_new_builtin(mk_registry **out)
 {
     mk_registry *registry;
@@ -228,10 +226,10 @@ mk_status mk_registry_add_model_text_n(
 
     /* Before anything is installed. mk_registry_get_system returns the first
      * match, so a second system under an existing name would register with
-     * MK_OK and then be unreachable for the rest of the registry's life. The
-     * parser already refuses a grapheme declared twice within one model, for
-     * the same reason: an ambiguous lookup is not something to resolve
-     * silently. */
+     * MK_OK and then be unreachable for the rest of the registry's life.
+     * Strict validation in the parser refuses a grapheme declared twice within
+     * one model for the same reason: an ambiguous lookup is not something to
+     * resolve silently. */
     {
         const mk_system *existing = NULL;
 

@@ -1,4 +1,4 @@
-/* Normalization. See normalize.h for what the two entry points are for. */
+/* Normalization. See normalize.h for what the entry points are for. */
 
 #include "normalize.h"
 
@@ -27,6 +27,7 @@ static const char *mk_resolve_slash(const char *s)
     return s;
 }
 
+/* Both stress marks are two bytes in UTF-8. */
 static const char *mk_strip_leading_stress(const char *s)
 {
     while (mki_has_prefix(s, "ˈ") || mki_has_prefix(s, "ˌ")) {
@@ -74,15 +75,13 @@ static const mki_decomposition mk_source_conventions[] = {
      * reached for, not a distinct sound.
      *
      * U+026B L WITH MIDDLE TILDE is BIPA's grapheme for the velarized lateral,
-     * which CLTS v1.4.1 names exactly what "lˠ" resolves to here. It was added,
-     * removed, and added back. The removal was right at the time: PHOIBLE
-     * carries `ɫ` as its own inventory row with different feature values, and
-     * this table used to be applied before lookup and unconditionally, so the
-     * mapping did not add a spelling -- it destroyed a contrast PHOIBLE draws,
-     * and the contrast audit caught it as one new zero-distance pair.
+     * which CLTS v1.4.1 names exactly what "lˠ" resolves to here. PHOIBLE
+     * carries `ɫ` as its own inventory row with different feature values, so
+     * applying this mapping before lookup and unconditionally would not add a
+     * spelling -- it would destroy a contrast PHOIBLE draws.
      *
-     * The resolver now tries the written form against the inventory before
-     * applying anything here, so a convention can no longer shadow a grapheme a
+     * The resolver tries the written form against the inventory before
+     * applying anything here, so a convention cannot shadow a grapheme a
      * system actually has. `ɫ` resolves for the categorical systems, which lack
      * it, and stays its own segment in PHOIBLE, which has it. */
     { "ɫ", "lˠ" },
@@ -132,10 +131,10 @@ static mk_status mk_decompose(
         size_t i;
 
         /* Decompose first, so that a precomposed letter and its canonically
-         * equivalent sequence resolve identically. Without this, "ǎ" was
-         * rejected while the NFD spelling of the same character was accepted,
-         * and mk_normalize_grapheme (which returns NFC) turned accepted input
-         * into rejected input. */
+         * equivalent sequence resolve identically. Otherwise "ǎ" would be
+         * rejected while the NFD spelling of the same character is accepted,
+         * and mk_normalize_grapheme (which returns NFC) would turn accepted
+         * input into rejected input. */
         if (rule == NULL && source_conventions) {
             for (i = 0; i < sizeof(mk_source_conventions) / sizeof(mk_source_conventions[0]); i++) {
                 if (mki_has_prefix(p, mk_source_conventions[i].composed)) {
@@ -251,10 +250,9 @@ mk_status mk_normalize_grapheme(
     }
     free(tmp);
 
-    /* NFC from the compiled tables, in every build. This used to be utf8proc
-     * when it was installed and a 45-pair hand list when it was not, so the
-     * same commit returned `ỹ` composed on one machine and decomposed on
-     * another (issue #3). */
+    /* NFC from the compiled tables, in every build. Not an optional system
+     * library with a fallback: then the same commit could return `ỹ` composed
+     * on one machine and decomposed on another (issue #3). */
     status = mki_unicode_nfc(out == NULL ? "" : out, &composed);
     free(out);
     if (status != MK_OK) {
@@ -278,10 +276,10 @@ mk_status mki_segmentation_nfd(
     *utf8_out = NULL;
 
     /* The same table lookup uses, so the tokenizer and the recognizer agree on
-     * which precomposed letters decompose. This used to be a separate
-     * hand-written list of twenty-one letters against the table's 386. The
-     * source conventions are not applied here: a token is reported as the
-     * caller wrote it. Full NFD follows, from the compiled Unicode tables. */
+     * which precomposed letters decompose; a separate list here would drift
+     * from it. The source conventions are not applied here: a token is
+     * reported as the caller wrote it. Full NFD follows, from the compiled
+     * Unicode tables. */
     status = mk_decompose(utf8_in, 0, &tmp);
     if (status != MK_OK) {
         return status;

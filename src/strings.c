@@ -64,7 +64,7 @@ mk_status mki_append_text(char **buf, size_t *len, size_t *cap, const char *s)
 
     n = strlen(s);
     /* Room for the suffix and the terminator. A suffix so long that n + 1
-     * overflows is refused by the helper as a failed allocation. */
+     * would overflow is refused here as a failed allocation. */
     if (n == SIZE_MAX) {
         return MK_ERR_OOM;
     }
