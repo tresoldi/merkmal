@@ -164,6 +164,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clang
+      - name: Formatting
+        run: scripts/check_format.sh
       - name: Analyze
         run: scripts/run_static_analysis.sh | tee analysis.txt
       - name: Fail on a new finding
