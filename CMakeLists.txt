@@ -75,6 +75,7 @@ set(MERKMAL_SOURCES
     src/strings.c
     src/system.c
     src/vector.c
+    src/version.c
     src/tokenize.c
     src/tone.c
     src/unicode_norm.c
@@ -166,6 +167,9 @@ if(MERKMAL_BUILD_TESTS)
 
     add_executable(test_smoke tests/c/test_smoke.c)
     target_link_libraries(test_smoke PRIVATE merkmal)
+    # The header's MK_VERSION_* are written by hand; this is what holds them to
+    # the project version, so a release that bumps one and not the other fails.
+    target_compile_definitions(test_smoke PRIVATE MERKMAL_PROJECT_VERSION="${PROJECT_VERSION}")
     add_test(NAME smoke COMMAND test_smoke)
 
     add_executable(test_inventory tests/c/test_inventory.c)

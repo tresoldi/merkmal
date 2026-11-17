@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Build identity is public: `mk_version_string`, `mk_data_profile`, `mk_unicode_version`
+
+The header now carries `MK_VERSION_MAJOR`, `MK_VERSION_MINOR`,
+`MK_VERSION_PATCH` and `MK_VERSION_STRING`, and three functions answer for the
+library actually linked. The Python extension used to read the data profile and
+Unicode version by declaring the generated tables' internal symbols, and the
+WebAssembly adapter got its version from a `-D` the build script scraped out of
+`CMakeLists.txt`; both now use the public header only. `merkmal._native`
+gains `LIBRARY_VERSION`. The C smoke test holds the header version to the
+CMake project version and the Python tests hold `__version__` to the linked
+library, so a release cannot bump one without the other. Additions only.
+
 ### Python: an embedded NUL is refused instead of truncating the input
 
 **Behavior change:** every string argument reached the C library as a C

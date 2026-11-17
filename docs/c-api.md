@@ -239,6 +239,9 @@ system; free it before the registry.
 - `MK_ERR_PARSE`
 - `MK_ERR_OOM`
 - `MK_ERR_SOURCE_MARKER`
+- `MK_ERR_DUPLICATE_SYSTEM`: a registry already holds a system by that name
+- `MK_ERR_NO_TREE_PATH`: `mk_feature_distance` on a feature with no path in the geometry tree
+- `MK_ERR_UNKNOWN_FEATURE`: `mk_sound_distance` or a bundle given a label the geometry does not know
 
 Three of these mean "not a segment" and are worth telling apart, because a
 caller checking transcriptions wants to act differently on each:
@@ -263,6 +266,26 @@ the library and must not be freed.
 ```c
 const char *mk_status_string(mk_status status);
 ```
+
+## Build Identity
+
+```c
+#define MK_VERSION_MAJOR 0
+#define MK_VERSION_MINOR 9
+#define MK_VERSION_PATCH 0
+#define MK_VERSION_STRING "0.9.0"
+
+const char *mk_version_string(void);   /* the linked library's version */
+const char *mk_data_profile(void);     /* "full" or "cc-by" */
+const char *mk_unicode_version(void);  /* Unicode version of the NFC/NFD tables */
+```
+
+The macros describe the header a caller compiled against and the functions the
+library actually linked, which can differ under a shared-library upgrade. All
+three functions return static storage and cannot fail. The version is the
+API's; the profile and Unicode version are what else can move a result between
+builds of one version, and `mk_system_semantic_fingerprint` is what to store
+alongside any result kept.
 
 ## Registry
 

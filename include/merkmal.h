@@ -89,6 +89,28 @@ typedef enum mk_status {
 /** Returns the stable English label for a status code. */
 MK_API const char *mk_status_string(mk_status status);
 
+/* Build identity.
+ *
+ * The macros are the version of the header a caller compiled against; the
+ * functions answer for the library actually linked, which can differ when a
+ * shared library is upgraded underneath an application. Compare the two if it
+ * matters. The library version is the API's: two builds of one version can still
+ * score differently by data profile, which is why it is a separate question, and
+ * why mk_system_semantic_fingerprint exists for anything stored.
+ *
+ * All three return static storage that outlives everything. None can fail. */
+#define MK_VERSION_MAJOR 0
+#define MK_VERSION_MINOR 9
+#define MK_VERSION_PATCH 0
+#define MK_VERSION_STRING "0.9.0"
+
+/** The linked library's version, as "MAJOR.MINOR.PATCH". */
+MK_API const char *mk_version_string(void);
+/** The compiled-in data profile: "full" or "cc-by". See NOTICE. */
+MK_API const char *mk_data_profile(void);
+/** The Unicode version of the compiled-in normalization tables, e.g. "15.1.0". */
+MK_API const char *mk_unicode_version(void);
+
 /** Creates a registry containing the compiled-in systems. */
 MK_API mk_status mk_registry_new_builtin(mk_registry **out);
 /** Frees a registry and all runtime models owned by it. */

@@ -40,7 +40,6 @@ emcc \
     -Wall -Wextra -Wpedantic -Wconversion \
     -Wshadow -Wstrict-prototypes -Wmissing-prototypes -Wcast-qual \
     -Werror \
-    -DMK_WEB_VERSION="\"$version\"" \
     "$script_dir/merkmal_wasm.c" \
     "$build_dir/libmerkmal.a" \
     -I"$repo_dir/include" \

@@ -64,6 +64,15 @@ def test_semantic_fingerprint_is_auditable_and_stable() -> None:
     assert len(runtime_digest) == 64
 
 
+def test_package_version_is_the_linked_library_version() -> None:
+    # Four files spell the version (CMakeLists.txt, merkmal.h, pyproject.toml,
+    # __init__.py). The C smoke test holds the first two together; this holds
+    # the package to the library it actually loaded.
+    assert merkmal.__version__ == merkmal._native.LIBRARY_VERSION
+    assert merkmal.DATA_PROFILE in {"full", "cc-by"}
+    assert merkmal.UNICODE_VERSION.count(".") == 2
+
+
 def test_native_wrapper_surface_is_small() -> None:
     assert "load_model" not in merkmal.__all__
     assert not hasattr(merkmal, "CategoricalEngine")

@@ -45,6 +45,14 @@ Planned release artifacts:
 Source releases should include generated `src/generated/builtin_data.c` so
 users do not need Python tooling to build the C library.
 
+## Version Numbers
+
+A release bumps the version in five places: `project(VERSION ...)` in
+`CMakeLists.txt`, `MK_VERSION_*` in `include/merkmal.h`, `pyproject.toml`,
+`python/merkmal/__init__.py` and `CITATION.cff`. The C smoke test fails if the
+header and CMake disagree, and the Python tests fail if `__version__` and the
+linked library disagree.
+
 ## Validation Gates
 
 Before tagging a release:
