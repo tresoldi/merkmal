@@ -1435,3 +1435,19 @@ def test_a_tie_bar_reaches_the_complex_segment_synthesizer(system: str) -> None:
 )
 def test_lookalike_spellings_read_as_the_ipa_letter(written: str, canonical: str) -> None:
     assert merkmal.get_features(written) == merkmal.get_features(canonical)
+
+
+def test_embedded_nul_is_refused_rather_than_truncated() -> None:
+    # The library reads its arguments as C strings. "p\x00junk" used to reach it
+    # as "p", so every call answered for an input the caller never passed:
+    # is_segment said True and distance said 0.0.
+    with pytest.raises(ValueError, match="NUL"):
+        merkmal.is_segment("p\x00junk")
+    with pytest.raises(ValueError, match="NUL"):
+        merkmal.get_features("p\x00")
+    with pytest.raises(ValueError, match="NUL"):
+        merkmal.distance("p", "p\x00b")
+    with pytest.raises(ValueError, match="NUL"):
+        merkmal.sound_distance(["consonant\x00"], ["consonant"])
+    with pytest.raises(ValueError, match="NUL"):
+        merkmal.Registry().add_model_text("@model toy\x00\n@type categorical\n")

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Python: an embedded NUL is refused instead of truncating the input
+
+**Behavior change:** every string argument reached the C library as a C
+string, so `"p\x00junk"` was answered as `"p"`: `is_segment` said `True`,
+`distance` said `0.0`, and a model text was registered up to the NUL. All
+string arguments, including feature lists and model text, now raise
+`ValueError` on an embedded NUL, the same refusal `mk_registry_add_model_text_n`
+already gives C callers.
+
 ### Two calls for alteruphono 2.0: the inventory, and plain Unicode normalization
 
 `mk_system_inventory` lists a system's own inventory graphemes, in storage

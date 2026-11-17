@@ -1,6 +1,8 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <string.h>
+
 #include "merkmal.h"
 
 #include "generated/unicode_data.h"
@@ -57,10 +59,24 @@ static int py_utf8_from_unicode(PyObject *obj, const char *name, py_utf8 *out)
     if (out->bytes == NULL) {
         return -1;
     }
-    out->value = PyBytes_AsString(out->bytes);
-    if (out->value == NULL) {
-        py_utf8_clear(out);
-        return -1;
+    /* PyBytes_AsStringAndSize, not PyBytes_AsString: the library reads these as
+     * C strings, so "p\x00junk" used to reach it as "p" and be answered as if
+     * that were the input. Taking the length lets an embedded NUL be refused
+     * here, where the caller can still see what they passed. */
+    {
+        char *value = NULL;
+        Py_ssize_t length = 0;
+
+        if (PyBytes_AsStringAndSize(out->bytes, &value, &length) < 0) {
+            py_utf8_clear(out);
+            return -1;
+        }
+        if (memchr(value, '\0', (size_t)length) != NULL) {
+            PyErr_Format(PyExc_ValueError, "%s must not contain a NUL character", name);
+            py_utf8_clear(out);
+            return -1;
+        }
+        out->value = value;
     }
     return 0;
 }
