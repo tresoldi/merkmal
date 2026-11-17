@@ -28,8 +28,8 @@
  * a valued one -- see mk_admits_synthesized_clusters in the resolver. */
 mk_status mki_cluster_distance(
     const mk_system *system,
-    const mk_resolution *a,
-    const mk_resolution *b,
+    const mki_resolution *a,
+    const mki_resolution *b,
     const char *node_weights,
     double *out
 );

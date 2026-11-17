@@ -12,23 +12,23 @@ typedef struct mk_node_group {
     int differs;
 } mk_node_group;
 
-static int mk_view_contains(mk_feature_view view, const char *feature)
+static bool mk_view_contains(mk_feature_view view, const char *feature)
 {
     return mki_features_contain(view.features, view.count, feature);
 }
 
-static int mk_is_leaf_feature(const char *feature)
+static bool mk_is_leaf_feature(const char *feature)
 {
     size_t i;
 
     for (i = 0; i < mki_clements_hume_leaf_count; i++) {
-        const mk_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
+        const mki_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
         if ((leaf->positive[0] != '\0' && mki_streq(leaf->positive, feature)) ||
             (leaf->negative[0] != '\0' && mki_streq(leaf->negative, feature))) {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 static const char *mk_feature_node(const char *feature)
@@ -43,7 +43,7 @@ static const char *mk_feature_node(const char *feature)
     return NULL;
 }
 
-static const mk_feature_path *mk_find_feature_path(const char *feature)
+static const mki_feature_path *mk_find_feature_path(const char *feature)
 {
     size_t i;
 
@@ -55,26 +55,26 @@ static const mk_feature_path *mk_find_feature_path(const char *feature)
     return NULL;
 }
 
-static int mk_is_ordinal_level_feature(const char *feature)
+static bool mk_is_ordinal_level_feature(const char *feature)
 {
     size_t i;
     size_t j;
 
     for (i = 0; i < mki_clements_hume_ordinal_scale_count; i++) {
-        const mk_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
+        const mki_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
         for (j = 0; j < scale->level_count; j++) {
             if (mki_streq(scale->levels[j], feature)) {
-                return 1;
+                return true;
             }
         }
     }
-    return 0;
+    return false;
 }
 
 /* Reports a feature set that sits at two points on one ordered scale. The
  * diacritic composer can build one: breve plus length mark yields both
  * `ultra-short` and `long`, which is not a segment any language contrasts. */
-int mki_ordinal_conflict(
+bool mki_ordinal_conflict(
     const char *const *features,
     size_t feature_count,
     const char **scale_out,
@@ -86,7 +86,7 @@ int mki_ordinal_conflict(
     size_t j;
 
     for (i = 0; i < mki_clements_hume_ordinal_scale_count; i++) {
-        const mk_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
+        const mki_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
         const char *found = NULL;
 
         for (j = 0; j < scale->level_count; j++) {
@@ -103,38 +103,38 @@ int mki_ordinal_conflict(
                 if (second_out != NULL) {
                     *second_out = scale->levels[j];
                 }
-                return 1;
+                return true;
             }
             found = scale->levels[j];
         }
     }
-    return 0;
+    return false;
 }
 
-static int mk_is_metadata_feature(const char *feature)
+static bool mk_is_metadata_feature(const char *feature)
 {
     size_t i;
 
     for (i = 0; i < mki_default_metadata_feature_count; i++) {
         if (mki_streq(mki_default_metadata_features[i], feature)) {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
-int mki_geometry_knows_feature(const char *feature)
+bool mki_geometry_knows_feature(const char *feature)
 {
     if (feature == NULL || feature[0] == '\0') {
-        return 0;
+        return false;
     }
     return mk_is_metadata_feature(feature) || mki_geometry_scores_feature(feature);
 }
 
-int mki_geometry_scores_feature(const char *feature)
+bool mki_geometry_scores_feature(const char *feature)
 {
     if (feature == NULL || feature[0] == '\0') {
-        return 0;
+        return false;
     }
     return mk_is_leaf_feature(feature) ||
         mk_is_ordinal_level_feature(feature) ||
@@ -148,8 +148,8 @@ mk_status mk_feature_distance(
     int *out
 )
 {
-    const mk_feature_path *path_a;
-    const mk_feature_path *path_b;
+    const mki_feature_path *path_a;
+    const mki_feature_path *path_b;
     size_t common;
     size_t limit;
 
@@ -203,7 +203,7 @@ static const char *mk_geometry_node_parent(const char *node)
     return "";
 }
 
-static const mk_node_weight_preset *mk_find_weight_preset(const char *name)
+static const mki_node_weight_preset *mk_find_weight_preset(const char *name)
 {
     size_t i;
 
@@ -220,7 +220,7 @@ static const mk_node_weight_preset *mk_find_weight_preset(const char *name)
 
 static mk_status mk_resolve_weight_preset(
     const char *node_weights,
-    const mk_node_weight_preset **out
+    const mki_node_weight_preset **out
 )
 {
     if (out == NULL) {
@@ -235,7 +235,7 @@ static mk_status mk_resolve_weight_preset(
 }
 
 static double mk_direct_node_weight(
-    const mk_node_weight_preset *preset,
+    const mki_node_weight_preset *preset,
     const char *node
 )
 {
@@ -253,7 +253,7 @@ static double mk_direct_node_weight(
 }
 
 static double mk_resolved_node_weight(
-    const mk_node_weight_preset *preset,
+    const mki_node_weight_preset *preset,
     const char *node
 )
 {
@@ -272,7 +272,7 @@ static double mk_resolved_node_weight(
 }
 
 static double mk_dimension_weight(
-    const mk_node_weight_preset *preset,
+    const mki_node_weight_preset *preset,
     const char *node,
     double base_weight
 )
@@ -334,13 +334,21 @@ static void mk_process_node_feature(
     }
 }
 
-/* Returns the entry's position on an ordered scale, or MK_ORDINAL_UNDEFINED
+bool mki_is_node_group_feature(const char *feature)
+{
+    if (feature == NULL || mk_is_leaf_feature(feature) || mk_is_ordinal_level_feature(feature)) {
+        return false;
+    }
+    return mk_feature_node(feature) != NULL;
+}
+
+/* Returns the entry's position on an ordered scale, or MKI_ORDINAL_UNDEFINED
  * when it carries no label from the scale and the scale has no unmarked
  * default. The first matching level wins; the generator rejects entries
  * carrying two labels from one scale, so there is no ambiguity to resolve. */
 static int mk_ordinal_level(
     mk_feature_view view,
-    const mk_ordinal_scale *scale
+    const mki_ordinal_scale *scale
 )
 {
     size_t i;
@@ -353,10 +361,15 @@ static int mk_ordinal_level(
     return scale->default_level;
 }
 
+int mki_ordinal_level(mk_feature_view view, const mki_ordinal_scale *scale)
+{
+    return mk_ordinal_level(view, scale);
+}
+
 static void mk_accumulate_ordinal_scales(
     mk_feature_view a,
     mk_feature_view b,
-    const mk_node_weight_preset *preset,
+    const mki_node_weight_preset *preset,
     double *total_weight,
     double *total_diff
 )
@@ -364,7 +377,7 @@ static void mk_accumulate_ordinal_scales(
     size_t i;
 
     for (i = 0; i < mki_clements_hume_ordinal_scale_count; i++) {
-        const mk_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
+        const mki_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
         int level_a = mk_ordinal_level(a, scale);
         int level_b = mk_ordinal_level(b, scale);
         double weight;
@@ -374,7 +387,7 @@ static void mk_accumulate_ordinal_scales(
         /* The property does not apply to at least one of the two segments:
          * a consonant has no vowel height, a toneless segment no tone level.
          * Major class and tone presence carry that difference already. */
-        if (level_a == MK_ORDINAL_UNDEFINED || level_b == MK_ORDINAL_UNDEFINED) {
+        if (level_a == MKI_ORDINAL_UNDEFINED || level_b == MKI_ORDINAL_UNDEFINED) {
             continue;
         }
         if (scale->level_count < 2) {
@@ -391,7 +404,7 @@ static void mk_accumulate_ordinal_scales(
 
 static double mk_dimension_value(
     mk_feature_view view,
-    const mk_scalar_dimension *dimension
+    const mki_scalar_dimension *dimension
 )
 {
     size_t i;
@@ -416,7 +429,7 @@ static mk_status mk_score_begin(
     const char *node_weights,
     double *out,
     double *coverage,
-    const mk_node_weight_preset **preset
+    const mki_node_weight_preset **preset
 )
 {
     if (out == NULL) {
@@ -440,7 +453,7 @@ static double mk_categorical_coverage(double total_weight)
 }
 
 static mk_status mk_score_scalar(
-    const mk_builtin_system *system,
+    const mki_builtin_system *system,
     mk_feature_view a,
     mk_feature_view b,
     const char *node_weights,
@@ -451,7 +464,7 @@ static mk_status mk_score_scalar(
     size_t i;
     double total_weight = 0.0;
     double total_diff = 0.0;
-    const mk_node_weight_preset *preset = NULL;
+    const mki_node_weight_preset *preset = NULL;
     mk_status status = mk_score_begin(node_weights, out, coverage, &preset);
 
     if (status != MK_OK) {
@@ -462,7 +475,7 @@ static mk_status mk_score_scalar(
     }
 
     for (i = 0; i < system->scalar_dimension_count; i++) {
-        const mk_scalar_dimension *dimension = &system->scalar_dimensions[i];
+        const mki_scalar_dimension *dimension = &system->scalar_dimensions[i];
         double a_val = mk_dimension_value(a, dimension);
         double b_val = mk_dimension_value(b, dimension);
         double weight;
@@ -488,7 +501,7 @@ static mk_status mk_score_scalar(
 }
 
 static mk_status mk_score_leaf(
-    const mk_builtin_system *system,
+    const mki_builtin_system *system,
     mk_feature_view a,
     mk_feature_view b,
     const char *node_weights,
@@ -501,7 +514,7 @@ static mk_status mk_score_leaf(
     size_t i;
     mk_node_group groups[128];
     size_t group_count;
-    const mk_node_weight_preset *preset = NULL;
+    const mki_node_weight_preset *preset = NULL;
     mk_status status = mk_score_begin(node_weights, out, coverage, &preset);
 
     /* Scores against the compiled geometry alone, so it has no use for the
@@ -512,7 +525,7 @@ static mk_status mk_score_leaf(
     }
 
     for (i = 0; i < mki_clements_hume_leaf_count; i++) {
-        const mk_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
+        const mki_geometry_leaf *leaf = &mki_clements_hume_leaves[i];
         double weight = mk_dimension_weight(preset, leaf->parent, leaf->weight);
         int a_pos = leaf->positive[0] != '\0' && mk_view_contains(a, leaf->positive);
         int a_neg = leaf->negative[0] != '\0' && mk_view_contains(a, leaf->negative);
@@ -566,7 +579,7 @@ static mk_status mk_score_leaf(
     return MK_OK;
 }
 
-static int mk_label_value(
+static bool mk_label_value(
     mk_feature_view view,
     const char *feature,
     double *out
@@ -579,8 +592,10 @@ static int mk_label_value(
         const char *label = view.features[i];
         if (strncmp(label, feature, feature_len) == 0 && label[feature_len] == '=') {
             char state = label[feature_len + 1];
-            if (state == '.') {
-                return 0;
+            /* Not compared: '0' the feature does not apply, '?' its value is
+             * unknown here, '.' a table that does not say which of the two. */
+            if (state == '.' || state == '0' || state == '?') {
+                return false;
             }
             if (state == '+') {
                 *out = 1.0;
@@ -589,14 +604,14 @@ static int mk_label_value(
             } else {
                 *out = 0.0;
             }
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 static mk_status mk_score_valued(
-    const mk_builtin_system *system,
+    const mki_builtin_system *system,
     mk_feature_view a,
     mk_feature_view b,
     const char *node_weights,
@@ -608,7 +623,7 @@ static mk_status mk_score_valued(
     size_t compared = 0;
     double total_weight = 0.0;
     double total_diff = 0.0;
-    const mk_node_weight_preset *preset = NULL;
+    const mki_node_weight_preset *preset = NULL;
     mk_status status = mk_score_begin(node_weights, out, coverage, &preset);
 
     if (status != MK_OK) {
@@ -655,17 +670,17 @@ static mk_status mk_score_valued(
     return MK_OK;
 }
 
-mki_scorer mki_scorer_for(const mk_builtin_system *system)
+mki_scorer mki_scorer_for(const mki_builtin_system *system)
 {
     /* No system is the compiled geometry alone, which is what leaf scores. */
     if (system == NULL) {
         return mk_score_leaf;
     }
-    if (system->kind == MK_SYSTEM_VALUED) {
+    if (system->kind == MKI_SYSTEM_VALUED) {
         return mk_score_valued;
     }
-    if (system->kind != MK_SYSTEM_CATEGORICAL) {
-        /* MK_SYSTEM_TRAINED names a kind the library has no scorer for. Saying
+    if (system->kind != MKI_SYSTEM_CATEGORICAL) {
+        /* MKI_SYSTEM_TRAINED names a kind the library has no scorer for. Saying
          * so here is what keeps every caller from having to guess: this used to
          * be read as "valued" by vector.c, as an error by system.c, and as
          * "not categorical" by resolver.c. */
@@ -701,10 +716,43 @@ mk_status mk_sound_distance(
     double *out
 )
 {
+    size_t i;
+
     if (out == NULL ||
         (a.count > 0 && a.features == NULL) ||
         (b.count > 0 && b.features == NULL)) {
         return MK_ERR_INVALID_ARGUMENT;
     }
+    *out = 0.0;
+    for (i = 0; i < a.count; i++) {
+        if (!mki_geometry_knows_feature(a.features[i])) {
+            return MK_ERR_UNKNOWN_FEATURE;
+        }
+    }
+    for (i = 0; i < b.count; i++) {
+        if (!mki_geometry_knows_feature(b.features[i])) {
+            return MK_ERR_UNKNOWN_FEATURE;
+        }
+    }
     return mki_scorer_for(NULL)(NULL, a, b, node_weights, out, NULL);
+}
+
+mk_status mki_resolve_weight_preset(const char *name, const mki_node_weight_preset **out)
+{
+    return mk_resolve_weight_preset(name, out);
+}
+
+double mki_dimension_weight(const mki_node_weight_preset *preset, const char *node, double base_weight)
+{
+    return mk_dimension_weight(preset, node, base_weight);
+}
+
+double mki_node_depth_value(const char *node)
+{
+    return mk_node_depth_value(node);
+}
+
+const char *mki_feature_node(const char *feature)
+{
+    return mk_feature_node(feature);
 }

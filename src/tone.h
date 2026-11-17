@@ -1,6 +1,8 @@
 #ifndef MK_TONE_H
 #define MK_TONE_H
 
+#include <stdbool.h>
+
 /* Chao tone: reading the notation, and moving a tone token onto the segment it
  * belongs to. */
 
@@ -12,6 +14,6 @@
 int mki_chao_level(const char *p);
 
 /* Whether one character is a Chao digit at all. */
-int mki_is_chao_digit(const char *p);
+bool mki_is_chao_digit(const char *p);
 
 #endif

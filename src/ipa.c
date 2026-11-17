@@ -4,7 +4,7 @@
 
 /* The vowel letters the cluster grammar and the tone-merge step both need.
  * This set was written out twice, in two files, in two different orders. */
-int mki_is_vowel_letter(const char *p)
+bool mki_is_vowel_letter(const char *p)
 {
     return *p == 'a' || *p == 'e' || *p == 'i' || *p == 'o' || *p == 'u' ||
         mki_has_prefix(p, "y") || mki_has_prefix(p, "ɛ") ||
@@ -23,7 +23,7 @@ int mki_is_vowel_letter(const char *p)
         mki_has_prefix(p, "ʯ");
 }
 
-int mki_is_boundary(const char *p)
+bool mki_is_boundary(const char *p)
 {
     return *p == '+' || *p == '.' || *p == '|' || mki_has_prefix(p, "‖");
 }

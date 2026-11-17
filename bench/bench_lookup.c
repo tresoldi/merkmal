@@ -43,8 +43,8 @@ int main(void)
 {
     mk_registry *registry = NULL;
     const mk_system *system = NULL;
-    const char *scratch[MK_MAX_ENTRY_FEATURES];
-    mk_entry_view view;
+    const char *scratch[MKI_MAX_ENTRY_FEATURES];
+    mki_entry_view view;
     clock_t start;
     double elapsed;
     size_t i;

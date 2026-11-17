@@ -1,8 +1,9 @@
 /* Segment resolution. See resolver.h for the interface and for the
- * ownership rule that governs mk_resolution. */
+ * ownership rule that governs mki_resolution. */
 
 #include "resolver.h"
 
+#include "array.h"
 #include "ipa.h"
 #include "normalize.h"
 #include "strings.h"
@@ -65,8 +66,8 @@ static mk_status mk_lookup_normalized(
     const mk_system *system,
     const char *normalized,
     const char **scratch,
-    mk_entry_view *out,
-    mk_resolution_path *path_out
+    mki_entry_view *out,
+    mki_resolution_path *path_out
 )
 {
     char *without_tie;
@@ -74,7 +75,7 @@ static mk_status mk_lookup_normalized(
 
     if (mki_inventory_find(system->builtin, normalized, scratch, out)) {
         if (path_out != NULL) {
-            *path_out = MK_RESOLVED_INVENTORY;
+            *path_out = MKI_RESOLVED_INVENTORY;
         }
         return MK_OK;
     }
@@ -87,7 +88,7 @@ static mk_status mk_lookup_normalized(
         if (mki_inventory_find(system->builtin, without_tie, scratch, out)) {
             free(without_tie);
             if (path_out != NULL) {
-                *path_out = MK_RESOLVED_TIE_STRIPPED;
+                *path_out = MKI_RESOLVED_TIE_STRIPPED;
             }
             return MK_OK;
         }
@@ -106,7 +107,7 @@ static mk_status mk_lookup_normalized(
         free(retracted);
         if (hit) {
             if (path_out != NULL) {
-                *path_out = MK_RESOLVED_AFFRICATE_RETRACTED;
+                *path_out = MKI_RESOLVED_AFFRICATE_RETRACTED;
             }
             return MK_OK;
         }
@@ -114,34 +115,34 @@ static mk_status mk_lookup_normalized(
     return MK_ERR_UNKNOWN_GRAPHEME;
 }
 
-const char *mki_resolution_path_name(mk_resolution_path path)
+const char *mki_resolution_path_name(mki_resolution_path path)
 {
     switch (path) {
-    case MK_RESOLVED_INVENTORY:
+    case MKI_RESOLVED_INVENTORY:
         return "inventory";
-    case MK_RESOLVED_TIE_STRIPPED:
+    case MKI_RESOLVED_TIE_STRIPPED:
         return "tie-stripped";
-    case MK_RESOLVED_AFFRICATE_RETRACTED:
+    case MKI_RESOLVED_AFFRICATE_RETRACTED:
         return "affricate-retracted";
-    case MK_RESOLVED_VOWEL_CLUSTER:
+    case MKI_RESOLVED_VOWEL_CLUSTER:
         return "vowel-cluster";
-    case MK_RESOLVED_DIACRITICS:
+    case MKI_RESOLVED_DIACRITICS:
         return "diacritics";
-    case MK_RESOLVED_COMPLEX:
+    case MKI_RESOLVED_COMPLEX:
         return "complex";
-    case MK_RESOLVED_CONSONANT_CLUSTER:
+    case MKI_RESOLVED_CONSONANT_CLUSTER:
         return "consonant-cluster";
-    case MK_RESOLVED_TONE:
+    case MKI_RESOLVED_TONE:
         return "tone";
-    case MK_RESOLVED_NONE:
+    case MKI_RESOLVED_NONE:
     default:
         return "none";
     }
 }
 
-static void mk_free_cluster_components(mk_cluster_component *components, size_t count);
+static void mk_free_cluster_components(mki_cluster_component *components, size_t count);
 
-void mki_resolution_clear(mk_resolution *entry)
+void mki_resolution_clear(mki_resolution *entry)
 {
     size_t i;
 
@@ -177,7 +178,7 @@ void mki_resolution_clear(mk_resolution *entry)
  * Use this rather than `*dst = *src` for any resolution that outlives its
  * source. The owned paths need no fixup: `owned_features` is heap storage that
  * the copy inherits along with the pointer. */
-static void mk_resolution_move(mk_resolution *dst, const mk_resolution *src)
+static void mk_resolution_move(mki_resolution *dst, const mki_resolution *src)
 {
     *dst = *src;
     if (src->features == src->inline_features) {
@@ -186,11 +187,11 @@ static void mk_resolution_move(mk_resolution *dst, const mk_resolution *src)
 }
 
 /* These three only read, and say so. Callers holding the mutable `char **` half
- * of an mk_resolution widen with a cast at the call, the way the call to
+ * of an mki_resolution widen with a cast at the call, the way the call to
  * mki_ordinal_conflict below already did; C does not convert `char **` to
  * `const char *const *` on its own. Adding const is the safe direction, which
  * is why -Wcast-qual has nothing to say about it. */
-static int mk_feature_list_contains(const char *const *items, size_t count, const char *feature)
+static bool mk_feature_list_contains(const char *const *items, size_t count, const char *feature)
 {
     return mki_features_contain(items, count, feature);
 }
@@ -224,15 +225,11 @@ static mk_status mk_add_owned_feature(char ***items, size_t *count, size_t *cap,
         mk_feature_list_contains((const char *const *)*items, *count, feature)) {
         return MK_OK;
     }
-    if (*count + 1 > *cap) {
-        size_t new_cap = *cap == 0 ? 8 : *cap * 2;
-        next = (char **)realloc(*items, new_cap * sizeof(**items));
-        if (next == NULL) {
-            return MK_ERR_OOM;
-        }
-        *items = next;
-        *cap = new_cap;
+    next = (char **)mki_grow_array(*items, cap, *count, 1, sizeof(**items), 8);
+    if (next == NULL) {
+        return MK_ERR_OOM;
     }
+    *items = next;
     (*items)[*count] = mki_strdup_internal(feature);
     if ((*items)[*count] == NULL) {
         return MK_ERR_OOM;
@@ -270,7 +267,7 @@ static mk_status mk_replace_existing_valued_feature(
     return MK_ERR_INVALID_ARGUMENT;
 }
 
-static mk_status mk_copy_entry_features(const mk_entry_view *entry, char ***items, size_t *count, size_t *cap)
+static mk_status mk_copy_entry_features(const mki_entry_view *entry, char ***items, size_t *count, size_t *cap)
 {
     size_t i;
     mk_status status;
@@ -284,14 +281,14 @@ static mk_status mk_copy_entry_features(const mk_entry_view *entry, char ***item
     return MK_OK;
 }
 
-static int mk_feature_array_marks_nucleus(const char *const *items, size_t count)
+static bool mk_feature_array_marks_nucleus(const char *const *items, size_t count)
 {
     return mk_feature_list_contains(items, count, "vowel") ||
         mk_feature_list_contains(items, count, "syllabic") ||
         mk_feature_list_contains(items, count, "syllabic=+");
 }
 
-static int mk_feature_array_marks_sonorant(const char *const *items, size_t count)
+static bool mk_feature_array_marks_sonorant(const char *const *items, size_t count)
 {
     return mk_feature_list_contains(items, count, "sonorant") ||
         mk_feature_list_contains(items, count, "nasal") ||
@@ -345,7 +342,7 @@ static const char *mk_feature_dimension(const char *feature)
 
 /* A resolved entry is a grapheme, its features, and the storage behind them.
  * Scoring wants only the middle part. */
-mk_feature_view mki_view_of(const mk_resolution *entry)
+mk_feature_view mki_view_of(const mki_resolution *entry)
 {
     mk_feature_view view;
 
@@ -354,7 +351,7 @@ mk_feature_view mki_view_of(const mk_resolution *entry)
     return view;
 }
 
-mk_feature_view mki_view_of_component(const mk_cluster_component *component)
+mk_feature_view mki_view_of_component(const mki_cluster_component *component)
 {
     mk_feature_view view;
 
@@ -427,21 +424,21 @@ static mk_status mk_add_movement_feature(
     return mk_add_owned_feature(items, count, cap, label);
 }
 
-static int mk_feature_base_present(char **items, size_t count, const char *feature)
+static bool mk_feature_base_present(char **items, size_t count, const char *feature)
 {
     size_t i;
     size_t feature_len = strlen(feature);
 
     for (i = 0; i < count; i++) {
         if (strncmp(items[i], feature, feature_len) == 0 && items[i][feature_len] == '=') {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
-static const mk_diacritic_map *mk_match_diacritic_map(
-    const mk_diacritic_map *map,
+static const mki_diacritic_map *mk_match_diacritic_map(
+    const mki_diacritic_map *map,
     size_t count,
     const char *text
 )
@@ -474,7 +471,7 @@ static const char *mk_match_extra_prefix_feature(const char *text, size_t *bytes
     return NULL;
 }
 
-static const mk_tone_mark *mk_match_tone_mark(const char *text)
+static const mki_tone_mark *mk_match_tone_mark(const char *text)
 {
     size_t i;
 
@@ -604,42 +601,42 @@ static mk_status mk_add_chao_tone_features(
  * Deliberately narrow: the documented conventions only. Dataset-specific noise
  * such as arrows stays MK_ERR_UNKNOWN_GRAPHEME rather than being swept in here
  * on a guess about what its author meant. */
-static int mk_is_source_marker(const char *text)
+static bool mk_is_source_marker(const char *text)
 {
     if (text == NULL || text[0] == '\0') {
-        return 0;
+        return false;
     }
     /* CLDF boundary markers. */
     if (mki_streq(text, "+") || mki_streq(text, "_") || mki_streq(text, "#")) {
-        return 1;
+        return true;
     }
     /* CLTS: a grapheme the conversion could not resolve. */
     if (mki_streq(text, "<?>")) {
-        return 1;
+        return true;
     }
     /* CLDF: source material left unparsed, escaped as <<...>>. */
     if (mki_has_prefix(text, "<<")) {
         size_t len = strlen(text);
         if (len >= 4 && strcmp(text + len - 2, ">>") == 0) {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 static void mk_free_owned_feature_array(char **features, size_t count);
 static mk_status mk_synthesize_descriptive_complex(
     const mk_system *system,
     const char *normalized,
-    mk_resolution *out
+    mki_resolution *out
 );
 static mk_status mk_set_synthesized_entry(
-    mk_resolution *out,
-    mk_resolution_path path,
+    mki_resolution *out,
+    mki_resolution_path path,
     const char *grapheme,
     char **features,
     size_t count,
-    mk_cluster_component *components,
+    mki_cluster_component *components,
     size_t component_count
 );
 
@@ -659,7 +656,7 @@ static mk_status mk_set_synthesized_entry(
 static mk_status mk_synthesize_bare_tone(
     const mk_system *system,
     const char *normalized,
-    mk_resolution *out
+    mki_resolution *out
 )
 {
     const char *p = normalized;
@@ -704,7 +701,7 @@ static mk_status mk_synthesize_bare_tone(
     /* Valued systems declare no dimension a tone can move, so a tone token
      * there would score a confidently wrong zero against everything. Refusing
      * is the same policy those systems already apply to bound tone. */
-    if (system->builtin->kind != MK_SYSTEM_CATEGORICAL) {
+    if (system->builtin->kind != MKI_SYSTEM_CATEGORICAL) {
         return MK_ERR_UNSUPPORTED_MODEL;
     }
 
@@ -727,7 +724,7 @@ static mk_status mk_synthesize_bare_tone(
     }
 
     status = mk_set_synthesized_entry(
-        out, MK_RESOLVED_TONE, normalized, features, feature_count, NULL, 0);
+        out, MKI_RESOLVED_TONE, normalized, features, feature_count, NULL, 0);
     if (status != MK_OK) {
         goto fail;
     }
@@ -785,7 +782,7 @@ static mk_status mk_match_chao_tone_sequence(
     return mk_add_chao_tone_features(modifiers, modifier_count, modifier_cap, levels, count);
 }
 
-static const mk_valued_diacritic_effect *mk_find_valued_effect(const char *modifier)
+static const mki_valued_diacritic_effect *mk_find_valued_effect(const char *modifier)
 {
     size_t i;
 
@@ -807,32 +804,32 @@ static const mk_valued_diacritic_effect *mk_find_valued_effect(const char *modif
  * therefore whether some tone-derived modifier has a valued effect on a
  * dimension this system actually has. Returning "unsupported" instead of zero
  * is the honest answer: no tonal equality has been established. */
-static int mk_system_supports_tone(const mk_system *system)
+static bool mk_system_supports_tone(const mk_system *system)
 {
     size_t i;
     size_t j;
     size_t k;
 
     if (system == NULL || system->builtin == NULL) {
-        return 0;
+        return false;
     }
-    if (system->builtin->kind != MK_SYSTEM_VALUED) {
-        return 1;
+    if (system->builtin->kind != MKI_SYSTEM_VALUED) {
+        return true;
     }
     for (i = 0; i < mki_default_valued_diacritic_effect_count; i++) {
-        const mk_valued_diacritic_effect *effect = &mki_default_valued_diacritic_effects[i];
+        const mki_valued_diacritic_effect *effect = &mki_default_valued_diacritic_effects[i];
         if (strncmp(effect->modifier, "tone-", 5) != 0) {
             continue;
         }
         for (j = 0; j < effect->alternative_count; j++) {
             for (k = 0; k < system->builtin->geometry_map_count; k++) {
                 if (mki_streq(system->builtin->geometry_map[k].feature, effect->alternatives[j])) {
-                    return 1;
+                    return true;
                 }
             }
         }
     }
-    return 0;
+    return false;
 }
 
 static mk_status mk_decompose_diacritics(
@@ -870,7 +867,7 @@ static mk_status mk_decompose_diacritics(
 
     p = normalized;
     while (*p != '\0') {
-        const mk_diacritic_map *prefix = mk_match_diacritic_map(
+        const mki_diacritic_map *prefix = mk_match_diacritic_map(
             mki_default_prefix_diacritics,
             mki_default_prefix_diacritic_count,
             p
@@ -899,9 +896,9 @@ static mk_status mk_decompose_diacritics(
     }
 
     while (*p != '\0') {
-        const mk_tone_mark *tone = mk_match_tone_mark(p);
-        const mk_diacritic_map *combining;
-        const mk_diacritic_map *suffix;
+        const mki_tone_mark *tone = mk_match_tone_mark(p);
+        const mki_diacritic_map *combining;
+        const mki_diacritic_map *suffix;
         const char *extra_suffix;
         size_t extra_suffix_bytes = 0;
         size_t chao_bytes = 0;
@@ -1058,7 +1055,7 @@ static mk_status mk_apply_valued_modifiers(
     size_t i;
 
     for (i = 0; i < modifier_count; i++) {
-        const mk_valued_diacritic_effect *effect = mk_find_valued_effect(modifiers[i]);
+        const mki_valued_diacritic_effect *effect = mk_find_valued_effect(modifiers[i]);
         size_t j;
         if (effect == NULL) {
             continue;
@@ -1095,11 +1092,11 @@ static mk_status mk_apply_valued_modifiers(
  * Nothing about the synthesis was ever descriptive-specific. Components are
  * resolved through whichever system is asking and scored by the component path
  * in system.c, which never looked at the system's name either. */
-static int mk_admits_synthesized_clusters(const mk_system *system)
+static bool mk_admits_synthesized_clusters(const mk_system *system)
 {
     return system != NULL &&
         system->builtin != NULL &&
-        system->builtin->kind == MK_SYSTEM_CATEGORICAL;
+        system->builtin->kind == MKI_SYSTEM_CATEGORICAL;
 }
 
 /* Diacritics that assert opposite values of one property. A segment carrying
@@ -1118,17 +1115,17 @@ static const char *const mk_contradictory_modifiers[][2] = {
     { "advanced-tongue-root", "retracted-tongue-root" }
 };
 
-static int mk_modifiers_contradict(const char *const *features, size_t count)
+static bool mk_modifiers_contradict(const char *const *features, size_t count)
 {
     size_t i;
 
     for (i = 0; i < sizeof(mk_contradictory_modifiers) / sizeof(mk_contradictory_modifiers[0]); i++) {
         if (mki_features_contain(features, count, mk_contradictory_modifiers[i][0]) &&
             mki_features_contain(features, count, mk_contradictory_modifiers[i][1])) {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 /* Removes one owned label, keeping the order of the rest. */
@@ -1146,7 +1143,7 @@ static void mk_remove_owned_feature(char **items, size_t *count, const char *fea
     }
 }
 
-static const mk_place_class *mk_find_place_class(const char *place)
+static const mki_place_class *mk_find_place_class(const char *place)
 {
     size_t i;
 
@@ -1180,7 +1177,7 @@ static mk_status mk_apply_place_modifier(
     int *applied
 )
 {
-    const mk_place_class *target = mk_find_place_class(modifier);
+    const mki_place_class *target = mk_find_place_class(modifier);
     int had_anterior;
     int had_distributed;
     size_t i;
@@ -1193,7 +1190,7 @@ static mk_status mk_apply_place_modifier(
         return MK_OK;
     }
     for (i = 0; i < mki_clements_hume_ordinal_scale_count; i++) {
-        const mk_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
+        const mki_ordinal_scale *scale = &mki_clements_hume_ordinal_scales[i];
         int on_scale = 0;
 
         for (j = 0; j < scale->level_count; j++) {
@@ -1241,7 +1238,7 @@ static mk_status mk_apply_place_modifier(
 static mk_status mk_synthesize_from_diacritics(
     const mk_system *system,
     const char *normalized,
-    mk_resolution *out
+    mki_resolution *out
 );
 
 /* Hands the synthesized storage to the resolution and establishes the aliasing
@@ -1249,12 +1246,12 @@ static mk_status mk_synthesize_from_diacritics(
  * owned_grapheme. The caller must null its locals afterwards, because the
  * resolution owns them from here. */
 static mk_status mk_set_synthesized_entry(
-    mk_resolution *out,
-    mk_resolution_path path,
+    mki_resolution *out,
+    mki_resolution_path path,
     const char *grapheme,
     char **features,
     size_t count,
-    mk_cluster_component *components,
+    mki_cluster_component *components,
     size_t component_count
 )
 {
@@ -1273,7 +1270,7 @@ static mk_status mk_set_synthesized_entry(
     return MK_OK;
 }
 
-static void mk_clear_cluster_component(mk_cluster_component *component)
+static void mk_clear_cluster_component(mki_cluster_component *component)
 {
     size_t i;
 
@@ -1286,7 +1283,7 @@ static void mk_clear_cluster_component(mk_cluster_component *component)
     memset(component, 0, sizeof(*component));
 }
 
-static void mk_free_cluster_components(mk_cluster_component *components, size_t count)
+static void mk_free_cluster_components(mki_cluster_component *components, size_t count)
 {
     size_t i;
 
@@ -1303,25 +1300,23 @@ static void mk_free_cluster_components(mk_cluster_component *components, size_t 
  * once the cluster's own feature set has been built from them -- see
  * mk_attach_component_features. */
 static mk_status mk_add_cluster_component(
-    mk_cluster_component **components,
+    mki_cluster_component **components,
     size_t *count,
     size_t *cap,
     const char *start,
     size_t len
 )
 {
-    mk_cluster_component *slot;
+    mki_cluster_component *slot;
     char *grapheme;
 
-    if (*count + 1 > *cap) {
-        size_t new_cap = *cap == 0 ? 4 : *cap * 2;
-        mk_cluster_component *next = (mk_cluster_component *)realloc(
-            *components, new_cap * sizeof(**components));
+    {
+        mki_cluster_component *next = (mki_cluster_component *)mki_grow_array(
+            *components, cap, *count, 1, sizeof(**components), 4);
         if (next == NULL) {
             return MK_ERR_OOM;
         }
         *components = next;
-        *cap = new_cap;
     }
     grapheme = (char *)malloc(len + 1);
     if (grapheme == NULL) {
@@ -1360,19 +1355,19 @@ static mk_status mk_add_cluster_component(
  *
  * Equal counts plus one-way containment: a resolved feature set does not repeat
  * a label. */
-static int mk_same_segment(const mk_resolution *a, const mk_resolution *b)
+static bool mk_same_segment(const mki_resolution *a, const mki_resolution *b)
 {
     size_t i;
 
     if (a->feature_count != b->feature_count) {
-        return 0;
+        return false;
     }
     for (i = 0; i < a->feature_count; i++) {
         if (!mki_features_contain(b->features, b->feature_count, a->features[i])) {
-            return 0;
+            return false;
         }
     }
-    return 1;
+    return true;
 }
 
 /* Carries a part's resolved features into the record, so scoring never has to
@@ -1387,8 +1382,8 @@ static int mk_same_segment(const mk_resolution *a, const mk_resolution *b)
  * this frame. That copy is one small allocation per part, against the up to six
  * full re-resolutions scoring used to pay for every cluster comparison. */
 static mk_status mk_attach_component_features(
-    mk_cluster_component *slot,
-    mk_resolution *resolved
+    mki_cluster_component *slot,
+    mki_resolution *resolved
 )
 {
     slot->feature_count = resolved->feature_count;
@@ -1421,7 +1416,7 @@ static mk_status mk_add_position_features(
     char ***features,
     size_t *count,
     size_t *cap,
-    const mk_resolution *component,
+    const mki_resolution *component,
     size_t position
 )
 {
@@ -1449,8 +1444,8 @@ static mk_status mk_add_cluster_movement_features(
     char ***features,
     size_t *count,
     size_t *cap,
-    const mk_resolution *from,
-    const mk_resolution *to
+    const mki_resolution *from,
+    const mki_resolution *to
 )
 {
     static const char *const dimensions[] = {
@@ -1479,17 +1474,17 @@ static mk_status mk_add_cluster_movement_features(
 typedef struct mk_component_grammar {
     /* Whether this codepoint may begin a component of this kind. Shared
      * rejections (end of input, tone) are handled by the parser. */
-    int (*admits_start)(const char *p);
+    bool (*admits_start)(const char *p);
     /* Whether the resolved component is one of this kind. */
-    int (*accepts)(const mk_resolution *component);
+    bool (*accepts)(const mki_resolution *component);
 } mk_component_grammar;
 
-static int mk_vowel_starts_component(const char *p)
+static bool mk_vowel_starts_component(const char *p)
 {
     return mki_is_vowel_letter(p);
 }
 
-static int mk_vowel_component_accepted(const mk_resolution *component)
+static bool mk_vowel_component_accepted(const mki_resolution *component)
 {
     return mk_feature_array_marks_nucleus(
             component->features, component->feature_count) &&
@@ -1498,7 +1493,7 @@ static int mk_vowel_component_accepted(const mk_resolution *component)
 }
 
 /* Source markup and control tokens are not segments and must not start one. */
-static int mk_consonant_starts_component(const char *p)
+static bool mk_consonant_starts_component(const char *p)
 {
     return !(*p == '<' ||
         *p == '>' ||
@@ -1511,7 +1506,7 @@ static int mk_consonant_starts_component(const char *p)
         mki_has_prefix(p, "∼"));
 }
 
-static int mk_consonant_component_accepted(const mk_resolution *component)
+static bool mk_consonant_component_accepted(const mki_resolution *component)
 {
     return mk_feature_list_contains(
             component->features, component->feature_count, "consonant") &&
@@ -1535,7 +1530,7 @@ static mk_status mk_parse_component_once(
     const mk_component_grammar *grammar,
     const char *start,
     const char **end_out,
-    mk_resolution *component_out
+    mki_resolution *component_out
 )
 {
     const char *p = start;
@@ -1569,8 +1564,8 @@ static mk_status mk_parse_component_once(
     }
 
     while (*p != '\0') {
-        const mk_diacritic_map *combining;
-        const mk_diacritic_map *suffix;
+        const mki_diacritic_map *combining;
+        const mki_diacritic_map *suffix;
         const char *extra_suffix;
         size_t extra_suffix_bytes = 0;
 
@@ -1622,7 +1617,7 @@ static mk_status mk_parse_component_once(
     }
 
     {
-        mk_entry_view entry;
+        mki_entry_view entry;
         status = mk_lookup_normalized(
             system, component, component_out->inline_features, &entry, NULL);
         if (status == MK_OK) {
@@ -1665,7 +1660,7 @@ static mk_status mk_parse_component_at(
     const mk_component_grammar *grammar,
     const char *start,
     const char **end_out,
-    mk_resolution *component_out
+    mki_resolution *component_out
 )
 {
     const char *first_end = NULL;
@@ -1676,7 +1671,7 @@ static mk_status mk_parse_component_at(
         return status;
     }
     if (*first_end != '\0') {
-        mk_resolution second;
+        mki_resolution second;
         const char *second_end = NULL;
 
         memset(&second, 0, sizeof(second));
@@ -1689,13 +1684,15 @@ static mk_status mk_parse_component_at(
 
             mki_resolution_clear(&second);
             if (text == NULL) {
+                /* The first component is already in component_out, owned. */
+                mki_resolution_clear(component_out);
                 return MK_ERR_OOM;
             }
             memcpy(text, start, span);
             text[span] = '\0';
             if (mki_append_text(&joined, &len, &cap, text) == MK_OK) {
-                mk_resolution merged;
-                mk_entry_view entry;
+                mki_resolution merged;
+                mki_entry_view entry;
                 mk_status merged_status;
 
                 memset(&merged, 0, sizeof(merged));
@@ -1740,7 +1737,7 @@ static mk_status mk_parse_component_at(
  * imply. Those four differences used to be spelled out twice, around eighty
  * lines of identical scan and cleanup. */
 typedef struct mk_cluster_grammar {
-    mk_resolution_path path;
+    mki_resolution_path path;
     const mk_component_grammar *component;
     /* Whether a trailing tone mark or Chao run may close the cluster. Only
      * vowels bear tone; the consonant component grammar admits neither, so the
@@ -1756,11 +1753,11 @@ typedef struct mk_cluster_grammar {
      * labels. */
     mk_status (*cluster_features)(
         char ***features, size_t *count, size_t *cap,
-        const mk_resolution *components, size_t component_count);
+        const mki_resolution *components, size_t component_count);
     /* Features implied by each adjacent pair, added after them. */
     mk_status (*transition_features)(
         char ***features, size_t *count, size_t *cap,
-        const mk_resolution *components, size_t component_count);
+        const mki_resolution *components, size_t component_count);
 } mk_cluster_grammar;
 
 /* A prenasalised segment is a nasal followed by a non-nasal obstruent. Testing
@@ -1771,7 +1768,7 @@ static mk_status mk_add_prenasalization(
     char ***features,
     size_t *count,
     size_t *cap,
-    const mk_resolution *components,
+    const mki_resolution *components,
     size_t component_count
 )
 {
@@ -1791,7 +1788,7 @@ static mk_status mk_add_vowel_movement(
     char ***features,
     size_t *count,
     size_t *cap,
-    const mk_resolution *components,
+    const mki_resolution *components,
     size_t component_count
 )
 {
@@ -1815,7 +1812,7 @@ static const char *const mk_consonant_cluster_classes[] = {
 };
 
 static const mk_cluster_grammar mk_vowel_cluster_grammar = {
-    MK_RESOLVED_VOWEL_CLUSTER,
+    MKI_RESOLVED_VOWEL_CLUSTER,
     &mk_vowel_component_grammar,
     1,
     mk_vowel_cluster_classes,
@@ -1831,7 +1828,7 @@ static const mk_cluster_grammar mk_vowel_cluster_grammar = {
 };
 
 static const mk_cluster_grammar mk_consonant_cluster_grammar = {
-    MK_RESOLVED_CONSONANT_CLUSTER,
+    MKI_RESOLVED_CONSONANT_CLUSTER,
     &mk_consonant_component_grammar,
     0,
     mk_consonant_cluster_classes,
@@ -1850,13 +1847,13 @@ static mk_status mk_synthesize_cluster(
     const mk_system *system,
     const mk_cluster_grammar *grammar,
     const char *normalized,
-    mk_resolution *out
+    mki_resolution *out
 )
 {
     const char *p;
-    mk_resolution components[3];
+    mki_resolution components[3];
     size_t component_count = 0;
-    mk_cluster_component *component_names = NULL;
+    mki_cluster_component *component_names = NULL;
     size_t component_name_count = 0;
     size_t component_name_cap = 0;
     char **features = NULL;
@@ -1876,7 +1873,7 @@ static mk_status mk_synthesize_cluster(
 
         if (grammar->accepts_tone) {
             size_t chao_bytes = 0;
-            const mk_tone_mark *tone = mk_match_tone_mark(p);
+            const mki_tone_mark *tone = mk_match_tone_mark(p);
 
             /* Tone closes the cluster: it must follow at least two components
              * and run to the end of the token. */
@@ -2014,7 +2011,11 @@ static mk_status mk_synthesize_cluster(
     }
 
 finish:
-    for (i = 0; i < component_count; i++) {
+    /* Every slot, not only the first component_count: a component that parsed
+     * and then failed to be recorded is filled but not yet counted, and leaked
+     * whenever recording it ran out of memory. The slots start zeroed and the
+     * clear is idempotent, so the unused ones cost nothing. */
+    for (i = 0; i < sizeof(components) / sizeof(components[0]); i++) {
         mki_resolution_clear(&components[i]);
     }
     mk_free_owned_feature_array(features, feature_count);
@@ -2025,7 +2026,7 @@ finish:
 static mk_status mk_synthesize_untied_complex(
     const mk_system *system,
     const char *normalized,
-    mk_resolution *out
+    mki_resolution *out
 );
 
 /* A tie bar asserts one segment, which is what this synthesizer builds, so it
@@ -2036,7 +2037,7 @@ static mk_status mk_synthesize_untied_complex(
 static mk_status mk_synthesize_descriptive_complex(
     const mk_system *system,
     const char *normalized,
-    mk_resolution *out
+    mki_resolution *out
 )
 {
     char *untied = mk_remove_tie_bars(normalized);
@@ -2053,7 +2054,7 @@ static mk_status mk_synthesize_descriptive_complex(
 static mk_status mk_synthesize_untied_complex(
     const mk_system *system,
     const char *normalized,
-    mk_resolution *out
+    mki_resolution *out
 )
 {
     char **features = NULL;
@@ -2189,7 +2190,7 @@ static mk_status mk_synthesize_untied_complex(
             goto fail;
         }
     }
-    status = mk_set_synthesized_entry(out, MK_RESOLVED_COMPLEX, normalized, features, count, NULL, 0);
+    status = mk_set_synthesized_entry(out, MKI_RESOLVED_COMPLEX, normalized, features, count, NULL, 0);
     if (status == MK_OK) {
         return MK_OK;
     }
@@ -2202,7 +2203,7 @@ fail:
 static mk_status mk_synthesize_from_diacritics(
     const mk_system *system,
     const char *normalized,
-    mk_resolution *out
+    mki_resolution *out
 )
 {
     char *base = NULL;
@@ -2210,9 +2211,9 @@ static mk_status mk_synthesize_from_diacritics(
     size_t modifier_count = 0;
     int recognized_modifier = 0;
     int tone_seen = 0;
-    mk_entry_view base_entry;
-    const char *base_scratch[MK_MAX_ENTRY_FEATURES];
-    mk_resolution base_resolved;
+    mki_entry_view base_entry;
+    const char *base_scratch[MKI_MAX_ENTRY_FEATURES];
+    mki_resolution base_resolved;
     char **features = NULL;
     size_t count = 0;
     size_t cap = 0;
@@ -2259,7 +2260,7 @@ static mk_status mk_synthesize_from_diacritics(
             goto finish;
         }
     }
-    if (system->builtin->kind == MK_SYSTEM_VALUED) {
+    if (system->builtin->kind == MKI_SYSTEM_VALUED) {
         status = mk_apply_valued_modifiers(features, count, modifiers, modifier_count);
         if (status != MK_OK) {
             goto finish;
@@ -2312,7 +2313,7 @@ finish:
         mk_free_owned_feature_array(features, count);
         return MK_ERR_OOM;
     }
-    out->path = MK_RESOLVED_DIACRITICS;
+    out->path = MKI_RESOLVED_DIACRITICS;
     out->grapheme = out->owned_grapheme;
     out->owned_features = features;
     out->owned_feature_count = count;
@@ -2324,11 +2325,11 @@ finish:
 mk_status mki_resolve(
     const mk_system *system,
     const char *utf8_grapheme,
-    mk_resolution *out
+    mki_resolution *out
 )
 {
     char *normalized;
-    mk_entry_view entry;
+    mki_entry_view entry;
     mk_status status;
 
     if (system == NULL || system->builtin == NULL || utf8_grapheme == NULL || out == NULL) {
@@ -2348,7 +2349,7 @@ mk_status mki_resolve(
         char *literal = NULL;
 
         if (mki_normalize_input_grapheme_literal(utf8_grapheme, &literal) == MK_OK) {
-            mk_entry_view found;
+            mki_entry_view found;
 
             if (mk_lookup_normalized(
                     system, literal, out->inline_features, &found, &out->path) == MK_OK) {

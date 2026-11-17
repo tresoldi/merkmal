@@ -64,6 +64,15 @@ def test_semantic_fingerprint_is_auditable_and_stable() -> None:
     assert len(runtime_digest) == 64
 
 
+def test_package_version_is_the_linked_library_version() -> None:
+    # Four files spell the version (CMakeLists.txt, merkmal.h, pyproject.toml,
+    # __init__.py). The C smoke test holds the first two together; this holds
+    # the package to the library it actually loaded.
+    assert merkmal.__version__ == merkmal._native.LIBRARY_VERSION
+    assert merkmal.DATA_PROFILE in {"full", "cc-by"}
+    assert merkmal.UNICODE_VERSION.count(".") == 2
+
+
 def test_native_wrapper_surface_is_small() -> None:
     assert "load_model" not in merkmal.__all__
     assert not hasattr(merkmal, "CategoricalEngine")
@@ -731,6 +740,172 @@ def test_source_conventions_cover_clts_lookalikes() -> None:
     assert merkmal.distance("ɫ", "lˠ", system="phoible") > 0.0
 
 
+def test_feature_vectors_are_lossless() -> None:
+    """Graphemes with equal vectors are at distance zero, in every system.
+
+    The vector used to omit dimensions the scorer reads: in `distinctive`, /a/
+    and /e/ had the same vector.
+    """
+    models = Path(__file__).resolve().parents[2] / "models"
+    for system in merkmal.list_systems():
+        rows = (models / system / "inventory.tsv").read_text(encoding="utf-8").splitlines()[1:]
+        by_vector: dict[tuple[float, ...], str] = {}
+        for grapheme in (row.split("\t")[0] for row in rows if row):
+            vector = tuple(merkmal.feature_vector(grapheme, system=system))
+            first = by_vector.setdefault(vector, grapheme)
+            distance = merkmal.distance(first, grapheme, system=system)
+            assert distance == 0.0, (system, first, grapheme)
+    assert merkmal.feature_vector("a") != merkmal.feature_vector("e")
+
+
+@requires_full_data
+def test_phoible_keeps_inapplicable_and_unknown_apart() -> None:
+    """`0` (does not apply) and `?` (unknown) were both written `.`."""
+    labels = merkmal.vector_labels(system="phoible")
+    states = {cell.split("=")[1] for cell in merkmal.get_features("p", system="phoible")}
+    assert "." not in states and "0" in states
+    vector = merkmal.feature_vector("p", system="phoible")
+    assert vector[labels.index("anterior")] == 0.0
+    # A diphthong's per-phase contours (`+,-`) are unknown as a single value.
+    assert any(math.isnan(v) for v in merkmal.feature_vector("ai", system="phoible"))
+    assert "?" in {cell.split("=")[1] for cell in merkmal.get_features("ai", system="phoible")}
+
+
+def _inventory(system: str) -> list[str]:
+    models = Path(__file__).resolve().parents[2] / "models"
+    rows = (models / system / "inventory.tsv").read_text(encoding="utf-8").splitlines()[1:]
+    return [row.split("\t")[0] for row in rows if row]
+
+
+def test_abstract_segment_from_grapheme_scores_as_the_grapheme() -> None:
+    """A bundle made from a grapheme reproduces the scorer, coverage included."""
+    import random
+
+    rng = random.Random(20261030)
+    for system in merkmal.list_systems():
+        graphemes = _inventory(system)
+        for _ in range(150):
+            a, b = rng.choice(graphemes), rng.choice(graphemes)
+            got = merkmal.AbstractSegment.from_grapheme(a, system=system).compare(b)
+            score, coverage, _ = merkmal.distance_with_coverage(a, b, system=system)
+            assert math.isclose(got.distance, score, abs_tol=1e-12), (system, a, b)
+            assert math.isclose(got.coverage, coverage, abs_tol=1e-12), (system, a, b)
+            assert got.minimum - 1e-12 <= got.distance <= got.maximum + 1e-12
+
+
+def _completions(values: list[str], cell: str, binary: bool) -> list[str]:
+    applicable = [v for v in values if not (binary and v == "n")]
+    out: list[str] = []
+    for part in cell.split("|"):
+        if part == "0":
+            out.append("0")
+        elif part == "?":
+            out += applicable
+        elif part == "*":
+            out += [*applicable, "0"]
+        elif ".." in part:
+            lo, hi = part.split("..")
+            out += values[values.index(lo) : values.index(hi) + 1]
+        else:
+            out.append(part)
+    return sorted(set(out))
+
+
+def test_abstract_segment_bounds_are_exact() -> None:
+    """minimum and maximum equal brute-force enumeration of the completions."""
+    import itertools
+    import random
+
+    rng = random.Random(7)
+    for system in merkmal.list_systems():
+        columns = dict(merkmal.AbstractSegment.columns(system=system))
+        graphemes = [
+            g for g in _inventory(system)
+            if all(
+                v not in ("?", "*")
+                for v in merkmal.AbstractSegment.from_grapheme(g, system=system).cells.values()
+            )
+        ]
+        checked = 0
+        while checked < 12:
+            base = merkmal.AbstractSegment.from_grapheme(rng.choice(graphemes), system=system)
+            other = rng.choice(graphemes)
+            names = rng.sample(sorted(columns), 3)
+            edits = {}
+            for name in names:
+                values = [v for v in columns[name] if v != "n"]
+                draw = rng.random()
+                if draw < 0.4:
+                    edits[name] = "?"
+                elif draw < 0.6:
+                    edits[name] = "*"
+                else:
+                    edits[name] = "|".join(rng.sample(values, min(2, len(values))))
+            segment = base.with_cells(**edits)
+            got = segment.compare(other)
+            options = [
+                _completions(columns[n], segment.cells[n], set(columns[n]) <= {"+", "-", "n"})
+                for n in names
+            ]
+            scores = [
+                segment.with_cells(**dict(zip(names, combo, strict=True))).compare(other).distance
+                for combo in itertools.product(*options)
+            ]
+            assert math.isclose(got.minimum, min(scores), abs_tol=1e-12), (system, edits, other)
+            assert math.isclose(got.maximum, max(scores), abs_tol=1e-12), (system, edits, other)
+            checked += 1
+
+
+def test_abstract_segment_laryngeal() -> None:
+    """A guttural fricative with voice and place open: the laryngeal case."""
+    h = merkmal.AbstractSegment.from_grapheme("ħ", system="descriptive").with_cells(
+        voice="?", guttural_place="?"
+    )
+    assert h.compatible("ʕ") and h.compatible("h") and not h.compatible("k")
+    assert set(h.compatible_graphemes()) >= {"ħ", "ʕ", "h"}
+    c = h.compare("ʕ")
+    assert c.distance == 0.0 and c.minimum == 0.0 and c.maximum > 0.0 and c.coverage < 1.0
+    assert merkmal.AbstractSegment(h.text, system="descriptive") == h
+
+
+def test_abstract_segment_covering() -> None:
+    """The covering bundle is compatible with every member and nothing it excludes."""
+    members = ["ħ", "ʕ", "h"]
+    cover = merkmal.AbstractSegment.covering(members, system="descriptive")
+    assert all(cover.compatible(g) for g in members)
+    assert not cover.compatible("a") and not cover.compatible("k")
+    if merkmal.DATA_PROFILE == "full":  # PHOIBLE is not in the cc-by profile
+        assert merkmal.AbstractSegment.covering(["p"], system="phoible") == (
+            merkmal.AbstractSegment.from_grapheme("p", system="phoible")
+        )
+
+
+def test_abstract_segment_errors() -> None:
+    blank = merkmal.AbstractSegment(system="distinctive")
+    assert set(blank.cells.values()) == {"*"}
+    with pytest.raises(ValueError):
+        blank.with_cells(no_such_column="+")
+    with pytest.raises(merkmal.NativeError):
+        blank.with_cells(voice="maybe")
+    with pytest.raises(NotImplementedError):
+        merkmal.AbstractSegment.from_grapheme("ai", system="descriptive")
+
+
+def test_sound_distance_refuses_unknown_labels() -> None:
+    """A label the geometry does not know is an error, not a missing value.
+
+    `foo` and `-voice` used to score exactly like the empty set (0.554 against
+    /p/), so a typo or a signed label passed as a measurement.
+    """
+    p = sorted(merkmal.get_features("p", system="descriptive"))
+    for bad in (["consonant", "foo"], ["consonant", "-voice"]):
+        with pytest.raises(ValueError, match="unknown to the geometry"):
+            merkmal.sound_distance(bad, p)
+        with pytest.raises(ValueError, match="unknown to the geometry"):
+            merkmal.sound_distance(p, bad)
+    assert merkmal.sound_distance([], p) > 0.0
+
+
 def test_sound_distance_scores_bare_feature_sets() -> None:
     """The one scorer reachable without a system, a registry, or a grapheme.
 
@@ -1282,3 +1457,19 @@ def test_a_tie_bar_reaches_the_complex_segment_synthesizer(system: str) -> None:
 )
 def test_lookalike_spellings_read_as_the_ipa_letter(written: str, canonical: str) -> None:
     assert merkmal.get_features(written) == merkmal.get_features(canonical)
+
+
+def test_embedded_nul_is_refused_rather_than_truncated() -> None:
+    # The library reads its arguments as C strings. "p\x00junk" used to reach it
+    # as "p", so every call answered for an input the caller never passed:
+    # is_segment said True and distance said 0.0.
+    with pytest.raises(ValueError, match="NUL"):
+        merkmal.is_segment("p\x00junk")
+    with pytest.raises(ValueError, match="NUL"):
+        merkmal.get_features("p\x00")
+    with pytest.raises(ValueError, match="NUL"):
+        merkmal.distance("p", "p\x00b")
+    with pytest.raises(ValueError, match="NUL"):
+        merkmal.sound_distance(["consonant\x00"], ["consonant"])
+    with pytest.raises(ValueError, match="NUL"):
+        merkmal.Registry().add_model_text("@model toy\x00\n@type categorical\n")

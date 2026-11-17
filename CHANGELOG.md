@@ -2,6 +2,37 @@
 
 ## Unreleased
 
+### Running out of memory no longer crashes segmentation or leaks clusters
+
+`mk_system_segment_ipa` freed its intermediate token list twice when its last
+allocation failed, and cluster synthesis leaked a parsed component when
+recording it failed. Both are reachable only when an allocation fails. A new
+test, `tests/c/test_alloc_failure.c`, fails every allocation in turn inside
+tokenization, system-aware segmentation, distance and model registration, and
+under the address sanitizer any crash or leak on those paths fails it (Linux
+only, since it wraps `malloc` at link time).
+
+### Build identity is public: `mk_version_string`, `mk_data_profile`, `mk_unicode_version`
+
+The header now carries `MK_VERSION_MAJOR`, `MK_VERSION_MINOR`,
+`MK_VERSION_PATCH` and `MK_VERSION_STRING`, and three functions answer for the
+library actually linked. The Python extension used to read the data profile and
+Unicode version by declaring the generated tables' internal symbols, and the
+WebAssembly adapter got its version from a `-D` the build script scraped out of
+`CMakeLists.txt`; both now use the public header only. `merkmal._native`
+gains `LIBRARY_VERSION`. The C smoke test holds the header version to the
+CMake project version and the Python tests hold `__version__` to the linked
+library, so a release cannot bump one without the other. Additions only.
+
+### Python: an embedded NUL is refused instead of truncating the input
+
+**Behavior change:** every string argument reached the C library as a C
+string, so `"p\x00junk"` was answered as `"p"`: `is_segment` said `True`,
+`distance` said `0.0`, and a model text was registered up to the NUL. All
+string arguments, including feature lists and model text, now raise
+`ValueError` on an embedded NUL, the same refusal `mk_registry_add_model_text_n`
+already gives C callers.
+
 ### Two calls for alteruphono 2.0: the inventory, and plain Unicode normalization
 
 `mk_system_inventory` lists a system's own inventory graphemes, in storage
@@ -12,6 +43,67 @@ unbounded. `mk_unicode_normalize` exposes the compiled-in NFD/NFC without the
 IPA rewrites of `mk_normalize_grapheme` (which maps `g` to `ɡ` and returns NFC);
 alteruphono's rule notation is defined on NFD. Both are additions; nothing
 existing changes. Tested in `tests/c/test_inventory.c`.
+
+### Abstract segments: `mk_bundle_*` and `merkmal.AbstractSegment`
+
+A feature bundle with no grapheme as identity, for reconstructed segments that
+no attested language keeps. Each cell holds the values the segment may have:
+
+- `0`: does not apply;
+- `?`: unknown, applies;
+- `*`: unknown, may not apply;
+- a sign, a level or a range on an ordered scale, or node-group labels.
+
+A comparison returns the system's own distance over the dimensions both sides
+specify, its coverage, and the exact minimum and maximum over all completions.
+Compatibility with a grapheme and a ranked list of compatible graphemes are for
+display only. A bundle from a grapheme scores exactly as the grapheme (checked
+on 21,000 pairs across the seven systems), and the bounds equal brute-force
+enumeration. Design and decisions: `docs/abstract-segments.md`.
+
+### PHOIBLE model 2.0.0: "does not apply" and "unknown" are kept apart
+
+PHOIBLE's `0` (the feature does not apply), a missing vector, a per-phase
+contour and an empty cell were all written `.`. They are different claims, so
+the cells now say which: `0` for does not apply (28,031 cells) and `?` for not
+known here (5,886 cells, including the old `.` of graphemes upstream v2.0.1
+lacks). `scripts/rebuild_phoible_inventory.py --check` passes against the
+pinned table. Neither state is compared in a point distance, so **no distance
+moved**: every distance fixture is unchanged, and only `phoible_features.tsv`
+was regenerated. What changes is the feature labels (`anterior=0`,
+`anterior=?`) and the vector, where `?` is now `NaN` rather than `0`. The
+P-base tables keep `.`, `n`, `o` and `x`: the meaning of their codes is not
+recorded, so they are not split (`docs/abstract-segments.md`, Open).
+
+### Feature vectors carry every dimension the scorer reads
+
+**Breaking (vector width and columns):** `feature_vector` used to drop
+dimensions the scorer reads. In `distinctive`, the default system, 232 pairs
+of graphemes had identical vectors and non-zero distance: /a/ and /e/ were the
+same vector, because vowel height and backness are scored on the geometry's
+ordered scales and were not columns. In `descriptive`, 7 pairs (/l/ and /ɮ/,
+/r/ and /ɹ/) lost manner, which is scored as a node group. Now:
+
+- systems with scalar dimensions append the ordered scales (`distinctive`:
+  54 → 64 columns);
+- leaf-scored systems append one-hot node-group columns named `Node=label`,
+  where +1 means the label is present, −1 the node is set by another label,
+  and 0 the node is unset (`descriptive`: 62 → 68);
+- scale columns read the scale's unmarked default level as the scorer does.
+
+Valued systems are unchanged. Over every built-in grapheme, equal vectors now
+mean distance zero (`test_feature_vectors_are_lossless`). This is the basis of
+the abstract segments in `docs/abstract-segments.md`.
+
+### `mk_sound_distance` refuses labels the geometry does not know
+
+**Breaking:** an unknown label used to be skipped, so `["consonant", "foo"]`
+and `["consonant", "-voice"]` scored 0.554 against /p/, exactly what the empty
+set scores, and a typo or a signed label passed as a measurement. Such a label
+now returns the new status `MK_ERR_UNKNOWN_FEATURE` (Python: `ValueError`).
+Labels are privative: the negative of `voiced` is `voiceless`, not `-voice`.
+Metadata labels the geometry declares are still accepted. Found while
+designing abstract segments (`docs/abstract-segments.md`).
 
 ## 0.9.0 (2026-11-04)
 

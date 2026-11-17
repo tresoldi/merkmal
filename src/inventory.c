@@ -5,10 +5,10 @@
 #include <string.h>
 
 void mki_inventory_row(
-    const mk_builtin_system *system,
+    const mki_builtin_system *system,
     size_t index,
     const char **scratch,
-    mk_entry_view *out
+    mki_entry_view *out
 )
 {
     size_t count;
@@ -36,17 +36,17 @@ void mki_inventory_row(
     out->feature_count = count;
 }
 
-int mki_inventory_find(
-    const mk_builtin_system *system,
+bool mki_inventory_find(
+    const mki_builtin_system *system,
     const char *key,
     const char **scratch,
-    mk_entry_view *out
+    mki_entry_view *out
 )
 {
     size_t i;
 
     if (system == NULL || key == NULL || out == NULL) {
-        return 0;
+        return false;
     }
 
     if (system->entries != NULL) {
@@ -55,10 +55,10 @@ int mki_inventory_find(
                 out->grapheme = system->entries[i].grapheme;
                 out->features = (const char *const *)system->entries[i].features;
                 out->feature_count = system->entries[i].feature_count;
-                return 1;
+                return true;
             }
         }
-        return 0;
+        return false;
     }
 
     /* Compiled inventories are emitted sorted by the grapheme's UTF-8 bytes,
@@ -76,7 +76,7 @@ int mki_inventory_find(
 
             if (order == 0) {
                 mki_inventory_row(system, mid, scratch, out);
-                return 1;
+                return true;
             }
             if (order < 0) {
                 low = mid + 1;
@@ -85,5 +85,5 @@ int mki_inventory_find(
             }
         }
     }
-    return 0;
+    return false;
 }

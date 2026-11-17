@@ -4,6 +4,7 @@
 /* UTF-8 encoding mechanics and Unicode-level character classification.
  * Nothing here knows what a segment is; see ipa.h for that. */
 
+#include <stdbool.h>
 #include <stddef.h>
 
 /* Byte length of the UTF-8 sequence at `p`, never past the terminator.
@@ -24,10 +25,10 @@ size_t mki_utf8_step(const char *p);
 unsigned int mki_utf8_codepoint(const char *p);
 
 /* A combining mark, by code point block. */
-int mki_is_combining_mark(const char *p);
+bool mki_is_combining_mark(const char *p);
 
 /* A modifier letter or symbol: the superscripts and spacing modifiers IPA uses
  * to qualify a base segment, plus any mark the diacritic tables name. */
-int mki_is_modifier_letter_or_symbol(const char *p);
+bool mki_is_modifier_letter_or_symbol(const char *p);
 
 #endif

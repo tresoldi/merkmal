@@ -84,6 +84,21 @@ int main(void)
     int failed = 0;
 
     failed |= expect_string(mk_status_string(MK_OK), "ok", "status ok");
+#ifdef MERKMAL_PROJECT_VERSION
+    failed |= expect_string(MK_VERSION_STRING, MERKMAL_PROJECT_VERSION, "header version is the project's");
+#endif
+    failed |= expect_string(mk_version_string(), MK_VERSION_STRING, "linked version is the header's");
+    {
+        char spelled[32];
+        snprintf(spelled, sizeof spelled, "%d.%d.%d", MK_VERSION_MAJOR, MK_VERSION_MINOR, MK_VERSION_PATCH);
+        failed |= expect_string(spelled, MK_VERSION_STRING, "version macros agree");
+    }
+#ifdef MERKMAL_TEST_DATA_PROFILE_CC_BY
+    failed |= expect_string(mk_data_profile(), "cc-by", "data profile");
+#else
+    failed |= expect_string(mk_data_profile(), "full", "data profile");
+#endif
+    failed |= mk_unicode_version()[0] == '\0';
     failed |= expect_string(
         mk_status_string(MK_ERR_UNKNOWN_GRAPHEME),
         "unknown grapheme",

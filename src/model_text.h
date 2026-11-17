@@ -17,11 +17,11 @@
 /* A parsed model, before it is installed into a registry. On MK_OK the caller
  * owns `name` and `entries` and releases them with mki_parsed_model_clear;
  * mki_parse_model_text leaves nothing allocated on failure. */
-typedef struct mk_parsed_model {
+typedef struct mki_parsed_model {
     char *name;
-    mk_builtin_entry *entries;
+    mki_builtin_entry *entries;
     size_t entry_count;
-} mk_parsed_model;
+} mki_parsed_model;
 
 /* Parses and validates `model_text`.
  *
@@ -35,7 +35,7 @@ typedef struct mk_parsed_model {
  * MK_ERR_OOM on allocation failure. */
 mk_status mki_parse_model_text(
     const char *model_text,
-    mk_parsed_model *out,
+    mki_parsed_model *out,
     char **diagnostic
 );
 
@@ -52,12 +52,12 @@ mk_status mki_parse_model_text(
 mk_status mki_parse_model_text_n(
     const char *model_text,
     size_t model_text_length,
-    mk_parsed_model *out,
+    mki_parsed_model *out,
     char **diagnostic
 );
 
 /* Frees whatever a parsed model owns and zeroes it. Safe on a zeroed struct,
  * and safe to call twice. */
-void mki_parsed_model_clear(mk_parsed_model *model);
+void mki_parsed_model_clear(mki_parsed_model *model);
 
 #endif

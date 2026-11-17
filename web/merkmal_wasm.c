@@ -18,10 +18,6 @@
 #define EMSCRIPTEN_KEEPALIVE
 #endif
 
-#ifndef MK_WEB_VERSION
-#define MK_WEB_VERSION "0.0.0"
-#endif
-
 /* Declared so -Wmissing-prototypes has something to match. */
 EMSCRIPTEN_KEEPALIVE char *merkmal_list_systems(void);
 EMSCRIPTEN_KEEPALIVE char *merkmal_grapheme_features(const char *system_name,
@@ -627,7 +623,7 @@ char *merkmal_register_model(const char *model_text)
 EMSCRIPTEN_KEEPALIVE
 const char *merkmal_version(void)
 {
-    return MK_WEB_VERSION;
+    return mk_version_string();
 }
 
 EMSCRIPTEN_KEEPALIVE

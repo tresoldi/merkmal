@@ -23,6 +23,8 @@ const char *mk_status_string(mk_status status)
         return "a system by that name is already registered";
     case MK_ERR_NO_TREE_PATH:
         return "feature has no path in the geometry tree";
+    case MK_ERR_UNKNOWN_FEATURE:
+        return "feature label unknown to the geometry";
     default:
         return "unknown status";
     }

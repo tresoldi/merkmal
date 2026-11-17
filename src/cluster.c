@@ -10,14 +10,14 @@ static double mk_min_double(double a, double b)
     return a < b ? a : b;
 }
 
-static int mk_view_has(mk_feature_view view, const char *feature)
+static bool mk_view_has(mk_feature_view view, const char *feature)
 {
     return mki_features_contain(view.features, view.count, feature);
 }
 
 /* Whether a segment is explicitly marked for length, in any of the degrees the
  * geometry's duration scale carries. */
-static int mk_segment_carries_length(mk_feature_view view)
+static bool mk_segment_carries_length(mk_feature_view view)
 {
     return mk_view_has(view, "long") ||
         mk_view_has(view, "mid-long") ||
@@ -44,8 +44,8 @@ static mk_status mk_score_views(
 /* One part of a cluster against a resolved segment. */
 static mk_status mk_part_to_segment(
     const mk_system *system,
-    const mk_cluster_component *part,
-    const mk_resolution *segment,
+    const mki_cluster_component *part,
+    const mki_resolution *segment,
     const char *node_weights,
     double *out
 )
@@ -66,8 +66,8 @@ static mk_status mk_part_to_segment(
 /* One part of a cluster against one part of another. */
 static mk_status mk_part_to_part(
     const mk_system *system,
-    const mk_cluster_component *a,
-    const mk_cluster_component *b,
+    const mki_cluster_component *a,
+    const mki_cluster_component *b,
     const char *node_weights,
     double *out
 )
@@ -87,8 +87,8 @@ static mk_status mk_part_to_part(
 
 static mk_status mk_cluster_to_segment(
     const mk_system *system,
-    const mk_resolution *cluster,
-    const mk_resolution *segment,
+    const mki_resolution *cluster,
+    const mki_resolution *segment,
     const char *node_weights,
     double *out
 )
@@ -147,8 +147,8 @@ static mk_status mk_cluster_to_segment(
 
 mk_status mki_cluster_distance(
     const mk_system *system,
-    const mk_resolution *a,
-    const mk_resolution *b,
+    const mki_resolution *a,
+    const mki_resolution *b,
     const char *node_weights,
     double *out
 )

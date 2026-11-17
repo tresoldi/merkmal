@@ -390,6 +390,6 @@ def feature_economy(inventory: Inventory, system: str = "phoible") -> float:
         except Exception:  # noqa: BLE001 - skip what cannot be vectorized
             continue
         for name, value in zip(labels, vector, strict=True):
-            if value != 0.0:
+            if value != 0.0 and value == value:  # NaN: value unknown, not used
                 used.add(name)
     return len(segments) / len(used) if used else 0.0

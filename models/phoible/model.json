@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "name": "phoible",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "valued",
   "description": "PHOIBLE binary features (37 dimensions)",
   "license": "CC-BY-SA-3.0",
@@ -9,7 +9,8 @@
   "state_symbols": {
     "+": 1.0,
     "-": -1.0,
-    ".": null
+    "0": null,
+    "?": null
   },
   "geometry_map": {
     "advancedTongueRoot": "TongueRoot",

@@ -12,25 +12,45 @@
 #include "generated/builtin_data.h"
 #include "merkmal.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 
 /* mk_feature_view is public, in merkmal.h. Scoring reads feature sets and
  * nothing else: it has no use for a grapheme, an inventory row, or a resolved
- * entry. Taking mk_builtin_entry made five call sites fabricate one on the
+ * entry. Taking mki_builtin_entry made five call sites fabricate one on the
  * stack, two of them inventing a grapheme string that the scorer then read to
  * decide identity. */
 
 /* Whether the compiled geometry has anywhere to put this feature. A feature it
  * does not know contributes nothing to any distance, so a model built from such
  * features registers successfully and then scores every comparison as zero. */
-int mki_geometry_knows_feature(const char *feature);
+bool mki_geometry_knows_feature(const char *feature);
 
 /* Whether the feature can actually move a distance, as opposed to merely
  * being a declared label. Metadata features are known but never scored. */
-int mki_geometry_scores_feature(const char *feature);
+bool mki_geometry_scores_feature(const char *feature);
+
+/* Whether the leaf scorer compares this feature as a member of a node group:
+ * it maps to a geometry node and is neither a leaf value nor a level of an
+ * ordered scale. Such features are the one-hot columns of a leaf-scored
+ * system's feature vector. */
+bool mki_is_node_group_feature(const char *feature);
+
+/* A feature set's position on an ordered scale, exactly as the scorers read
+ * it: the first level label present, else the scale's unmarked default, else
+ * MKI_ORDINAL_UNDEFINED. */
+int mki_ordinal_level(mk_feature_view view, const mki_ordinal_scale *scale);
+
+/* The weighting the scorers use, for code that scores outside a feature view
+ * (abstract segments, bundle.c). Same functions, so a bundle made from a
+ * grapheme weighs each dimension exactly as the scorer does. */
+mk_status mki_resolve_weight_preset(const char *name, const mki_node_weight_preset **out);
+double mki_dimension_weight(const mki_node_weight_preset *preset, const char *node, double base_weight);
+double mki_node_depth_value(const char *node);
+const char *mki_feature_node(const char *feature);
 
 /* Non-zero when a feature set holds two values of one ordered scale. */
-int mki_ordinal_conflict(
+bool mki_ordinal_conflict(
     const char *const *features,
     size_t feature_count,
     const char **scale_out,
@@ -54,7 +74,7 @@ int mki_ordinal_conflict(
  * spellings of the same segment resolve to the same features and score 0.0
  * through the ordinary path. */
 typedef mk_status (*mki_scorer)(
-    const mk_builtin_system *system,
+    const mki_builtin_system *system,
     mk_feature_view a,
     mk_feature_view b,
     const char *node_weights,
@@ -81,7 +101,7 @@ typedef mk_status (*mki_scorer)(
  * `scalar_dimension_count` inside the categorical body chose scalar against
  * leaf. The second was invisible from this header, and it was the one that
  * picked the scorer for `distinctive` -- the default system. */
-mki_scorer mki_scorer_for(const mk_builtin_system *system);
+mki_scorer mki_scorer_for(const mki_builtin_system *system);
 
 /* A stable label for a scorer, for diagnostics and test output: "leaf",
  * "scalar", "valued", or "none" for a kind nothing scores. Static storage;

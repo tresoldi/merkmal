@@ -63,7 +63,7 @@ unsigned int mki_utf8_codepoint(const char *p)
     return c;
 }
 
-int mki_is_combining_mark(const char *p)
+bool mki_is_combining_mark(const char *p)
 {
     unsigned int cp = mki_utf8_codepoint(p);
 
@@ -74,25 +74,25 @@ int mki_is_combining_mark(const char *p)
         (cp >= 0xFE20 && cp <= 0xFE2F);
 }
 
-static int mk_is_map_mark(const mk_diacritic_map *map, size_t count, const char *p)
+static bool mk_is_map_mark(const mki_diacritic_map *map, size_t count, const char *p)
 {
     size_t i;
 
     for (i = 0; i < count; i++) {
         if (mki_has_prefix(p, map[i].mark)) {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
-int mki_is_modifier_letter_or_symbol(const char *p)
+bool mki_is_modifier_letter_or_symbol(const char *p)
 {
     unsigned int cp = mki_utf8_codepoint(p);
 
     if (mk_is_map_mark(mki_default_prefix_diacritics, mki_default_prefix_diacritic_count, p) ||
         mk_is_map_mark(mki_default_suffix_diacritics, mki_default_suffix_diacritic_count, p)) {
-        return 1;
+        return true;
     }
     return (cp >= 0x02B0 && cp <= 0x02FF) ||
         (cp >= 0x1D2C && cp <= 0x1D6A) ||

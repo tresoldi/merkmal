@@ -35,7 +35,7 @@ static const char *mk_strip_leading_stress(const char *s)
     return s;
 }
 
-static const mk_decomposition *mk_find_decomposition(const char *p)
+static const mki_decomposition *mk_find_decomposition(const char *p)
 {
     size_t i;
 
@@ -56,7 +56,7 @@ static const mk_decomposition *mk_find_decomposition(const char *p)
  * cedilla is not among them, so "ç" is excluded from the table and needs a hand
  * mapping. Any other precomposed letter carrying an uninterpretable mark is
  * deliberately left composed, and therefore rejected rather than guessed at. */
-static const mk_decomposition mk_source_conventions[] = {
+static const mki_decomposition mk_source_conventions[] = {
     { "ɡ", "g" },
     { "ʣ", "dz" },
     { "ʤ", "dʒ" },
@@ -128,7 +128,7 @@ static mk_status mk_decompose(
 
     *utf8_out = NULL;
     while (*p != '\0') {
-        const mk_decomposition *rule = mk_find_decomposition(p);
+        const mki_decomposition *rule = mk_find_decomposition(p);
         size_t i;
 
         /* Decompose first, so that a precomposed letter and its canonically

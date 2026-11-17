@@ -129,7 +129,7 @@ def generate() -> str:
     lines += emit_array("mk_composition_second", "unsigned int", [b for _, b, _ in comp])
     lines += emit_array("mk_composition_result", "unsigned int", [c for _, _, c in comp])
     lines += [
-        "const mk_unicode_tables mki_unicode_tables = {",
+        "const mki_unicode_table_set mki_unicode_tables = {",
         "    mk_ccc_code_points,",
         "    mk_ccc_classes,",
         f"    {len(ccc)},",

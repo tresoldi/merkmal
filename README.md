@@ -332,7 +332,7 @@ merkmal/
 ├── bench/                  footprint and lookup benchmarks, with a baseline
 ├── fuzz/                   libFuzzer harnesses and seed corpora
 ├── examples/               worked examples, built and run as tests
-├── tests/c/                C tests
+├── tests/c/                C tests (STYLE.md says which link what)
 ├── tests/golden/           parity fixtures for the native implementation
 ├── models/                 source model data used by generators
 ├── geometries/             source geometry data
@@ -343,10 +343,9 @@ merkmal/
 └── docs/                   C API and format documentation
 ```
 
-Contributing to the C core: the source tree under `src/` uses the `mk_`/`mki_`
-prefix convention, caller-owned output buffers, and `mk_status` return codes
-throughout. Build and test with `cmake` and `ctest`; see the CMakeLists.txt
-options for sanitizer and fuzzer builds.
+Contributing to the C core: [STYLE.md](STYLE.md) describes the module layout,
+the `mk_`/`mki_` naming rule, ownership and error conventions, the generated
+data, and the build, sanitizer, analysis and fuzzing commands CI runs.
 
 For a worked example of the C API — tokenizing a transcription, reading each
 segment's features, scoring a pair, and explaining a rejected token — see

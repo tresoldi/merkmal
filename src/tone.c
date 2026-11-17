@@ -51,58 +51,58 @@ int mki_chao_level(const char *p)
     return -1;
 }
 
-int mki_is_chao_digit(const char *p)
+bool mki_is_chao_digit(const char *p)
 {
     return mki_chao_level(p) >= 0;
 }
 
-static int mk_is_chao_digit_token(const char *s)
+static bool mk_is_chao_digit_token(const char *s)
 {
     const char *p = s;
 
     if (s == NULL || s[0] == '\0') {
-        return 0;
+        return false;
     }
     while (*p != '\0') {
         if (!mki_is_chao_digit(p)) {
-            return 0;
+            return false;
         }
         p += mki_utf8_step(p);
     }
-    return 1;
+    return true;
 }
 
-static int mk_chao_token_has_nonzero(const char *s)
+static bool mk_chao_token_has_nonzero(const char *s)
 {
     const char *p = s;
 
     while (*p != '\0') {
         if (mki_chao_level(p) > 0) {
-            return 1;
+            return true;
         }
         p += mki_utf8_step(p);
     }
-    return 0;
+    return false;
 }
 
-static int mk_segment_is_syllabic(const char *segment)
+static bool mk_segment_is_syllabic(const char *segment)
 {
     const char *p = segment;
 
     while (*p != '\0') {
         if (mki_has_prefix(p, "̩")) {
-            return 1;
+            return true;
         }
         if (mki_is_combining_mark(p)) {
             p += mki_utf8_step(p);
             continue;
         }
         if (mki_is_vowel_letter(p)) {
-            return 1;
+            return true;
         }
         p += mki_utf8_step(p);
     }
-    return 0;
+    return false;
 }
 
 static mk_status mk_concat_strings(const char *a, const char *b, char **out)
