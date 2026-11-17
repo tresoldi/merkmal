@@ -1684,6 +1684,8 @@ static mk_status mk_parse_component_at(
 
             mki_resolution_clear(&second);
             if (text == NULL) {
+                /* The first component is already in component_out, owned. */
+                mki_resolution_clear(component_out);
                 return MK_ERR_OOM;
             }
             memcpy(text, start, span);
@@ -2009,7 +2011,11 @@ static mk_status mk_synthesize_cluster(
     }
 
 finish:
-    for (i = 0; i < component_count; i++) {
+    /* Every slot, not only the first component_count: a component that parsed
+     * and then failed to be recorded is filled but not yet counted, and leaked
+     * whenever recording it ran out of memory. The slots start zeroed and the
+     * clear is idempotent, so the unused ones cost nothing. */
+    for (i = 0; i < sizeof(components) / sizeof(components[0]); i++) {
         mki_resolution_clear(&components[i]);
     }
     mk_free_owned_feature_array(features, feature_count);
