@@ -242,7 +242,9 @@ static void mk_vector_fill(
             } else if (state == '-') {
                 values[i] = -1.0;
             } else if (state == '?') {
-                values[i] = NAN;
+                /* NAN is a float constant in C99; the cast is the promotion
+                 * -Wdouble-promotion asks to see spelled out. */
+                values[i] = (double)NAN;
             } else {
                 values[i] = 0.0;
             }

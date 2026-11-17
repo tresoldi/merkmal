@@ -783,12 +783,10 @@ static int mk_cell_text(const mk_bundle *b, const mk_column *col, const mk_cell 
         return mk_text_add(t, "0");
     }
     if (col->kind == MK_COL_GROUP && c->any) {
-        first = 0;
         if (!mk_text_add(t, "?")) {
             return 0;
         }
     } else if (col->kind != MK_COL_GROUP && c->mask == mk_full_mask(b, col)) {
-        first = 0;
         if (!mk_text_add(t, "?")) {
             return 0;
         }
