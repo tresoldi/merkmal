@@ -368,3 +368,6 @@ jobs:
           node-version: "22"
       - name: Run Node smoke test
         run: tests/wasm/run_node_smoke.sh
+      - name: The demo refuses NUL input
+        # web/app.js against the committed web/merkmal.js and merkmal.wasm.
+        run: node tests/wasm/app_nul_test.cjs
