@@ -165,9 +165,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang
       - name: Formatting
-        run: scripts/check_format.sh
+        run: tools/check_format.sh
       - name: Analyze
-        run: scripts/run_static_analysis.sh | tee analysis.txt
+        run: tools/run_static_analysis.sh | tee analysis.txt
       - name: Fail on a new finding
         # The script filters the accepted findings it documents, so anything
         # left is new.
@@ -201,7 +201,7 @@ jobs:
       - name: Fuzz each entry point
         run: |
           for target in model_text segment resolve; do
-            ./build/fuzz/fuzz_$target fuzz/corpus/$target \
+            ./build/fuzz/fuzz_$target tests/fuzz/corpus/$target \
               -max_total_time=60 -max_len=4096 -print_final_stats=1
           done
 
@@ -275,15 +275,15 @@ jobs:
       - name: Test the data generator
         run: python -m pytest tools/tests -q
       - name: Test the typology companion package
-        run: python -m pytest typology/tests -q
+        run: python -m pytest python/typology/tests -q
       - name: Validate model data, geometry, and provenance
-        run: python scripts/validate_models.py
+        run: python tools/validate_models.py
       - name: Check the contrast baseline
         # Fails on an undeclared zero-distance pair or a label that cannot
         # affect any distance. Both are how contrasts disappear silently.
-        run: python scripts/contrast_baseline.py --check
+        run: python tools/contrast_baseline.py --check
       - name: Check NOTICE matches the provenance manifests
-        run: python scripts/generate_notice.py --check
+        run: python tools/generate_notice.py --check
       - name: Check coverage of real CLDF data
         # Every other guard checks the library against itself and passes on a
         # library that is internally perfect and unusable on the field's data.
@@ -293,7 +293,7 @@ jobs:
         # Every fixture, geometry included, is produced here through the
         # installed wrapper; the C tests only replay them. This job needs no
         # CMake build.
-        run: python scripts/regenerate_golden.py --check
+        run: python tools/regenerate_golden.py --check
       - name: Build source distribution and wheel
         run: python -m build --sdist --wheel
       - name: Install source distribution
@@ -301,7 +301,7 @@ jobs:
       - name: Test source distribution
         run: python -m pytest python/tests -q
       - name: Lint maintained Python code
-        run: python -m ruff check python/merkmal python/tests scripts tools bench typology setup.py
+        run: python -m ruff check python/merkmal python/tests python/typology tools bench setup.py
       - name: Type-check maintained Python code
         run: python -m mypy python/merkmal
       - name: Check the Unicode tables reproduce
@@ -311,7 +311,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: python scripts/check_generated_data.py
+      - run: python tools/check_generated_data.py
 
   python-sanitizer:
     name: Python extension under ASan
