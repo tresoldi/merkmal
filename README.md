@@ -72,15 +72,10 @@ Two things worth knowing before you build on the number:
   with `distance` only for the geometry-scored system (`descriptive`),
   not for the default.
 
-See [docs/review-response.md](docs/review-response.md) for the standing
-external review of these claims and what remains open.
-
 The repository is being reorganized around a small C ABI. The C library
 contains compiled-in built-in models and can also accept caller-supplied
 runtime models. Python support is now a native wrapper around the C
-library. The old pure-Python implementation and Go support have been removed
-from the active codebase. Historical Python tutorials, notebooks, and research
-scripts are archived under `docs/legacy_python/`.
+library. 
 
 ## Current Status
 
@@ -339,7 +334,6 @@ merkmal/
 ├── diacritics/             source diacritic/tone/modifier mappings
 ├── typologies/             source typology data reserved for later C support
 ├── python/                 native Python wrapper
-├── docs/legacy_python/     archived pre-C tutorials, notebooks, and scripts
 └── docs/                   C API and format documentation
 ```
 

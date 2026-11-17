@@ -47,8 +47,9 @@ Regenerate `src/generated/builtin_data.c` from the source model data with
 ### The `_full` and `classfeat` fixtures are archived, and they have drifted
 
 `{model}_features_full.tsv`, `{model}_distances_full.tsv`, and the `classfeat_*`
-files were produced by the pre-C Python implementation, archived under
-`docs/legacy_python/scripts/`. No active test replays them, and
+files were produced by the pre-C Python implementation, which is no longer in
+the tree (see the repository history before 0.9.0). No active test replays
+them, and
 `scripts/regenerate_golden.py` deliberately leaves them alone: rewriting them
 from the C build would destroy the record they exist to keep.
 

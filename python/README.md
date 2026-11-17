@@ -19,9 +19,8 @@ The current wrapper covers the high-level native slice:
 - `fixed_space_distance`
 - `load_geometry` and `geometry_distance` (experimental JSON geometry path)
 
-The package is intentionally native-only. The pre-C Python implementation has
-been removed from the active package; old tutorials, notebooks, and research
-scripts live under `docs/legacy_python/` as historical reference material.
+The package is a wrapper over the C library; it contains no independent
+implementation of the computations.
 
 ```python
 import merkmal

@@ -200,9 +200,8 @@ These placements changed observable output. Any distances, alignments,
 clusters, or thresholds computed with an earlier build must be recomputed; do
 not mix cached scores across the change. See `CHANGELOG.md`.
 
-The library does not currently offer a parallel "v1" scorer that reproduces the
-older numbers. That would mean shipping two geometries and a scorer selector,
-and it is listed as remaining work in `docs/review-response.md`.
+The library does not offer a parallel scorer that reproduces the older numbers;
+that would require shipping two geometries and a scorer selector.
 
 ## Weight presets
 
