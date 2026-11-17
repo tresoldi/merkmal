@@ -97,8 +97,10 @@ properties limit what that number can be used for.
   differs between systems ([evaluation](docs/method/evaluation.md#1-segment-substitution-cost-in-pairwise-alignment)).
 - **Identical values are reported, not hidden.** Pairs of distinct segments with
   a distance of zero are listed with their reasons in
-  `tests/golden/contrast_baseline.tsv`; they occur only in the valued systems,
-  whose source tables do not distinguish the segments concerned.
+  `tests/golden/contrast_baseline.tsv`. In the categorical systems they are
+  spellings of one segment (diacritics in another order, or an equivalent
+  notation); in the valued systems they are segments that the source table
+  does not distinguish.
 
 Results depend on the system, its version and the scoring policy. The semantic
 fingerprint of a system ([docs/method/semantic-fingerprint.md](docs/method/semantic-fingerprint.md))

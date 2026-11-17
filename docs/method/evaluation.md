@@ -94,10 +94,9 @@ the per-dataset table.
 C" hold regardless of which feature system is used?
 
 **Procedure.** Every such ordering over a set of 41 segments on which at least
-six systems give a judgement, evaluated in each system; the systems include
-Hayes-style distinctive features, the descriptive geometry, PHOIBLE's binary
-table, and three P-base feature sets, among them the acoustic features of
-Jakobson, Fant and Halle.
+six systems give a judgement, evaluated in each of the seven built-in systems:
+`distinctive`, `descriptive`, PHOIBLE's binary table, and the four P-base
+feature sets, among them the acoustic features of Jakobson, Fant and Halle.
 
 **Result.** 62.6% of the orderings are unanimous and 37.4% differ between
 systems. A conclusion drawn from one feature system is therefore in part a
