@@ -32,7 +32,7 @@ touches; STYLE.md, Building and checking, has the full table.
   `data/geometries/`, `data/diacritics/`, `tools/` or `src/generated/builtin_data.h`
 - `python tools/regenerate_golden.py --check`, `tools/validate_models.py`,
   `tools/contrast_baseline.py --check`, `tools/generate_notice.py --check`
-- Python: `python -m ruff check python/merkmal python/tests scripts tools bench typology setup.py`
+- Python: `python -m ruff check python/merkmal python/tests python/typology tools bench setup.py`
   and `python -m mypy python/merkmal`
 
 ## Boundaries

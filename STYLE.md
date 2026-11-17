@@ -20,7 +20,7 @@ compiler extensions outside the `MK_API` visibility macro in `merkmal.h`.
 | `python/src/merkmal_module.c` | The CPython extension. Uses `merkmal.h` only. |
 | `web/merkmal_wasm.c` | The WebAssembly adapter (JSON in, JSON out). Uses `merkmal.h` only. |
 | `tests/c/` | C tests. Most link the public library; the internal-seam tests link `merkmal_internal`. |
-| `fuzz/` | libFuzzer harnesses and their corpora. |
+| `tests/fuzz/` | libFuzzer harnesses and their corpora. |
 | `tools/` | Generators for `src/generated/`, and the checks: generated data, public symbols, formatting, static analysis, model validation. |
 
 Modules, from the bottom up. Each depends only on the layers below it, and
@@ -255,7 +255,7 @@ CI runs each of these, so run the ones your change touches:
 | Shared library | `-DBUILD_SHARED_LIBS=ON` |
 | Formatting | `tools/check_format.sh` (`--fix` to apply) |
 | Static analysis | `tools/run_static_analysis.sh` (GCC `-fanalyzer` and `clang --analyze`; any output beyond the headers is a new finding) |
-| Fuzzing | `CC=clang cmake -S . -B build-fuzz -DMERKMAL_BUILD_FUZZERS=ON -DMERKMAL_BUILD_TESTS=OFF`, then `build-fuzz/fuzz_<target> fuzz/corpus/<target>` |
+| Fuzzing | `CC=clang cmake -S . -B build-fuzz -DMERKMAL_BUILD_FUZZERS=ON -DMERKMAL_BUILD_TESTS=OFF`, then `build-fuzz/fuzz_<target> tests/fuzz/corpus/<target>` |
 | Python | `pip install . pytest && python -m pytest python/tests -q` |
 
 The warning set is in `CMakeLists.txt` as `MERKMAL_C_WARNINGS`. The library

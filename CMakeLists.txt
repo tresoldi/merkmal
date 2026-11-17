@@ -354,7 +354,7 @@ if(MERKMAL_BUILD_FUZZERS)
         message(FATAL_ERROR "MERKMAL_BUILD_FUZZERS needs Clang for libFuzzer")
     endif()
     foreach(target model_text segment resolve)
-        add_executable(fuzz_${target} fuzz/fuzz_${target}.c ${MERKMAL_SOURCES})
+        add_executable(fuzz_${target} tests/fuzz/fuzz_${target}.c ${MERKMAL_SOURCES})
         target_include_directories(fuzz_${target}
             PRIVATE
                 ${CMAKE_CURRENT_SOURCE_DIR}/include
