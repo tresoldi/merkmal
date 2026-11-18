@@ -498,20 +498,20 @@ def test_feature_distance_takes_no_system() -> None:
 
 @requires_full_data
 def test_coverage_separates_identical_from_incomparable() -> None:
-    """A valued 0.0 used to mean either "the same" or "nothing to compare".
-
-    The first independent review found PHOIBLE's tone letters carry `.` on every
-    dimension and so scored 0.0 against every segment in the table, `/a/`
-    included. The score is unchanged -- inventing values would be fabricating
-    data -- but the caller can now see the difference.
-    """
+    """A valued 0.0 means either "the same" or "nothing to compare", and the
+    comparability says which; a tone against a segment is neither."""
+    # PHOIBLE's tone rows have a value only on `tone`, so a tone and a segment
+    # share no dimension. They are on different tiers, as in the categorical
+    # systems: the declared cross-tier cost, not 0.0.
     score, coverage, why = merkmal.distance_with_coverage("˦˨", "d", system="phoible")
-    assert score == 0.0
-    assert coverage == 0.0  # nothing was compared at all
+    assert (score, coverage, why) == (1.0, 0.0, "cross-tier")
     assert merkmal.compatibility_dissimilarity("˦˨", "d", system="phoible") == (
         score, coverage, why
     )
-    assert why == "no-shared-dimension"
+
+    # Two segments can also share no dimension: nothing was compared.
+    score, coverage, why = merkmal.distance_with_coverage("ae̯", "ɹ̪̹̩", system="phoible")
+    assert (score, coverage, why) == (0.0, 0.0, "no-shared-dimension")
 
     # Genuinely indistinguishable is a different thing, and now looks different:
     # P-base UFTC gives /e/ and /i/ the same value on every dimension it defines.
@@ -554,7 +554,7 @@ def test_fixed_space_distance_is_distinct_from_compatibility_score() -> None:
     value = merkmal.fixed_space_distance("p", "b", system="phoible")
     assert value > 0.0
     assert value == merkmal.fixed_space_distance("b", "p", system="phoible")
-    comparison = merkmal.compatibility_dissimilarity("˦˨", "d", system="phoible")
+    comparison = merkmal.compatibility_dissimilarity("ae̯", "ɹ̪̹̩", system="phoible")
     assert comparison.comparability == "no-shared-dimension"
 
 
@@ -799,9 +799,22 @@ def test_phoible_keeps_inapplicable_and_unknown_apart() -> None:
 
 
 def _inventory(system: str) -> list[str]:
+    """The segments a system lists. PHOIBLE's tone rows are tones, which are
+    not abstract segments."""
     models = Path(__file__).resolve().parents[2] / "data" / "models"
     rows = (models / system / "inventory.tsv").read_text(encoding="utf-8").splitlines()[1:]
-    return [row.split("\t")[0] for row in rows if row]
+    graphemes = [row.split("\t")[0] for row in rows if row]
+    return [g for g in graphemes if "tone=+" not in merkmal.get_features(g, system=system)]
+
+
+@requires_full_data
+def test_abstract_segment_comparability_uses_the_comparison_labels() -> None:
+    # The same labels as Comparison.comparability, so one test serves both.
+    cmp = merkmal.AbstractSegment.from_grapheme("ae̯", system="phoible").compare("ɹ̪̹̩")
+    assert cmp.why == "no-shared-dimension"
+    # A PHOIBLE tone row is a tone, so it is not a segment bundle.
+    with pytest.raises(NotImplementedError):
+        merkmal.AbstractSegment.from_grapheme("˥", system="phoible")
 
 
 def test_abstract_segment_from_grapheme_scores_as_the_grapheme() -> None:

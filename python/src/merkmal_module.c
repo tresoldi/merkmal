@@ -1338,9 +1338,9 @@ static const char *py_comparability_name(mk_comparability why)
     case MK_CMP_OK:
         return "ok";
     case MK_CMP_CROSS_TIER:
-        return "cross_tier";
+        return "cross-tier";
     case MK_CMP_NO_SHARED_DIMENSION:
-        return "no_shared_dimension";
+        return "no-shared-dimension";
     default:
         return "unknown";
     }

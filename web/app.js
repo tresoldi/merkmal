@@ -229,9 +229,9 @@ function runDistance() {
   const covPct = (r.coverage * 100).toFixed(0);
   const covW = (r.coverage * 100).toFixed(0);
   let cmpText = "";
-  if (r.comparability === "cross_tier") {
+  if (r.comparability === "cross-tier") {
     cmpText = '<span style="color:var(--warn)">cross-tier (tone vs. segment)</span>';
-  } else if (r.comparability === "no_shared_dimension") {
+  } else if (r.comparability === "no-shared-dimension") {
     cmpText = '<span style="color:var(--warn)">no shared dimension</span>';
   }
 

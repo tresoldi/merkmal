@@ -4,6 +4,8 @@
 /* A system as the registry holds it: either a borrowed compiled-in model or
  * one parsed from caller-supplied text and owned by this struct. */
 
+#include "merkmal.h"
+
 #include "generated/builtin_data.h"
 
 struct mk_system {
@@ -18,5 +20,11 @@ struct mk_system {
     char *owned_name;
     bool owns;
 };
+
+/* Whether a resolved segment is a tone. In a categorical system the resolver
+ * marks a tone token `tonal-autosegment`. PHOIBLE lists tones as rows of its
+ * own, valued `tone=+` and with no value on any segmental dimension; no other
+ * row has `tone=+`. A tone and a segment are on different tiers. */
+bool mki_view_is_tone(mk_feature_view view);
 
 #endif

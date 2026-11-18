@@ -348,10 +348,10 @@ char *merkmal_segment_distance(const char *system_name, const char *a, const cha
         jb_str(&buf, "ok");
         break;
     case MK_CMP_CROSS_TIER:
-        jb_str(&buf, "cross_tier");
+        jb_str(&buf, "cross-tier");
         break;
     case MK_CMP_NO_SHARED_DIMENSION:
-        jb_str(&buf, "no_shared_dimension");
+        jb_str(&buf, "no-shared-dimension");
         break;
     }
     jb_cat(&buf, "}");

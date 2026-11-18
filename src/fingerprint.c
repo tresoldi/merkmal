@@ -340,7 +340,7 @@ mk_status mki_system_semantic_fingerprint(
     if (status == MK_OK)
         status = mk_append_pair(&payload, &length, &capacity, "tone_policy", "chao-tone-v1");
     if (status == MK_OK)
-        status = mk_append_pair(&payload, &length, &capacity, "comparison_policy", "segment-distance-v1");
+        status = mk_append_pair(&payload, &length, &capacity, "comparison_policy", "segment-distance-v2");
     if (status != MK_OK) {
         free(payload);
         return status;

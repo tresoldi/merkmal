@@ -127,7 +127,7 @@ comparisons is not.
 | value | meaning |
 | --- | --- |
 | `MK_CMP_OK` | same tier, shared dimensions; the score is a measurement |
-| `MK_CMP_CROSS_TIER` | a tone against a segment. The score is the geometry file's declared `tier_policy.cross_tier_cost`, not a measurement, and coverage is `0.0` |
+| `MK_CMP_CROSS_TIER` | a tone against a segment, in any system (in PHOIBLE, a row valued `tone=+`). The score is the geometry file's declared `tier_policy.cross_tier_cost`, not a measurement, and coverage is `0.0` |
 | `MK_CMP_NO_SHARED_DIMENSION` | same tier, no dimension on which both have a value. A `0.0` here means "nothing to compare", not "identical" |
 
 The cross-tier cost is part of the data, not of the code: it is
