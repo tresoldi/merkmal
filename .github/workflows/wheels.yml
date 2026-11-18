@@ -6,7 +6,7 @@ name: Wheels
 #
 # merkmal is published as one package, built with every bundled table. Users
 # who need a build without PHOIBLE and P-base compile it themselves with
-# MERKMAL_DATA_PROFILE=cc-by; see docs/distribution.md.
+# MERKMAL_DATA_PROFILE=cc-by; see docs/guide/installation.md.
 #
 # Wheels are built for Linux only, x86_64 and aarch64 (manylinux and
 # musllinux). macOS runners were not available to this repository; macOS

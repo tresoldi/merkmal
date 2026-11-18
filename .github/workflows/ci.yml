@@ -43,8 +43,10 @@ jobs:
       - name: Test installed pkg-config package
         run: |
           export PKG_CONFIG_PATH="$GITHUB_WORKSPACE/build/install/lib/pkgconfig:$GITHUB_WORKSPACE/build/install/lib64/pkgconfig"
-          # The library has no dependency, so the static link needs nothing else.
-          cc tests/c/install_consumer/main.c $(pkg-config --static --cflags --libs merkmal) -o build/pkg-config-consumer
+          # --static must bring in -lm, which the library needs for fabs.
+          # -fno-builtin keeps the compiler from inlining fabs, so a .pc file
+          # that omits -lm fails to link here.
+          cc -fno-builtin tests/c/install_consumer/main.c $(pkg-config --static --cflags --libs merkmal) -o build/pkg-config-consumer
           build/pkg-config-consumer
 
   c-fallback:
@@ -163,7 +165,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang
+          sudo apt-get install -y clang clang-format
       - name: Formatting
         run: tools/check_format.sh
       - name: Analyze
