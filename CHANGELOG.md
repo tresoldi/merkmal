@@ -10,6 +10,9 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Added
 
+- `merkmal_typology`: an inventory comparison whose mean match coverage is
+  below `MIN_MATCH_COVERAGE` (0.5) is flagged (`InventoryComparison.low_coverage`)
+  and emits a `LowCoverageWarning`.
 - Abstract segments: feature bundles without a grapheme, with cells that may be
   unspecified or restricted to a set of values (`mk_bundle_*`,
   `merkmal.AbstractSegment`). See

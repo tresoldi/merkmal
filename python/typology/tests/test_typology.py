@@ -77,6 +77,21 @@ def test_inventory_comparison_carries_readability_and_match_coverage() -> None:
     assert len(comparison.system_fingerprint) == 64
 
 
+def test_a_comparison_on_few_dimensions_is_flagged() -> None:
+    # PHOIBLE's tone rows have a value only on `tone`, so two tone-only
+    # inventories match on 1 of 38 dimensions.
+    tones_a = mt.Inventory("a", "none", ("˥", "˧"))
+    tones_b = mt.Inventory("b", "none", ("˥", "˩"))
+    with pytest.warns(mt.LowCoverageWarning):
+        comparison = mt.inventory_comparison(tones_a, tones_b)
+    assert comparison.low_coverage
+    assert comparison.mean_match_coverage < mt.MIN_MATCH_COVERAGE
+
+    english = next(i for i in mt.inventories() if i.glottocode == "stan1293")
+    german = next(i for i in mt.inventories() if i.glottocode == "stan1295")
+    assert not mt.inventory_comparison(english, german).low_coverage
+
+
 def test_feature_economy_rises_with_inventory_size() -> None:
     """Clements' observation: bigger inventories reuse features, not add them."""
     by_code = {i.glottocode: i for i in mt.inventories()}
