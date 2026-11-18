@@ -191,15 +191,10 @@ def main() -> int:
                    else ("fitted is better" if low > 0 else "fitted is worse"))
         print(f"  verdict: {verdict}")
 
-    print("\n  Read that as no detectable difference, not as a win for either.")
-    print("  Five families, 65% of the data Indo-European, five folds: enough to")
-    print("  find a large effect and not enough to resolve a small one. Tuning the")
-    print("  smoothing until one of five folds turns positive would be fitting the")
-    print("  protocol rather than the data, which is the failure this design is")
-    print("  arranged to prevent.")
-    print("\n  So nothing ships from this run. What would settle it is alignments")
-    print("  over many more families -- Lexibank's cognate sets, aligned by")
-    print("  something that is not merkmal, so the circularity stays out.")
+    print("\n  With one fold per family, the interval can detect a large effect but")
+    print(f"  not resolve a small one. The shrinkage ({SHRINKAGE:g}) is a constant, not")
+    print("  tuned on these folds. A finer comparison needs alignments over more")
+    print("  families, produced independently of merkmal's distances.")
     return 0
 
 

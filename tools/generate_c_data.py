@@ -758,9 +758,9 @@ def emit_system(
     for grapheme, _ in ordered:
         if grapheme in seen:
             raise SystemExit(
-                f"{name}: grapheme {grapheme!r} appears twice. A binary search "
-                f"would return either row, where the old scan always returned "
-                f"the first; resolve the duplicate in the source data."
+                f"{name}: grapheme {grapheme!r} appears twice, and the binary "
+                f"search could return either row; resolve the duplicate in the "
+                f"source data."
             )
         seen.add(grapheme)
 
