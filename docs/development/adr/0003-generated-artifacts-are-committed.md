@@ -20,8 +20,9 @@ publishes the committed demo as it is, needing no Emscripten.
 - `tools/check_generated_data.py`, run in CI, regenerates the C tables and
   fails if they differ from the committed ones, so a committed table can never
   drift from its source.
-- The WebAssembly build has no such check. CI compiles the library to
-  WebAssembly and runs a smoke test in Node, and runs the committed demo's
-  `app.js` against the committed module, but does not rebuild
-  `web/merkmal.wasm` to compare it. `web/BUILD_INFO` records the commit it was
-  built from.
+- The WebAssembly build is not rebuilt in CI, because Emscripten versions emit
+  different bytes from the same sources. Instead `web/BUILD_INFO` records a
+  SHA-256 over the build's inputs, and `tools/wasm_inputs.py --check`, run in
+  CI, fails when the sources no longer match it. CI also compiles the library
+  to WebAssembly for a smoke test in Node and runs the committed demo's
+  `app.js` against the committed module.

@@ -22,7 +22,7 @@ compiler extensions outside the `MK_API` visibility macro in `merkmal.h`.
 | `data/diacritics/` | The IPA/CLTS diacritic table the resolver composes with. |
 | `data/typologies/` | Source data for direction-sensitive scoring; not read by the C library. |
 | `data/schemas/` | JSON Schemas describing the formats of the files above. |
-| `tools/` | Generators for `src/generated/`, `NOTICE` and the golden fixtures, and the checks: generated data, public symbols, formatting, static analysis, model validation, the contrast baseline. Their tests are in `tools/tests/`. |
+| `tools/` | Generators for `src/generated/`, `NOTICE` and the golden fixtures, and the checks: generated data, public symbols, formatting, static analysis, model validation, the contrast baseline, the WebAssembly build. Their tests are in `tools/tests/`. |
 | `tests/c/` | C tests. Most link the public library; the internal-seam tests link `merkmal_internal`. `header/` and `install_consumer/` test the header alone and an installed package. |
 | `tests/golden/` | Golden fixtures of features and distances per system, and the contrast baseline. Generated; see `tests/golden/README.md`. |
 | `tests/wasm/` | Smoke tests of the WebAssembly build under Node. |
@@ -272,6 +272,7 @@ CI runs each of these, so run the ones your change touches:
 | Static analysis | `tools/run_static_analysis.sh` (GCC `-fanalyzer` and `clang --analyze`; any finding other than those the script lists as accepted is new) |
 | Fuzzing | `CC=clang cmake -S . -B build-fuzz -DMERKMAL_BUILD_FUZZERS=ON -DMERKMAL_BUILD_TESTS=OFF`, then `build-fuzz/fuzz_<target> tests/fuzz/corpus/<target>` |
 | Python | `pip install . pytest && python -m pytest python/tests -q` |
+| WebAssembly build current | `python tools/wasm_inputs.py --check`; if it fails, `web/build-wasm.sh` (needs Emscripten) |
 
 The warning set is in `CMakeLists.txt` as `MERKMAL_C_WARNINGS`. The library
 and every test compile clean under it with GCC and Clang. `-Werror` is opt-in

@@ -32,6 +32,9 @@ touches; docs/development/style.md, Building and checking, has the full table.
   `data/geometries/`, `data/diacritics/`, `tools/` or `src/generated/builtin_data.h`
 - `python tools/regenerate_golden.py --check`, `tools/validate_models.py`,
   `tools/contrast_baseline.py --check`, `tools/generate_notice.py --check`
+- `python tools/wasm_inputs.py --check` after touching `src/`, `include/`,
+  `web/merkmal_wasm.c`, `web/build-wasm.sh` or `CMakeLists.txt`; if it fails,
+  rebuild with `web/build-wasm.sh`
 - Python: `python -m ruff check python/merkmal python/tests python/typology tools bench setup.py`
   and `python -m mypy python/merkmal`
 
