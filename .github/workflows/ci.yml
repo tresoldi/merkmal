@@ -52,9 +52,9 @@ jobs:
   c-fallback:
     name: C build without utf8proc
     # Normalization is compiled in, so a machine without libutf8proc builds the
-    # same library as one with it -- the profile WebAssembly and source
-    # installs on bare runners get. This proves the suite passes there; only
-    # the utf8proc oracle in the `unicode` test is skipped.
+    # same library as one with it, as WebAssembly and source installs on bare
+    # runners do. This checks that the suite passes there; only the utf8proc
+    # oracle in the `unicode` test is skipped.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -119,10 +119,9 @@ jobs:
 
   c-clang:
     name: C build and tests under Clang
-    # Every other job that compiles the library uses the runner's GCC; Clang
-    # appeared only in the analysis and fuzz jobs, which build a subset with
-    # different flags. Warning sets diverge between the two compilers, so a
-    # GCC-only -Werror gate lets Clang-visible findings accumulate unseen.
+    # The other jobs that build and test the library use GCC, and Clang's
+    # warning set differs from GCC's, so this job runs the suite under Clang
+    # with -Werror.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -209,12 +208,9 @@ jobs:
 
   c-sanitizers:
     name: C sanitizers (${{ matrix.sanitizer }})
-    # There used to be two Unicode profiles here, because utf8proc and the
-    # fallback were different code: a stack-use-after-return in the cluster
-    # synthesizer reproduced only on the fallback path. There is one profile
-    # now. utf8proc is required so that the oracle sweep -- every code point
-    # and 400,000 generated mark sequences -- runs the normalizer under each
-    # sanitizer.
+    # Normalization is compiled in, so there is one Unicode profile. utf8proc
+    # is required here so that the oracle sweep (every code point and 400,000
+    # generated mark sequences) runs the normalizer under each sanitizer.
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -238,7 +234,7 @@ jobs:
       - name: Test
         run: ctest --test-dir build/c-sanitizer --output-on-failure
         env:
-          # GCC leaves this off by default; the finding above needed it.
+          # Off by default under GCC; needed to detect a stack use after return.
           ASAN_OPTIONS: detect_stack_use_after_return=1
 
   c-shared:
@@ -277,7 +273,10 @@ jobs:
       - name: Test the data generator
         run: python -m pytest tools/tests -q
       - name: Test the typology companion package
-        run: python -m pytest python/typology/tests -q
+        # Installed from its own pyproject.toml, so its packaging is tested.
+        run: |
+          python -m pip install ./python/typology
+          python -m pytest python/typology/tests -q
       - name: Validate model data, geometry, and provenance
         run: python tools/validate_models.py
       - name: Check the contrast baseline
@@ -287,9 +286,9 @@ jobs:
       - name: Check NOTICE matches the provenance manifests
         run: python tools/generate_notice.py --check
       - name: Check coverage of real CLDF data
-        # Every other guard checks the library against itself and passes on a
-        # library that is internally perfect and unusable on the field's data.
-        # This one fails if merkmal reads less of Lexibank than it used to.
+        # The other guards check the library against itself. This one checks
+        # it against published data: it fails if coverage of the Lexibank
+        # segment table falls below the recorded floors.
         run: python bench/bench_coverage.py --check
       - name: Check golden fixtures match the build
         # Every fixture, geometry included, is produced here through the
@@ -338,24 +337,12 @@ jobs:
         # buys is error detection -- overreads, use-after-free, bad refcount
         # arithmetic in the extension -- and that is what this job is for.
         #
-        # Leak detection is off, and deliberately. It was tried by suppressing
-        # _PyType_AllocNoTrack, dictresize and type_new, the frames where the
-        # interpreter allocates the types it keeps for the life of the process.
-        # The suppressions never matched: ASan cannot unwind a CPython built
-        # without frame pointers, so the reported stacks stop inside
-        # _PyObject_Malloc, several frames below any name worth suppressing.
-        # Python 3.12 leaks 65 such allocations at exit and 3.14 does not, so
-        # the job was red or green depending on the runner's interpreter.
-        #
-        # Suppressing what does appear would mean `leak:_PyObject_Malloc`,
-        # which covers every allocation the extension makes through the
-        # interpreter -- the whole point of suppressing by frame was to avoid
-        # exactly that. And it would buy nothing: a leak injected into the
-        # extension on purpose was classified as still reachable and never
-        # reported, with or without the file.
-        #
-        # Leak coverage for the C core is the ctest suite under ASan, where it
-        # works and where it caught a real leak in the resolver.
+        # Leak detection is off. ASan cannot unwind a CPython built without
+        # frame pointers, so the interpreter's own allocations at exit cannot be
+        # suppressed by frame, and whether they appear depends on the Python
+        # version. Suppressing _PyObject_Malloc instead would hide every
+        # allocation the extension makes through the interpreter. Leak coverage
+        # for the C core is the ctest suite under ASan.
         run: |
           LD_PRELOAD=$(gcc -print-file-name=libasan.so.8) \
           ASAN_OPTIONS=detect_leaks=0 \
