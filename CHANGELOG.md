@@ -10,6 +10,12 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Added
 
+- `merkmal_typology` is installable as the separate distribution
+  `merkmal-typology` (`pip install ./python/typology`), with its PHOIBLE
+  inventories in the wheel; it was usable only from a checkout.
+- `merkmal_typology`: an inventory comparison whose mean match coverage is
+  below `MIN_MATCH_COVERAGE` (0.5) is flagged (`InventoryComparison.low_coverage`)
+  and emits a `LowCoverageWarning`.
 - Abstract segments: feature bundles without a grapheme, with cells that may be
   unspecified or restricted to a set of values (`mk_bundle_*`,
   `merkmal.AbstractSegment`). See
@@ -26,6 +32,12 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- The JSON Schemas in `data/schemas/` are removed: nothing read them, and
+  `tools/validate_models.py` is the statement of a valid model or geometry file.
+- **Breaking:** tone merging (`mk_merge_tone_digits`, `mk_segment_ipa_merged`)
+  keeps a tone with no vowel or syllabic consonant before it in its word as a
+  token of its own (`ŋ²¹` gives `ŋ`, `²¹`; `⁵⁵` gives `⁵⁵`) instead of dropping
+  it. The token resolves as a tone in the categorical systems.
 - Geometry 3.0.1: the geometry file's references to its documentation point to
   `docs/method/geometry.md`. No distance changes, but the geometry hash in every
   semantic fingerprint does.

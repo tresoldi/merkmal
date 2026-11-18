@@ -458,9 +458,12 @@ token rather than dropped, so the function is total over its input.
 `mk_merge_tone_digits` attaches each token consisting only of Chao tone
 characters to the nearest preceding syllabic segment (one containing a vowel
 letter or U+0329) within the same `+`-delimited word, so that `tʰ`, `o`, `ŋ`,
-`⁵⁵` becomes `tʰ`, `o⁵⁵`, `ŋ`. A tone token with no such segment before it,
-and a token consisting only of `⁰`, is dropped. `mk_segment_ipa_merged` is
-`mk_segment_ipa` followed by this merge.
+`⁵⁵` becomes `tʰ`, `o⁵⁵`, `ŋ`. A tone token with no such segment before it is
+kept as a token of its own, joined with any unattached tone token immediately
+before it, so `ŋ`, `²`, `¹` becomes `ŋ`, `²¹`; in a categorical system such a
+token resolves as a tone (`tonal-autosegment`) and is compared with a segment
+as cross-tier. A token consisting only of `⁰` is dropped.
+`mk_segment_ipa_merged` is `mk_segment_ipa` followed by this merge.
 
 `mk_split_tone` is the inverse of the merge: `"a¹³"` becomes `("a", "¹³")`. It
 serves consumers that model tone as a separate dimension, since the merged

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=77", "packaging>=24.2", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "merkmal-typology"
+version = "0.1.0"
+description = "Language-indexed PHOIBLE inventories compared with merkmal's segment distances"
+authors = [
+    {name = "Tiago Tresoldi", email = "tiago.tresoldi@lingfil.uu.se"}
+]
+# The code is MIT; the bundled PHOIBLE inventories keep PHOIBLE's terms.
+# See merkmal_typology/data/provenance.json.
+license = "MIT AND CC-BY-SA-3.0"
+license-files = ["LICENSE"]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["merkmal>=0.9"]
+
+[project.urls]
+Repository = "https://github.com/tresoldi/merkmal"
+
+[tool.setuptools]
+packages = ["merkmal_typology"]
+
+[tool.setuptools.package-data]
+merkmal_typology = ["data/*.tsv", "data/provenance.json"]

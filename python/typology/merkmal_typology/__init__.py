@@ -22,20 +22,23 @@ from __future__ import annotations
 
 import collections
 import csv
+import warnings
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
 import merkmal
 
-DATA = Path(__file__).resolve().parent.parent / "data"
+DATA = Path(__file__).resolve().parent / "data"
 
 __all__ = [
+    "MIN_MATCH_COVERAGE",
     "Frequency",
     "Inventory",
     "InventoryComparison",
     "InventoryReadability",
     "Language",
+    "LowCoverageWarning",
     "SampleComposition",
     "feature_economy",
     "inventories",
@@ -45,6 +48,17 @@ __all__ = [
     "sample_composition",
     "segment_frequency",
 ]
+
+
+#: The mean match coverage below which a comparison is flagged as weak. Over a
+#: random sample of 150 PHOIBLE inventory pairs the mean match coverage under
+#: ``phoible`` lies between 0.63 and 0.74, so a value below 0.5 means that a
+#: large share of the matches compared few dimensions.
+MIN_MATCH_COVERAGE = 0.5
+
+
+class LowCoverageWarning(UserWarning):
+    """An inventory comparison rests on matches that compared few dimensions."""
 
 
 @dataclass(frozen=True)
@@ -156,6 +170,15 @@ class InventoryComparison:
         total = self.left.total + self.right.total
         readable = len(self.left.readable) + len(self.right.readable)
         return readable / total if total else 0.0
+
+    @property
+    def low_coverage(self) -> bool:
+        """Whether ``mean_match_coverage`` is below ``MIN_MATCH_COVERAGE``.
+
+        Such a score, however low, says little about how alike the two
+        inventories are.
+        """
+        return self.mean_match_coverage < MIN_MATCH_COVERAGE
 
 
 @lru_cache(maxsize=1)
@@ -308,6 +331,9 @@ def inventory_comparison(
     the sample. The score is not a metric, for the same reasons the segment
     distance is not one. Matching is nearest-neighbour, not an optimal
     one-to-one assignment.
+
+    Emits ``LowCoverageWarning`` when the result's ``low_coverage`` is true,
+    so that a weak comparison is not read as a close one.
     """
     left = a.readability(system)
     right = b.readability(system)
@@ -355,8 +381,17 @@ def inventory_comparison(
             comparability[best_status] += 1
         return total / len(source)
 
-    return result((one_way(readable_left, readable_right) +
-                   one_way(readable_right, readable_left)) / 2.0)
+    comparison = result((one_way(readable_left, readable_right) +
+                         one_way(readable_right, readable_left)) / 2.0)
+    if comparison.low_coverage:
+        warnings.warn(
+            f"{a.inventory} and {b.inventory}: mean match coverage "
+            f"{comparison.mean_match_coverage:.3f} is below {MIN_MATCH_COVERAGE}; "
+            "the score reflects few compared dimensions",
+            LowCoverageWarning,
+            stacklevel=2,
+        )
+    return comparison
 
 
 def inventory_distance(

@@ -27,7 +27,7 @@ def parse_args(argv: list[str] | None = None) -> list[str]:
         "segments",
         nargs="*",
         default=DEFAULT_INVENTORY,
-        help="IPA segments to audit (default: representative 33-segment inventory)",
+        help="IPA segments to audit (default: representative 32-segment inventory)",
     )
     args = parser.parse_args(argv)
     return args.segments

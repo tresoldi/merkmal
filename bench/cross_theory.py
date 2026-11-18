@@ -108,7 +108,7 @@ def orderings() -> int:
                 contested.append((minority, a, b, c, agree, len(result)))
 
     split = total - unanimous
-    print(f"\n  {total} claims where at least 6 systems have an opinion")
+    print(f"\n  {total} claims to which at least 6 systems give a strict answer")
     print(f"    unanimous: {unanimous} ({100 * unanimous / total:.1f}%)")
     print(f"    split:     {split} ({100 * split / total:.1f}%)")
 
@@ -117,10 +117,9 @@ def orderings() -> int:
     for _minority, a, b, c, agree, n in contested[:8]:
         print(f"    d({a},{b}) < d({a},{c})   {agree}/{n} say yes")
 
-    print("\n  A third of these depend on which feature theory answers. That is not")
-    print("  a defect in any of them -- SPE, JFH and PHOIBLE disagree about what a")
-    print("  segment *is* -- but a result resting on one of them is a result about")
-    print("  that theory. Run your analysis twice and say which you used.")
+    print("\n  A split claim holds in some feature systems and not in others, so a")
+    print("  conclusion that rests on it is in part a property of the system used,")
+    print("  which should be reported with it.")
     return split
 
 
@@ -143,8 +142,8 @@ def alignment(bdpa: Path) -> None:
     spread = rows[0][1] - rows[-1][1]
     print(f"\n  best {rows[0][0]} at {100 * rows[0][1]:.2f}%, worst {rows[-1][0]} at "
           f"{100 * rows[-1][1]:.2f}% -- a spread of {100 * spread:.2f} points.")
-    print("  Coverage moves this as much as the feature theory does; read the")
-    print("  readable column beside the accuracy, not instead of it.")
+    print("  Each system reads a different share of the pairs in full (the readable")
+    print("  column), so the accuracies are to be compared together with it.")
 
 
 def main() -> int:
