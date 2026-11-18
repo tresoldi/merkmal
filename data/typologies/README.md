@@ -39,8 +39,11 @@ of which are properties of the procedure rather than of the numbers:
 6. **The procedure is partly circular.** The alignments were produced with the
    same dissimilarity that the resulting costs were meant to calibrate.
 
-The deriving script (`derive_direction_costs.py`) is not part of this
-repository. The numbers are kept, under the key `quarantined_direction_costs`,
+The deriving script is kept beside the file,
+[`derive_direction_costs.py`](derive_direction_costs.py), as the record of the
+procedure described above. It does not run against the current library: it
+uses the pure-Python implementation that the C library replaced, and reads
+CoreCog forms from local paths outside this repository. The numbers are kept, under the key `quarantined_direction_costs`,
 so that a loader looking for `direction_costs` does not read them. Correcting
 point 3 in place would reverse the behaviour of any existing consumer of the
 file and would not address the other points; a corrected artifact requires a
