@@ -30,7 +30,10 @@ Emscripten version and a SHA-256 over every file the build reads
 must be rebuilt after any change under `src/` or `include/`:
 `python tools/wasm_inputs.py --check`, run in CI, fails when the recorded hash
 no longer matches the sources. The hash covers the inputs rather than the
-output, so the check does not depend on the Emscripten version.
+output, so the check does not depend on the Emscripten version. CI installs
+Emscripten 7.0.0, pinned so that a new release cannot change the result of the
+WebAssembly jobs; rebuilding the demonstration with the same version keeps
+`web/BUILD_INFO` and CI in agreement.
 
 ## Emscripten CMake build
 
