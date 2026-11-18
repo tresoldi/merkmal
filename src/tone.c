@@ -154,6 +154,7 @@ mk_status mk_merge_tone_digits(
         const char *segment = segments->items[i];
         if (mk_is_chao_digit_token(segment)) {
             size_t j;
+            size_t host = count;
 
             if (!mk_chao_token_has_nonzero(segment)) {
                 continue;
@@ -165,21 +166,27 @@ mk_status mk_merge_tone_digits(
                     break;
                 }
                 if (mk_segment_is_syllabic(items[j])) {
-                    char *merged = NULL;
-                    mk_status status = mk_concat_strings(items[j], segment, &merged);
-                    if (status != MK_OK) {
-                        mki_free_items(items, count);
-                        return status;
-                    }
-                    free(items[j]);
-                    items[j] = merged;
-                    break;
-                }
-                if (j == 0) {
+                    host = j;
                     break;
                 }
             }
-            continue;
+            /* With no syllabic segment before it in the word, the tone is kept
+             * as a token of its own, joined to an unattached tone token just
+             * before it, rather than dropped: it still resolves as a tone. */
+            if (host == count && count > 0 && mk_is_chao_digit_token(items[count - 1])) {
+                host = count - 1;
+            }
+            if (host < count) {
+                char *merged = NULL;
+                mk_status status = mk_concat_strings(items[host], segment, &merged);
+                if (status != MK_OK) {
+                    mki_free_items(items, count);
+                    return status;
+                }
+                free(items[host]);
+                items[host] = merged;
+                continue;
+            }
         }
 
         items[count] = mki_strdup_internal(segment);

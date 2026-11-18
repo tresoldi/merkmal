@@ -293,7 +293,8 @@ MK_API mk_status mk_system_segment_ipa(
     mk_string_list **out
 );
 
-/** Merges Chao tone tokens into the preceding eligible segment. `segments` is
+/** Merges Chao tone tokens into the preceding eligible segment; a tone with no
+ * such segment in its word is kept as a token of its own. `segments` is
  * borrowed; *out is a new owned list, freed with mk_string_list_free. */
 MK_API mk_status mk_merge_tone_digits(
     const mk_string_list *segments,

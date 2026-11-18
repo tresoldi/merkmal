@@ -340,6 +340,13 @@ def test_native_unicode_helpers() -> None:
     assert merkmal.segment_ipa("tʰoŋ⁵⁵") == ["tʰ", "o", "ŋ", "⁵⁵"]
     assert merkmal.segment_ipa_merged("tʰoŋ⁵⁵") == ["tʰ", "o⁵⁵", "ŋ"]
     assert merkmal.merge_tone_digits(["tʰ", "o", "ŋ", "⁵⁵"]) == ["tʰ", "o⁵⁵", "ŋ"]
+    # A tone with no syllabic segment before it in its word is kept as a token
+    # of its own, which resolves as a tone, rather than dropped.
+    assert merkmal.segment_ipa_merged("ŋ²¹") == ["ŋ", "²¹"]
+    assert merkmal.segment_ipa_merged("⁵⁵") == ["⁵⁵"]
+    assert merkmal.segment_ipa_merged("ka+²¹") == ["k", "a", "+", "²¹"]
+    assert merkmal.merge_tone_digits(["ŋ", "²", "¹"]) == ["ŋ", "²¹"]
+    assert "tonal-autosegment" in merkmal.get_features("²¹")
     # The syllabic mark above (U+030D) bears a tone like the one below (U+0329).
     assert merkmal.segment_ipa_merged("ŋ̍²¹") == ["ŋ̍²¹"]
     assert merkmal.segment_ipa_merged("m̩⁵⁵") == ["m̩⁵⁵"]
