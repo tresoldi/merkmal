@@ -29,6 +29,8 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- The JSON Schemas in `data/schemas/` are removed: nothing read them, and
+  `tools/validate_models.py` is the statement of a valid model or geometry file.
 - **Breaking:** tone merging (`mk_merge_tone_digits`, `mk_segment_ipa_merged`)
   keeps a tone with no vowel or syllabic consonant before it in its word as a
   token of its own (`ŋ²¹` gives `ŋ`, `²¹`; `⁵⁵` gives `⁵⁵`) instead of dropping

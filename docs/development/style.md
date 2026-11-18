@@ -21,7 +21,6 @@ compiler extensions outside the `MK_API` visibility macro in `merkmal.h`.
 | `data/geometries/` | The feature geometry compiled into the library, and the deeper variant loadable from Python. |
 | `data/diacritics/` | The IPA/CLTS diacritic table the resolver composes with. |
 | `data/typologies/` | Source data for direction-sensitive scoring; not read by the C library. |
-| `data/schemas/` | JSON Schemas describing the formats of the files above. |
 | `tools/` | Generators for `src/generated/`, `NOTICE` and the golden fixtures, and the checks: generated data, public symbols, formatting, static analysis, model validation, the contrast baseline, the WebAssembly build. Their tests are in `tools/tests/`. |
 | `tests/c/` | C tests. Most link the public library; the internal-seam tests link `merkmal_internal`. `header/` and `install_consumer/` test the header alone and an installed package. |
 | `tests/golden/` | Golden fixtures of features and distances per system, and the contrast baseline. Generated; see `tests/golden/README.md`. |
