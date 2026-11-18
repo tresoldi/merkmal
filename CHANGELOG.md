@@ -64,6 +64,9 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- A static consumer was not told to link the math library, which the library
+  needs for `fabs`: `merkmal.pc` now lists `-lm` in `Libs.private`, and the
+  CMake package carries it as a link-only dependency.
 - An affricate, labial-velar or prenasalized stop written without a tie bar
   (`tʃ`, `kp`, `mb`) was derived with fixed features in any categorical system,
   including a runtime model that lists neither letter; it is now derived only

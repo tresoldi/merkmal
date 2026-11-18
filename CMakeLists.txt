@@ -89,6 +89,17 @@ add_library(merkmal ${MERKMAL_SOURCES})
 
 add_library(merkmal::merkmal ALIAS merkmal)
 
+# The scorers call fabs from <math.h>. Where the C library keeps it in a
+# separate libm, the library links it, and a static consumer is told to: the
+# exported CMake target carries it as a link-only dependency, and merkmal.pc
+# lists it in Libs.private.
+find_library(MERKMAL_LIBM m)
+set(MERKMAL_PC_LIBS_PRIVATE "")
+if(MERKMAL_LIBM)
+    target_link_libraries(merkmal PRIVATE m)
+    set(MERKMAL_PC_LIBS_PRIVATE "-lm")
+endif()
+
 set_target_properties(merkmal PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
@@ -187,12 +198,8 @@ if(MERKMAL_BUILD_TESTS)
     add_test(NAME bundle COMMAND test_bundle)
 
     # The WebAssembly adapter builds natively too; this checks its JSON.
-    find_library(MERKMAL_LIBM m)
     add_executable(test_wasm_adapter tests/c/test_wasm_adapter.c web/merkmal_wasm.c)
     target_link_libraries(test_wasm_adapter PRIVATE merkmal)
-    if(MERKMAL_LIBM)
-        target_link_libraries(test_wasm_adapter PRIVATE ${MERKMAL_LIBM})
-    endif()
     add_test(NAME wasm_adapter COMMAND test_wasm_adapter)
     # The check needs PHOIBLE, which the cc-by profile does not carry.
     if(MERKMAL_DATA_PROFILE STREQUAL "cc-by")
@@ -248,6 +255,9 @@ if(MERKMAL_BUILD_TESTS)
             ${CMAKE_CURRENT_SOURCE_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
+    if(MERKMAL_LIBM)
+        target_link_libraries(merkmal_internal PUBLIC m)
+    endif()
     target_compile_options(merkmal_internal
         PRIVATE ${MERKMAL_C_WARNINGS}
         PUBLIC ${MERKMAL_SANITIZER_COMPILE_OPTIONS}

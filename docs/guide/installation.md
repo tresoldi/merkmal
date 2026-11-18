@@ -128,6 +128,9 @@ For static linking:
 cc example.c $(pkg-config --cflags --libs --static merkmal) -o example
 ```
 
+`--static` adds the math library (`-lm`) where the platform keeps it separate,
+since the library calls `fabs`. The CMake package carries the same dependency.
+
 If merkmal was installed under a custom prefix:
 
 ```sh
