@@ -20,8 +20,8 @@ script takes a BDPA checkout:
 Results are compared with bench/alignment_baseline.txt and written to it with
 --record. Accuracy is reported over all pairs and over the pairs the system can
 read in full, and the two are to be read together. In the recorded baseline,
-`distinctive` reads 93.2% of the 2,250 pairs; on those its column accuracy does
-not differ significantly from SCA's, and over all pairs it is lower.
+`distinctive` reads 96.1% of the 2,250 pairs, and its column accuracy does not
+differ significantly from SCA's either on those pairs or over all of them.
 
 BDPA appends annotation rows (`LOCAL`, `SWAPS` and others) with the same shape
 as language rows; their cells are markup (`*`, `.`), not transcription. They
