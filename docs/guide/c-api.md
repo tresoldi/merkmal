@@ -566,4 +566,4 @@ come from `mk_segment_ipa`.
 - Rubehn, Arne, Jessica Nieder, Robert Forkel and Johann-Mattis List. 2024.
   Generating feature vectors from phonetic transcriptions in cross-linguistic
   data formats. In *Proceedings of the Society for Computation in Linguistics
-  2024*.
+  2024*, 205–216. Irvine, CA: Association for Computational Linguistics.

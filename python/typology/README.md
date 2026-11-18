@@ -121,7 +121,7 @@ Attribution to PHOIBLE is required in either case.
 
 ## References
 
-- Clements, G. N. 2003. Feature economy in sound systems. *Phonology* 20(3).
+- Clements, G. N. 2003. Feature economy in sound systems. *Phonology* 20(3):
   287–333.
 - Moran, Steven and Daniel McCloy (eds.). 2019. PHOIBLE 2.0. Jena: Max Planck
   Institute for the Science of Human History. https://phoible.org/
