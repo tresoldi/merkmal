@@ -162,14 +162,25 @@ static void check_coverage(mk_registry *registry)
         fail("phoible p/p", "shortcut disagrees with the scorer");
     }
 
-    /* PHOIBLE's tone letters carry `.` on every dimension, so there is nothing
-     * to compare against a segment. Same tier, no shared dimension. */
+    /* A PHOIBLE tone row has a value only on `tone`, so it shares no dimension
+     * with a segment. It is a tone, on another tier, and costs the declared
+     * cross-tier cost as in the categorical systems. */
     if (mk_system_segment_distance_ex(
             phoible, "˦˨", "d", NULL, &score, &coverage, &why
         ) != MK_OK) {
         fail("phoible tone/d", "status");
-    } else if (coverage != 0.0 || why != MK_CMP_NO_SHARED_DIMENSION) {
-        fail("phoible tone/d", "expected zero coverage and no-shared-dimension");
+    } else if (score != 1.0 || coverage != 0.0 || why != MK_CMP_CROSS_TIER) {
+        fail("phoible tone/d", "expected the cross-tier cost, zero coverage and MK_CMP_CROSS_TIER");
+    }
+
+    /* Two segments can share no dimension too: nothing compared, a 0.0 that
+     * does not mean identical. */
+    if (mk_system_segment_distance_ex(
+            phoible, "ae̯", "ɹ̪̹̩", NULL, &score, &coverage, &why
+        ) != MK_OK) {
+        fail("phoible ae/r", "status");
+    } else if (score != 0.0 || coverage != 0.0 || why != MK_CMP_NO_SHARED_DIMENSION) {
+        fail("phoible ae/r", "expected zero coverage and no-shared-dimension");
     }
 
     /* Both categorical scorers weigh any dimension either segment sets, so an

@@ -26,6 +26,14 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- **Breaking:** a PHOIBLE tone row (valued `tone=+`) against a segment is
+  cross-tier, as in the categorical systems: the declared cross-tier cost 1.0
+  with `MK_CMP_CROSS_TIER`, where it scored 0.0 with no shared dimension. Such
+  a row is also refused as an abstract segment. The comparison policy in the
+  semantic fingerprint is `segment-distance-v2`.
+- `AbstractSegment.compare` and the WebAssembly adapter report comparability
+  as `cross-tier` and `no-shared-dimension`, the labels of
+  `distance_with_coverage`, instead of `cross_tier` and `no_shared_dimension`.
 - **Breaking:** `distinctive` model 2.0.0. Each scalar dimension names the
   geometry leaf it mirrors and takes that leaf's weight and node, so
   `distinctive` and `descriptive` weight the same property alike; the four

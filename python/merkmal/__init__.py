@@ -353,8 +353,8 @@ class BundleComparison(NamedTuple):
 
     ``distance`` and ``coverage`` are the point values; ``minimum`` and
     ``maximum`` are the exact extremes of the distance over every completion
-    of the unspecified cells. ``why`` is ``"ok"``, ``"cross_tier"`` or
-    ``"no_shared_dimension"``, with the meanings given for ``Comparison``.
+    of the unspecified cells. ``why`` is ``"ok"``, ``"cross-tier"`` or
+    ``"no-shared-dimension"``, with the meanings given for ``Comparison``.
     """
 
     distance: float

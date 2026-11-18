@@ -138,9 +138,11 @@ compared. For a categorical system it is 1 when any dimension was compared and
 `no-shared-dimension`, and its score of 0 means that nothing was compared, not
 that the segments are identical.
 
-A tone and a segment are not compared on a shared scale. Their distance is the
-geometry's declared `tier_policy.cross_tier_cost`, 1.0, with coverage 0 and
-comparability `cross-tier`. The geometry would otherwise assign such a pair a
+A tone and a segment are not compared on a shared scale, in any system. Their
+distance is the geometry's declared `tier_policy.cross_tier_cost`, 1.0, with
+coverage 0 and comparability `cross-tier`. A tone is a token the resolver marks
+`tonal-autosegment` in a categorical system, or a PHOIBLE row valued
+`tone=+`; PHOIBLE's tone rows have no value on any segmental dimension. The geometry would otherwise assign such a pair a
 cost that depends on how many features the segment carries rather than on any
 property of the tone; a caller who needs a finite cost reads the comparability
 and supplies one. The value is data rather than code

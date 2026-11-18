@@ -118,10 +118,10 @@ mk_status mk_system_segment_distance(
     return mk_system_segment_distance_with_weights(system, utf8_a, utf8_b, NULL, out);
 }
 
-/* A tone token carries this and nothing else does. See the resolver. */
-static bool mk_is_tonal_autosegment(mk_feature_view view)
+bool mki_view_is_tone(mk_feature_view view)
 {
-    return mki_features_contain(view.features, view.count, "tonal-autosegment");
+    return mki_features_contain(view.features, view.count, "tonal-autosegment") ||
+        mki_features_contain(view.features, view.count, "tone=+");
 }
 
 /* The score for two resolved segments, with coverage and comparability when
@@ -145,7 +145,7 @@ static mk_status mk_score_resolved(
      * is not a statement about tone and sits below the cost at which an aligner
      * stops matching the two. Gold alignments never put them in one column.
      * See docs/guide/c-api.md, Distance with coverage. */
-    if (mk_is_tonal_autosegment(mki_view_of(a)) != mk_is_tonal_autosegment(mki_view_of(b))) {
+    if (mki_view_is_tone(mki_view_of(a)) != mki_view_is_tone(mki_view_of(b))) {
         *out = mki_clements_hume_cross_tier_cost;
         if (coverage != NULL) {
             *coverage = 0.0;

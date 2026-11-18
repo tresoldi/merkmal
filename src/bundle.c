@@ -426,11 +426,6 @@ mk_status mk_bundle_new(const mk_system *system, mk_bundle **out)
     return MK_OK;
 }
 
-static bool mk_is_tone(mk_feature_view view)
-{
-    return mki_features_contain(view.features, view.count, "tonal-autosegment");
-}
-
 static void mk_fill_from_view(mk_bundle *b, mk_feature_view view)
 {
     size_t i;
@@ -460,7 +455,7 @@ mk_status mk_bundle_from_grapheme(const mk_system *system, const char *utf8_grap
     }
     /* A synthesized cluster has no single feature set, and a tone sits on a
      * tier with no segmental dimensions; neither is a bundle. */
-    if (resolved.cluster_component_count > 0 || mk_is_tone(mki_view_of(&resolved))) {
+    if (resolved.cluster_component_count > 0 || mki_view_is_tone(mki_view_of(&resolved))) {
         mki_resolution_clear(&resolved);
         mk_bundle_free(*out);
         *out = NULL;
@@ -1368,7 +1363,7 @@ mk_status mk_bundle_compatible_graphemes(
         mki_inventory_row(builtin, i, scratch, &entry);
         view.features = entry.features;
         view.count = entry.feature_count;
-        if (mk_is_tone(view)) {
+        if (mki_view_is_tone(view)) {
             continue;
         }
         mk_fill_from_view(row, view);

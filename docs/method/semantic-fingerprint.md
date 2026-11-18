@@ -37,7 +37,7 @@ order:
 | `diacritics_sha256` | A hash of the diacritic data, `data/diacritics/ipa-clts.json` |
 | `resolver_policy` | The resolver and normalization policy (`ipa-resolver-v1`) |
 | `tone_policy` | The Chao tone grammar (`chao-tone-v1`) |
-| `comparison_policy` | The segment-distance policy (`segment-distance-v1`) |
+| `comparison_policy` | The segment-distance policy (`segment-distance-v2`) |
 
 The digest is the lowercase hexadecimal SHA-256 of the full payload. Both
 should be stored: the digest serves as a compact join key, and the payload
