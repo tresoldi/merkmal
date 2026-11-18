@@ -44,6 +44,10 @@ static int count_nulls(const char *json)
 
 int main(void)
 {
+#ifdef MERKMAL_TEST_DATA_PROFILE_CC_BY
+    /* No system in the cc-by profile has an unknown value. */
+    return 77;
+#else
     /* PHOIBLE leaves some dimensions of `a` unknown. */
     char *json = merkmal_grapheme_features("phoible", "a");
     int failed = 0;
@@ -57,4 +61,5 @@ int main(void)
     }
     merkmal_free(json);
     return failed;
+#endif
 }
