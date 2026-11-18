@@ -10,6 +10,9 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Added
 
+- `merkmal_typology` is installable as the separate distribution
+  `merkmal-typology` (`pip install ./python/typology`), with its PHOIBLE
+  inventories in the wheel; it was usable only from a checkout.
 - `merkmal_typology`: an inventory comparison whose mean match coverage is
   below `MIN_MATCH_COVERAGE` (0.5) is flagged (`InventoryComparison.low_coverage`)
   and emits a `LowCoverageWarning`.

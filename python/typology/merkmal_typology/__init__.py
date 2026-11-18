@@ -29,7 +29,7 @@ from pathlib import Path
 
 import merkmal
 
-DATA = Path(__file__).resolve().parent.parent / "data"
+DATA = Path(__file__).resolve().parent / "data"
 
 __all__ = [
     "MIN_MATCH_COVERAGE",

@@ -29,7 +29,7 @@ compiler extensions outside the `MK_API` visibility macro in `merkmal.h`.
 | `python/merkmal/` | The Python package and its command line (`cli.py`). |
 | `python/src/merkmal_module.c` | The CPython extension. Uses `merkmal.h` only. |
 | `python/tests/` | Tests of the Python package. |
-| `python/typology/` | `merkmal-typology`, a separate package of language-indexed inventories, with its data and tests. |
+| `python/typology/` | `merkmal-typology`, a separate distribution (its own `pyproject.toml`) of language-indexed inventories, with its data and tests. |
 | `web/` | The WebAssembly adapter `merkmal_wasm.c` (JSON in, JSON out; uses `merkmal.h` only), its build script, the committed build, and the browser demo. |
 | `bench/` | Benchmarks and their committed baselines; see `bench/README.md`. |
 | `examples/` | Example programs, built and run as tests. |
