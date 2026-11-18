@@ -5,10 +5,10 @@
 #   source ~/emsdk/emsdk_env.sh
 #   ./web/build-wasm.sh
 #
-# The artifacts (merkmal.js, merkmal.wasm) are committed, so rerun this before
-# deploying the page after any change under src/ or include/. This records the
-# sources it built from in web/BUILD_INFO; a stale artifact cannot reach the
-# deployed page unnoticed.
+# The artifacts (merkmal.js, merkmal.wasm) are committed, so rerun this after
+# any change under src/ or include/ and commit them with web/BUILD_INFO. That
+# file records a hash of the build's inputs (tools/wasm_inputs.py), which CI
+# recomputes from the sources, so a stale artifact fails CI.
 #
 # Links with -sFILESYSTEM=0: the built-in models are compiled in.
 set -euo pipefail
@@ -53,7 +53,13 @@ emcc \
     -o "$script_dir/merkmal.js"
 
 commit="$(git -C "$repo_dir" rev-parse --short HEAD 2>/dev/null || echo unknown)"
-printf 'git_commit %s\n' "$commit" > "$script_dir/BUILD_INFO"
+emscripten="$(emcc --version | sed -n '1s/.* \([0-9][0-9.]*\) (.*/\1/p')"
+inputs="$(python3 "$repo_dir/tools/wasm_inputs.py")"
+{
+    printf 'git_commit %s\n' "$commit"
+    printf 'emscripten %s\n' "${emscripten:-unknown}"
+    printf 'inputs_sha256 %s\n' "$inputs"
+} > "$script_dir/BUILD_INFO"
 
 echo "built merkmal $version ($commit):"
 ls -lh "$script_dir/merkmal.js" "$script_dir/merkmal.wasm" | awk '{print "  " $9 "  " $5}'

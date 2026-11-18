@@ -23,10 +23,14 @@ Two interfaces are available.
   (`web/index.html`, `web/app.js`), not a stable JavaScript API.
 
 `web/build-wasm.sh` builds the adapter into `web/merkmal.js` and
-`web/merkmal.wasm` and records the source commit in `web/BUILD_INFO`. These
-files are committed
+`web/merkmal.wasm`, and records in `web/BUILD_INFO` the source commit, the
+Emscripten version and a SHA-256 over every file the build reads
+(`tools/wasm_inputs.py`). These files are committed
 ([ADR 0003](../development/adr/0003-generated-artifacts-are-committed.md)) and
-must be rebuilt after any change under `src/` or `include/`.
+must be rebuilt after any change under `src/` or `include/`:
+`python tools/wasm_inputs.py --check`, run in CI, fails when the recorded hash
+no longer matches the sources. The hash covers the inputs rather than the
+output, so the check does not depend on the Emscripten version.
 
 ## Emscripten CMake build
 
