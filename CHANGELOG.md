@@ -26,6 +26,16 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- **Breaking:** `distinctive` model 2.0.0. Each scalar dimension names the
+  geometry leaf it mirrors and takes that leaf's weight and node, so
+  `distinctive` and `descriptive` weight the same property alike; the four
+  dimensions without a leaf declare their weight. Eighteen dimensions change
+  weight (the articulators 0.25 → 0.4, secondary articulations and `apical`
+  0.25 → 0.33, `nasalized`, `ejective`, `fricative`, `click` and `implosive`
+  0.33 → 0.5), and `nasalized` and `ejective` move to the `Manner` and
+  `Laryngeal` nodes, which changes their weight presets. Most `distinctive`
+  distances change slightly (`p`–`b` 0.1493 → 0.1429; rank correlation 0.994
+  over 79,800 pairs), and the semantic fingerprint changes.
 - **Breaking:** numeric feature vectors include every dimension the scorer reads
   (ordered scales and node-group columns), so their width and columns change
   (`distinctive` 54 → 64, `descriptive` 62 → 68). Equal vectors now imply a

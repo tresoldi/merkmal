@@ -110,11 +110,13 @@ is part of the system's [semantic fingerprint](semantic-fingerprint.md).
 - **scalar**: `distinctive`, which declares its own `scalar_dimensions` in
   `data/models/distinctive/model.json`, each attached to a geometry node. It
   reads those dimensions and the geometry's ordered scales, and no geometry
-  leaf. A dimension with the same name as a geometry leaf takes that leaf's
-  weight, explicit or derived; `tools/validate_models.py` fails if the weight
-  the generator emits for such a dimension differs from the leaf's. A
-  dimension without a namesake leaf is weighted `1 / (d + 1)`, where d is the
-  depth of its node.
+  leaf. A dimension that measures what a geometry leaf measures names that
+  leaf (`geometry_leaf`), is attached to the leaf's node and takes its weight,
+  so `distinctive` and `descriptive` price the same property alike. The four
+  dimensions with no counterpart in the geometry (`fricative`, `click`,
+  `implosive` and `apical`) declare their weight, set to that of the leaves
+  under the same node. The generator and `tools/validate_models.py` refuse a
+  dimension that does neither.
 - **valued**: `phoible` and the four `pbase-*` systems. Each declared feature
   is mapped to a geometry node and weighted `1 / depth` of that node. A
   feature is compared only when both segments have a value on it (`+`, `−`, or
@@ -264,9 +266,9 @@ fingerprint and must be recorded with the result
 
 The score measures phonetic dissimilarity under the geometry, not the
 probability of a sound change. The two diverge systematically. In the default
-system, d(k, tʃ) = 0.37 and d(k, q) = 0.06, although velar palatalization is
+system, d(k, tʃ) = 0.41 and d(k, q) = 0.05, although velar palatalization is
 among the most frequently attested changes and unconditioned uvularization is
-rare; likewise d(s, h) = 0.28 exceeds d(s, ʃ) = 0.15, although s > h is a
+rare; likewise d(s, h) = 0.31 exceeds d(s, ʃ) = 0.14, although s > h is a
 common change. Adjusting the tree until a chosen list of sound laws became
 cheap would produce a model of sound change with no data behind it. The score
 is suited to use as a segment prior in alignment and candidate generation;
@@ -289,12 +291,6 @@ result computed with it must be identified by that geometry (as
   perceptual, contrastive or diachronic data is available.
 - The cost of a tone against a segment is not derived from the geometry; the
   library declares such pairs incomparable.
-- In `distinctive`, the 18 scalar dimensions that have no geometry leaf of the
-  same name (among them `labialized`, `ejective`, `fricative` and the
-  articulator dimensions `labial`, `coronal`, `dorsal` and `guttural`) are
-  weighted `1 / (d + 1)` of their node, while a leaf under the same node in
-  `descriptive` is weighted `1 / d` or carries an explicit weight. The two
-  categorical systems therefore weight these properties differently.
 - Stress is not represented.
 
 ## References

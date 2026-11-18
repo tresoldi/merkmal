@@ -55,6 +55,7 @@ def read_tsv(path: Path) -> tuple[list[str], list[list[str]]]:
 GEOMETRY_NODES: set[str] = set()
 GEOMETRY_FEATURES: set[str] = set()
 GEOMETRY_NAMES: set[str] = set()
+GEOMETRY_LEAF_PARENTS: dict[str, str] = {}
 
 
 def check_identifier(value: str, where: str) -> None:
@@ -111,6 +112,15 @@ def validate_geometry() -> None:
     walk_geometry(tree, nodes, features, leaves)
     GEOMETRY_NODES.update(nodes)
     GEOMETRY_FEATURES.update(features)
+
+    def record_parents(node: dict) -> None:
+        for child in node.get("children", []):
+            if "children" in child:
+                record_parents(child)
+            else:
+                GEOMETRY_LEAF_PARENTS[child.get("name", "")] = node.get("name", "")
+
+    record_parents(tree)
     GEOMETRY_NAMES.add(data.get("name", ""))
     GEOMETRY_NAMES.update(data.get("compatibility_names", []))
     ok(f"Tree has {len(leaves)} leaf features under {len(nodes)} nodes")
@@ -404,6 +414,21 @@ def validate_model_dir(model_dir: Path, expected_name: str | None = None) -> Non
                 node = d.get("geometry_node", "")
                 if GEOMETRY_NODES and node not in GEOMETRY_NODES:
                     error(f"scalar_dimension {name!r} maps to unknown geometry node {node!r}")
+                # The weight comes from the geometry leaf the dimension names,
+                # or is declared; it is never inferred.
+                leaf = d.get("geometry_leaf")
+                if leaf is not None:
+                    if leaf not in GEOMETRY_LEAF_PARENTS:
+                        error(f"scalar_dimension {name!r} names unknown geometry leaf {leaf!r}")
+                    elif GEOMETRY_LEAF_PARENTS[leaf] != node:
+                        error(
+                            f"scalar_dimension {name!r} is under {node!r}, but its leaf "
+                            f"{leaf!r} is under {GEOMETRY_LEAF_PARENTS[leaf]!r}"
+                        )
+                    if "weight" in d:
+                        error(f"scalar_dimension {name!r} declares both geometry_leaf and weight")
+                elif not isinstance(d.get("weight"), (int, float)) or d["weight"] <= 0:
+                    error(f"scalar_dimension {name!r} needs a geometry_leaf or a positive weight")
                 overlap = set(d.get("positive", [])) & set(d.get("negative", []))
                 if overlap:
                     error(f"scalar_dimension {name!r} lists {sorted(overlap)} as both positive and negative")
@@ -533,21 +558,28 @@ def check_scalar_weight_agreement() -> None:
     bad = 0
     for path in sorted((ROOT / "data" / "models").glob("*/model.json")):
         system = path.parent.name
-        if json.loads(path.read_text(encoding="utf-8")).get("type") != "categorical":
+        model = json.loads(path.read_text(encoding="utf-8"))
+        if model.get("type") != "categorical":
             continue
+        declared = {
+            str(d["name"]): str(d["geometry_leaf"])
+            for d in model.get("scalar_dimensions", [])
+            if "geometry_leaf" in d
+        }
         _kind, _entries, _gmap, _weights, dimensions = generate_c_data.load_categorical(
             system, geometry_obj
         )
         for dim in dimensions:
             name = str(dim["name"])
-            if name not in leaves:
+            leaf = declared.get(name)
+            if leaf not in leaves:
                 continue
             shared += 1
-            if abs(float(dim["weight"]) - leaves[name]) > 1e-12:
+            if abs(float(dim["weight"]) - leaves[leaf]) > 1e-12:
                 error(
                     f"{system}: scalar dimension {name!r} will be emitted at weight "
-                    f"{float(dim['weight']):.6f}, but the geometry leaf of the same name "
-                    f"costs {leaves[name]:.6f}"
+                    f"{float(dim['weight']):.6f}, but its geometry leaf {leaf!r} "
+                    f"costs {leaves[leaf]:.6f}"
                 )
                 bad += 1
     if bad == 0:

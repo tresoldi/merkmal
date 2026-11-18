@@ -295,7 +295,7 @@ def test_native_distance_matches_golden_probe() -> None:
     # The default is `distinctive`, which scores through its own
     # scalar_dimensions rather than the geometry tree. Naming the system keeps
     # this probe pinned to a value rather than to whatever the default is.
-    assert math.isclose(merkmal.distance("p", "b"), 0.1492537313, abs_tol=1e-10)
+    assert math.isclose(merkmal.distance("p", "b"), 0.1428571429, abs_tol=1e-10)
     assert math.isclose(
         merkmal.distance("p", "b", system="descriptive"), 0.125, abs_tol=1e-10
     )
