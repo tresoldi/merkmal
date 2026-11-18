@@ -5792,7 +5792,7 @@ const mki_feature_path mki_clements_hume_feature_paths[] = {
 const size_t mki_clements_hume_feature_path_count =
     sizeof(mki_clements_hume_feature_paths) / sizeof(mki_clements_hume_feature_paths[0]);
 
-const char *const mki_fingerprint_geometry_sha256 = "3eaa7650b1e969243ea5453d6caef3aaaf0464bce9bcc4182850f12d4e139b30";
+const char *const mki_fingerprint_geometry_sha256 = "d58514b703681c20eb917eb8e0775fb2ccd5ea8e7d39a62baf327468465a21df";
 const char *const mki_fingerprint_diacritics_sha256 = "9101983eddb012bd7056e1fd5144dff0efb836578ab22c20e62e1d75026c4fce";
 
 static const char *const mk_clements_hume_ordinal_levels_0[] = {

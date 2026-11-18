@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "name": "merkmal-clements-hume-inspired-v1",
-  "version": "3.0.0",
-  "description": "Merkmal's project-specific articulatory tree, inspired by Clements & Hume (1995) but not an implementation of that theory. See docs/geometry.md.",
+  "version": "3.0.1",
+  "description": "Merkmal's project-specific articulatory tree, inspired by Clements & Hume (1995) but not an implementation of that theory. See docs/method/geometry.md.",
   "weight_presets": {
     "flat": "__flat__",
     "ignore-length": {
@@ -426,13 +426,13 @@
     "Adds a Tonal node with onset/mid/offset subtrees encoding Chao levels; Clements & Hume do not propose this decomposition.",
     "Treats the tree as a numerical aggregation structure: leaf and node base weights are derived mechanically as 1/depth by tools/generate_c_data.py. Clements & Hume propose no similarity or sound-change cost metric.",
     "Collapses several theoretical constituency and association distinctions (spreading, multiple association, contour timing) that the source theory represents structurally.",
-    "Adds major-class, release, articulatory-shift, length, and secondary-articulation leaves that the source theory either represents structurally or does not represent at all. These exist so that every label the bundled models can return reaches the score; see docs/geometry.md.",
+    "Adds major-class, release, articulatory-shift, length, and secondary-articulation leaves that the source theory either represents structurally or does not represent at all. These exist so that every label the bundled models can return reaches the score; see docs/method/geometry.md.",
     "Scores ordered properties (vowel height and backness, place series, duration, Chao tone level) as ordered scales rather than as independent privative features, so that one step costs less than four. The source theory has no scoring model at all; this is a merkmal decision.",
     "Separates length, secondary articulation and stress into their own nodes under Prosodic, and moves nasalisation and ejectivity out of it, so that dropping the suprasegmentals does not silently drop segmental contrasts.",
     "Does not represent stress. mk_normalize_input_grapheme strips a leading stress mark, because stress is a property of the syllable rather than the segment, so a stress leaf could never fire.",
     "Carries the privative articulator features (labial, coronal, dorsal, guttural) as leaves, because the ordered place scales measure gradience within an articulator and cannot express a difference between two."
   ],
-  "scoring_rule": "base_weight = 1 / node_depth; see docs/geometry.md",
+  "scoring_rule": "base_weight = 1 / node_depth; see docs/method/geometry.md",
   "ordinal_scales": [
     {
       "name": "vowel_height",

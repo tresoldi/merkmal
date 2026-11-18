@@ -26,6 +26,9 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- Geometry 3.0.1: the geometry file's references to its documentation point to
+  `docs/method/geometry.md`. No distance changes, but the geometry hash in every
+  semantic fingerprint does.
 - **Breaking:** a PHOIBLE tone row (valued `tone=+`) against a segment is
   cross-tier, as in the categorical systems: the declared cross-tier cost 1.0
   with `MK_CMP_CROSS_TIER`, where it scored 0.0 with no shared dimension. Such
