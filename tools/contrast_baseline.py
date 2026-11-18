@@ -255,11 +255,10 @@ def uncompared(system: str, pairs: list[tuple[str, str]]) -> int:
     """
     total = 0
     for a, b in pairs:
-        try:
-            _score, coverage = merkmal.distance_with_coverage(a, b, system=system)
-        except Exception:  # noqa: BLE001 - counted as compared, the safer reading
-            continue
-        if coverage == 0.0:
+        # The pairs were found by scoring them, so an error here is a defect to
+        # report, not a pair to skip.
+        result = merkmal.distance_with_coverage(a, b, system=system)
+        if result.comparability == "no-shared-dimension":
             total += 1
     return total
 

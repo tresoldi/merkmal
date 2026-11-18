@@ -15,7 +15,9 @@ distance reproduce expert alignments as well as the sound-class scoring of
 LingPy (SCA; List 2012)?
 
 **Data and procedure.** 2,250 gold pairwise alignments drawn from the BDPA
-benchmark (three pairs per multiple alignment, seed 1). Each scorer is used as
+benchmark (three pairs per multiple alignment, seed 1), as distributed in
+[lexibank/bdpa](https://github.com/lexibank/bdpa) (commit `e1e3aea`), with
+LingPy 2.6.14 for the SCA classes. Each scorer is used as
 the substitution cost of the same Needleman–Wunsch implementation; the gap cost
 is tuned per scorer on one half of the pairs and evaluated on the other. The
 comparison concerns the substitution cost alone: LingPy as a system also uses
@@ -30,20 +32,23 @@ perfectly reproduced alignments on the evaluation half):
 | --- | --- | ---: | ---: | ---: |
 | All pairs (2,250) | identity | 0.80 | 85.85% | 77.51% |
 | | LingPy SCA | 0.30 | 96.35% | 94.49% |
-| | merkmal `distinctive` | 0.50 | 95.00% | 92.18% |
-| Pairs fully readable by `distinctive` (2,098; 93.2%) | identity | 0.80 | 86.84% | 78.84% |
-| | LingPy SCA | 0.30 | 96.69% | 94.66% |
-| | merkmal `distinctive` | 0.40 | 96.18% | 93.99% |
+| | merkmal `distinctive` | 0.40 | 95.68% | 93.24% |
+| Pairs fully readable by `distinctive` (2,163; 96.1%) | identity | 0.80 | 86.49% | 78.56% |
+| | LingPy SCA | 0.30 | 96.48% | 94.55% |
+| | merkmal `distinctive` | 0.40 | 95.90% | 93.90% |
 
 Bootstrap 95% intervals for the difference in column accuracy from SCA:
-−1.19% [−1.81, −0.45] over all pairs, −0.37% [−0.93, +0.10] over the readable
+−0.49% [−1.06, +0.17] over all pairs, −0.39% [−0.95, +0.10] over the readable
 pairs.
 
-**Interpretation.** On pairs whose every segment the system recognizes, the
-difference from SCA is not significant. Over the whole benchmark it is, and the
-difference is attributable to the 6.8% of pairs containing segments the system
-does not recognize (a coverage limitation, section 2) rather than to the
-distances themselves. Neither figure should be reported without the other.
+**Interpretation.** The difference from SCA is not significant, either over
+the whole benchmark or on the pairs whose every segment the system recognizes.
+In the 3.9% of pairs that contain a segment the system does not recognize (a
+coverage limitation, section 2), that segment costs 1.0 against any other
+segment, which lowers the figure over all pairs; neither figure should be
+reported without the other. An interval that includes zero shows that no
+difference is detectable at this sample size, not that the two are
+equivalent.
 
 The tuned gap costs are specific to each scorer, because the distributions of
 distances differ between systems.
@@ -98,7 +103,7 @@ six systems give a judgement, evaluated in each of the seven built-in systems:
 `distinctive`, `descriptive`, PHOIBLE's binary table, and the four P-base
 feature sets, among them the acoustic features of Jakobson, Fant and Halle.
 
-**Result.** 62.6% of the orderings are unanimous and 37.4% differ between
+**Result.** Of 29,224 orderings, 62.5% are unanimous and 37.5% differ between
 systems. A conclusion drawn from one feature system is therefore in part a
 conclusion about that system, and the system used should be reported.
 
@@ -113,8 +118,8 @@ the geometry's costs?
 with segment-pair costs estimated by pointwise mutual information and shrunk
 towards the geometry's costs.
 
-**Result.** No detectable difference: mean −0.28 points of column accuracy, 95%
-interval [−0.92, +0.35], improvement in one of five folds. BDPA covers five
+**Result.** No detectable difference: mean +0.28 points of column accuracy, 95%
+interval [−0.71, +1.27], improvement in three of five folds. BDPA covers five
 families and is 65% Indo-European, which suffices to detect a large effect but
 not to resolve a small one. No fitted costs are distributed with the library.
 

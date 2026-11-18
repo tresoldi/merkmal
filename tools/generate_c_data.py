@@ -572,18 +572,32 @@ def load_categorical(name: str, geometry: dict[str, object]) -> tuple[str, list[
             entries[normalize_input_grapheme(grapheme)] = sorted(enriched)
     scalar_dimensions = []
     tree = geometry["tree"]
-    leaf_weights = {
-        name: (1.0 / depth if explicit is None else float(explicit))
-        for name, _pos, _neg, depth, _parent, explicit in geometry_leaves(tree)
+    leaves = {
+        name: (parent, 1.0 / depth if explicit is None else float(explicit))
+        for name, _pos, _neg, depth, parent, explicit in geometry_leaves(tree)
     }
     for dim in raw.get("scalar_dimensions", []):
-        # A scalar dimension hangs under its geometry node, one level deeper
-        # than that node, which is where the geometry's own leaf of the same
-        # name sits; weighting it at that depth keeps the two scoring paths in
-        # agreement. An explicit leaf weight takes precedence, as it does on the
-        # geometry path.
-        depth = geometry_node_depth(tree, dim["geometry_node"]) or 2
-        weight = leaf_weights.get(dim["name"], 1.0 / (depth + 1))
+        # A dimension that measures what a geometry leaf measures names that
+        # leaf and takes its weight, so that the scalar and geometry scorers
+        # price the same difference alike. A dimension with no counterpart in
+        # the geometry declares its weight. Nothing is inferred from names or
+        # depths: a dimension with neither is an error.
+        leaf = dim.get("geometry_leaf")
+        if leaf is not None:
+            if leaf not in leaves:
+                raise SystemExit(f"{name}: dimension {dim['name']!r} names unknown leaf {leaf!r}")
+            parent, weight = leaves[leaf]
+            if parent != dim["geometry_node"]:
+                raise SystemExit(
+                    f"{name}: dimension {dim['name']!r} is under {dim['geometry_node']!r}, "
+                    f"but its leaf {leaf!r} is under {parent!r}"
+                )
+        elif "weight" in dim:
+            weight = float(dim["weight"])
+        else:
+            raise SystemExit(
+                f"{name}: dimension {dim['name']!r} declares neither geometry_leaf nor weight"
+            )
         scalar_dimensions.append(
             {
                 "name": dim["name"],

@@ -81,8 +81,8 @@ properties limit what that number can be used for.
   d(ðˠ, mʲ) = 0.3113 > d(ðˠ, d̪ʲ) + d(d̪ʲ, mʲ) = 0.0943 + 0.2091.
 - **It is not a probability of sound change.** Phonetic similarity and the
   frequency of a change are different quantities: velar palatalization is among
-  the most frequent changes attested, yet d(k, tʃ) = 0.37 is far greater than
-  d(k, q) = 0.06 in the default system. Claims about change require models
+  the most frequent changes attested, yet d(k, tʃ) = 0.41 is far greater than
+  d(k, q) = 0.05 in the default system. Claims about change require models
   estimated from correspondences between languages.
 - **It is not a typological statistic.** The tables are catalogues of segment
   types. They do not record which languages have a segment, whether it is
@@ -136,7 +136,7 @@ In Python:
 import merkmal
 
 merkmal.get_features("pʰ")                      # frozenset of feature labels
-merkmal.distance("p", "b")                      # 0.1493, default system
+merkmal.distance("p", "b")                      # 0.1429, default system
 merkmal.distance("p", "b", system="phoible")    # another feature theory
 merkmal.distance_with_coverage("ai", "au")      # score, coverage, comparability
 merkmal.system_segment_ipa("tʃa", system="descriptive")   # ['tʃ', 'a']

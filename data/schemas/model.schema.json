@@ -58,8 +58,21 @@
                 "name": { "type": "string" },
                 "positive": { "type": "array", "items": { "type": "string" } },
                 "negative": { "type": "array", "items": { "type": "string" } },
-                "geometry_node": { "type": "string" }
-              }
+                "geometry_node": { "type": "string" },
+                "geometry_leaf": {
+                  "type": "string",
+                  "description": "The geometry leaf this dimension mirrors; the dimension takes its weight and must share its node."
+                },
+                "weight": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "description": "The weight of a dimension with no geometry leaf."
+                }
+              },
+              "oneOf": [
+                { "required": ["geometry_leaf"], "not": { "required": ["weight"] } },
+                { "required": ["weight"], "not": { "required": ["geometry_leaf"] } }
+              ]
             }
           }
         }

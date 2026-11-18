@@ -26,6 +26,16 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- **Breaking:** `distinctive` model 2.0.0. Each scalar dimension names the
+  geometry leaf it mirrors and takes that leaf's weight and node, so
+  `distinctive` and `descriptive` weight the same property alike; the four
+  dimensions without a leaf declare their weight. Eighteen dimensions change
+  weight (the articulators 0.25 → 0.4, secondary articulations and `apical`
+  0.25 → 0.33, `nasalized`, `ejective`, `fricative`, `click` and `implosive`
+  0.33 → 0.5), and `nasalized` and `ejective` move to the `Manner` and
+  `Laryngeal` nodes, which changes their weight presets. Most `distinctive`
+  distances change slightly (`p`–`b` 0.1493 → 0.1429; rank correlation 0.994
+  over 79,800 pairs), and the semantic fingerprint changes.
 - **Breaking:** numeric feature vectors include every dimension the scorer reads
   (ordered scales and node-group columns), so their width and columns change
   (`distinctive` 54 → 64, `descriptive` 62 → 68). Equal vectors now imply a
@@ -46,6 +56,17 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- An affricate, labial-velar or prenasalized stop written without a tie bar
+  (`tʃ`, `kp`, `mb`) was derived with fixed features in any categorical system,
+  including a runtime model that lists neither letter; it is now derived only
+  when the system lists both. The built-in systems are unaffected.
+- The WebAssembly adapter wrote an unknown feature value (NaN) as `nan`, which is
+  not JSON; it now writes `null`, and the demonstration shows it as `?`.
+- Tone merging dropped the tone of a syllabic consonant marked with U+030D
+  above (`ŋ̍²¹` gave `ŋ̍`); the mark is now treated like U+0329 below.
+- The contrast baseline counted no zero-distance pair as having "no comparable
+  dimension": an unpacking error was swallowed. It now reports 7,131 of the
+  13,779 sampled PHOIBLE pairs, mostly a tone row against a segment.
 - `mk_system_segment_distance_ex` did not set the coverage of a comparison
   involving a synthesized cluster, so the caller's initial value was returned and
   the comparability derived from it could be wrong. Cluster coverage is now

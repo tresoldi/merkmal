@@ -17,7 +17,7 @@ Two analyses:
    over a fixed set of 41 segments is evaluated, rather than a hand-picked
    selection. A claim counts when at least six systems give a strict answer
    (ties and unreadable segments abstain). With the seven built-in systems,
-   37.4% of the 29,179 counted claims are split (as this script prints them).
+   37.5% of the 29,224 counted claims are split (as this script prints them).
    The rate is the result; the listed examples are illustrations.
 2. **Alignment accuracy**, if a BDPA checkout is given: whether the ranking of
    systems is stable, which is a different question from whether any of them

@@ -8,6 +8,7 @@
 
 #include "merkmal.h"
 
+#include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -91,6 +92,18 @@ static void jb_catf(jbuf *b, const char *fmt, ...)
     vsnprintf(tmp, sizeof(tmp), fmt, ap);
     va_end(ap);
     jb_cat(b, tmp);
+}
+
+/* JSON has no NaN or infinity, and printf writes them as `nan` and `inf`,
+ * which JSON.parse refuses. A valued system's unknown value is NaN in a
+ * feature vector, so a non-finite number is written as null. */
+static void jb_num(jbuf *b, double value)
+{
+    if (isfinite(value)) {
+        jb_catf(b, "%.6g", value);
+    } else {
+        jb_cat(b, "null");
+    }
 }
 
 static void jb_str(jbuf *b, const char *s)
@@ -286,7 +299,7 @@ char *merkmal_grapheme_features(const char *system_name, const char *grapheme)
                 for (size_t i = 0; i < written; i++) {
                     if (i > 0)
                         jb_cat(&b, ",");
-                    jb_catf(&b, "%.6g", vals[i]);
+                    jb_num(&b, vals[i]);
                 }
                 jb_cat(&b, "]}");
             }
@@ -325,7 +338,11 @@ char *merkmal_segment_distance(const char *system_name, const char *a, const cha
     jb_str(&buf, a);
     jb_cat(&buf, ",\"b\":");
     jb_str(&buf, b_seg);
-    jb_catf(&buf, ",\"distance\":%.6g,\"coverage\":%.6g,\"comparability\":", dist, cov);
+    jb_cat(&buf, ",\"distance\":");
+    jb_num(&buf, dist);
+    jb_cat(&buf, ",\"coverage\":");
+    jb_num(&buf, cov);
+    jb_cat(&buf, ",\"comparability\":");
     switch (cmp) {
     case MK_CMP_OK:
         jb_str(&buf, "ok");
@@ -475,7 +492,7 @@ char *merkmal_distance_matrix(const char *system_name, const char *segments_csv)
                 jb_cat(&b, ",");
             if (mk_system_segment_distance(sys, items[i], items[j], &dist) ==
                 MK_OK)
-                jb_catf(&b, "%.6g", dist);
+                jb_num(&b, dist);
             else
                 jb_cat(&b, "null");
         }

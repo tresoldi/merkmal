@@ -295,7 +295,7 @@ def test_native_distance_matches_golden_probe() -> None:
     # The default is `distinctive`, which scores through its own
     # scalar_dimensions rather than the geometry tree. Naming the system keeps
     # this probe pinned to a value rather than to whatever the default is.
-    assert math.isclose(merkmal.distance("p", "b"), 0.1492537313, abs_tol=1e-10)
+    assert math.isclose(merkmal.distance("p", "b"), 0.1428571429, abs_tol=1e-10)
     assert math.isclose(
         merkmal.distance("p", "b", system="descriptive"), 0.125, abs_tol=1e-10
     )
@@ -340,6 +340,9 @@ def test_native_unicode_helpers() -> None:
     assert merkmal.segment_ipa("tʰoŋ⁵⁵") == ["tʰ", "o", "ŋ", "⁵⁵"]
     assert merkmal.segment_ipa_merged("tʰoŋ⁵⁵") == ["tʰ", "o⁵⁵", "ŋ"]
     assert merkmal.merge_tone_digits(["tʰ", "o", "ŋ", "⁵⁵"]) == ["tʰ", "o⁵⁵", "ŋ"]
+    # The syllabic mark above (U+030D) bears a tone like the one below (U+0329).
+    assert merkmal.segment_ipa_merged("ŋ̍²¹") == ["ŋ̍²¹"]
+    assert merkmal.segment_ipa_merged("m̩⁵⁵") == ["m̩⁵⁵"]
     assert merkmal.segment_ipa("ⁿda") == ["ⁿd", "a"]
     assert merkmal.segment_ipa("n̥a") == ["n̥", "a"]
 
@@ -362,6 +365,22 @@ def test_native_split_tone_inverts_the_merge() -> None:
     # A standalone tone cluster is not a segment.
     with pytest.raises(ValueError):
         merkmal.split_tone("³¹")
+
+
+def test_native_runtime_model_derives_untied_complex_only_from_listed_parts() -> None:
+    registry = merkmal.Registry()
+    registry.add_model_text(
+        "@model only_t\n@type categorical\ngrapheme t consonant voiceless alveolar stop\n"
+    )
+    # Neither ʃ nor s is listed, so the model says nothing about tʃ or ts.
+    assert not registry.is_segment("tʃ", system="only_t")
+    assert not registry.is_segment("ts", system="only_t")
+    registry.add_model_text(
+        "@model t_and_sh\n@type categorical\n"
+        "grapheme t consonant voiceless alveolar stop\n"
+        "grapheme ʃ consonant voiceless post-alveolar fricative sibilant\n"
+    )
+    assert registry.is_segment("tʃ", system="t_and_sh")
 
 
 def test_native_registry_runtime_model() -> None:

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "name": "distinctive",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "categorical",
   "description": "Clements & Hume distinctive features with scalar dimensions",
   "author": "Tiago Tresoldi",
@@ -17,7 +17,8 @@
       "negative": [
         "voiceless"
       ],
-      "geometry_node": "Laryngeal"
+      "geometry_node": "Laryngeal",
+      "geometry_leaf": "voice"
     },
     {
       "name": "spread_glottis",
@@ -25,7 +26,8 @@
         "aspirated"
       ],
       "negative": [],
-      "geometry_node": "Laryngeal"
+      "geometry_node": "Laryngeal",
+      "geometry_leaf": "spread_glottis"
     },
     {
       "name": "constricted_glottis",
@@ -33,7 +35,8 @@
         "glottalized"
       ],
       "negative": [],
-      "geometry_node": "Laryngeal"
+      "geometry_node": "Laryngeal",
+      "geometry_leaf": "constricted_glottis"
     },
     {
       "name": "sonorant",
@@ -43,7 +46,8 @@
       "negative": [
         "obstruent"
       ],
-      "geometry_node": "Manner"
+      "geometry_node": "Manner",
+      "geometry_leaf": "sonorant"
     },
     {
       "name": "continuant",
@@ -55,7 +59,8 @@
         "affricate",
         "stop"
       ],
-      "geometry_node": "Manner"
+      "geometry_node": "Manner",
+      "geometry_leaf": "continuant"
     },
     {
       "name": "nasal",
@@ -63,7 +68,8 @@
         "nasal"
       ],
       "negative": [],
-      "geometry_node": "Manner"
+      "geometry_node": "Manner",
+      "geometry_leaf": "nasal"
     },
     {
       "name": "lateral",
@@ -71,7 +77,8 @@
         "lateral"
       ],
       "negative": [],
-      "geometry_node": "Manner"
+      "geometry_node": "Manner",
+      "geometry_leaf": "lateral"
     },
     {
       "name": "strident",
@@ -79,7 +86,8 @@
         "sibilant"
       ],
       "negative": [],
-      "geometry_node": "Manner"
+      "geometry_node": "Manner",
+      "geometry_leaf": "strident"
     },
     {
       "name": "delayed_release",
@@ -87,7 +95,8 @@
         "affricate"
       ],
       "negative": [],
-      "geometry_node": "Manner"
+      "geometry_node": "Manner",
+      "geometry_leaf": "delayed_release"
     },
     {
       "name": "tap_feature",
@@ -95,7 +104,8 @@
         "tap"
       ],
       "negative": [],
-      "geometry_node": "Manner"
+      "geometry_node": "Manner",
+      "geometry_leaf": "tap_feature"
     },
     {
       "name": "airstream",
@@ -103,7 +113,8 @@
         "non-pulmonic"
       ],
       "negative": [],
-      "geometry_node": "Manner"
+      "geometry_node": "Manner",
+      "geometry_leaf": "airstream"
     },
     {
       "name": "syllabic",
@@ -113,7 +124,8 @@
       "negative": [
         "non-syllabic"
       ],
-      "geometry_node": "Manner"
+      "geometry_node": "Manner",
+      "geometry_leaf": "syllabic"
     },
     {
       "name": "labial",
@@ -121,7 +133,8 @@
         "labial"
       ],
       "negative": [],
-      "geometry_node": "Labial"
+      "geometry_node": "Place",
+      "geometry_leaf": "labial_articulator"
     },
     {
       "name": "round",
@@ -131,7 +144,8 @@
       "negative": [
         "unrounded"
       ],
-      "geometry_node": "Labial"
+      "geometry_node": "Labial",
+      "geometry_leaf": "round"
     },
     {
       "name": "coronal",
@@ -139,7 +153,8 @@
         "coronal"
       ],
       "negative": [],
-      "geometry_node": "Coronal"
+      "geometry_node": "Place",
+      "geometry_leaf": "coronal_articulator"
     },
     {
       "name": "anterior",
@@ -152,7 +167,8 @@
         "post-alveolar",
         "retroflex"
       ],
-      "geometry_node": "Coronal"
+      "geometry_node": "Coronal",
+      "geometry_leaf": "anterior"
     },
     {
       "name": "distributed",
@@ -164,7 +180,8 @@
         "alveolar",
         "retroflex"
       ],
-      "geometry_node": "Coronal"
+      "geometry_node": "Coronal",
+      "geometry_leaf": "distributed"
     },
     {
       "name": "dorsal",
@@ -172,7 +189,8 @@
         "dorsal"
       ],
       "negative": [],
-      "geometry_node": "Dorsal"
+      "geometry_node": "Place",
+      "geometry_leaf": "dorsal_articulator"
     },
     {
       "name": "breathy_voice",
@@ -180,7 +198,8 @@
         "breathy"
       ],
       "negative": [],
-      "geometry_node": "Laryngeal"
+      "geometry_node": "Laryngeal",
+      "geometry_leaf": "breathy_voice"
     },
     {
       "name": "creaky_voice",
@@ -188,7 +207,8 @@
         "creaky"
       ],
       "negative": [],
-      "geometry_node": "Laryngeal"
+      "geometry_node": "Laryngeal",
+      "geometry_leaf": "creaky_voice"
     },
     {
       "name": "atr",
@@ -198,7 +218,8 @@
       "negative": [
         "retracted-tongue-root"
       ],
-      "geometry_node": "TongueRoot"
+      "geometry_node": "TongueRoot",
+      "geometry_leaf": "atr"
     },
     {
       "name": "apical",
@@ -208,7 +229,8 @@
       "negative": [
         "laminal"
       ],
-      "geometry_node": "Coronal"
+      "geometry_node": "Coronal",
+      "weight": 0.3333333333333333
     },
     {
       "name": "nasalized",
@@ -216,7 +238,8 @@
         "nasalized"
       ],
       "negative": [],
-      "geometry_node": "Prosodic"
+      "geometry_node": "Manner",
+      "geometry_leaf": "nasalized_feature"
     },
     {
       "name": "labialized",
@@ -224,7 +247,8 @@
         "labialized"
       ],
       "negative": [],
-      "geometry_node": "Secondary"
+      "geometry_node": "Secondary",
+      "geometry_leaf": "labialized_feature"
     },
     {
       "name": "palatalized",
@@ -232,7 +256,8 @@
         "palatalized"
       ],
       "negative": [],
-      "geometry_node": "Secondary"
+      "geometry_node": "Secondary",
+      "geometry_leaf": "palatalized_feature"
     },
     {
       "name": "pharyngealized",
@@ -240,7 +265,8 @@
         "pharyngealized"
       ],
       "negative": [],
-      "geometry_node": "Secondary"
+      "geometry_node": "Secondary",
+      "geometry_leaf": "pharyngealized_feature"
     },
     {
       "name": "ejective",
@@ -248,7 +274,8 @@
         "ejective"
       ],
       "negative": [],
-      "geometry_node": "Prosodic"
+      "geometry_node": "Laryngeal",
+      "geometry_leaf": "ejective_feature"
     },
     {
       "name": "rhotacized",
@@ -256,7 +283,8 @@
         "rhotacized"
       ],
       "negative": [],
-      "geometry_node": "Secondary"
+      "geometry_node": "Secondary",
+      "geometry_leaf": "rhotacized_feature"
     },
     {
       "name": "velarized",
@@ -264,218 +292,244 @@
         "velarized"
       ],
       "negative": [],
-      "geometry_node": "Secondary"
+      "geometry_node": "Secondary",
+      "geometry_leaf": "velarized_feature"
     },
     {
       "name": "vocoid",
-      "geometry_node": "Root",
       "positive": [
         "vowel"
       ],
       "negative": [
         "consonant"
-      ]
+      ],
+      "geometry_node": "Root",
+      "geometry_leaf": "vocoid"
     },
     {
       "name": "voice_shift",
-      "geometry_node": "Laryngeal",
       "positive": [
         "revoiced"
       ],
       "negative": [
         "devoiced"
-      ]
+      ],
+      "geometry_node": "Laryngeal",
+      "geometry_leaf": "voice_shift"
     },
     {
       "name": "pre_aspiration",
-      "geometry_node": "Laryngeal",
       "positive": [
         "pre-aspirated"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Laryngeal",
+      "geometry_leaf": "pre_aspiration"
     },
     {
       "name": "pre_glottalization",
-      "geometry_node": "Laryngeal",
       "positive": [
         "pre-glottalized"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Laryngeal",
+      "geometry_leaf": "pre_glottalization"
     },
     {
       "name": "strength",
-      "geometry_node": "Laryngeal",
       "positive": [
         "strong"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Laryngeal",
+      "geometry_leaf": "strength"
     },
     {
       "name": "pre_nasalization",
-      "geometry_node": "Manner",
       "positive": [
         "pre-nasalized"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Manner",
+      "geometry_leaf": "pre_nasalization"
     },
     {
       "name": "nasal_click",
-      "geometry_node": "Manner",
       "positive": [
         "nasal-click"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Manner",
+      "geometry_leaf": "nasal_click"
     },
     {
       "name": "no_release",
-      "geometry_node": "Release",
       "positive": [
         "unreleased"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Release",
+      "geometry_leaf": "no_release"
     },
     {
       "name": "nasal_release",
-      "geometry_node": "Release",
       "positive": [
         "with-nasal-release"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Release",
+      "geometry_leaf": "nasal_release"
     },
     {
       "name": "lateral_release",
-      "geometry_node": "Release",
       "positive": [
         "with-lateral-release"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Release",
+      "geometry_leaf": "lateral_release"
     },
     {
       "name": "fricated_release",
-      "geometry_node": "Release",
       "positive": [
         "with-frication"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Release",
+      "geometry_leaf": "fricated_release"
     },
     {
       "name": "front_back_shift",
-      "geometry_node": "Shift",
       "positive": [
         "advanced"
       ],
       "negative": [
         "retracted"
-      ]
+      ],
+      "geometry_node": "Shift",
+      "geometry_leaf": "front_back_shift"
     },
     {
       "name": "height_shift",
-      "geometry_node": "Shift",
       "positive": [
         "raised"
       ],
       "negative": [
         "lowered"
-      ]
+      ],
+      "geometry_node": "Shift",
+      "geometry_leaf": "height_shift"
     },
     {
       "name": "centralization",
-      "geometry_node": "Shift",
       "positive": [
         "centralized"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Shift",
+      "geometry_leaf": "centralization"
     },
     {
       "name": "mid_centralization",
-      "geometry_node": "Shift",
       "positive": [
         "mid-centralized"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Shift",
+      "geometry_leaf": "mid_centralization"
     },
     {
       "name": "rounding_degree",
-      "geometry_node": "Labial",
       "positive": [
         "more-rounded"
       ],
       "negative": [
         "less-rounded"
-      ]
+      ],
+      "geometry_node": "Labial",
+      "geometry_leaf": "rounding_degree"
     },
     {
       "name": "labio_palatalized",
-      "geometry_node": "Secondary",
       "positive": [
         "labio-palatalized"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Secondary",
+      "geometry_leaf": "labio_palatalized_feature"
     },
     {
       "name": "pre_labialized",
-      "geometry_node": "Secondary",
       "positive": [
         "pre-labialized"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Secondary",
+      "geometry_leaf": "pre_labialized_feature"
     },
     {
       "name": "pre_palatalized",
-      "geometry_node": "Secondary",
       "positive": [
         "pre-palatalized"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Secondary",
+      "geometry_leaf": "pre_palatalized_feature"
     },
     {
       "name": "tone_presence",
-      "geometry_node": "Tonal",
       "positive": [
         "tone-present"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Tonal",
+      "geometry_leaf": "tone_presence"
     },
     {
       "name": "tone_neutral",
-      "geometry_node": "Tonal",
       "positive": [
         "tone-neutral"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Tonal",
+      "geometry_leaf": "tone_neutral"
     },
     {
       "name": "fricative",
-      "geometry_node": "Manner",
       "positive": [
         "fricative"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Manner",
+      "weight": 0.5
     },
     {
       "name": "click",
-      "geometry_node": "Manner",
       "positive": [
         "click",
         "nasal-click"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Manner",
+      "weight": 0.5
     },
     {
       "name": "implosive",
-      "geometry_node": "Manner",
       "positive": [
         "implosive"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Manner",
+      "weight": 0.5
     },
     {
       "name": "guttural",
-      "geometry_node": "Pharyngeal",
       "positive": [
         "guttural"
       ],
-      "negative": []
+      "negative": [],
+      "geometry_node": "Place",
+      "geometry_leaf": "guttural_articulator"
     }
   ],
   "partitions": {

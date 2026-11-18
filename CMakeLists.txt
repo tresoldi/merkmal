@@ -186,6 +186,20 @@ if(MERKMAL_BUILD_TESTS)
     target_link_libraries(test_bundle PRIVATE merkmal)
     add_test(NAME bundle COMMAND test_bundle)
 
+    # The WebAssembly adapter builds natively too; this checks its JSON.
+    find_library(MERKMAL_LIBM m)
+    add_executable(test_wasm_adapter tests/c/test_wasm_adapter.c web/merkmal_wasm.c)
+    target_link_libraries(test_wasm_adapter PRIVATE merkmal)
+    if(MERKMAL_LIBM)
+        target_link_libraries(test_wasm_adapter PRIVATE ${MERKMAL_LIBM})
+    endif()
+    add_test(NAME wasm_adapter COMMAND test_wasm_adapter)
+    # The check needs PHOIBLE, which the cc-by profile does not carry.
+    if(MERKMAL_DATA_PROFILE STREQUAL "cc-by")
+        target_compile_definitions(test_wasm_adapter PRIVATE MERKMAL_TEST_DATA_PROFILE_CC_BY)
+    endif()
+    set_tests_properties(wasm_adapter PROPERTIES SKIP_RETURN_CODE 77)
+
     # Compiling the header alone is the test: one that needs the caller to
     # have included <stddef.h> first passes everywhere inside this project and
     # fails for the first consumer who includes it before anything else.
