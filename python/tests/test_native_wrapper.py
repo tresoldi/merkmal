@@ -346,6 +346,10 @@ def test_native_unicode_helpers() -> None:
     assert merkmal.segment_ipa_merged("⁵⁵") == ["⁵⁵"]
     assert merkmal.segment_ipa_merged("ka+²¹") == ["k", "a", "+", "²¹"]
     assert merkmal.merge_tone_digits(["ŋ", "²", "¹"]) == ["ŋ", "²¹"]
+    # The neutral tone is not bound to a nucleus, so it stays a token of its
+    # own, and a pitch tone after it does not join it.
+    assert merkmal.segment_ipa_merged("ma⁰") == ["m", "a", "⁰"]
+    assert merkmal.merge_tone_digits(["⁰", "⁵"]) == ["⁰", "⁵"]
     assert "tonal-autosegment" in merkmal.get_features("²¹")
     # The syllabic mark above (U+030D) bears a tone like the one below (U+0329).
     assert merkmal.segment_ipa_merged("ŋ̍²¹") == ["ŋ̍²¹"]

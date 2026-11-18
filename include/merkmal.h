@@ -294,7 +294,8 @@ MK_API mk_status mk_system_segment_ipa(
 );
 
 /** Merges Chao tone tokens into the preceding eligible segment; a tone with no
- * such segment in its word is kept as a token of its own. `segments` is
+ * such segment in its word, and the neutral tone `⁰`, are kept as tokens of
+ * their own. `segments` is
  * borrowed; *out is a new owned list, freed with mk_string_list_free. */
 MK_API mk_status mk_merge_tone_digits(
     const mk_string_list *segments,

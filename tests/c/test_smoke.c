@@ -911,12 +911,14 @@ int main(void)
     {
         mk_string_list *segments = NULL;
         failed |= expect_status(mk_segment_ipa_merged("k+a⁰", &segments), MK_OK, "segment zero tone");
-        if (mk_string_list_size(segments) != 3) {
-            fprintf(stderr, "segment zero tone: expected 3, got %zu\n", mk_string_list_size(segments));
+        /* The neutral tone is kept as a token of its own, not attached. */
+        if (mk_string_list_size(segments) != 4) {
+            fprintf(stderr, "segment zero tone: expected 4, got %zu\n", mk_string_list_size(segments));
             failed = 1;
         }
         failed |= expect_list_item(segments, 1, "+", "segment zero tone boundary");
-        failed |= expect_list_item(segments, 2, "a", "segment zero tone dropped");
+        failed |= expect_list_item(segments, 2, "a", "segment zero tone nucleus");
+        failed |= expect_list_item(segments, 3, "⁰", "segment zero tone kept");
         mk_string_list_free(segments);
     }
 
