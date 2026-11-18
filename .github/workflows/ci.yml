@@ -370,6 +370,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: The committed build is current
+        # web/BUILD_INFO records a hash of every file the WebAssembly build
+        # reads; this fails when the sources changed without a rebuild.
+        run: python3 tools/wasm_inputs.py --check
       - name: Run Node smoke test
         run: tests/wasm/run_node_smoke.sh
       - name: The demo refuses NUL input
