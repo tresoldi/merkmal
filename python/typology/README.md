@@ -112,12 +112,11 @@ and `data/languages.tsv` (one row per Glottocode) are reshaped from
 input hashes and sampling note are recorded in
 [`data/provenance.json`](data/provenance.json).
 
-The manifest records the license of these files as CC-BY-4.0, by permission,
-in place of the upstream CC-BY-SA-3.0. The grantor, date and evidence of that
-permission are marked `UNVERIFIED` in the manifest. The PHOIBLE model compiled
-into the core library is distributed under CC-BY-SA-3.0
+These files are distributed under PHOIBLE's own terms, CC-BY-SA-3.0, like
+the PHOIBLE model compiled into the core library: attribution to PHOIBLE is
+required, and adaptations must be shared under the same or a compatible
+license. No permission to relicense PHOIBLE has been recorded
 ([docs/development/release-policy.md, Data releases](../../docs/development/release-policy.md#data-releases)).
-Attribution to PHOIBLE is required in either case.
 
 ## References
 
