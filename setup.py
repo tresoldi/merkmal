@@ -4,6 +4,7 @@ import glob
 import os
 
 from setuptools import Extension, setup
+from setuptools.command.build_ext import build_ext
 
 # The C core is compiled straight into the extension, so a wheel carries no
 # dependency on an installed libmerkmal. Paths are relative to this file, which
@@ -70,6 +71,40 @@ SANITIZE_FLAGS = (
     [f"-fsanitize={SANITIZE}", "-fno-omit-frame-pointer", "-g"] if SANITIZE else []
 )
 
+# MSVC rejects nothing above outright but understands none of it: it warns on
+# every unknown option and still compiles without the intended diagnostics. Its
+# counterpart of the set is /W4, as in the CMake build's MSVC branch. MSVC has
+# no C99 switch; its C mode accepts the C99 the sources use (no VLAs, which
+# -Wvla keeps out). The compiler is only known once build_ext has chosen it,
+# so the flags are attached there rather than to the Extension below.
+MSVC_WARNINGS = ["/W4"]
+
+
+def compile_args(compiler_type: str) -> list[str]:
+    """Compile flags for a distutils compiler type ("unix", "msvc", "mingw32", ...)."""
+    if compiler_type == "msvc":
+        if SANITIZE:
+            raise SystemExit("merkmal: MERKMAL_SANITIZE is not supported with MSVC")
+        return list(MSVC_WARNINGS)
+    return ["-std=c99", *WARNINGS, *SANITIZE_FLAGS]
+
+
+def link_args(compiler_type: str) -> list[str]:
+    """Link flags for a distutils compiler type."""
+    return [] if compiler_type == "msvc" else list(SANITIZE_FLAGS)
+
+
+class CompilerAwareBuildExt(build_ext):
+    """Attach the flags of the compiler build_ext actually selected."""
+
+    def build_extensions(self) -> None:
+        compiler_type = self.compiler.compiler_type
+        for extension in self.extensions:
+            extension.extra_compile_args = compile_args(compiler_type)
+            extension.extra_link_args = link_args(compiler_type)
+        super().build_extensions()
+
+
 setup(
     license="MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0",
     options={"bdist_wheel": {"py_limited_api": "cp312"}},
@@ -82,12 +117,7 @@ setup(
                 ("Py_LIMITED_API", "0x030C0000"),
             ],
             py_limited_api=True,
-            extra_compile_args=[
-                "-std=c99",
-                *WARNINGS,
-                *SANITIZE_FLAGS,
-            ],
-            extra_link_args=[*SANITIZE_FLAGS],
         )
     ],
+    cmdclass={"build_ext": CompilerAwareBuildExt},
 )
