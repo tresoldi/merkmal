@@ -148,6 +148,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: mymindstorm/setup-emsdk@v14
+        with:
+          # Pinned so a new Emscripten release cannot change this job's result;
+          # web/BUILD_INFO records the version that built the committed demo.
+          version: 7.0.0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -354,6 +358,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: mymindstorm/setup-emsdk@v14
+        with:
+          # Pinned so a new Emscripten release cannot change this job's result;
+          # web/BUILD_INFO records the version that built the committed demo.
+          version: 7.0.0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
