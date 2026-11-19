@@ -10,6 +10,8 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Added
 
+- Wheels for macOS (arm64, and x86_64 tested under Rosetta 2) and Windows
+  (AMD64); CI builds and tests the extension on both on every push.
 - `merkmal_typology` is installable as the separate distribution
   `merkmal-typology` (`pip install ./python/typology`), with its PHOIBLE
   inventories in the wheel; it was usable only from a checkout.
@@ -80,6 +82,8 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- Building the extension with MSVC passed GCC/Clang-only options; MSVC now
+  gets `/W4`, matching the CMake build. GCC and Clang flags are unchanged.
 - The PHOIBLE inventories of `merkmal_typology` were labelled CC-BY-4.0 on a
   relicensing permission that was never recorded. They are labelled with
   PHOIBLE's own terms, CC-BY-SA-3.0, like the PHOIBLE model in the core library.

@@ -17,7 +17,9 @@ python -m pip install merkmal
 ```
 
 The package requires CPython 3.12 or later and has no runtime dependencies.
-Wheels are `cp312-abi3`, built with `Py_LIMITED_API=0x030C0000`.
+Wheels are `cp312-abi3`, built with `Py_LIMITED_API=0x030C0000`, for Linux
+(x86_64, aarch64; manylinux and musllinux), macOS (arm64, x86_64) and Windows
+(AMD64). Elsewhere pip builds the sdist, which needs a C99 compiler.
 
 ## Usage
 
