@@ -152,13 +152,13 @@ mk_status mk_merge_tone_digits(
 
     for (i = 0; i < segments->count; i++) {
         const char *segment = segments->items[i];
-        if (mk_is_chao_digit_token(segment)) {
+        /* The neutral tone `⁰` is not a pitch level and is not bound to a
+         * nucleus (`a⁰` is not a grapheme), so it is kept as a token of its
+         * own, as it resolves. */
+        if (mk_is_chao_digit_token(segment) && mk_chao_token_has_nonzero(segment)) {
             size_t j;
             size_t host = count;
 
-            if (!mk_chao_token_has_nonzero(segment)) {
-                continue;
-            }
             j = count;
             while (j > 0) {
                 j--;
@@ -173,7 +173,8 @@ mk_status mk_merge_tone_digits(
             /* With no syllabic segment before it in the word, the tone is kept
              * as a token of its own, joined to an unattached tone token just
              * before it, rather than dropped: it still resolves as a tone. */
-            if (host == count && count > 0 && mk_is_chao_digit_token(items[count - 1])) {
+            if (host == count && count > 0 && mk_is_chao_digit_token(items[count - 1]) &&
+                mk_chao_token_has_nonzero(items[count - 1])) {
                 host = count - 1;
             }
             if (host < count) {

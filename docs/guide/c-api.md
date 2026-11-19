@@ -462,7 +462,9 @@ letter or U+0329) within the same `+`-delimited word, so that `tʰ`, `o`, `ŋ`,
 kept as a token of its own, joined with any unattached tone token immediately
 before it, so `ŋ`, `²`, `¹` becomes `ŋ`, `²¹`; in a categorical system such a
 token resolves as a tone (`tonal-autosegment`) and is compared with a segment
-as cross-tier. A token consisting only of `⁰` is dropped.
+as cross-tier. A token consisting only of `⁰`, the neutral tone, is kept as a
+token of its own and never attached, since it is not bound to a nucleus; a
+pitch tone after it does not join it.
 `mk_segment_ipa_merged` is `mk_segment_ipa` followed by this merge.
 
 `mk_split_tone` is the inverse of the merge: `"a¹³"` becomes `("a", "¹³")`. It

@@ -37,7 +37,8 @@ commit history, in [docs/](docs/README.md) and in the design records in
 - **Breaking:** tone merging (`mk_merge_tone_digits`, `mk_segment_ipa_merged`)
   keeps a tone with no vowel or syllabic consonant before it in its word as a
   token of its own (`ŋ²¹` gives `ŋ`, `²¹`; `⁵⁵` gives `⁵⁵`) instead of dropping
-  it. The token resolves as a tone in the categorical systems.
+  it. The token resolves as a tone in the categorical systems. The neutral
+  tone `⁰`, which was always dropped, is likewise kept as a token of its own.
 - Geometry 3.0.1: the geometry file's references to its documentation point to
   `docs/method/geometry.md`. No distance changes, but the geometry hash in every
   semantic fingerprint does.
