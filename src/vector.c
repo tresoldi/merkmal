@@ -378,12 +378,13 @@ mk_status mk_system_feature_vector(
     mk_status status;
     size_t width;
 
-    if (system == NULL || system->builtin == NULL || values == NULL || written == NULL) {
+    if (system == NULL || system->builtin == NULL || written == NULL ||
+        (values == NULL && capacity != 0)) {
         return MK_ERR_INVALID_ARGUMENT;
     }
     *written = 0;
     width = mki_vector_width_of(system->builtin);
-    if (capacity < width) {
+    if (values == NULL || capacity < width) {
         /* Reporting the width even on failure means a caller can size a buffer
          * from one failed call rather than needing mk_system_vector_width. */
         *written = width;

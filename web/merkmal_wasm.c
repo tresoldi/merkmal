@@ -106,6 +106,24 @@ static void jb_num(jbuf *b, double value)
     }
 }
 
+static void jb_str(jbuf *b, const char *s);
+
+/* Appends the first `n` bytes of `s` as a JSON string. A diagnosis reports its
+ * valid prefix by length, and the prefix can be of any length. */
+static void jb_strn(jbuf *b, const char *s, size_t n)
+{
+    char *copy = (char *)malloc(n + 1);
+
+    if (!copy) {
+        jb_str(b, "");
+        return;
+    }
+    memcpy(copy, s, n);
+    copy[n] = '\0';
+    jb_str(b, copy);
+    free(copy);
+}
+
 static void jb_str(jbuf *b, const char *s)
 {
     jb_cat(b, "\"");
@@ -240,14 +258,8 @@ char *merkmal_grapheme_features(const char *system_name, const char *grapheme)
         jb_str(&b, mk_status_string(status));
 
         if (mk_system_diagnose(sys, grapheme, &diag) == MK_OK) {
-            char prefix[64] = "";
-            if (diag.valid_prefix_bytes > 0 &&
-                diag.valid_prefix_bytes < sizeof(prefix)) {
-                memcpy(prefix, grapheme, diag.valid_prefix_bytes);
-                prefix[diag.valid_prefix_bytes] = '\0';
-            }
             jb_cat(&b, ",\"diagnosis\":{\"valid_prefix\":");
-            jb_str(&b, prefix);
+            jb_strn(&b, grapheme, diag.valid_prefix_bytes);
             jb_cat(&b, ",\"offending\":");
             jb_str(&b, diag.offending);
             jb_cat(&b, "}");
@@ -556,18 +568,11 @@ char *merkmal_diagnose(const char *system_name, const char *grapheme)
         return error_json(status, NULL);
 
     {
-        char prefix[128] = "";
-        if (diag.valid_prefix_bytes > 0 &&
-            diag.valid_prefix_bytes < sizeof(prefix)) {
-            memcpy(prefix, grapheme, diag.valid_prefix_bytes);
-            prefix[diag.valid_prefix_bytes] = '\0';
-        }
-
         jb_init(&b);
         jb_cat(&b, "{\"ok\":true,\"status\":");
         jb_str(&b, mk_status_string(diag.status));
         jb_cat(&b, ",\"valid_prefix\":");
-        jb_str(&b, prefix);
+        jb_strn(&b, grapheme, diag.valid_prefix_bytes);
         jb_cat(&b, ",\"offending\":");
         jb_str(&b, diag.offending);
         jb_cat(&b, "}");

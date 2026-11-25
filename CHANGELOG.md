@@ -107,6 +107,14 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- Smaller edges: a runtime model with a second `@model` line, a second word
+  after the name, or a row for `+` (never looked up) is refused instead of
+  accepted; `mk_string_list_new` reports a NULL item as an invalid argument,
+  not out of memory; `mk_system_feature_vector` with no buffer reports the
+  width; the browser demonstration reported a valid prefix of 64 bytes or more
+  as empty. Command line: `segment` uses the `--system` given (it ignored it),
+  `normalize` refuses the option, and output to a closed pipe no longer prints
+  a traceback.
 - Documentation that did not match the code: the PHOIBLE tone example in
   `c-api.md` (a tone against a segment is cross-tier, not 0.0), the reason given
   for zero distances in the valued systems (equal on every dimension *both*

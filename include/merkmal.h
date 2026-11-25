@@ -456,8 +456,9 @@ MK_API mk_status mk_unicode_normalize(
 /** Writes a fixed-width numeric vector for a grapheme.
  *
  * `values` must have room for mk_system_vector_width entries; on
- * MK_ERR_INVALID_ARGUMENT from too small a buffer, `*written` reports the width
- * needed, so one failed call is enough to size it. A grapheme that does not
+ * MK_ERR_INVALID_ARGUMENT from too small a buffer, or from `values` NULL with
+ * `capacity` 0, `*written` reports the width needed, so one failed call is
+ * enough to size it. A grapheme that does not
  * resolve returns its refusal status with `*written` 0.
  *
  * Encoding, following `soundvectors` (Rubehn, Nieder, Forkel & List 2024); see

@@ -1260,6 +1260,25 @@ int main(void)
     }
 
     {
+        /* A NULL item is a bad argument, not a failed allocation; a vector
+         * asked for with no buffer reports the width. */
+        const char *items[] = {"a", NULL};
+        mk_string_list *list = NULL;
+        size_t width = 0;
+
+        failed |= expect_status(mk_string_list_new(items, 2, &list), MK_ERR_INVALID_ARGUMENT, "string list with NULL item");
+        failed |= expect_status(
+            mk_system_feature_vector(descriptive, "a", NULL, 0, &width),
+            MK_ERR_INVALID_ARGUMENT,
+            "feature vector width query"
+        );
+        if (width == 0) {
+            fprintf(stderr, "feature vector width query: width not reported\n");
+            failed = 1;
+        }
+    }
+
+    {
         char *converted = NULL;
 
         failed |= expect_status(mk_ascii_chao_digits("ma55 ji6", &converted), MK_OK, "ascii chao digits");

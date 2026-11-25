@@ -1686,3 +1686,26 @@ def test_long_input_costs_are_bounded() -> None:
     # A long run of marks is put in canonical order, as unicodedata does.
     run = "a" + "\u0301\u0323\u0308" * 200
     assert "".join(merkmal.segment_ipa(run)) == unicodedata.normalize("NFD", run)
+
+
+def test_cli_segment_and_normalize_honour_the_system_option(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["segment", "tʃʰa"]) == 0
+    assert capsys.readouterr().out.split() == ["t", "ʃʰ", "a"]
+    assert main(["--system", "distinctive", "segment", "tʃʰa"]) == 0
+    assert capsys.readouterr().out.split() == ["tʃʰ", "a"]
+    with pytest.raises(SystemExit) as raised:
+        main(["--system", "phoible", "normalize", "a"])
+    assert raised.value.code == 2
+
+
+def test_runtime_model_header_is_unambiguous() -> None:
+    body = "@type categorical\ngrapheme X consonant voiceless bilabial stop\n"
+    for text in (
+        "@model a\n@model b\n" + body,  # a second name would replace the first
+        "@model a b\n" + body,  # a second word would be dropped
+        "@model a\n" + body + "grapheme + consonant voiced bilabial stop\n",
+    ):
+        with pytest.raises(merkmal.ParseError):
+            merkmal.Registry().add_model_text(text)

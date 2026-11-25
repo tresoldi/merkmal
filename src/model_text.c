@@ -92,7 +92,9 @@ static mk_status mk_add_parsed_entry(
     mki_builtin_entry *next_entries;
 
     grapheme = mk_next_token(&cursor);
-    if (grapheme == NULL) {
+    /* `+` is the word boundary of the tokenizers and is never looked up, so a
+     * row for it could not be reached. */
+    if (grapheme == NULL || strcmp(grapheme, "+") == 0) {
         return MK_ERR_PARSE;
     }
 
@@ -405,10 +407,19 @@ static mk_status mk_parse_line(
         token = mk_next_token(&args);
         return mk_check_format_version(token, line_no, diagnostic);
     } else if ((args = mk_directive_args(trimmed, "@model")) != NULL) {
+        /* One name, once: a second @model or a second word would otherwise be
+         * dropped or silently replace the first. */
         token = mk_next_token(&args);
-        free(parse->name);
-        parse->name = token == NULL ? NULL : mki_strdup_internal(token);
-        if (token != NULL && parse->name == NULL) {
+        if (parse->name != NULL) {
+            mk_set_diagnostic(diagnostic, line_no, "@model is declared more than once", trimmed);
+            return MK_ERR_PARSE;
+        }
+        if (token == NULL || mk_next_token(&args) != NULL) {
+            mk_set_diagnostic(diagnostic, line_no, "@model takes exactly one name", trimmed);
+            return MK_ERR_PARSE;
+        }
+        parse->name = mki_strdup_internal(token);
+        if (parse->name == NULL) {
             return MK_ERR_OOM;
         }
     } else if ((args = mk_directive_args(trimmed, "@type")) != NULL) {

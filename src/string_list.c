@@ -32,6 +32,10 @@ mk_status mki_string_list_from_borrowed(
     list->count = count;
 
     for (i = 0; i < count; i++) {
+        if (items[i] == NULL) {
+            mk_string_list_free(list);
+            return MK_ERR_INVALID_ARGUMENT;
+        }
         list->items[i] = mki_strdup_internal(items[i]);
         if (list->items[i] == NULL) {
             mk_string_list_free(list);

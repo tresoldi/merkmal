@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from typing import Any
 
@@ -56,8 +57,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "systems": ("list built-in feature systems", []),
         "features": ("print features for one grapheme", ["grapheme"]),
         "distance": ("print segment distance", ["a", "b"]),
-        "normalize": ("normalize one grapheme", ["grapheme"]),
-        "segment": ("segment IPA text", ["text"]),
+        "normalize": ("normalize one grapheme (independent of the system)", ["grapheme"]),
+        "segment": (
+            "segment IPA text: by base character, or as --system reads it when given",
+            ["text"],
+        ),
     }
     for name, (help_text, positionals) in commands.items():
         command = sub.add_parser(name, help=help_text)
@@ -126,8 +130,14 @@ def _run(args: argparse.Namespace) -> tuple[list[str], dict[str, Any], list[dict
         normalized = merkmal.normalize(args.grapheme)
         record = {"input": args.grapheme, "normalized": normalized}
         return [normalized], record, [record]
-    segments = list(merkmal.segment_ipa(args.text))
-    result = {"text": args.text, "segments": segments}
+    # Orthographic segmentation needs no system; with --system the text is cut
+    # as that system reads it, so the option is never silently ignored.
+    if args.system is None:
+        segments = list(merkmal.segment_ipa(args.text))
+        result = {"text": args.text, "segments": segments}
+    else:
+        segments = list(merkmal.system_segment_ipa(args.text, system=args.system))
+        result = {"system": args.system, "text": args.text, "segments": segments}
     records = [{"index": i, "segment": segment} for i, segment in enumerate(segments)]
     return segments, result, records
 
@@ -140,6 +150,8 @@ def main(argv: list[str] | None = None) -> int:
     """
     parser = _build_parser()
     args = parser.parse_args(argv)
+    if args.command == "normalize" and args.system is not None:
+        parser.error("normalize does not depend on a system; drop --system")
 
     try:
         # Computed in full before anything is written, so a failure leaves
@@ -148,11 +160,19 @@ def main(argv: list[str] | None = None) -> int:
     except _USER_ERRORS as exc:
         return _print_error(exc)
 
-    if args.format is None:
-        for line in lines:
-            print(line)
-    else:
-        _emit(args.format, result, records)
+    try:
+        if args.format is None:
+            for line in lines:
+                print(line)
+        else:
+            _emit(args.format, result, records)
+        sys.stdout.flush()
+    except BrokenPipeError:
+        # The reader stopped early (`| head`). Point stdout at nothing so that
+        # the interpreter's own flush at exit does not raise again.
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
+        return _EXIT_OK
     return _EXIT_OK
 
 

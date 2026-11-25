@@ -143,7 +143,10 @@ merkmal segment "tʃa pʰa"
 merkmal --system phoible features bʰ
 ```
 
-`--system` (`-s`) precedes the subcommand. The default output is meant for
+`--system` (`-s`) precedes the subcommand. With it, `segment` cuts the text as
+that system reads it (`system_segment_ipa`); without it, at each base
+character (`segment_ipa`). `normalize` does not depend on a system and refuses
+the option. The default output is meant for
 reading and may change between releases. The machine-readable modes are the
 stable interface; each may be given before or after the subcommand:
 
@@ -161,7 +164,7 @@ Records by subcommand:
 | `features` | `{"system", "grapheme", "features": [...]}` | `grapheme`, `feature` |
 | `distance` | `{"system", "a", "b", "distance", "coverage", "comparability"}` | the same fields |
 | `normalize` | `{"input", "normalized"}` | the same fields |
-| `segment` | `{"text", "segments": [...]}` | `index`, `segment` |
+| `segment` | `{"text", "segments": [...]}`, with `"system"` when given | `index`, `segment` |
 
 `system` is the system used: the one named, or `merkmal.DEFAULT_SYSTEM`. Text is
 UTF-8. In TSV, a backslash, tab or newline inside a value is written `\\`, `\t`
