@@ -149,11 +149,9 @@ static void check_composition(const mk_system *system)
 /* Geminacy is decided from the parts' features, not from their spellings.
  *
  * The two rules agree on every pair of distinct inventory segments. They differ
- * only where a mark is redundant -- a nasal vowel written with a second nasal
- * mark resolves to the features of one nasal vowel -- and that pair is one
- * segment written twice, which is what a geminate is. It is the only observable
- * difference between the rules, so it is what a revert to byte comparison would
- * fail on. */
+ * where one segment is spelled two ways -- the same marks in another order --
+ * and that pair is one segment written twice, which is what a geminate is. It
+ * is what a revert to byte comparison would fail on. */
 static void check_geminacy_is_featural(const mk_system *system)
 {
     static const struct {
@@ -164,15 +162,16 @@ static void check_geminacy_is_featural(const mk_system *system)
         {"aa", 1, "one segment written twice"},
         {"ai", 0, "two different vowels"},
         {"au", 0, "two different vowels"},
-        /* A creaky ultra-long /a/ against the same vowel with the creaky mark
-         * written a second time: "a" U+0330 U+02D0 U+02D0, then the same with a
-         * second U+0330. Different bytes, nine identical features. Spelled out
-         * in escapes because stacked combining marks render ambiguously, and
-         * this case only means anything if the bytes are exact. */
-        {"a\xcc\xb0\xcb\x90\xcb\x90"
-         "a\xcc\xb0\xcb\x90\xcb\x90\xcc\xb0",
+        /* A creaky long /a/ with its two marks in either order: "a" U+0330
+         * U+02D0, then "a" U+02D0 U+0330. Normalization does not reorder them,
+         * since the length mark is not a combining mark, so the bytes differ
+         * and the features do not. Spelled out in escapes because stacked
+         * marks render ambiguously, and this case only means anything if the
+         * bytes are exact. */
+        {"a\xcc\xb0\xcb\x90"
+         "a\xcb\x90\xcc\xb0",
          1,
-         "a redundant mark does not make it a different segment"},
+         "the order of the marks does not make it a different segment"},
     };
     size_t i;
 

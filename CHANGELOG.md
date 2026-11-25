@@ -32,6 +32,14 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- **Breaking:** a mark written twice on one letter is refused with
+  `MK_ERR_PARSE` (`merkmal.ParseError`) in every system: `tʰʰ`, `tʰʷʰ`, `ã̃`,
+  `ⁿⁿt`, `á́`. It added nothing, since features are a set, so such a label
+  resolved as the one with the mark once, at distance zero from it. The same
+  mark on two letters (`t̥ʃ̥`, `kʷkʷ`) and a doubled length mark (`aːː`,
+  overlong) are unaffected. In the Lexibank corpus of `bench/corpus/` the
+  categorical systems now recognize 7,053 of the 7,396 segment types (7,059
+  before); the six refused are `ts̠̠`, `ɑ̠̠`, `ao̠̠̠`, `õ̃i`, `ẽː̃` and `⁵/ẽː̃`.
 - **Breaking:** in the categorical systems a feature vector also encodes a
   synthesized cluster's parts: after the segment columns come `components`
   (the number of parts) and one block of segment columns per part, up to three.

@@ -836,6 +836,38 @@ static bool mk_system_supports_tone(const mk_system *system)
     return false;
 }
 
+/* The marks written on the current letter, as spans of the label. A mark
+ * written twice on one letter adds nothing, since the features are a set:
+ * "tʰʰ" would be "tʰ" and "á́" would be "á". Such a label is refused rather
+ * than read as the shorter one. The same mark on two letters ("t̥ʃ̥",
+ * "kʷkʷ") marks each of them, and the length mark may repeat: "aːː" is
+ * overlong. */
+#define MK_MAX_MARKS 64
+
+typedef struct mk_mark_span {
+    const char *start;
+    size_t bytes;
+} mk_mark_span;
+
+static mk_status mk_note_mark(mk_mark_span *seen, size_t *count, const char *start, size_t bytes)
+{
+    size_t i;
+
+    for (i = 0; i < *count; i++) {
+        if (seen[i].bytes == bytes && memcmp(seen[i].start, start, bytes) == 0) {
+            return MK_ERR_PARSE;
+        }
+    }
+    if (*count == MK_MAX_MARKS) {
+        /* More distinct marks than any segment carries. */
+        return MK_ERR_PARSE;
+    }
+    seen[*count].start = start;
+    seen[*count].bytes = bytes;
+    (*count)++;
+    return MK_OK;
+}
+
 static mk_status mk_decompose_diacritics(
     const char *normalized,
     char **base_out,
@@ -854,6 +886,8 @@ static mk_status mk_decompose_diacritics(
     size_t modifier_cap = 0;
     int recognized_modifier = 0;
     int tone_seen = 0;
+    mk_mark_span marks[MK_MAX_MARKS];
+    size_t mark_count = 0;
     mk_status status = MK_OK;
 
     if (base_out == NULL ||
@@ -883,6 +917,10 @@ static mk_status mk_decompose_diacritics(
             if (extra_prefix == NULL) {
                 break;
             }
+            status = mk_note_mark(marks, &mark_count, p, extra_prefix_bytes);
+            if (status != MK_OK) {
+                goto fail;
+            }
             status = mk_add_owned_feature(&modifiers, &modifier_count, &modifier_cap, extra_prefix);
             if (status != MK_OK) {
                 goto fail;
@@ -890,6 +928,10 @@ static mk_status mk_decompose_diacritics(
             recognized_modifier = 1;
             p += extra_prefix_bytes;
             continue;
+        }
+        status = mk_note_mark(marks, &mark_count, p, strlen(prefix->mark));
+        if (status != MK_OK) {
+            goto fail;
         }
         status = mk_add_owned_feature(&modifiers, &modifier_count, &modifier_cap, prefix->feature);
         if (status != MK_OK) {
@@ -911,6 +953,10 @@ static mk_status mk_decompose_diacritics(
         size_t i;
 
         if (tone != NULL) {
+            status = mk_note_mark(marks, &mark_count, p, strlen(tone->mark));
+            if (status != MK_OK) {
+                goto fail;
+            }
             for (i = 0; i < tone->feature_count; i++) {
                 status = mk_add_owned_feature(&modifiers, &modifier_count, &modifier_cap, tone->features[i]);
                 if (status != MK_OK) {
@@ -946,6 +992,10 @@ static mk_status mk_decompose_diacritics(
             p
         );
         if (combining != NULL) {
+            status = mk_note_mark(marks, &mark_count, p, strlen(combining->mark));
+            if (status != MK_OK) {
+                goto fail;
+            }
             status = mk_add_owned_feature(&modifiers, &modifier_count, &modifier_cap, combining->feature);
             if (status != MK_OK) {
                 goto fail;
@@ -957,6 +1007,10 @@ static mk_status mk_decompose_diacritics(
 
         extra_suffix = mk_match_extra_suffix_feature(p, &extra_suffix_bytes);
         if (extra_suffix != NULL) {
+            status = mk_note_mark(marks, &mark_count, p, extra_suffix_bytes);
+            if (status != MK_OK) {
+                goto fail;
+            }
             status = mk_add_owned_feature(&modifiers, &modifier_count, &modifier_cap, extra_suffix);
             if (status != MK_OK) {
                 goto fail;
@@ -995,6 +1049,12 @@ static mk_status mk_decompose_diacritics(
                 p += strlen(suffix->mark);
                 continue;
             }
+            if (!mki_streq(feature, "long")) {
+                status = mk_note_mark(marks, &mark_count, p, strlen(suffix->mark));
+                if (status != MK_OK) {
+                    goto fail;
+                }
+            }
             status = mk_add_owned_feature(&modifiers, &modifier_count, &modifier_cap, feature);
             if (status != MK_OK) {
                 goto fail;
@@ -1011,6 +1071,7 @@ static mk_status mk_decompose_diacritics(
         if (status != MK_OK) {
             goto fail;
         }
+        mark_count = 0;
         p += n;
     }
 
