@@ -1144,6 +1144,11 @@ static double mk_extreme(
         double num = 0.0;
         double den = 0.0;
         for (i = 0; i < dims; i++) {
+            /* A dimension neither cell can reach has no option, and its slot
+             * belongs to the next dimension; it contributes nothing. */
+            if (counts[i] == 0) {
+                continue;
+            }
             num += options[offsets[i]].weight * options[offsets[i]].diff;
             den += options[offsets[i]].weight;
         }
@@ -1156,7 +1161,12 @@ static double mk_extreme(
         for (i = 0; i < dims; i++) {
             size_t k;
             size_t best = offsets[i];
-            double best_value = options[best].weight * (options[best].diff - lambda);
+            double best_value;
+
+            if (counts[i] == 0) {
+                continue;
+            }
+            best_value = options[best].weight * (options[best].diff - lambda);
             for (k = 1; k < counts[i]; k++) {
                 const mk_option *o = &options[offsets[i] + k];
                 double value = o->weight * (o->diff - lambda);
