@@ -469,6 +469,12 @@ MK_API mk_status mk_unicode_normalize(
  * Ordered scales cannot use `0` for a middle level, since `0` already means "no
  * value". A scale of n levels maps level i to i/n, so scale columns land in
  * (0, 1] and `0` still means the scale does not apply.
+ *
+ * In a categorical system the segment columns are followed by `components`,
+ * the number of parts of a synthesized cluster (0 for a single segment), and
+ * three blocks of segment columns, one per part (`c1:...`, `c2:...`,
+ * `c3:...`), zero where there is no part. Graphemes with equal vectors are at
+ * distance zero, clusters included.
  */
 MK_API mk_status mk_system_feature_vector(
     const mk_system *system,

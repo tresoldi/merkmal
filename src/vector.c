@@ -113,7 +113,8 @@ static size_t mk_vector_node_group_count(void)
     return n;
 }
 
-size_t mki_vector_width_of(const mki_builtin_system *builtin)
+/* The columns of one segment: what the scorer reads of a feature set. */
+static size_t mk_vector_segment_width(const mki_builtin_system *builtin)
 {
     if (mk_vector_is_valued(builtin)) {
         return builtin->geometry_map_count;
@@ -123,6 +124,29 @@ size_t mki_vector_width_of(const mki_builtin_system *builtin)
     }
     return mki_clements_hume_leaf_count + mki_clements_hume_ordinal_scale_count +
         mk_vector_node_group_count();
+}
+
+/* A synthesized cluster is scored from its parts as well as from its own
+ * features, so a categorical system's vector continues after the segment
+ * columns with the number of parts and one block of segment columns per part,
+ * up to the three a cluster can have. A single segment has 0 parts and zero
+ * blocks; its segment columns are unchanged, and lead every vector. Valued
+ * systems synthesize no clusters and have the segment columns only. */
+#define MK_VECTOR_CLUSTER_PARTS 3
+
+static bool mk_vector_has_cluster_columns(const mki_builtin_system *builtin)
+{
+    return !mk_vector_is_valued(builtin);
+}
+
+size_t mki_vector_width_of(const mki_builtin_system *builtin)
+{
+    size_t segment = mk_vector_segment_width(builtin);
+
+    if (!mk_vector_has_cluster_columns(builtin)) {
+        return segment;
+    }
+    return segment + 1 + MK_VECTOR_CLUSTER_PARTS * segment;
 }
 
 mk_status mk_system_vector_width(const mk_system *system, size_t *out)
@@ -195,6 +219,26 @@ mk_status mk_system_vector_labels(const mk_system *system, mk_string_list **out)
         }
     }
 
+    if (status == MK_OK && mk_vector_has_cluster_columns(system->builtin)) {
+        size_t segment = n;
+        size_t part;
+
+        names[n] = mki_strdup_internal("components");
+        status = names[n++] == NULL ? MK_ERR_OOM : MK_OK;
+        for (part = 1; part <= MK_VECTOR_CLUSTER_PARTS && status == MK_OK; part++) {
+            for (i = 0; i < segment && status == MK_OK; i++) {
+                /* "c2:vocoid": the column of the second part. */
+                size_t len = strlen(names[i]) + 4;
+
+                names[n] = (char *)malloc(len);
+                if (names[n] == NULL) {
+                    status = MK_ERR_OOM;
+                    break;
+                }
+                snprintf(names[n++], len, "c%zu:%s", part, names[i]);
+            }
+        }
+    }
     if (status == MK_OK) {
         status = mk_string_list_new((const char *const *)names, n, out);
     }
@@ -352,6 +396,26 @@ mk_status mk_system_feature_vector(
     }
     view = mki_view_of(&entry);
     mk_vector_fill(system->builtin, &view, values);
+    if (mk_vector_has_cluster_columns(system->builtin)) {
+        size_t segment = mk_vector_segment_width(system->builtin);
+        double *parts = values + segment + 1;
+        size_t part;
+
+        values[segment] = (double)entry.cluster_component_count;
+        for (part = 0; part < MK_VECTOR_CLUSTER_PARTS; part++) {
+            double *block = parts + part * segment;
+
+            if (part < entry.cluster_component_count) {
+                mk_feature_view component;
+
+                component.features = entry.cluster_components[part].features;
+                component.count = entry.cluster_components[part].feature_count;
+                mk_vector_fill(system->builtin, &component, block);
+            } else {
+                memset(block, 0, segment * sizeof(*block));
+            }
+        }
+    }
     mki_resolution_clear(&entry);
     *written = width;
     return MK_OK;

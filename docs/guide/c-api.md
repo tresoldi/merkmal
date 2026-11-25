@@ -182,9 +182,19 @@ valued system's columns are its own inventory columns. A system that declares
 `scalar_dimensions` uses those, followed by the geometry's ordered scales. The
 remaining systems use the geometry's leaves, its ordered scales, and one-hot
 node-group columns named `Node=label` (+1 when the label is present, −1 when
-the node is set by another label, 0 when the node is unset). The widths in the
-built-in data are 64 for `distinctive`, 68 for `descriptive`, 38 for `phoible`
-and 23 for `pbase-hc`. Callers should obtain the width and order from
+the node is set by another label, 0 when the node is unset).
+
+A synthesized cluster (a diphthong or a consonant cluster) is scored from its
+parts as well as from its own features, so in a categorical system the segment
+columns are followed by cluster columns: `components`, the number of parts (0
+for a single segment), then one block of segment columns per part, up to three
+(`c1:voice`, ..., `c3:...`), zero where there is no part. The segment columns
+lead every vector and are those of the grapheme itself, so a caller that only
+compares segments can read them alone. With the cluster columns, graphemes with
+equal vectors are at distance zero, clusters included. Valued systems
+synthesize no clusters and have the segment columns only. The widths in the
+built-in data are 257 for `distinctive` (64 segment columns), 273 for
+`descriptive` (68), 38 for `phoible` and 23 for `pbase-hc`. Callers should obtain the width and order from
 `mk_system_vector_width` and `mk_system_vector_labels` rather than assume them;
 the labels are unique within a system, so a column can be addressed by name.
 

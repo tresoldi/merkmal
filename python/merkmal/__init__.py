@@ -86,15 +86,23 @@ def fixed_space_distance(
 ) -> float:
     """Return the mean absolute difference of two graphemes' feature vectors.
 
-    The vectors are those of ``feature_vector``, over every column of the
-    system. A ``0`` cell ("does not apply") counts as a value like any other,
-    so this is not the pairwise-complete score of ``distance_with_coverage``;
-    a ``NaN`` cell (a valued system's unknown) makes the result ``NaN``.
+    The vectors are those of ``feature_vector``. The mean is over the segment
+    columns, and also over the cluster columns (``components`` and the part
+    blocks) when either grapheme is a synthesized cluster, so the value for two
+    segments does not depend on the width the cluster columns add. A ``0``
+    cell ("does not apply") counts as a value like any other, so this is not
+    the pairwise-complete score of ``distance_with_coverage``; a ``NaN`` cell
+    (a valued system's unknown) makes the result ``NaN``.
     """
     left = feature_vector(a, system=system)
     right = feature_vector(b, system=system)
     if len(left) != len(right):
         raise ValueError("feature vectors have different widths")
+    labels = vector_labels(system=system)
+    if "components" in labels:
+        parts = labels.index("components")
+        if left[parts] == 0.0 and right[parts] == 0.0:
+            left, right = left[:parts], right[:parts]
     return float(sum(abs(x - y) for x, y in zip(left, right, strict=True)) / len(left))
 # A name that states the scorer's pairwise-complete semantics, so that the
 # coverage-normalized score is not mistaken for a fixed-space metric. An

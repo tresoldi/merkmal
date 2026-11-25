@@ -32,6 +32,14 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- **Breaking:** in the categorical systems a feature vector also encodes a
+  synthesized cluster's parts: after the segment columns come `components`
+  (the number of parts) and one block of segment columns per part, up to three.
+  Two diphthongs had near-empty, equal vectors (`ai` and `au`) although their
+  distance is not zero; equal vectors now imply distance zero for clusters
+  too. Widths: `distinctive` 64 → 257, `descriptive` 68 → 273. The segment
+  columns, which lead the vector, are unchanged, and so is
+  `fixed_space_distance` between two segments.
 - **Breaking:** the tokenizers (`mk_segment_ipa` and those built on it) rewrote
   ASCII digits 0–5 as Chao superscripts (`ji5` gave `j`, `i`, `⁵`), contrary to
   the documentation and to the recognizer, which refuses ASCII digits. They now

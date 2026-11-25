@@ -1648,3 +1648,28 @@ def test_ascii_digits_are_tone_only_when_asked() -> None:
     assert merkmal.ascii_chao_digits("ma55") == "ma⁵⁵"
     assert merkmal.ascii_chao_digits("ji6 a0") == "ji6 a⁰"
     assert merkmal.segment_ipa_merged(merkmal.ascii_chao_digits("ma55")) == ["m", "a⁵⁵"]
+
+
+def test_cluster_vectors_carry_their_parts() -> None:
+    for system in ("distinctive", "descriptive"):
+        labels = merkmal.vector_labels(system=system)
+        parts = labels.index("components")
+        segment = labels[:parts]
+        assert list(labels[parts + 1 : parts + 1 + len(segment)]) == [f"c1:{x}" for x in segment]
+        assert len(labels) == len(segment) * 4 + 1
+        # A segment has no parts and empty part blocks.
+        p = merkmal.feature_vector("p", system=system)
+        assert p[parts] == 0.0 and not any(p[parts + 1 :])
+        # Two diphthongs differ in their parts, so their vectors differ.
+        ai = merkmal.feature_vector("ai", system=system)
+        assert ai[parts] == 2.0
+        assert ai != merkmal.feature_vector("au", system=system)
+        # The vector separates whatever the distance separates.
+        for a, b in [("ai", "au"), ("ai", "ai¹"), ("ntʰ", "mpʰ"), ("ai", "a")]:
+            assert merkmal.distance(a, b, system=system) > 0.0
+            assert merkmal.feature_vector(a, system=system) != merkmal.feature_vector(b, system=system)
+        # The fixed-space value for two segments is over the segment columns.
+        assert merkmal.fixed_space_distance("p", "b", system=system) == sum(
+            abs(x - y) for x, y in zip(p[:parts], merkmal.feature_vector("b", system=system)[:parts])
+        ) / parts
+    assert "components" not in merkmal.vector_labels(system="phoible")
