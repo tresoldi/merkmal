@@ -348,6 +348,9 @@ MK_API mk_status mk_split_tone(
  * past that prefix, and `offending` holds the UTF-8 character there,
  * NUL-terminated, empty when there is none.
  *
+ * Prefixes longer than 256 bytes are not tried, so the cost is bounded for any
+ * input; no segment is that long.
+ *
  * There is no "nearest valid grapheme". See docs/guide/c-api.md, Diagnosing a
  * refusal.
  */

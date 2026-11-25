@@ -107,6 +107,11 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- Cost on long or large input: canonical reordering was quadratic in a run of
+  combining marks, `mk_system_diagnose` resolved every prefix of its input (17 s
+  for 4 KB), and a runtime model's fingerprint was quadratic in its rows. Long
+  mark runs are sorted in linear time, diagnosis tries prefixes up to 256
+  bytes, and the fingerprint sorts the rows once; results are unchanged.
 - Out of memory during resolution could give a wrong answer instead of
   `MK_ERR_OOM`: `aːː` resolved as `aː`, and a cluster could be reported as an
   unknown grapheme.

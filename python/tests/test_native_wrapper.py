@@ -1673,3 +1673,16 @@ def test_cluster_vectors_carry_their_parts() -> None:
             abs(x - y) for x, y in zip(p[:parts], merkmal.feature_vector("b", system=system)[:parts])
         ) / parts
     assert "components" not in merkmal.vector_labels(system="phoible")
+
+
+def test_long_input_costs_are_bounded() -> None:
+    import unicodedata
+
+    # Diagnosis tries prefixes up to 256 bytes, so a long refused input is
+    # answered without resolving every prefix of it.
+    report = merkmal.diagnose("a" + "\u0303" * 2000 + "@")
+    assert not report["ok"] and report["offset"] <= 257
+
+    # A long run of marks is put in canonical order, as unicodedata does.
+    run = "a" + "\u0301\u0323\u0308" * 200
+    assert "".join(merkmal.segment_ipa(run)) == unicodedata.normalize("NFD", run)

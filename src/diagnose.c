@@ -28,6 +28,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* The longest prefix, in bytes, that diagnosis tries. A base with a hundred
+ * combining marks fits; no segment comes close. */
+#define MK_DIAGNOSE_MAX_PREFIX 256
+
 mk_status mk_system_diagnose(
     const mk_system *system,
     const char *utf8_grapheme,
@@ -59,9 +63,11 @@ mk_status mk_system_diagnose(
     /* Try every character boundary and keep the longest prefix that
      * resolves. A failing prefix does not end the walk: a longer one may still
      * resolve. Each try resolves a NUL-terminated copy, since mki_resolve reads
-     * up to the terminator. */
+     * up to the terminator. Each try costs time in the prefix's length, so the
+     * walk stops at MK_DIAGNOSE_MAX_PREFIX bytes, far longer than a segment,
+     * and a pathological input costs no more than that. */
     cut = 0;
-    while (cut < len) {
+    while (cut < len && cut < MK_DIAGNOSE_MAX_PREFIX) {
         size_t step = mki_utf8_step(utf8_grapheme + cut);
         size_t next = cut + step;
         char *prefix;
