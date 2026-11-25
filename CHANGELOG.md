@@ -80,6 +80,9 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- `merkmal.pc` assumed the library directory is two levels below the prefix,
+  so with a multiarch `CMAKE_INSTALL_LIBDIR` (`lib/x86_64-linux-gnu`) it pointed
+  at `<prefix>/lib/include`. The path is computed when configuring.
 - An unknown weight preset was accepted, and ignored, when the answer needed no
   scoring (a grapheme against itself, a tone against a segment); it is refused
   on every path. `mk_system_segment_distance_ex` left `*coverage` unwritten
