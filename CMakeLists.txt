@@ -311,9 +311,15 @@ if(MERKMAL_BUILD_TESTS)
     else()
         target_compile_definitions(test_unicode PRIVATE MK_HAVE_UTF8PROC=0)
     endif()
+    # With MERKMAL_REQUIRE_UTF8PROC the oracle must run, so a utf8proc of
+    # another Unicode version is a failure. Otherwise it cannot serve as the
+    # oracle and the test exits 77, which ctest reports as a skip.
+    if(MERKMAL_REQUIRE_UTF8PROC)
+        target_compile_definitions(test_unicode PRIVATE MK_REQUIRE_ORACLE=1)
+    else()
+        target_compile_definitions(test_unicode PRIVATE MK_REQUIRE_ORACLE=0)
+    endif()
     add_test(NAME unicode COMMAND test_unicode)
-    # A utf8proc carrying another Unicode version than the tables cannot serve
-    # as the oracle; the test exits 77 and ctest reports a skip.
     set_tests_properties(unicode PROPERTIES SKIP_RETURN_CODE 77)
 
     # The tests are first-party sources and compile under the library's warning

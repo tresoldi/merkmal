@@ -32,6 +32,14 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- The compiled-in normalization tables move from Unicode 15.1 to 16.0
+  (`mk_unicode_version`, `merkmal.UNICODE_VERSION`). Only characters assigned
+  in 16.0 normalize differently; no IPA character is among them, and no
+  distance or fingerprint changes. 16.0 is the version of the utf8proc that CI
+  installs, whose mismatch had made CI skip the normalization oracle. A build
+  configured with `MERKMAL_REQUIRE_UTF8PROC=ON` now fails, rather than skips,
+  when utf8proc carries another Unicode version, so the oracle cannot silently
+  stop running.
 - **Breaking:** a mark written twice on one letter is refused with
   `MK_ERR_PARSE` (`merkmal.ParseError`) in every system: `tʰʰ`, `tʰʷʰ`, `ã̃`,
   `ⁿⁿt`, `á́`. It added nothing, since features are a set, so such a label

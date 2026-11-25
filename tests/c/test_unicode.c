@@ -5,8 +5,10 @@
  * When the build found libutf8proc, every code point and a large set of
  * generated mark sequences are also compared against it -- an independent
  * implementation -- provided it carries the same Unicode version as the
- * tables. A different version is a skip, not a failure: the forms of newly
- * assigned characters legitimately differ. */
+ * tables. The forms of newly assigned characters legitimately differ between
+ * versions, so a different version cannot serve as the oracle: it is a skip,
+ * or, in a build configured with MERKMAL_REQUIRE_UTF8PROC, a failure, so that
+ * the release gate cannot pass without the comparison having run. */
 
 #include "unicode_norm.h"
 
@@ -196,8 +198,21 @@ int main(void)
     fixed_vectors();
 #if MK_HAVE_UTF8PROC
     if (strcmp(utf8proc_unicode_version(), mki_unicode_version) != 0) {
+#if MK_REQUIRE_ORACLE
+        fprintf(
+            stderr,
+            "utf8proc carries Unicode %s and the tables %s, so the required oracle "
+            "cannot run. Regenerate src/generated/unicode_data.c with an interpreter "
+            "of Unicode %s (docs/development/release-policy.md).\n",
+            utf8proc_unicode_version(),
+            mki_unicode_version,
+            utf8proc_unicode_version()
+        );
+        return 1;
+#else
         fprintf(stderr, "utf8proc carries Unicode %s and the tables %s; skipping the oracle\n", utf8proc_unicode_version(), mki_unicode_version);
         return failures == 0 ? MK_SKIP : 1;
+#endif
     }
     against_utf8proc();
 #endif
