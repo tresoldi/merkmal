@@ -24,8 +24,10 @@ flags="-std=c99 -Iinclude -Isrc"
 if command -v gcc >/dev/null 2>&1; then
     printf '## gcc -fanalyzer\n'
     for source in src/*.c; do
+        # The analyzer runs during code generation, so -fsyntax-only would
+        # skip it and report nothing; compile and discard the object instead.
         # shellcheck disable=SC2086
-        gcc $flags -fanalyzer -fsyntax-only "$source" 2>&1 |
+        gcc $flags -fanalyzer -c -o /dev/null "$source" 2>&1 |
             grep -E 'warning:|error:' || true
     done
     printf '\n'
