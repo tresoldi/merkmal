@@ -293,6 +293,14 @@ MK_API mk_status mk_system_segment_ipa(
     mk_string_list **out
 );
 
+/** Rewrites the ASCII digits 0-5 in a UTF-8 string as the superscript Chao
+ * digits, so "ma55" becomes "ma⁵⁵"; every other character is copied. No other
+ * function does this: in a romanization (Jyutping ji6, Pinyin i1) ASCII digits
+ * number tone categories, not pitch levels, so a caller applies it only to
+ * text known to write Chao levels in ASCII. Returns an owned string; free with
+ * mk_string_free. */
+MK_API mk_status mk_ascii_chao_digits(const char *utf8_in, char **utf8_out);
+
 /** Merges Chao tone tokens into the preceding eligible segment; a tone with no
  * such segment in its word, and the neutral tone `⁰`, are kept as tokens of
  * their own. `segments` is

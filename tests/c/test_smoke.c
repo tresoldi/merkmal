@@ -1260,6 +1260,15 @@ int main(void)
     }
 
     {
+        char *converted = NULL;
+
+        failed |= expect_status(mk_ascii_chao_digits("ma55 ji6", &converted), MK_OK, "ascii chao digits");
+        failed |= expect_string(converted, "ma⁵⁵ ji6", "ascii chao digits converts 0-5 only");
+        mk_string_free(converted);
+        failed |= expect_status(mk_ascii_chao_digits(NULL, &converted), MK_ERR_INVALID_ARGUMENT, "ascii chao digits null");
+    }
+
+    {
         /* On failure both outputs are 0.0, coverage included. */
         double score = 42.0;
         double coverage = 42.0;

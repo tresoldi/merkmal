@@ -108,6 +108,7 @@ is_segment = _native.is_segment
 list_systems = _native.list_systems
 merge_tone_digits = _native.merge_tone_digits
 normalize = _native.normalize
+ascii_chao_digits = _native.ascii_chao_digits
 segment_ipa = _native.segment_ipa
 segment_ipa_merged = _native.segment_ipa_merged
 sound_distance = _native.sound_distance
@@ -522,6 +523,7 @@ __all__ = [
     "load_geometry",
     "merge_tone_digits",
     "normalize",
+    "ascii_chao_digits",
     "operation_fingerprint",
     "geometry_distance",
     "segment_ipa",

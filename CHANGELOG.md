@@ -32,6 +32,12 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- **Breaking:** the tokenizers (`mk_segment_ipa` and those built on it) rewrote
+  ASCII digits 0–5 as Chao superscripts (`ji5` gave `j`, `i`, `⁵`), contrary to
+  the documentation and to the recognizer, which refuses ASCII digits. They now
+  leave them as written. The conversion is available explicitly as
+  `mk_ascii_chao_digits` (`merkmal.ascii_chao_digits`), for text known to write
+  Chao levels in ASCII.
 - **Breaking:** a cluster whose part carries a diacritic or a tone (`ntʰ`,
   `stʰ`, `pʷpʷ`, `ái`, `a¹i`) was reduced to its marks and scored 0.0 against
   every cluster of its shape, with full coverage (`d(ntʰ, mpʰ) = 0.0`). It is

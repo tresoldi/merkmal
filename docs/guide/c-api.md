@@ -507,8 +507,11 @@ and Pinyin `i1` number contrastive tone categories, and these numbers encode no
 pitch: Jyutping tone 6 is not Chao level 6, which does not exist. Reading them
 as Chao digits would assert pitch features that the notation does not assert,
 so ASCII digits are not recognized and a token containing them is an unknown
-grapheme. A corpus that uses category numbers should carry tone in a separate
-column and leave its interpretation to the consumer.
+grapheme; the tokenizers leave them as written (`ji6` is `j`, `i`, `6`). A
+corpus that uses category numbers should carry tone in a separate column and
+leave its interpretation to the consumer. A corpus that writes Chao levels in
+ASCII (`ma55` for `ma⁵⁵`) can convert them with `mk_ascii_chao_digits`, which
+rewrites `0`–`5` as superscripts and nothing else, before tokenizing.
 
 `⁰` denotes Chao's neutral tone, a syllable without tone in a language that
 otherwise has tone. It is not a pitch level: as a tone token of its own it

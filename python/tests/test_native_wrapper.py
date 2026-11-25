@@ -1636,3 +1636,15 @@ def test_contract_holds_on_every_path() -> None:
     )
     with pytest.raises(merkmal.ParseError):
         registry.get_features("ai", system="longlabel")
+
+
+def test_ascii_digits_are_tone_only_when_asked() -> None:
+    # Romanizations number tone categories with ASCII digits, so neither the
+    # tokenizer nor the recognizer reads them as Chao levels.
+    assert merkmal.segment_ipa("ji5") == ["j", "i", "5"]
+    assert merkmal.segment_ipa_merged("ori3") == ["o", "r", "i", "3"]
+    assert not merkmal.is_segment("a1")
+    # The explicit conversion does, for 0-5 only.
+    assert merkmal.ascii_chao_digits("ma55") == "ma⁵⁵"
+    assert merkmal.ascii_chao_digits("ji6 a0") == "ji6 a⁰"
+    assert merkmal.segment_ipa_merged(merkmal.ascii_chao_digits("ma55")) == ["m", "a⁵⁵"]

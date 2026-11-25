@@ -962,6 +962,36 @@ done:
     return result;
 }
 
+static PyObject *py_ascii_chao_digits(PyObject *self, PyObject *args)
+{
+    PyObject *text_obj;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *text = NULL;
+    char *converted = NULL;
+    PyObject *result = NULL;
+    mk_status status;
+
+    (void)self;
+
+    if (!PyArg_ParseTuple(args, "O:ascii_chao_digits", &text_obj)) {
+        return NULL;
+    }
+    if (py_utf8_take(&bag, text_obj, "text", &text) < 0) {
+        goto done;
+    }
+    status = mk_ascii_chao_digits(text, &converted);
+    if (status != MK_OK) {
+        status_error(status, "ascii_chao_digits");
+        goto done;
+    }
+    result = PyUnicode_FromString(converted);
+    mk_string_free(converted);
+
+done:
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
 /* mk_segment_ipa and mk_segment_ipa_merged have the same shape, so one body
  * serves both; which one runs is the caller's choice. */
 static PyObject *py_segment_with(
@@ -1528,6 +1558,8 @@ static PyMethodDef methods[] = {
     {"sound_distance", (PyCFunction)py_sound_distance, METH_VARARGS | METH_KEYWORDS,
      "Return the geometry distance between two feature sets."},
     {"normalize", py_normalize, METH_VARARGS, "Normalize an IPA grapheme."},
+    {"ascii_chao_digits", py_ascii_chao_digits, METH_VARARGS,
+     "Rewrite ASCII digits 0-5 as superscript Chao tone digits."},
     {"segment_ipa", py_segment_ipa, METH_VARARGS, "Segment an IPA string orthographically."},
     {"system_segment_ipa", (PyCFunction)py_system_segment_ipa, METH_VARARGS | METH_KEYWORDS,
      "Segment an IPA string by longest match against a system's inventory."},
