@@ -107,6 +107,9 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- Out of memory during resolution could give a wrong answer instead of
+  `MK_ERR_OOM`: `aːː` resolved as `aː`, and a cluster could be reported as an
+  unknown grapheme.
 - `merkmal.pc` assumed the library directory is two levels below the prefix,
   so with a multiarch `CMAKE_INSTALL_LIBDIR` (`lib/x86_64-linux-gnu`) it pointed
   at `<prefix>/lib/include`. The path is computed when configuring.

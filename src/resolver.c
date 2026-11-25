@@ -196,7 +196,7 @@ static bool mk_feature_list_contains(const char *const *items, size_t count, con
     return mki_features_contain(items, count, feature);
 }
 
-static void mk_replace_owned_feature(
+static mk_status mk_replace_owned_feature(
     char **items,
     size_t count,
     const char *from,
@@ -208,13 +208,16 @@ static void mk_replace_owned_feature(
     for (i = 0; i < count; i++) {
         if (mki_streq(items[i], from)) {
             char *copy = mki_strdup_internal(to);
-            if (copy != NULL) {
-                free(items[i]);
-                items[i] = copy;
+
+            if (copy == NULL) {
+                return MK_ERR_OOM;
             }
-            return;
+            free(items[i]);
+            items[i] = copy;
+            return MK_OK;
         }
     }
+    return MK_OK;
 }
 
 static mk_status mk_add_owned_feature(char ***items, size_t *count, size_t *cap, const char *feature)
@@ -984,7 +987,10 @@ static mk_status mk_decompose_diacritics(
                 mk_feature_list_contains(
                     (const char *const *)modifiers, modifier_count, "long"
                 )) {
-                mk_replace_owned_feature(modifiers, modifier_count, "long", "ultra-long");
+                status = mk_replace_owned_feature(modifiers, modifier_count, "long", "ultra-long");
+                if (status != MK_OK) {
+                    goto fail;
+                }
                 recognized_modifier = 1;
                 p += strlen(suffix->mark);
                 continue;
@@ -1696,9 +1702,17 @@ static mk_status mk_parse_component_at(
     if (*first_end != '\0') {
         mki_resolution second;
         const char *second_end = NULL;
+        mk_status second_status;
 
         memset(&second, 0, sizeof(second));
-        if (mk_parse_component_once(system, grammar, first_end, &second_end, &second) == MK_OK) {
+        /* The look-ahead asks whether two components read as one segment. A
+         * refusal means no; running out of memory is a failure, not a no. */
+        second_status = mk_parse_component_once(system, grammar, first_end, &second_end, &second);
+        if (second_status == MK_ERR_OOM) {
+            mki_resolution_clear(component_out);
+            return MK_ERR_OOM;
+        }
+        if (second_status == MK_OK) {
             char *joined = NULL;
             size_t len = 0;
             size_t cap = 0;
@@ -1714,7 +1728,13 @@ static mk_status mk_parse_component_at(
             }
             memcpy(text, start, span);
             text[span] = '\0';
-            if (mki_append_text(&joined, &len, &cap, text) == MK_OK) {
+            if (mki_append_text(&joined, &len, &cap, text) != MK_OK) {
+                free(joined);
+                free(text);
+                mki_resolution_clear(component_out);
+                return MK_ERR_OOM;
+            }
+            {
                 mki_resolution merged;
                 mki_entry_view entry;
                 mk_status merged_status;
@@ -1729,6 +1749,12 @@ static mk_status mk_parse_component_at(
                     merged.feature_count = entry.feature_count;
                 } else {
                     merged_status = mk_synthesize_descriptive_complex(system, joined, &merged);
+                }
+                if (merged_status == MK_ERR_OOM) {
+                    free(joined);
+                    free(text);
+                    mki_resolution_clear(component_out);
+                    return MK_ERR_OOM;
                 }
                 if (merged_status == MK_OK && grammar->accepts(&merged)) {
                     mki_resolution_clear(component_out);
@@ -2369,6 +2395,8 @@ static mk_status mk_synthesize_from_diacritics(
                 goto finish;
             }
         }
+    } else if (status == MK_ERR_OOM) {
+        goto finish;
     } else {
         status = mk_lookup_normalized(
             system, base, base_scratch, &base_entry, &base_path

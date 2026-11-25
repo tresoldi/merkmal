@@ -10,7 +10,9 @@
  * Guards against mk_system_segment_ipa freeing its orthographic tokens twice
  * when the final list allocation fails, and against the cluster synthesizer
  * leaking a parsed component ("kpa", "pʰa", "mbu", "tsʰo") when recording it
- * fails. */
+ * fails. A run that returns MK_OK must also give the right answer: a failed
+ * allocation must not be mistaken for "this feature is absent" ("aːː" losing
+ * ultra-long) or "this grapheme is unknown". */
 #include "merkmal.h"
 #include "profile.h"
 
@@ -62,7 +64,7 @@ static const char toy_model[] =
     "grapheme Y consonant voiced bilabial stop\n"
     "grapheme Z consonant voiced alveolar nasal\n";
 
-enum { OP_COUNT = 7 };
+enum { OP_COUNT = 11 };
 
 static const char *const op_names[OP_COUNT] = {
     "mk_segment_ipa",
@@ -71,7 +73,11 @@ static const char *const op_names[OP_COUNT] = {
     "mk_system_segment_distance_ex (diphthong)",
     "mk_system_segment_distance_ex (phoible)",
     "mk_system_segment_distance_ex (cross-tier)",
-    "mk_registry_add_model_text_n"
+    "mk_registry_add_model_text_n",
+    "mk_system_grapheme_features (overlong)",
+    "mk_system_segment_distance_ex (marked clusters)",
+    "mk_system_feature_vector (cluster)",
+    "mk_system_diagnose and mk_ascii_chao_digits"
 };
 
 static mk_status run(int op)
@@ -107,6 +113,47 @@ static mk_status run(int op)
             descriptive, "a", "³³", NULL, &distance, &coverage, &why
         );
         break;
+    case 7: {
+        size_t i;
+        int ultra = 0;
+
+        status = mk_system_grapheme_features(descriptive, "aːː", &list);
+        for (i = 0; status == MK_OK && i < mk_string_list_size(list); i++) {
+            ultra |= strcmp(mk_string_list_get(list, i), "ultra-long") == 0;
+        }
+        if (status == MK_OK && !ultra) {
+            /* MK_OK without the promoted length: a swallowed failure. */
+            status = MK_ERR_PARSE;
+        }
+        break;
+    }
+    case 8:
+        status = mk_system_segment_distance_ex(
+            descriptive, "ntʰ", "ái", NULL, &distance, &coverage, &why
+        );
+        break;
+    case 9: {
+        double values[512];
+        size_t written = 0;
+
+        status = mk_system_feature_vector(descriptive, "ai", values, 512, &written);
+        if (status == MK_OK && values[68] != 2.0) {
+            /* The part count of a diphthong, after descriptive's 68 columns. */
+            status = MK_ERR_PARSE;
+        }
+        break;
+    }
+    case 10: {
+        mk_diagnosis diagnosis;
+        char *converted = NULL;
+
+        status = mk_system_diagnose(descriptive, "pʰa@", &diagnosis);
+        if (status == MK_OK) {
+            status = mk_ascii_chao_digits("ma55", &converted);
+            mk_string_free(converted);
+        }
+        break;
+    }
     default: {
         /* The registry is built with allocation failure off: what is under
          * test is the parse and the registration, not the built-in setup. */
