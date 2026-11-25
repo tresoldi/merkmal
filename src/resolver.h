@@ -92,6 +92,10 @@ typedef struct mki_cluster_component {
  * must memset it first, or the clear will free whatever the stack held. */
 typedef struct mki_resolution {
     mki_resolution_path path;
+    /* For MKI_RESOLVED_DIACRITICS without a tone, the path by which the
+     * grapheme without its modifiers resolved; MKI_RESOLVED_NONE otherwise. The
+     * tokenizer reads it to keep `tʃʰ` one segment because `tʃ` is one. */
+    mki_resolution_path base_path;
     const char *grapheme;
     const char *const *features;
     size_t feature_count;

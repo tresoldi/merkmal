@@ -32,6 +32,19 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- **Breaking:** a cluster whose part carries a diacritic or a tone (`ntʰ`,
+  `stʰ`, `pʷpʷ`, `ái`, `a¹i`) was reduced to its marks and scored 0.0 against
+  every cluster of its shape, with full coverage (`d(ntʰ, mpʰ) = 0.0`). It is
+  now resolved as a cluster whose parts keep their features: a diacritic stays
+  with its part, a prefix modifier (`ⁿ` in `ⁿph`) with the base after it, and a
+  tone is one tone of the whole syllable, wherever and however often it is
+  written (`a¹i`, `ai¹` and `a¹i¹` are one segment; two different tones are
+  refused). The same Lexibank segment types are recognized; distances change
+  for these forms.
+- `mk_system_segment_ipa` keeps a complex segment with a diacritic as one token
+  (`tʃʰa` gives `tʃʰ`, `a`, not `t`, `ʃʰ`, `a`), as the recognizer reads it, and
+  is total in the valued systems, where a tone after a vowel raised
+  `MK_ERR_UNSUPPORTED_MODEL`.
 - The JSON Schemas in `data/schemas/` are removed: nothing read them, and
   `tools/validate_models.py` is the statement of a valid model or geometry file.
 - **Breaking:** tone merging (`mk_merge_tone_digits`, `mk_segment_ipa_merged`)

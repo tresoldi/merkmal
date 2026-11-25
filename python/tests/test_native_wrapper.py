@@ -1236,6 +1236,19 @@ def test_system_aware_tokenizer_agrees_with_the_recognizer() -> None:
         "t͡ʃa", system="descriptive"
     ) == ["t͡ʃ", "a"]
 
+    # A complex segment keeps together when it carries a diacritic, as the
+    # recognizer reads it; a real cluster still splits.
+    for system in ("distinctive", "descriptive"):
+        for token in ("tʃʰ", "tsʰ", "tʃʼ", "tɕʰ", "tsː", "dʒʱ", "kpʷ", "ndʷ"):
+            assert merkmal.system_segment_ipa(token + "a", system=system) == [token, "a"], token
+            assert merkmal.is_segment(token, system=system), token
+        assert merkmal.system_segment_ipa("ptʰa", system=system) == ["p", "tʰ", "a"]
+
+    # Total over its input in every system: a valued system that cannot read a
+    # tone-bearing vowel leaves the tone as its own token.
+    for system in ("phoible", "pbase-spe"):
+        assert merkmal.system_segment_ipa("ma⁵⁵", system=system) == ["m", "a", "⁵⁵"]
+
     # A standalone tone remains its own autosegment. Association is a
     # prosodic analysis the segment tokenizer does not infer.
     assert merkmal.system_segment_ipa("tʰoŋ⁵⁵", system="descriptive") == ["tʰ", "o", "ŋ", "⁵⁵"]
@@ -1411,6 +1424,30 @@ def test_contradictory_and_malformed_composition_is_rejected() -> None:
         assert not merkmal.is_segment(grapheme), grapheme
         with pytest.raises(merkmal.NativeError):
             merkmal.get_features(grapheme)
+
+
+def test_a_cluster_with_a_marked_part_keeps_its_components() -> None:
+    """A diacritic or tone on one part must not reduce a cluster to that mark."""
+    for system in ("distinctive", "descriptive"):
+        for a, b in [
+            ("ntʰ", "mpʰ"), ("ntʰ", "ŋkʰ"), ("stʰ", "skʰ"), ("stʰ", "ʃpʰ"),
+            ("sːt", "rːk"), ("ái", "áu"), ("ái", "úo"), ("pʷpʷ", "mʷmʷ"),
+            ("a¹i", "u¹o"),
+        ]:
+            assert merkmal.distance(a, b, system=system) > 0.0, (system, a, b)
+        # The marked cluster scores as its unmarked shape does.
+        assert merkmal.distance("ái", "áu", system=system) == merkmal.distance(
+            "ai", "au", system=system
+        )
+        # One tone per syllable, wherever and however often it is written;
+        # two different tones are not one syllable's tone.
+        assert merkmal.distance("a¹i", "ai¹", system=system) == 0.0
+        assert merkmal.distance("a¹i¹", "ai¹", system=system) == 0.0
+        assert merkmal.distance("áá", "aá", system=system) == 0.0
+        assert not merkmal.is_segment("a¹i⁵", system=system)
+        assert not merkmal.is_segment("áà", system=system)
+        # A prefix modifier belongs to the base after it.
+        assert merkmal.distance("ⁿph", "ⁿth", system=system) > 0.0
 
 
 def test_cluster_synthesis_defects() -> None:
