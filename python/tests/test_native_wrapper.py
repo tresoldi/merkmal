@@ -1684,10 +1684,12 @@ def test_cluster_vectors_carry_their_parts() -> None:
         # The vector separates whatever the distance separates.
         for a, b in [("ai", "au"), ("ai", "ai¹"), ("ntʰ", "mpʰ"), ("ai", "a")]:
             assert merkmal.distance(a, b, system=system) > 0.0
-            assert merkmal.feature_vector(a, system=system) != merkmal.feature_vector(b, system=system)
+            left = merkmal.feature_vector(a, system=system)
+            assert left != merkmal.feature_vector(b, system=system)
         # The fixed-space value for two segments is over the segment columns.
+        b = merkmal.feature_vector("b", system=system)
         assert merkmal.fixed_space_distance("p", "b", system=system) == sum(
-            abs(x - y) for x, y in zip(p[:parts], merkmal.feature_vector("b", system=system)[:parts])
+            abs(x - y) for x, y in zip(p[:parts], b[:parts], strict=True)
         ) / parts
     if merkmal.DATA_PROFILE == "full":
         assert "components" not in merkmal.vector_labels(system="phoible")
