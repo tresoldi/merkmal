@@ -1220,9 +1220,11 @@ mk_status mk_bundle_compare(
     if (status != MK_OK) {
         return status;
     }
-    options = (mk_option *)malloc((a->column_count * MK_MAX_OPTIONS + 1) * sizeof(*options));
-    offsets = (size_t *)malloc((a->column_count + 1) * sizeof(*offsets));
-    counts = (size_t *)malloc((a->column_count + 1) * sizeof(*counts));
+    /* Zeroed, so that no path through mk_extreme can read an option, offset or
+     * count that was not written. */
+    options = (mk_option *)calloc(a->column_count * MK_MAX_OPTIONS + 1, sizeof(*options));
+    offsets = (size_t *)calloc(a->column_count + 1, sizeof(*offsets));
+    counts = (size_t *)calloc(a->column_count + 1, sizeof(*counts));
     if (options == NULL || offsets == NULL || counts == NULL) {
         free(options);
         free(offsets);
