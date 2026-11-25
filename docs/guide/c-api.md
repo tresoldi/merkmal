@@ -272,9 +272,9 @@ const char *mk_status_string(mk_status status);
 
 ```c
 #define MK_VERSION_MAJOR 0
-#define MK_VERSION_MINOR 9
+#define MK_VERSION_MINOR 10
 #define MK_VERSION_PATCH 0
-#define MK_VERSION_STRING "0.9.0"
+#define MK_VERSION_STRING "0.10.0"
 
 const char *mk_version_string(void);   /* the linked library's version */
 const char *mk_data_profile(void);     /* "full" or "cc-by" */
