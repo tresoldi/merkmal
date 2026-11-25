@@ -1438,8 +1438,10 @@ static mk_status mk_add_position_features(
         if (mki_streq(feature, "vowel") || mki_has_prefix(feature, "tone-")) {
             continue;
         }
-        if (mk_add_prefixed_feature(features, count, cap, prefix, feature) != MK_OK) {
-            return MK_ERR_OOM;
+        mk_status status = mk_add_prefixed_feature(features, count, cap, prefix, feature);
+
+        if (status != MK_OK) {
+            return status;
         }
     }
     return MK_OK;
@@ -1464,8 +1466,10 @@ static mk_status mk_add_cluster_movement_features(
         const char *from_feature = mk_view_feature_for_dimension(mki_view_of(from), dimensions[i]);
         const char *to_feature = mk_view_feature_for_dimension(mki_view_of(to), dimensions[i]);
 
-        if (mk_add_movement_feature(features, count, cap, dimensions[i], from_feature, to_feature) != MK_OK) {
-            return MK_ERR_OOM;
+        mk_status status = mk_add_movement_feature(features, count, cap, dimensions[i], from_feature, to_feature);
+
+        if (status != MK_OK) {
+            return status;
         }
     }
     return MK_OK;

@@ -1259,6 +1259,23 @@ int main(void)
         }
     }
 
+    {
+        /* On failure both outputs are 0.0, coverage included. */
+        double score = 42.0;
+        double coverage = 42.0;
+        mk_comparability why = MK_CMP_OK;
+
+        failed |= expect_status(
+            mk_system_segment_distance_ex(descriptive, "a", "@@@", NULL, &score, &coverage, &why),
+            MK_ERR_UNKNOWN_GRAPHEME,
+            "distance_ex unknown grapheme"
+        );
+        if (score != 0.0 || coverage != 0.0) {
+            fprintf(stderr, "distance_ex failure: outputs %g and %g, not 0.0\n", score, coverage);
+            failed = 1;
+        }
+    }
+
     mk_registry_free(registry);
     return failed ? 1 : 0;
 }

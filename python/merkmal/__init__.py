@@ -3,9 +3,10 @@
 Most functions are the C API's, called through the native extension. Unless a
 docstring says otherwise, they take ``system=None`` for the default system
 (``DEFAULT_SYSTEM``), raise ``KeyError`` for an unknown system, ``ValueError``
-for a grapheme the system cannot resolve, and ``NotImplementedError`` where
-the system does not support the operation, and ``NativeError`` for any other
-failure of the C library.
+for a grapheme the system cannot resolve (``ParseError``, a subclass of both
+``ValueError`` and ``NativeError``, for a malformed one such as ``a¹²³⁴``),
+``NotImplementedError`` where the system does not support the operation, and
+``NativeError`` for any other failure of the C library.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ except ImportError as exc:  # pragma: no cover - exercised before extension buil
     ) from exc
 
 NativeError = _native.NativeError
+ParseError = _native.ParseError
 # Raised for CLDF/CLTS markup (`<?>`, `<<...>>`, boundary markers), which is
 # not a sound and must not resolve. A ValueError subclass, so code that catches
 # ValueError also catches it; catching this one alone skips the source's own
@@ -234,7 +236,7 @@ class Registry:
         included in ``operation_fingerprint``: a mapping with at least
         ``name`` (equal to the model's ``@model`` name), ``version``,
         ``source``, ``interpretation`` and ``license``, serializable as JSON.
-        Raises ``NativeError`` for a model that does not parse,
+        Raises ``ParseError`` (a ``NativeError``) for a model that does not parse,
         ``ValueError`` for a name already registered or for an incomplete or
         mismatched manifest, and ``TypeError`` if ``manifest`` is not a
         mapping. The model is registered before the
@@ -496,6 +498,7 @@ __all__ = [
     "AbstractSegment",
     "BundleComparison",
     "NativeError",
+    "ParseError",
     "compatibility_dissimilarity",
     "Comparison",
     "SourceMarkerError",

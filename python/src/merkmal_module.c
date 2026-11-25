@@ -16,6 +16,7 @@
 static mk_registry *default_registry = NULL;
 static PyObject *mk_py_error = NULL;
 static PyObject *mk_py_source_marker = NULL;
+static PyObject *mk_py_parse_error = NULL;
 static const char *registry_capsule_name = "merkmal.registry";
 
 /* The system used when a call names none, exported as DEFAULT_SYSTEM so
@@ -241,6 +242,12 @@ static PyObject *status_error_detail(
          * keep working, and callers that want to skip the source's own gaps
          * without swallowing real failures can catch this instead. */
         PyErr_Format(mk_py_source_marker, "%s: %s", context, message);
+        break;
+    case MK_ERR_PARSE:
+        /* Malformed input: a grapheme such as `a¹²³⁴`, or a model text that does
+         * not parse. ParseError is both a ValueError, which grapheme calls are
+         * documented to raise, and a NativeError, which add_model_text is. */
+        PyErr_Format(mk_py_parse_error, "%s: %s", context, message);
         break;
     case MK_ERR_OOM:
         PyErr_NoMemory();
@@ -1584,6 +1591,26 @@ PyMODINIT_FUNC PyInit__native(void)
     Py_INCREF(mk_py_error);
     if (PyModule_AddObject(module, "NativeError", mk_py_error) < 0) {
         Py_DECREF(mk_py_error);
+        Py_DECREF(module);
+        return NULL;
+    }
+    {
+        PyObject *bases = PyTuple_Pack(2, PyExc_ValueError, mk_py_error);
+
+        if (bases == NULL) {
+            Py_DECREF(module);
+            return NULL;
+        }
+        mk_py_parse_error = PyErr_NewException("merkmal.ParseError", bases, NULL);
+        Py_DECREF(bases);
+    }
+    if (mk_py_parse_error == NULL) {
+        Py_DECREF(module);
+        return NULL;
+    }
+    Py_INCREF(mk_py_parse_error);
+    if (PyModule_AddObject(module, "ParseError", mk_py_parse_error) < 0) {
+        Py_DECREF(mk_py_parse_error);
         Py_DECREF(module);
         return NULL;
     }

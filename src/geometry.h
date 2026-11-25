@@ -122,4 +122,9 @@ mki_scorer mki_scorer_for(const mki_builtin_system *system);
  * way a resolution path is -- see mki_resolution_path_name. */
 const char *mki_scorer_name(mki_scorer scorer);
 
+/* Whether `node_weights` names a weight preset, or none (NULL, empty or
+ * "None"). Checked before any shortcut that answers without scoring, so an
+ * unknown preset is refused on every path. */
+bool mki_weight_preset_valid(const char *node_weights);
+
 #endif

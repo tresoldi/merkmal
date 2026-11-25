@@ -80,6 +80,14 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- An unknown weight preset was accepted, and ignored, when the answer needed no
+  scoring (a grapheme against itself, a tone against a segment); it is refused
+  on every path. `mk_system_segment_distance_ex` left `*coverage` unwritten
+  when a grapheme was refused; it is 0.0, as documented.
+- Python: a malformed grapheme (`a¹²³⁴`, `aːːː`) raised `NativeError`, not the
+  documented `ValueError`. It raises the new `merkmal.ParseError`, a subclass of
+  both. A feature name too long to prefix in a cluster raised `MemoryError`;
+  it raises `ParseError`.
 - The PHOIBLE inventories of `merkmal_typology` were labelled CC-BY-4.0 on a
   relicensing permission that was never recorded. They are labelled with
   PHOIBLE's own terms, CC-BY-SA-3.0, like the PHOIBLE model in the core library.

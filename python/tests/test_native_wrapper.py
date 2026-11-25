@@ -1572,3 +1572,30 @@ def test_embedded_nul_is_refused_rather_than_truncated() -> None:
         merkmal.sound_distance(["consonant\x00"], ["consonant"])
     with pytest.raises(ValueError, match="NUL"):
         merkmal.Registry().add_model_text("@model toy\x00\n@type categorical\n")
+
+
+def test_contract_holds_on_every_path() -> None:
+    # An unknown weight preset is refused even where an answer needs no scoring:
+    # a grapheme against itself, and a tone against a segment.
+    for a, b in [("a", "a"), ("a", "¹"), ("a", "e")]:
+        with pytest.raises(ValueError):
+            merkmal.distance(a, b, node_weights="bogus")
+
+    # A malformed grapheme is a ValueError, as documented, and a ParseError,
+    # which is also a NativeError.
+    for grapheme in ("aːːː", "a¹²³⁴"):
+        with pytest.raises(merkmal.ParseError):
+            merkmal.get_features(grapheme)
+    assert issubclass(merkmal.ParseError, ValueError)
+    assert issubclass(merkmal.ParseError, merkmal.NativeError)
+
+    # A feature name too long to be prefixed is refused as malformed, not
+    # reported as running out of memory.
+    registry = merkmal.Registry()
+    long_name = "f" * 120
+    registry.add_model_text(
+        "@model longlabel\n@type categorical\n@validation permissive\n"
+        f"grapheme a vowel {long_name}\ngrapheme i vowel\n"
+    )
+    with pytest.raises(merkmal.ParseError):
+        registry.get_features("ai", system="longlabel")

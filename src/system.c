@@ -139,6 +139,10 @@ static mk_status mk_score_resolved(
     mki_scorer scorer;
     mk_status status;
 
+    if (!mki_weight_preset_valid(node_weights)) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+
     /* Cross-tier before anything else. A tone and a segment share no dimension
      * by construction, so scoring them through the geometry would return a
      * number built entirely from how many features the *other* one has, which
@@ -207,6 +211,9 @@ static mk_status mk_distance_with_coverage(
         return MK_ERR_INVALID_ARGUMENT;
     }
     *out = 0.0;
+    if (coverage != NULL) {
+        *coverage = 0.0;
+    }
 
     status = mki_resolve(system, utf8_a, &resolved_a);
     if (status != MK_OK) {

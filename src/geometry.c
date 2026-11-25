@@ -233,6 +233,13 @@ static mk_status mk_resolve_weight_preset(
     return *out == NULL ? MK_ERR_INVALID_ARGUMENT : MK_OK;
 }
 
+bool mki_weight_preset_valid(const char *node_weights)
+{
+    const mki_node_weight_preset *preset = NULL;
+
+    return mk_resolve_weight_preset(node_weights, &preset) == MK_OK;
+}
+
 static double mk_direct_node_weight(
     const mki_node_weight_preset *preset,
     const char *node
