@@ -84,9 +84,10 @@ DEFAULT_MAX_VALUED_FORMS = 700
 # on purpose, the baseline is re-recorded and the commit says so.
 
 VALUED_REASON = (
-    "upstream: the {system} feature table assigns these graphemes identical "
-    "values on every dimension it defines, so the collapse is a property of that "
-    "feature system rather than of merkmal; not an intended equivalence"
+    "upstream: the {system} feature table gives these graphemes equal values on "
+    "every dimension both have a value on, and a dimension either leaves without "
+    "one is not compared, so the collapse is a property of that feature system "
+    "rather than of merkmal; not an intended equivalence"
 )
 
 

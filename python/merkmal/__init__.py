@@ -38,8 +38,9 @@ ParseError = _native.ParseError
 # marked gaps without also skipping segments the library cannot resolve.
 SourceMarkerError = _native.SourceMarkerError
 # The Unicode version of the compiled-in NFC/NFD tables. Every build of one
-# commit normalizes identically, so a cache of merkmal output keyed on
-# __version__ and UNICODE_VERSION is keyed on everything that can move it.
+# commit normalizes identically. A cache of merkmal output should be keyed on
+# the system's semantic fingerprint (system_fingerprint), which identifies the
+# data and policies behind a result; the package version does not.
 UNICODE_VERSION: str = _native.UNICODE_VERSION
 # The built-in data this build carries: "full", or "cc-by" for a build made
 # with MERKMAL_DATA_PROFILE=cc-by, which omits the PHOIBLE and P-base tables

@@ -29,7 +29,7 @@ compiled into the library from the source data in [data/models/](data/models/).
 | --- | --- | --- | --- |
 | `distinctive` (default) | Distinctive features after Clements and Hume (1995), with scalar dimensions | categorical | CLTS 1.4.1 (List et al.) |
 | `descriptive` | Articulatory descriptions of IPA segments, scored through the feature geometry | categorical | CLTS 1.4.1 (List et al.) |
-| `phoible` | PHOIBLE binary features (37 dimensions) | valued | PHOIBLE 2.0 (Moran and McCloy 2019) |
+| `phoible` | PHOIBLE binary features (38 dimensions) | valued | PHOIBLE 2.0 (Moran and McCloy 2019) |
 | `pbase-spe` | SPE features (Chomsky and Halle 1968) | valued | P-base (Mielke) |
 | `pbase-jfh` | Acoustic features of Jakobson, Fant and Halle (1952) | valued | P-base (Mielke) |
 | `pbase-hc`, `pbase-uftc` | The HC and UFTC feature sets of P-base | valued | P-base (Mielke) |
@@ -99,8 +99,10 @@ properties limit what that number can be used for.
   a distance of zero are listed with their reasons in
   `tests/golden/contrast_baseline.tsv`. In the categorical systems they are
   spellings of one segment (diacritics in another order, or an equivalent
-  notation); in the valued systems they are segments that the source table
-  does not distinguish.
+  notation). In the valued systems they are segments that agree on every
+  dimension both have a value on, which may be few or none, since a dimension
+  either segment leaves without a value is not compared; the coverage of a
+  comparison reports how many were.
 
 Results depend on the system, its version and the scoring policy. The semantic
 fingerprint of a system ([docs/method/semantic-fingerprint.md](docs/method/semantic-fingerprint.md))

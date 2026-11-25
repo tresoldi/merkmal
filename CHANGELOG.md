@@ -107,6 +107,14 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- Documentation that did not match the code: the PHOIBLE tone example in
+  `c-api.md` (a tone against a segment is cross-tier, not 0.0), the reason given
+  for zero distances in the valued systems (equal on every dimension *both*
+  define, not identical source rows), PHOIBLE's dimension count (38, not 37;
+  model 2.0.1, whose fingerprint changes and whose distances do not), the
+  claim that every grapheme yields an abstract segment, the methods of
+  `Registry`, and the undocumented reading of `x/y` as `y` and of a leading
+  stress mark.
 - Cost on long or large input: canonical reordering was quadratic in a run of
   combining marks, `mk_system_diagnose` resolved every prefix of its input (17 s
   for 4 KB), and a runtime model's fingerprint was quadratic in its rows. Long

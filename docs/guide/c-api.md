@@ -95,17 +95,16 @@ NULL. Otherwise the statuses are those of
 
 A valued system skips any dimension on which either segment has no value (`0`
 or `?` in PHOIBLE, `.` in the P-base systems), so a distance of `0.0` does not
-distinguish "identical" from "nothing in common to compare". PHOIBLE's tone
-letters, for example, have a value on no dimension except `tone`, on which no
-other segment has one, so `˦˨` scores `0.0` against every entry in the table:
-against a segment with no dimension compared, against another tone letter on
-that single dimension.
+distinguish "identical" from "nothing in common to compare". In `phoible`,
+for example, `ae̯` and `ɹ̪̹̩` have no dimension on which both have a value, and
+score `0.0`. (PHOIBLE's tone rows have a value only on `tone`; a tone row
+against a segment is cross-tier, not a zero.)
 
 `*coverage` is the share of the system's declared dimensions on which both
 segments have a value, in `[0, 1]`. It is measured against the system, not the
 segments, so in a valued system a segment compared with itself reports less
 than 1.0 whenever it leaves a dimension without a value: `("p", "p")` in
-`phoible` is 27/38. `d(˦˨, d)` in `phoible` is `(0.0, 0.0)`; `d(e, i)` in
+`phoible` is 27/38. `d(ae̯, ɹ̪̹̩)` in `phoible` is `(0.0, 0.0)`; `d(e, i)` in
 `pbase-uftc`, which that table does not distinguish, is `(0.0, 0.75)`. The
 library sets no threshold: what counts as too weak a comparison depends on the
 application.
@@ -493,7 +492,10 @@ the content checked use `mk_system_is_segment` or
 `mk_system_grapheme_features`, which return `MK_ERR_PARSE` for that token.
 
 `mk_normalize_grapheme` returns merkmal's NFC form of a grapheme together with
-its IPA rewrites; `mk_unicode_normalize` applies plain Unicode canonical
+its IPA rewrites, which every lookup also applies. Among them, two follow the
+transcription conventions of CLDF datasets: a slash pair `x/y` (source
+spelling and its standard form) is read as `y`, and a leading stress mark is
+removed, so `b/p` and `ˈpa` look up as `p` and `pa`; `mk_unicode_normalize` applies plain Unicode canonical
 normalization (NFC or NFD, UAX #15) without IPA rewrites, and passes malformed
 bytes through unchanged. The tokenizers work in NFD. All of these use compiled
 Unicode tables and normalize identically in every build; see

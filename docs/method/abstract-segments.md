@@ -55,7 +55,8 @@ column per label, `+1` if the label is present, `−1` if the node holds another
 label, and `0` if the node holds none. A bundle holds the group as one cell.
 
 Two properties hold over every grapheme of every built-in system: graphemes
-with equal vectors are at distance 0, and every grapheme yields a bundle.
+with equal vectors are at distance 0, and every inventory row other than a
+tone (PHOIBLE's tone rows) yields a bundle.
 A bundle made from a grapheme scores as that grapheme does against any other;
 the Python suite checks this, with its coverage, on 150 random pairs per
 system.
