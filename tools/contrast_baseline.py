@@ -207,11 +207,12 @@ def _marks(token: str) -> tuple[frozenset[str], str, frozenset[str], int] | None
 
 
 def modifier_equivalent(a: str, b: str) -> bool:
-    """Whether two graphemes are one base with the same diacritics, reordered or repeated.
+    """Whether two graphemes are one base with the same diacritics, reordered.
 
-    `t̪ʷʰ` and `t̪ʰʷ`, or `t̪ʰ` and `t̪ʰʰ`, write the same set of marks on the same
-    base. Diacritic order carries no contrast in IPA and a repeated mark adds
-    nothing. Length marks are counted rather than collected, because `ːː` is
+    `t̪ʷʰ` and `t̪ʰʷ` write the same set of marks on the same base, and
+    diacritic order carries no contrast in IPA. A mark repeated on one letter
+    (`t̪ʰʰ`) is refused by the library, so it never reaches this test. Length
+    marks are counted rather than collected, because `ːː` is
     overlong and not a repeated `ː`; marks before the base are kept apart from
     marks after it, because `ʰt` is pre-aspirated and `tʰ` is aspirated.
     """
@@ -450,8 +451,7 @@ def main() -> int:
                     status = "modifier-equivalent"
                     reason = (
                         "one base with the same diacritics, written in another "
-                        "order or with a mark repeated; diacritic order carries "
-                        "no contrast in IPA and a repeated mark adds nothing"
+                        "order; diacritic order carries no contrast in IPA"
                     )
                 elif spelling_equivalent(a, b):
                     # The same tone written differently. Chao's notation is
