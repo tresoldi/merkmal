@@ -1733,8 +1733,10 @@ def test_runtime_model_header_is_unambiguous() -> None:
 
 def test_a_mark_repeated_on_one_letter_is_refused() -> None:
     # A mark written twice on one letter adds nothing, so the label is refused
-    # rather than read as the label with the mark once.
-    for system in ("distinctive", "descriptive", "phoible"):
+    # rather than read as the label with the mark once. PHOIBLE is not in the
+    # cc-by profile.
+    systems = [s for s in ("distinctive", "descriptive", "phoible") if s in merkmal.list_systems()]
+    for system in systems:
         for grapheme in (
             "tʰʰ",  # tʰʰ
             "tʰʷʰ",  # tʰʷʰ: the repeat need not be adjacent
