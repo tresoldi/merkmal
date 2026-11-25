@@ -22,6 +22,15 @@ requires_full_data = pytest.mark.skipif(
     reason="needs the PHOIBLE and P-base tables, absent from the cc-by profile",
 )
 
+# Some tests read the repository's source data and fixtures (data/, tests/golden/).
+# The source distribution ships the tests without those files, so there these
+# tests are skipped rather than failed; in a checkout they always run.
+_CHECKOUT = Path(__file__).resolve().parents[2]
+requires_checkout = pytest.mark.skipif(
+    not ((_CHECKOUT / "data" / "models").is_dir() and (_CHECKOUT / "tests" / "golden").is_dir()),
+    reason="reads data/ and tests/golden/ from a repository checkout",
+)
+
 
 def test_native_lists_expanded_systems() -> None:
     systems = merkmal.list_systems()
@@ -569,6 +578,7 @@ def test_fixed_space_distance_is_distinct_from_compatibility_score() -> None:
     assert comparison.comparability == "no-shared-dimension"
 
 
+@requires_checkout
 def test_alternative_geometry_is_explicit_and_fingerprinted() -> None:
     geometry = merkmal.load_geometry(
         Path(__file__).resolve().parents[2] / "data" / "geometries" / "deep-clements-hume.json"
@@ -778,6 +788,7 @@ def test_source_conventions_cover_clts_lookalikes() -> None:
     assert merkmal.distance("ɫ", "lˠ", system="phoible") > 0.0
 
 
+@requires_checkout
 def test_feature_vectors_are_lossless() -> None:
     """Graphemes with equal vectors are at distance zero, in every system.
 
@@ -828,6 +839,7 @@ def test_abstract_segment_comparability_uses_the_comparison_labels() -> None:
         merkmal.AbstractSegment.from_grapheme("˥", system="phoible")
 
 
+@requires_checkout
 def test_abstract_segment_from_grapheme_scores_as_the_grapheme() -> None:
     """A bundle made from a grapheme reproduces the scorer, coverage included."""
     import random
@@ -862,6 +874,7 @@ def _completions(values: list[str], cell: str, binary: bool) -> list[str]:
     return sorted(set(out))
 
 
+@requires_checkout
 def test_abstract_segment_bounds_are_exact() -> None:
     """minimum and maximum equal brute-force enumeration of the completions."""
     import itertools
@@ -1002,6 +1015,7 @@ def test_sound_distance_scores_bare_feature_sets() -> None:
         merkmal.sound_distance([1], b)  # type: ignore[list-item]
 
 
+@requires_checkout
 def test_geometry_cases_cover_every_fixture_row() -> None:
     """The fixtures name feature sets; the case file has to define them all.
 
@@ -1246,8 +1260,9 @@ def test_system_aware_tokenizer_agrees_with_the_recognizer() -> None:
 
     # Total over its input in every system: a valued system that cannot read a
     # tone-bearing vowel leaves the tone as its own token.
-    for system in ("phoible", "pbase-spe"):
-        assert merkmal.system_segment_ipa("ma⁵⁵", system=system) == ["m", "a", "⁵⁵"]
+    if merkmal.DATA_PROFILE == "full":
+        for system in ("phoible", "pbase-spe"):
+            assert merkmal.system_segment_ipa("ma⁵⁵", system=system) == ["m", "a", "⁵⁵"]
 
     # A standalone tone remains its own autosegment. Association is a
     # prosodic analysis the segment tokenizer does not infer.
@@ -1499,6 +1514,7 @@ def _one_letter_vowels(system: str) -> list[str]:
     return vowels
 
 
+@requires_checkout
 @pytest.mark.parametrize("system", ["descriptive", "distinctive"])
 def test_every_vowel_letter_can_be_part_of_a_vowel_cluster(system: str) -> None:
     # Issue #2: German ɔʏ̯ and ʏɐ were unknown while ɔɪ̯ and ɪɐ read, because
@@ -1537,6 +1553,7 @@ def test_precomposed_rhotic_vowels_read_as_their_diacritic_spelling(system: str)
     assert merkmal.segment_ipa("bɝd") == ["b", "ɝ", "d"]
 
 
+@requires_checkout
 @pytest.mark.parametrize("system", ["descriptive", "distinctive"])
 def test_a_place_diacritic_replaces_the_base_place(system: str) -> None:
     # Diacritic synthesis was purely additive, so `n` + dental U+032A sat at two
@@ -1672,7 +1689,8 @@ def test_cluster_vectors_carry_their_parts() -> None:
         assert merkmal.fixed_space_distance("p", "b", system=system) == sum(
             abs(x - y) for x, y in zip(p[:parts], merkmal.feature_vector("b", system=system)[:parts])
         ) / parts
-    assert "components" not in merkmal.vector_labels(system="phoible")
+    if merkmal.DATA_PROFILE == "full":
+        assert "components" not in merkmal.vector_labels(system="phoible")
 
 
 def test_long_input_costs_are_bounded() -> None:
