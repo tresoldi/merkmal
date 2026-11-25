@@ -293,6 +293,14 @@ MK_API mk_status mk_system_segment_ipa(
     mk_string_list **out
 );
 
+/** Rewrites the ASCII digits 0-5 in a UTF-8 string as the superscript Chao
+ * digits, so "ma55" becomes "ma⁵⁵"; every other character is copied. No other
+ * function does this: in a romanization (Jyutping ji6, Pinyin i1) ASCII digits
+ * number tone categories, not pitch levels, so a caller applies it only to
+ * text known to write Chao levels in ASCII. Returns an owned string; free with
+ * mk_string_free. */
+MK_API mk_status mk_ascii_chao_digits(const char *utf8_in, char **utf8_out);
+
 /** Merges Chao tone tokens into the preceding eligible segment; a tone with no
  * such segment in its word, and the neutral tone `⁰`, are kept as tokens of
  * their own. `segments` is
@@ -339,6 +347,9 @@ MK_API mk_status mk_split_tone(
  * length when nothing is wrong. `offending_offset` is the byte offset just
  * past that prefix, and `offending` holds the UTF-8 character there,
  * NUL-terminated, empty when there is none.
+ *
+ * Prefixes longer than 256 bytes are not tried, so the cost is bounded for any
+ * input; no segment is that long.
  *
  * There is no "nearest valid grapheme". See docs/guide/c-api.md, Diagnosing a
  * refusal.
@@ -445,8 +456,9 @@ MK_API mk_status mk_unicode_normalize(
 /** Writes a fixed-width numeric vector for a grapheme.
  *
  * `values` must have room for mk_system_vector_width entries; on
- * MK_ERR_INVALID_ARGUMENT from too small a buffer, `*written` reports the width
- * needed, so one failed call is enough to size it. A grapheme that does not
+ * MK_ERR_INVALID_ARGUMENT from too small a buffer, or from `values` NULL with
+ * `capacity` 0, `*written` reports the width needed, so one failed call is
+ * enough to size it. A grapheme that does not
  * resolve returns its refusal status with `*written` 0.
  *
  * Encoding, following `soundvectors` (Rubehn, Nieder, Forkel & List 2024); see
@@ -461,6 +473,12 @@ MK_API mk_status mk_unicode_normalize(
  * Ordered scales cannot use `0` for a middle level, since `0` already means "no
  * value". A scale of n levels maps level i to i/n, so scale columns land in
  * (0, 1] and `0` still means the scale does not apply.
+ *
+ * In a categorical system the segment columns are followed by `components`,
+ * the number of parts of a synthesized cluster (0 for a single segment), and
+ * three blocks of segment columns, one per part (`c1:...`, `c2:...`,
+ * `c3:...`), zero where there is no part. Graphemes with equal vectors are at
+ * distance zero, clusters included.
  */
 MK_API mk_status mk_system_feature_vector(
     const mk_system *system,

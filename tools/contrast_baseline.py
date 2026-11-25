@@ -84,9 +84,10 @@ DEFAULT_MAX_VALUED_FORMS = 700
 # on purpose, the baseline is re-recorded and the commit says so.
 
 VALUED_REASON = (
-    "upstream: the {system} feature table assigns these graphemes identical "
-    "values on every dimension it defines, so the collapse is a property of that "
-    "feature system rather than of merkmal; not an intended equivalence"
+    "upstream: the {system} feature table gives these graphemes equal values on "
+    "every dimension both have a value on, and a dimension either leaves without "
+    "one is not compared, so the collapse is a property of that feature system "
+    "rather than of merkmal; not an intended equivalence"
 )
 
 
@@ -115,6 +116,14 @@ BARE_TONE_FORMS = (
 # carries them, so an inventory-derived sweep never reaches them. The list is
 # taken from Lexibank by token frequency, so that it reflects the spellings
 # found in transcribed data.
+# Clusters whose parts carry a diacritic or a tone. Resolved through the
+# cluster grammars, each part keeps its own features; a form that lost them
+# would score 0.0 against others of its shape, which this sweep then reports.
+MODIFIED_CLUSTER_FORMS = [
+    'ái', 'áu', 'úo', 'a¹i', 'u¹o', 'ãi', 'õi', 'ɐ̃ʊ̃', 'pʷpʷ', 'mʷmʷ',
+    'ntʰ', 'mpʰ', 'ŋkʰ', 'stʰ', 'skʰ', 'ʃpʰ', 'sːt', 'rːk', 'dsː', 'kʟ̥',
+]
+
 CLUSTER_FORMS = ['ai', 'au', 'ei', 'ou', 'aːi', 'əu', 'ui', 'ia', 'oi', 'ɛi', 'eu', 'ɑi', 'əi', 'ɑu', 'aɪ', 'aːu', 'ɔi', 'uɔ', 'aa', 'ua', 'ɐu', 'ai̯', 'ao', 'ɔu', 'eɪ', 'aʊ', 'ae', 'ea', 'iɛ', 'uə', 'oa', 'au̯', 'ɔɪ', 'ie', 'mb', 'ɐi']
 
 
@@ -213,6 +222,10 @@ def modifier_equivalent(a: str, b: str) -> bool:
 def composed_forms(system: str, bases: list[str]) -> list[str]:
     step = max(1, len(bases) // 40)
     out: list[str] = list(BARE_TONE_FORMS) + list(CLUSTER_FORMS)
+    if system in CATEGORICAL:
+        # Only the categorical systems synthesize clusters. Offered to a valued
+        # system, the forms would only move its sample.
+        out += MODIFIED_CLUSTER_FORMS
     for base in bases[::step][:40]:
         candidates = [base + suffix for suffix in COMPOSED_SUFFIXES]
         candidates += [prefix + base for prefix in COMPOSED_PREFIXES]

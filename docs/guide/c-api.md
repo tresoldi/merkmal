@@ -95,17 +95,16 @@ NULL. Otherwise the statuses are those of
 
 A valued system skips any dimension on which either segment has no value (`0`
 or `?` in PHOIBLE, `.` in the P-base systems), so a distance of `0.0` does not
-distinguish "identical" from "nothing in common to compare". PHOIBLE's tone
-letters, for example, have a value on no dimension except `tone`, on which no
-other segment has one, so `˦˨` scores `0.0` against every entry in the table:
-against a segment with no dimension compared, against another tone letter on
-that single dimension.
+distinguish "identical" from "nothing in common to compare". In `phoible`,
+for example, `ae̯` and `ɹ̪̹̩` have no dimension on which both have a value, and
+score `0.0`. (PHOIBLE's tone rows have a value only on `tone`; a tone row
+against a segment is cross-tier, not a zero.)
 
 `*coverage` is the share of the system's declared dimensions on which both
 segments have a value, in `[0, 1]`. It is measured against the system, not the
 segments, so in a valued system a segment compared with itself reports less
 than 1.0 whenever it leaves a dimension without a value: `("p", "p")` in
-`phoible` is 27/38. `d(˦˨, d)` in `phoible` is `(0.0, 0.0)`; `d(e, i)` in
+`phoible` is 27/38. `d(ae̯, ɹ̪̹̩)` in `phoible` is `(0.0, 0.0)`; `d(e, i)` in
 `pbase-uftc`, which that table does not distinguish, is `(0.0, 0.75)`. The
 library sets no threshold: what counts as too weak a comparison depends on the
 application.
@@ -182,9 +181,19 @@ valued system's columns are its own inventory columns. A system that declares
 `scalar_dimensions` uses those, followed by the geometry's ordered scales. The
 remaining systems use the geometry's leaves, its ordered scales, and one-hot
 node-group columns named `Node=label` (+1 when the label is present, −1 when
-the node is set by another label, 0 when the node is unset). The widths in the
-built-in data are 64 for `distinctive`, 68 for `descriptive`, 38 for `phoible`
-and 23 for `pbase-hc`. Callers should obtain the width and order from
+the node is set by another label, 0 when the node is unset).
+
+A synthesized cluster (a diphthong or a consonant cluster) is scored from its
+parts as well as from its own features, so in a categorical system the segment
+columns are followed by cluster columns: `components`, the number of parts (0
+for a single segment), then one block of segment columns per part, up to three
+(`c1:voice`, ..., `c3:...`), zero where there is no part. The segment columns
+lead every vector and are those of the grapheme itself, so a caller that only
+compares segments can read them alone. With the cluster columns, graphemes with
+equal vectors are at distance zero, clusters included. Valued systems
+synthesize no clusters and have the segment columns only. The widths in the
+built-in data are 257 for `distinctive` (64 segment columns), 273 for
+`descriptive` (68), 38 for `phoible` and 23 for `pbase-hc`. Callers should obtain the width and order from
 `mk_system_vector_width` and `mk_system_vector_labels` rather than assume them;
 the labels are unique within a system, so a column can be addressed by name.
 
@@ -483,7 +492,10 @@ the content checked use `mk_system_is_segment` or
 `mk_system_grapheme_features`, which return `MK_ERR_PARSE` for that token.
 
 `mk_normalize_grapheme` returns merkmal's NFC form of a grapheme together with
-its IPA rewrites; `mk_unicode_normalize` applies plain Unicode canonical
+its IPA rewrites, which every lookup also applies. Among them, two follow the
+transcription conventions of CLDF datasets: a slash pair `x/y` (source
+spelling and its standard form) is read as `y`, and a leading stress mark is
+removed, so `b/p` and `ˈpa` look up as `p` and `pa`; `mk_unicode_normalize` applies plain Unicode canonical
 normalization (NFC or NFD, UAX #15) without IPA rewrites, and passes malformed
 bytes through unchanged. The tokenizers work in NFD. All of these use compiled
 Unicode tables and normalize identically in every build; see
@@ -507,8 +519,11 @@ and Pinyin `i1` number contrastive tone categories, and these numbers encode no
 pitch: Jyutping tone 6 is not Chao level 6, which does not exist. Reading them
 as Chao digits would assert pitch features that the notation does not assert,
 so ASCII digits are not recognized and a token containing them is an unknown
-grapheme. A corpus that uses category numbers should carry tone in a separate
-column and leave its interpretation to the consumer.
+grapheme; the tokenizers leave them as written (`ji6` is `j`, `i`, `6`). A
+corpus that uses category numbers should carry tone in a separate column and
+leave its interpretation to the consumer. A corpus that writes Chao levels in
+ASCII (`ma55` for `ma⁵⁵`) can convert them with `mk_ascii_chao_digits`, which
+rewrites `0`–`5` as superscripts and nothing else, before tokenizing.
 
 `⁰` denotes Chao's neutral tone, a syllable without tone in a language that
 otherwise has tone. It is not a pitch level: as a tone token of its own it

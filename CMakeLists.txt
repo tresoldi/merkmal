@@ -417,6 +417,12 @@ write_basic_package_version_file(
     COMPATIBILITY SameMajorVersion
 )
 
+# merkmal.pc locates the prefix from its own directory, so that an installed
+# tree can be moved. The number of levels depends on CMAKE_INSTALL_LIBDIR
+# (lib, lib64 or a multiarch lib/x86_64-linux-gnu), so it is computed here.
+file(RELATIVE_PATH MERKMAL_PC_PREFIX_FROM_PCFILEDIR
+    "${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig" "${CMAKE_INSTALL_PREFIX}")
+string(REGEX REPLACE "/$" "" MERKMAL_PC_PREFIX_FROM_PCFILEDIR "${MERKMAL_PC_PREFIX_FROM_PCFILEDIR}")
 configure_file(
     cmake/merkmal.pc.in
     "${CMAKE_CURRENT_BINARY_DIR}/merkmal.pc"

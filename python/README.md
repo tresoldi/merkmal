@@ -120,8 +120,11 @@ grapheme X consonant voiceless bilabial stop
 registry.get_features("X", system="toy")
 ```
 
-Each method of a `Registry` is the module-level function of the same name,
-applied to that registry; the native registry lives as long as the object.
+A `Registry` provides `list_systems`, `get_features`, `is_segment`, `distance`,
+`system_segment_ipa`, `system_fingerprint`, `operation_fingerprint`,
+`model_manifest` and `add_model_text`. Each is the module-level function of the
+same name, applied to that registry; the other functions read the built-in
+systems only. The native registry lives as long as the object.
 Module-level functions use a shared registry of the built-in systems only, so a
 model added to a `Registry` is visible only through it. A name that is already
 registered raises `ValueError`. The format is described in
@@ -140,7 +143,10 @@ merkmal segment "tʃa pʰa"
 merkmal --system phoible features bʰ
 ```
 
-`--system` (`-s`) precedes the subcommand. The default output is meant for
+`--system` (`-s`) precedes the subcommand. With it, `segment` cuts the text as
+that system reads it (`system_segment_ipa`); without it, at each base
+character (`segment_ipa`). `normalize` does not depend on a system and refuses
+the option. The default output is meant for
 reading and may change between releases. The machine-readable modes are the
 stable interface; each may be given before or after the subcommand:
 
@@ -158,7 +164,7 @@ Records by subcommand:
 | `features` | `{"system", "grapheme", "features": [...]}` | `grapheme`, `feature` |
 | `distance` | `{"system", "a", "b", "distance", "coverage", "comparability"}` | the same fields |
 | `normalize` | `{"input", "normalized"}` | the same fields |
-| `segment` | `{"text", "segments": [...]}` | `index`, `segment` |
+| `segment` | `{"text", "segments": [...]}`, with `"system"` when given | `index`, `segment` |
 
 `system` is the system used: the one named, or `merkmal.DEFAULT_SYSTEM`. Text is
 UTF-8. In TSV, a backslash, tab or newline inside a value is written `\\`, `\t`

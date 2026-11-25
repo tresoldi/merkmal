@@ -196,7 +196,7 @@ static bool mk_feature_list_contains(const char *const *items, size_t count, con
     return mki_features_contain(items, count, feature);
 }
 
-static void mk_replace_owned_feature(
+static mk_status mk_replace_owned_feature(
     char **items,
     size_t count,
     const char *from,
@@ -208,13 +208,16 @@ static void mk_replace_owned_feature(
     for (i = 0; i < count; i++) {
         if (mki_streq(items[i], from)) {
             char *copy = mki_strdup_internal(to);
-            if (copy != NULL) {
-                free(items[i]);
-                items[i] = copy;
+
+            if (copy == NULL) {
+                return MK_ERR_OOM;
             }
-            return;
+            free(items[i]);
+            items[i] = copy;
+            return MK_OK;
         }
     }
+    return MK_OK;
 }
 
 static mk_status mk_add_owned_feature(char ***items, size_t *count, size_t *cap, const char *feature)
@@ -984,7 +987,10 @@ static mk_status mk_decompose_diacritics(
                 mk_feature_list_contains(
                     (const char *const *)modifiers, modifier_count, "long"
                 )) {
-                mk_replace_owned_feature(modifiers, modifier_count, "long", "ultra-long");
+                status = mk_replace_owned_feature(modifiers, modifier_count, "long", "ultra-long");
+                if (status != MK_OK) {
+                    goto fail;
+                }
                 recognized_modifier = 1;
                 p += strlen(suffix->mark);
                 continue;
@@ -1438,8 +1444,10 @@ static mk_status mk_add_position_features(
         if (mki_streq(feature, "vowel") || mki_has_prefix(feature, "tone-")) {
             continue;
         }
-        if (mk_add_prefixed_feature(features, count, cap, prefix, feature) != MK_OK) {
-            return MK_ERR_OOM;
+        mk_status status = mk_add_prefixed_feature(features, count, cap, prefix, feature);
+
+        if (status != MK_OK) {
+            return status;
         }
     }
     return MK_OK;
@@ -1464,8 +1472,10 @@ static mk_status mk_add_cluster_movement_features(
         const char *from_feature = mk_view_feature_for_dimension(mki_view_of(from), dimensions[i]);
         const char *to_feature = mk_view_feature_for_dimension(mki_view_of(to), dimensions[i]);
 
-        if (mk_add_movement_feature(features, count, cap, dimensions[i], from_feature, to_feature) != MK_OK) {
-            return MK_ERR_OOM;
+        mk_status status = mk_add_movement_feature(features, count, cap, dimensions[i], from_feature, to_feature);
+
+        if (status != MK_OK) {
+            return status;
         }
     }
     return MK_OK;
@@ -1549,6 +1559,22 @@ static mk_status mk_parse_component_once(
     status = mki_append_text(&component, &len, &cap, "");
     if (status != MK_OK) {
         return status;
+    }
+    /* A prefix modifier (`ⁿ` in `ⁿph`) belongs to the base that follows it. */
+    for (;;) {
+        const mki_diacritic_map *prefix = mk_match_diacritic_map(
+            mki_default_prefix_diacritics, mki_default_prefix_diacritic_count, p
+        );
+
+        if (prefix == NULL || p[strlen(prefix->mark)] == '\0') {
+            break;
+        }
+        status = mki_append_text(&component, &len, &cap, prefix->mark);
+        if (status != MK_OK) {
+            free(component);
+            return status;
+        }
+        p += strlen(prefix->mark);
     }
     {
         char one[5];
@@ -1676,9 +1702,17 @@ static mk_status mk_parse_component_at(
     if (*first_end != '\0') {
         mki_resolution second;
         const char *second_end = NULL;
+        mk_status second_status;
 
         memset(&second, 0, sizeof(second));
-        if (mk_parse_component_once(system, grammar, first_end, &second_end, &second) == MK_OK) {
+        /* The look-ahead asks whether two components read as one segment. A
+         * refusal means no; running out of memory is a failure, not a no. */
+        second_status = mk_parse_component_once(system, grammar, first_end, &second_end, &second);
+        if (second_status == MK_ERR_OOM) {
+            mki_resolution_clear(component_out);
+            return MK_ERR_OOM;
+        }
+        if (second_status == MK_OK) {
             char *joined = NULL;
             size_t len = 0;
             size_t cap = 0;
@@ -1694,7 +1728,13 @@ static mk_status mk_parse_component_at(
             }
             memcpy(text, start, span);
             text[span] = '\0';
-            if (mki_append_text(&joined, &len, &cap, text) == MK_OK) {
+            if (mki_append_text(&joined, &len, &cap, text) != MK_OK) {
+                free(joined);
+                free(text);
+                mki_resolution_clear(component_out);
+                return MK_ERR_OOM;
+            }
+            {
                 mki_resolution merged;
                 mki_entry_view entry;
                 mk_status merged_status;
@@ -1709,6 +1749,12 @@ static mk_status mk_parse_component_at(
                     merged.feature_count = entry.feature_count;
                 } else {
                     merged_status = mk_synthesize_descriptive_complex(system, joined, &merged);
+                }
+                if (merged_status == MK_ERR_OOM) {
+                    free(joined);
+                    free(text);
+                    mki_resolution_clear(component_out);
+                    return MK_ERR_OOM;
                 }
                 if (merged_status == MK_OK && grammar->accepts(&merged)) {
                     mki_resolution_clear(component_out);
@@ -1851,6 +1897,99 @@ static const mk_cluster_grammar mk_consonant_cluster_grammar = {
     NULL
 };
 
+/* Tone is a property of the syllable, not of one vowel in it: `ái`, `a¹i`,
+ * `ai¹` and `áá` carry one high or level tone over the whole cluster. This
+ * removes every tone mark and Chao run that follows the first character into
+ * `*untoned`, adds the tone's features once, and refuses (UNKNOWN_GRAPHEME) a
+ * token whose tones differ, since a contour across two vowels written as two
+ * tones is not a reading this grammar makes. A token with no tone is copied. */
+static mk_status mk_take_syllable_tone(
+    const char *normalized,
+    char **untoned,
+    char ***features,
+    size_t *feature_count,
+    size_t *feature_cap
+)
+{
+    const char *p = normalized;
+    const char *first_tone = NULL;
+    size_t first_len = 0;
+    size_t length = strlen(normalized);
+    char *out = (char *)malloc(length + 1);
+    size_t used = 0;
+
+    *untoned = NULL;
+    if (out == NULL) {
+        return MK_ERR_OOM;
+    }
+    while (*p != '\0') {
+        const mki_tone_mark *mark = p == normalized ? NULL : mk_match_tone_mark(p);
+        size_t tone_len = 0;
+        mk_status status = MK_ERR_UNKNOWN_GRAPHEME;
+
+        if (mark != NULL) {
+            tone_len = strlen(mark->mark);
+        } else if (p != normalized) {
+            char **scratch = NULL;
+            size_t scratch_count = 0;
+            size_t scratch_cap = 0;
+
+            status = mk_match_chao_tone_sequence(p, &tone_len, &scratch, &scratch_count, &scratch_cap);
+            mk_free_owned_feature_array(scratch, scratch_count);
+            if (status != MK_OK && status != MK_ERR_UNKNOWN_GRAPHEME) {
+                free(out);
+                return status;
+            }
+            if (status != MK_OK) {
+                tone_len = 0;
+            }
+        }
+        if (tone_len == 0) {
+            size_t step = mki_utf8_step(p);
+
+            memcpy(out + used, p, step);
+            used += step;
+            p += step;
+            continue;
+        }
+        if (first_tone == NULL) {
+            first_tone = p;
+            first_len = tone_len;
+        } else if (tone_len != first_len || memcmp(p, first_tone, tone_len) != 0) {
+            free(out);
+            return MK_ERR_UNKNOWN_GRAPHEME;
+        }
+        p += tone_len;
+    }
+    out[used] = '\0';
+    if (first_tone != NULL) {
+        mk_status status;
+        const mki_tone_mark *mark = mk_match_tone_mark(first_tone);
+
+        if (mark != NULL) {
+            size_t i;
+
+            for (i = 0; i < mark->feature_count; i++) {
+                status = mk_add_owned_feature(features, feature_count, feature_cap, mark->features[i]);
+                if (status != MK_OK) {
+                    free(out);
+                    return status;
+                }
+            }
+        } else {
+            size_t bytes = 0;
+
+            status = mk_match_chao_tone_sequence(first_tone, &bytes, features, feature_count, feature_cap);
+            if (status != MK_OK) {
+                free(out);
+                return status;
+            }
+        }
+    }
+    *untoned = out;
+    return MK_OK;
+}
+
 static mk_status mk_synthesize_cluster(
     const mk_system *system,
     const mk_cluster_grammar *grammar,
@@ -1868,6 +2007,7 @@ static mk_status mk_synthesize_cluster(
     size_t feature_count = 0;
     size_t feature_cap = 0;
     mk_status status = MK_ERR_UNKNOWN_GRAPHEME;
+    char *untoned = NULL;
     size_t i;
 
     memset(components, 0, sizeof(components));
@@ -1876,51 +2016,15 @@ static mk_status mk_synthesize_cluster(
     }
 
     p = normalized;
+    if (grammar->accepts_tone) {
+        status = mk_take_syllable_tone(normalized, &untoned, &features, &feature_count, &feature_cap);
+        if (status != MK_OK) {
+            goto finish;
+        }
+        p = untoned;
+    }
     while (*p != '\0') {
         const char *next = NULL;
-
-        if (grammar->accepts_tone) {
-            size_t chao_bytes = 0;
-            const mki_tone_mark *tone = mk_match_tone_mark(p);
-
-            /* Tone closes the cluster: it must follow at least two components
-             * and run to the end of the token. */
-            if (tone != NULL) {
-                if (component_count < 2 || p[strlen(tone->mark)] != '\0') {
-                    status = MK_ERR_UNKNOWN_GRAPHEME;
-                    goto finish;
-                }
-                for (i = 0; i < tone->feature_count; i++) {
-                    status = mk_add_owned_feature(
-                        &features, &feature_count, &feature_cap, tone->features[i]
-                    );
-                    if (status != MK_OK) {
-                        goto finish;
-                    }
-                }
-                p += strlen(tone->mark);
-                break;
-            }
-
-            status = mk_match_chao_tone_sequence(
-                p,
-                &chao_bytes,
-                &features,
-                &feature_count,
-                &feature_cap
-            );
-            if (status == MK_OK) {
-                if (component_count < 2 || p[chao_bytes] != '\0') {
-                    status = MK_ERR_UNKNOWN_GRAPHEME;
-                    goto finish;
-                }
-                p += chao_bytes;
-                break;
-            }
-            if (status != MK_ERR_UNKNOWN_GRAPHEME) {
-                goto finish;
-            }
-        }
 
         if (component_count == 3) {
             status = MK_ERR_UNKNOWN_GRAPHEME;
@@ -2033,6 +2137,7 @@ finish:
     }
     mk_free_owned_feature_array(features, feature_count);
     mk_free_cluster_components(component_names, component_name_count);
+    free(untoned);
     return status;
 }
 
@@ -2249,6 +2354,7 @@ static mk_status mk_synthesize_from_diacritics(
     mki_entry_view base_entry;
     const char *base_scratch[MKI_MAX_ENTRY_FEATURES];
     mki_resolution base_resolved;
+    mki_resolution_path base_path = MKI_RESOLVED_NONE;
     char **features = NULL;
     size_t count = 0;
     size_t cap = 0;
@@ -2277,16 +2383,23 @@ static mk_status mk_synthesize_from_diacritics(
     }
 
     status = mki_resolve(system, base, &base_resolved);
+    if (status == MK_OK && base_resolved.cluster_component_count > 0) {
+        status = MK_ERR_UNKNOWN_GRAPHEME;
+        goto finish;
+    }
     if (status == MK_OK) {
+        base_path = base_resolved.path;
         for (i = 0; i < base_resolved.feature_count; i++) {
             status = mk_add_owned_feature(&features, &count, &cap, base_resolved.features[i]);
             if (status != MK_OK) {
                 goto finish;
             }
         }
+    } else if (status == MK_ERR_OOM) {
+        goto finish;
     } else {
         status = mk_lookup_normalized(
-            system, base, base_scratch, &base_entry, NULL
+            system, base, base_scratch, &base_entry, &base_path
         );
         if (status != MK_OK) {
             goto finish;
@@ -2353,6 +2466,9 @@ finish:
         return MK_ERR_OOM;
     }
     out->path = MKI_RESOLVED_DIACRITICS;
+    /* A tone is not part of the segment it marks for tokenization: `ŋ⁵⁵`
+     * stays `ŋ` and `⁵⁵`, which the tone merge then associates. */
+    out->base_path = tone_seen ? MKI_RESOLVED_NONE : base_path;
     out->grapheme = out->owned_grapheme;
     out->owned_features = features;
     out->owned_feature_count = count;

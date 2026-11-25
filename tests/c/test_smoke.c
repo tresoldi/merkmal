@@ -1259,6 +1259,51 @@ int main(void)
         }
     }
 
+    {
+        /* A NULL item is a bad argument, not a failed allocation; a vector
+         * asked for with no buffer reports the width. */
+        const char *items[] = {"a", NULL};
+        mk_string_list *list = NULL;
+        size_t width = 0;
+
+        failed |= expect_status(mk_string_list_new(items, 2, &list), MK_ERR_INVALID_ARGUMENT, "string list with NULL item");
+        failed |= expect_status(
+            mk_system_feature_vector(descriptive, "a", NULL, 0, &width),
+            MK_ERR_INVALID_ARGUMENT,
+            "feature vector width query"
+        );
+        if (width == 0) {
+            fprintf(stderr, "feature vector width query: width not reported\n");
+            failed = 1;
+        }
+    }
+
+    {
+        char *converted = NULL;
+
+        failed |= expect_status(mk_ascii_chao_digits("ma55 ji6", &converted), MK_OK, "ascii chao digits");
+        failed |= expect_string(converted, "ma⁵⁵ ji6", "ascii chao digits converts 0-5 only");
+        mk_string_free(converted);
+        failed |= expect_status(mk_ascii_chao_digits(NULL, &converted), MK_ERR_INVALID_ARGUMENT, "ascii chao digits null");
+    }
+
+    {
+        /* On failure both outputs are 0.0, coverage included. */
+        double score = 42.0;
+        double coverage = 42.0;
+        mk_comparability why = MK_CMP_OK;
+
+        failed |= expect_status(
+            mk_system_segment_distance_ex(descriptive, "a", "@@@", NULL, &score, &coverage, &why),
+            MK_ERR_UNKNOWN_GRAPHEME,
+            "distance_ex unknown grapheme"
+        );
+        if (score != 0.0 || coverage != 0.0) {
+            fprintf(stderr, "distance_ex failure: outputs %g and %g, not 0.0\n", score, coverage);
+            failed = 1;
+        }
+    }
+
     mk_registry_free(registry);
     return failed ? 1 : 0;
 }

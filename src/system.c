@@ -139,6 +139,10 @@ static mk_status mk_score_resolved(
     mki_scorer scorer;
     mk_status status;
 
+    if (!mki_weight_preset_valid(node_weights)) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+
     /* Cross-tier before anything else. A tone and a segment share no dimension
      * by construction, so scoring them through the geometry would return a
      * number built entirely from how many features the *other* one has, which
@@ -207,6 +211,9 @@ static mk_status mk_distance_with_coverage(
         return MK_ERR_INVALID_ARGUMENT;
     }
     *out = 0.0;
+    if (coverage != NULL) {
+        *coverage = 0.0;
+    }
 
     status = mki_resolve(system, utf8_a, &resolved_a);
     if (status != MK_OK) {
@@ -317,16 +324,24 @@ static mk_status mk_merges_as_one_segment(
 
     *merge = false;
     if (status == MK_OK) {
-        *merge = res.path == MKI_RESOLVED_INVENTORY ||
-            res.path == MKI_RESOLVED_TIE_STRIPPED ||
-            res.path == MKI_RESOLVED_AFFRICATE_RETRACTED ||
-            res.path == MKI_RESOLVED_COMPLEX;
+        /* A segment with diacritics (`tʃʰ`, `kpʷ`) merges when the segment
+         * without them would. */
+        mki_resolution_path path =
+            res.path == MKI_RESOLVED_DIACRITICS ? res.base_path : res.path;
+
+        *merge = path == MKI_RESOLVED_INVENTORY ||
+            path == MKI_RESOLVED_TIE_STRIPPED ||
+            path == MKI_RESOLVED_AFFRICATE_RETRACTED ||
+            path == MKI_RESOLVED_COMPLEX;
         mki_resolution_clear(&res);
         return MK_OK;
     }
+    /* A system that cannot read the combination (a valued system offered a
+     * tone-bearing vowel) is a refusal too, so the tokenizer stays total. */
     if (status == MK_ERR_UNKNOWN_GRAPHEME ||
         status == MK_ERR_PARSE ||
-        status == MK_ERR_SOURCE_MARKER) {
+        status == MK_ERR_SOURCE_MARKER ||
+        status == MK_ERR_UNSUPPORTED_MODEL) {
         return MK_OK;
     }
     return status;

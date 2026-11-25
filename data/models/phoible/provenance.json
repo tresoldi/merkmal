@@ -13,7 +13,7 @@
   "redistribution_notes": "Upstream terms are CC-BY-SA-3.0. Redistributed here under the same terms. Attribution to the upstream project is required, and adaptations must be shared under the same or a compatible license.",
   "input_sha256": {
     "inventory.tsv": "9bd7900723aa58695d55b033a84f09c3c40b99e0b95215d5b5e0fe0b14dd0a2a",
-    "model.json": "e84916f449e984fb3042126a541816293ad0d01c5886e629547d8ec9a0292a64"
+    "model.json": "e9405397bc6dc7a19ba912baa74379ad0f60b0543459fa5fd5bee2cebd0ba29a"
   },
   "generator": "tools/generate_c_data.py"
 }

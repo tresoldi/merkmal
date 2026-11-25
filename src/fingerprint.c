@@ -188,71 +188,84 @@ static void mk_hash_text(mk_sha256 *ctx, const char *text)
     mk_sha256_update(ctx, text, strlen(text));
 }
 
+/* A row to hash, ordered by grapheme and then by position, so that of rows
+ * sharing a grapheme the first comes first. The grapheme travels with the
+ * index because qsort passes the comparison no context. */
+typedef struct mk_row_key {
+    const char *grapheme;
+    size_t index;
+} mk_row_key;
+
+static int mk_compare_row_keys(const void *a, const void *b)
+{
+    const mk_row_key *left = (const mk_row_key *)a;
+    const mk_row_key *right = (const mk_row_key *)b;
+    int order = strcmp(left->grapheme, right->grapheme);
+
+    if (order != 0) {
+        return order;
+    }
+    return left->index < right->index ? -1 : (left->index > right->index ? 1 : 0);
+}
+
 /* Runtime model text has no durable source file. Hash its semantic inventory:
  * rows are taken in grapheme order and each feature set is sorted, so
  * harmless input reordering cannot change the identity. Of rows sharing a
- * grapheme, only the first is hashed. */
+ * grapheme, only the first is hashed. One sort of the rows, so the cost is
+ * O(n log n) in the number of rows. */
 static mk_status mk_runtime_model_sha256(const mk_system *system, char out[65])
 {
     mk_sha256 ctx;
     const mki_builtin_system *builtin = system->builtin;
-    const char *previous = NULL;
-    size_t emitted;
+    mk_row_key *order;
+    size_t rows = 0;
+    size_t k;
+
+    order = (mk_row_key *)malloc((builtin->entry_count == 0 ? 1 : builtin->entry_count) * sizeof(*order));
+    if (order == NULL) {
+        return MK_ERR_OOM;
+    }
+    for (k = 0; k < builtin->entry_count; k++) {
+        if (builtin->entries[k].grapheme != NULL && builtin->entries[k].features != NULL) {
+            order[rows].grapheme = builtin->entries[k].grapheme;
+            order[rows].index = k;
+            rows++;
+        }
+    }
+    qsort(order, rows, sizeof(*order), mk_compare_row_keys);
 
     mk_sha256_init(&ctx);
     mk_hash_text(&ctx, "runtime-model-v1\nname=");
     mk_hash_text(&ctx, builtin->name);
     mk_hash_text(&ctx, "\n");
-    for (emitted = 0; emitted < builtin->entry_count; emitted++) {
-        const char *next = NULL;
-        size_t i;
-        for (i = 0; i < builtin->entry_count; i++) {
-            const char *candidate = builtin->entries[i].grapheme;
-            if (candidate != NULL &&
-                (previous == NULL || strcmp(candidate, previous) > 0) &&
-                (next == NULL || strcmp(candidate, next) < 0)) {
-                next = candidate;
-            }
+    for (k = 0; k < rows; k++) {
+        const mki_builtin_entry *row = &builtin->entries[order[k].index];
+        const char **features;
+        size_t j;
+
+        if (k > 0 && strcmp(order[k - 1].grapheme, row->grapheme) == 0) {
+            continue;
         }
-        if (next != NULL) {
-            mki_entry_view row = {NULL, NULL, 0};
-            const char **features;
-            size_t j;
-            for (j = 0; j < builtin->entry_count; j++) {
-                if (builtin->entries[j].grapheme != NULL &&
-                    strcmp(builtin->entries[j].grapheme, next) == 0) {
-                    row.grapheme = builtin->entries[j].grapheme;
-                    row.features = (const char *const *)builtin->entries[j].features;
-                    row.feature_count = builtin->entries[j].feature_count;
-                    break;
-                }
-            }
-            /* Unreachable: `next` came from this inventory. The test keeps
-             * the invariant explicit for optimizers and for any change to the
-             * lookup loop. */
-            if (row.grapheme == NULL || row.features == NULL) {
-                continue;
-            }
-            /* Heap, sized to the row: MKI_MAX_ENTRY_FEATURES bounds compiled
-             * rows only, and a runtime row may carry any number of features. */
-            features = (const char **)malloc(
-                (row.feature_count == 0 ? 1 : row.feature_count) * sizeof(*features)
-            );
-            if (features == NULL) {
-                return MK_ERR_OOM;
-            }
-            memcpy(features, row.features, row.feature_count * sizeof(*features));
-            qsort(features, row.feature_count, sizeof(*features), mk_compare_strings);
-            mk_hash_text(&ctx, row.grapheme);
-            mk_hash_text(&ctx, "\t");
-            for (j = 0; j < row.feature_count; j++) {
-                mk_hash_text(&ctx, features[j]);
-                mk_hash_text(&ctx, j + 1 == row.feature_count ? "\n" : "\t");
-            }
-            free(features);
-            previous = next;
+        /* Heap, sized to the row: MKI_MAX_ENTRY_FEATURES bounds compiled rows
+         * only, and a runtime row may carry any number of features. */
+        features = (const char **)malloc(
+            (row->feature_count == 0 ? 1 : row->feature_count) * sizeof(*features)
+        );
+        if (features == NULL) {
+            free(order);
+            return MK_ERR_OOM;
         }
+        memcpy(features, row->features, row->feature_count * sizeof(*features));
+        qsort(features, row->feature_count, sizeof(*features), mk_compare_strings);
+        mk_hash_text(&ctx, row->grapheme);
+        mk_hash_text(&ctx, "\t");
+        for (j = 0; j < row->feature_count; j++) {
+            mk_hash_text(&ctx, features[j]);
+            mk_hash_text(&ctx, j + 1 == row->feature_count ? "\n" : "\t");
+        }
+        free(features);
     }
+    free(order);
     {
         unsigned char digest[32];
         static const char hex[] = "0123456789abcdef";

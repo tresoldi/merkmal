@@ -262,6 +262,53 @@ mk_status mk_normalize_grapheme(
     return MK_OK;
 }
 
+/* ASCII digits 0-5 as superscript Chao digits. Not applied by the tokenizer
+ * or the recognizer, because a romanization's ASCII digits number tone
+ * categories, not pitch levels (docs/guide/c-api.md); a caller whose corpus
+ * writes Chao levels in ASCII applies it explicitly. */
+mk_status mk_ascii_chao_digits(const char *utf8_in, char **utf8_out)
+{
+    static const char *const superscripts[] = {
+        "\xe2\x81\xb0", /* ⁰ */
+        "\xc2\xb9", /* ¹ */
+        "\xc2\xb2", /* ² */
+        "\xc2\xb3", /* ³ */
+        "\xe2\x81\xb4", /* ⁴ */
+        "\xe2\x81\xb5" /* ⁵ */
+    };
+    char *out = NULL;
+    size_t out_len = 0;
+    size_t out_cap = 0;
+    const char *p;
+    mk_status status;
+
+    if (utf8_in == NULL || utf8_out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *utf8_out = NULL;
+    status = mki_append_text(&out, &out_len, &out_cap, "");
+    for (p = utf8_in; status == MK_OK && *p != '\0';) {
+        if (*p >= '0' && *p <= '5') {
+            status = mki_append_text(&out, &out_len, &out_cap, superscripts[*p - '0']);
+            p++;
+        } else {
+            char one[5];
+            size_t n = mki_utf8_step(p);
+
+            memcpy(one, p, n);
+            one[n] = '\0';
+            status = mki_append_text(&out, &out_len, &out_cap, one);
+            p += n;
+        }
+    }
+    if (status != MK_OK) {
+        free(out);
+        return status;
+    }
+    *utf8_out = out;
+    return MK_OK;
+}
+
 mk_status mki_segmentation_nfd(
     const char *utf8_in,
     char **utf8_out
@@ -299,53 +346,6 @@ mk_status mki_segmentation_nfd(
         tmp = mki_strdup_internal("");
         if (tmp == NULL) {
             return MK_ERR_OOM;
-        }
-    }
-
-    /* ASCII digits 0-5 → superscript Chao digits.  Linguists routinely type
-     * plain "55" for tone; the IPA alphabet has no ASCII digits, so the
-     * conversion is unambiguous. */
-    {
-        static const char *const superscripts[] = {
-            "\xe2\x81\xb0", /* ⁰ */
-            "\xc2\xb9", /* ¹ */
-            "\xc2\xb2", /* ² */
-            "\xc2\xb3", /* ³ */
-            "\xe2\x81\xb4", /* ⁴ */
-            "\xe2\x81\xb5" /* ⁵ */
-        };
-        char *out = NULL;
-        size_t out_len = 0;
-        size_t out_cap = 0;
-        int has_ascii_digit = 0;
-        const char *p;
-
-        for (p = tmp; *p != '\0'; p++) {
-            if (*p >= '0' && *p <= '5') {
-                has_ascii_digit = 1;
-                break;
-            }
-        }
-        if (has_ascii_digit) {
-            for (p = tmp; *p != '\0'; p++) {
-                if (*p >= '0' && *p <= '5') {
-                    status = mki_append_text(&out, &out_len, &out_cap, superscripts[*p - '0']);
-                } else {
-                    char one[5];
-                    size_t n = mki_utf8_step(p);
-                    memcpy(one, p, n);
-                    one[n] = '\0';
-                    status = mki_append_text(&out, &out_len, &out_cap, one);
-                    p += n - 1;
-                }
-                if (status != MK_OK) {
-                    free(out);
-                    free(tmp);
-                    return status;
-                }
-            }
-            free(tmp);
-            tmp = out;
         }
     }
 

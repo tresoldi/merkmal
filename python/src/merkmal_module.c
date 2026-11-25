@@ -16,6 +16,7 @@
 static mk_registry *default_registry = NULL;
 static PyObject *mk_py_error = NULL;
 static PyObject *mk_py_source_marker = NULL;
+static PyObject *mk_py_parse_error = NULL;
 static const char *registry_capsule_name = "merkmal.registry";
 
 /* The system used when a call names none, exported as DEFAULT_SYSTEM so
@@ -241,6 +242,12 @@ static PyObject *status_error_detail(
          * keep working, and callers that want to skip the source's own gaps
          * without swallowing real failures can catch this instead. */
         PyErr_Format(mk_py_source_marker, "%s: %s", context, message);
+        break;
+    case MK_ERR_PARSE:
+        /* Malformed input: a grapheme such as `a¹²³⁴`, or a model text that does
+         * not parse. ParseError is both a ValueError, which grapheme calls are
+         * documented to raise, and a NativeError, which add_model_text is. */
+        PyErr_Format(mk_py_parse_error, "%s: %s", context, message);
         break;
     case MK_ERR_OOM:
         PyErr_NoMemory();
@@ -955,6 +962,36 @@ done:
     return result;
 }
 
+static PyObject *py_ascii_chao_digits(PyObject *self, PyObject *args)
+{
+    PyObject *text_obj;
+    py_utf8_args bag = {{{NULL, NULL}}, 0};
+    const char *text = NULL;
+    char *converted = NULL;
+    PyObject *result = NULL;
+    mk_status status;
+
+    (void)self;
+
+    if (!PyArg_ParseTuple(args, "O:ascii_chao_digits", &text_obj)) {
+        return NULL;
+    }
+    if (py_utf8_take(&bag, text_obj, "text", &text) < 0) {
+        goto done;
+    }
+    status = mk_ascii_chao_digits(text, &converted);
+    if (status != MK_OK) {
+        status_error(status, "ascii_chao_digits");
+        goto done;
+    }
+    result = PyUnicode_FromString(converted);
+    mk_string_free(converted);
+
+done:
+    py_utf8_args_clear(&bag);
+    return result;
+}
+
 /* mk_segment_ipa and mk_segment_ipa_merged have the same shape, so one body
  * serves both; which one runs is the caller's choice. */
 static PyObject *py_segment_with(
@@ -1521,6 +1558,8 @@ static PyMethodDef methods[] = {
     {"sound_distance", (PyCFunction)py_sound_distance, METH_VARARGS | METH_KEYWORDS,
      "Return the geometry distance between two feature sets."},
     {"normalize", py_normalize, METH_VARARGS, "Normalize an IPA grapheme."},
+    {"ascii_chao_digits", py_ascii_chao_digits, METH_VARARGS,
+     "Rewrite ASCII digits 0-5 as superscript Chao tone digits."},
     {"segment_ipa", py_segment_ipa, METH_VARARGS, "Segment an IPA string orthographically."},
     {"system_segment_ipa", (PyCFunction)py_system_segment_ipa, METH_VARARGS | METH_KEYWORDS,
      "Segment an IPA string by longest match against a system's inventory."},
@@ -1584,6 +1623,26 @@ PyMODINIT_FUNC PyInit__native(void)
     Py_INCREF(mk_py_error);
     if (PyModule_AddObject(module, "NativeError", mk_py_error) < 0) {
         Py_DECREF(mk_py_error);
+        Py_DECREF(module);
+        return NULL;
+    }
+    {
+        PyObject *bases = PyTuple_Pack(2, PyExc_ValueError, mk_py_error);
+
+        if (bases == NULL) {
+            Py_DECREF(module);
+            return NULL;
+        }
+        mk_py_parse_error = PyErr_NewException("merkmal.ParseError", bases, NULL);
+        Py_DECREF(bases);
+    }
+    if (mk_py_parse_error == NULL) {
+        Py_DECREF(module);
+        return NULL;
+    }
+    Py_INCREF(mk_py_parse_error);
+    if (PyModule_AddObject(module, "ParseError", mk_py_parse_error) < 0) {
+        Py_DECREF(mk_py_parse_error);
         Py_DECREF(module);
         return NULL;
     }

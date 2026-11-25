@@ -22,7 +22,8 @@ Rules:
 - Blank lines are ignored.
 - Lines whose first non-space character is `#` are comments.
 - Fields are separated by ASCII whitespace.
-- `@model` is required and names the system in the registry.
+- `@model` is required, appears once, and gives one name: the system's name
+  in the registry.
 - `@type categorical` is required.
 - `@geometry clements-hume` selects the geometry compiled into the library
   (`merkmal-clements-hume-inspired-v1`; see
@@ -38,7 +39,8 @@ Rules:
   this format, since a later version may give an existing line a new meaning.
   A value that is not a positive integer is `MK_ERR_PARSE`. The declaration is
   recommended for any model kept in a file.
-- At least one `grapheme` row is required. Each row supplies one UTF-8
+- At least one `grapheme` row is required. `+` cannot be a grapheme: it marks
+  a word boundary for the tokenizers and is never looked up. Each row supplies one UTF-8
   grapheme and one or more categorical feature names. The grapheme is
   normalized into a lookup key exactly as a query is, so a row may be written
   precomposed (`ã`) or decomposed, and either spelling matches at lookup time.

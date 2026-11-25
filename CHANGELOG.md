@@ -32,6 +32,33 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- **Breaking:** in the categorical systems a feature vector also encodes a
+  synthesized cluster's parts: after the segment columns come `components`
+  (the number of parts) and one block of segment columns per part, up to three.
+  Two diphthongs had near-empty, equal vectors (`ai` and `au`) although their
+  distance is not zero; equal vectors now imply distance zero for clusters
+  too. Widths: `distinctive` 64 → 257, `descriptive` 68 → 273. The segment
+  columns, which lead the vector, are unchanged, and so is
+  `fixed_space_distance` between two segments.
+- **Breaking:** the tokenizers (`mk_segment_ipa` and those built on it) rewrote
+  ASCII digits 0–5 as Chao superscripts (`ji5` gave `j`, `i`, `⁵`), contrary to
+  the documentation and to the recognizer, which refuses ASCII digits. They now
+  leave them as written. The conversion is available explicitly as
+  `mk_ascii_chao_digits` (`merkmal.ascii_chao_digits`), for text known to write
+  Chao levels in ASCII.
+- **Breaking:** a cluster whose part carries a diacritic or a tone (`ntʰ`,
+  `stʰ`, `pʷpʷ`, `ái`, `a¹i`) was reduced to its marks and scored 0.0 against
+  every cluster of its shape, with full coverage (`d(ntʰ, mpʰ) = 0.0`). It is
+  now resolved as a cluster whose parts keep their features: a diacritic stays
+  with its part, a prefix modifier (`ⁿ` in `ⁿph`) with the base after it, and a
+  tone is one tone of the whole syllable, wherever and however often it is
+  written (`a¹i`, `ai¹` and `a¹i¹` are one segment; two different tones are
+  refused). The same Lexibank segment types are recognized; distances change
+  for these forms.
+- `mk_system_segment_ipa` keeps a complex segment with a diacritic as one token
+  (`tʃʰa` gives `tʃʰ`, `a`, not `t`, `ʃʰ`, `a`), as the recognizer reads it, and
+  is total in the valued systems, where a tone after a vowel raised
+  `MK_ERR_UNSUPPORTED_MODEL`.
 - The JSON Schemas in `data/schemas/` are removed: nothing read them, and
   `tools/validate_models.py` is the statement of a valid model or geometry file.
 - **Breaking:** tone merging (`mk_merge_tone_digits`, `mk_segment_ipa_merged`)
@@ -80,6 +107,41 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- Smaller edges: a runtime model with a second `@model` line, a second word
+  after the name, or a row for `+` (never looked up) is refused instead of
+  accepted; `mk_string_list_new` reports a NULL item as an invalid argument,
+  not out of memory; `mk_system_feature_vector` with no buffer reports the
+  width; the browser demonstration reported a valid prefix of 64 bytes or more
+  as empty. Command line: `segment` uses the `--system` given (it ignored it),
+  `normalize` refuses the option, and output to a closed pipe no longer prints
+  a traceback.
+- Documentation that did not match the code: the PHOIBLE tone example in
+  `c-api.md` (a tone against a segment is cross-tier, not 0.0), the reason given
+  for zero distances in the valued systems (equal on every dimension *both*
+  define, not identical source rows), PHOIBLE's dimension count (38, not 37;
+  model 2.0.1, whose fingerprint changes and whose distances do not), the
+  claim that every grapheme yields an abstract segment, the methods of
+  `Registry`, and the undocumented reading of `x/y` as `y` and of a leading
+  stress mark.
+- Cost on long or large input: canonical reordering was quadratic in a run of
+  combining marks, `mk_system_diagnose` resolved every prefix of its input (17 s
+  for 4 KB), and a runtime model's fingerprint was quadratic in its rows. Long
+  mark runs are sorted in linear time, diagnosis tries prefixes up to 256
+  bytes, and the fingerprint sorts the rows once; results are unchanged.
+- Out of memory during resolution could give a wrong answer instead of
+  `MK_ERR_OOM`: `aːː` resolved as `aː`, and a cluster could be reported as an
+  unknown grapheme.
+- `merkmal.pc` assumed the library directory is two levels below the prefix,
+  so with a multiarch `CMAKE_INSTALL_LIBDIR` (`lib/x86_64-linux-gnu`) it pointed
+  at `<prefix>/lib/include`. The path is computed when configuring.
+- An unknown weight preset was accepted, and ignored, when the answer needed no
+  scoring (a grapheme against itself, a tone against a segment); it is refused
+  on every path. `mk_system_segment_distance_ex` left `*coverage` unwritten
+  when a grapheme was refused; it is 0.0, as documented.
+- Python: a malformed grapheme (`a¹²³⁴`, `aːːː`) raised `NativeError`, not the
+  documented `ValueError`. It raises the new `merkmal.ParseError`, a subclass of
+  both. A feature name too long to prefix in a cluster raised `MemoryError`;
+  it raises `ParseError`.
 - The PHOIBLE inventories of `merkmal_typology` were labelled CC-BY-4.0 on a
   relicensing permission that was never recorded. They are labelled with
   PHOIBLE's own terms, CC-BY-SA-3.0, like the PHOIBLE model in the core library.

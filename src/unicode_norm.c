@@ -160,30 +160,81 @@ static mk_status mk_push_decomposed(mk_code_points *buffer, unsigned int cp)
     return mk_push(buffer, cp);
 }
 
-/* Canonical ordering: a stable sort of each run of non-starters by class. The
- * runs are a few marks long, so insertion sort is the right tool. */
-static void mk_reorder(mk_code_points *buffer)
+/* Canonical ordering: a stable sort of each run of non-starters by class.
+ * Runs in real text are a few marks long, and insertion sort, which needs no
+ * memory, handles them. A long run (adversarial input: thousands of marks of
+ * alternating classes) would make it quadratic, so above a few marks the run
+ * is sorted by counting over the 256 classes instead, which is linear and as
+ * stable. */
+#define MK_REORDER_INSERTION_MAX 16
+
+static void mk_reorder_insertion(unsigned int *items, size_t count)
 {
     size_t i;
 
-    for (i = 1; i < buffer->count; i++) {
-        unsigned int cp = buffer->items[i];
+    for (i = 1; i < count; i++) {
+        unsigned int cp = items[i];
         unsigned int cls = mk_combining_class(cp);
         size_t j = i;
 
-        if (cls == 0) {
-            continue;
-        }
-        while (j > 0) {
-            unsigned int before = mk_combining_class(buffer->items[j - 1]);
-            if (before == 0 || before <= cls) {
-                break;
-            }
-            buffer->items[j] = buffer->items[j - 1];
+        while (j > 0 && mk_combining_class(items[j - 1]) > cls) {
+            items[j] = items[j - 1];
             j--;
         }
-        buffer->items[j] = cp;
+        items[j] = cp;
     }
+}
+
+static mk_status mk_reorder_counting(unsigned int *items, size_t count)
+{
+    size_t start[257] = {0};
+    unsigned int *sorted = (unsigned int *)malloc(count * sizeof(*sorted));
+    unsigned char *classes = (unsigned char *)malloc(count);
+    size_t i;
+
+    if (sorted == NULL || classes == NULL) {
+        free(sorted);
+        free(classes);
+        return MK_ERR_OOM;
+    }
+    for (i = 0; i < count; i++) {
+        classes[i] = (unsigned char)mk_combining_class(items[i]);
+        start[classes[i] + 1]++;
+    }
+    for (i = 1; i < 257; i++) {
+        start[i] += start[i - 1];
+    }
+    for (i = 0; i < count; i++) {
+        sorted[start[classes[i]]++] = items[i];
+    }
+    memcpy(items, sorted, count * sizeof(*items));
+    free(sorted);
+    free(classes);
+    return MK_OK;
+}
+
+static mk_status mk_reorder(mk_code_points *buffer)
+{
+    size_t i = 0;
+
+    while (i < buffer->count) {
+        size_t end = i;
+
+        while (end < buffer->count && mk_combining_class(buffer->items[end]) != 0) {
+            end++;
+        }
+        if (end - i > MK_REORDER_INSERTION_MAX) {
+            mk_status status = mk_reorder_counting(buffer->items + i, end - i);
+
+            if (status != MK_OK) {
+                return status;
+            }
+        } else if (end - i > 1) {
+            mk_reorder_insertion(buffer->items + i, end - i);
+        }
+        i = end == i ? i + 1 : end;
+    }
+    return MK_OK;
 }
 
 static mk_status mk_decompose_text(const char *utf8_in, mk_code_points *buffer)
@@ -206,8 +257,7 @@ static mk_status mk_decompose_text(const char *utf8_in, mk_code_points *buffer)
             return status;
         }
     }
-    mk_reorder(buffer);
-    return MK_OK;
+    return mk_reorder(buffer);
 }
 
 /* The primary composite of a pair, or 0 when there is none. */

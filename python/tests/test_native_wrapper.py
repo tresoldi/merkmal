@@ -22,6 +22,15 @@ requires_full_data = pytest.mark.skipif(
     reason="needs the PHOIBLE and P-base tables, absent from the cc-by profile",
 )
 
+# Some tests read the repository's source data and fixtures (data/, tests/golden/).
+# The source distribution ships the tests without those files, so there these
+# tests are skipped rather than failed; in a checkout they always run.
+_CHECKOUT = Path(__file__).resolve().parents[2]
+requires_checkout = pytest.mark.skipif(
+    not ((_CHECKOUT / "data" / "models").is_dir() and (_CHECKOUT / "tests" / "golden").is_dir()),
+    reason="reads data/ and tests/golden/ from a repository checkout",
+)
+
 
 def test_native_lists_expanded_systems() -> None:
     systems = merkmal.list_systems()
@@ -569,6 +578,7 @@ def test_fixed_space_distance_is_distinct_from_compatibility_score() -> None:
     assert comparison.comparability == "no-shared-dimension"
 
 
+@requires_checkout
 def test_alternative_geometry_is_explicit_and_fingerprinted() -> None:
     geometry = merkmal.load_geometry(
         Path(__file__).resolve().parents[2] / "data" / "geometries" / "deep-clements-hume.json"
@@ -778,6 +788,7 @@ def test_source_conventions_cover_clts_lookalikes() -> None:
     assert merkmal.distance("ɫ", "lˠ", system="phoible") > 0.0
 
 
+@requires_checkout
 def test_feature_vectors_are_lossless() -> None:
     """Graphemes with equal vectors are at distance zero, in every system.
 
@@ -828,6 +839,7 @@ def test_abstract_segment_comparability_uses_the_comparison_labels() -> None:
         merkmal.AbstractSegment.from_grapheme("˥", system="phoible")
 
 
+@requires_checkout
 def test_abstract_segment_from_grapheme_scores_as_the_grapheme() -> None:
     """A bundle made from a grapheme reproduces the scorer, coverage included."""
     import random
@@ -862,6 +874,7 @@ def _completions(values: list[str], cell: str, binary: bool) -> list[str]:
     return sorted(set(out))
 
 
+@requires_checkout
 def test_abstract_segment_bounds_are_exact() -> None:
     """minimum and maximum equal brute-force enumeration of the completions."""
     import itertools
@@ -1002,6 +1015,7 @@ def test_sound_distance_scores_bare_feature_sets() -> None:
         merkmal.sound_distance([1], b)  # type: ignore[list-item]
 
 
+@requires_checkout
 def test_geometry_cases_cover_every_fixture_row() -> None:
     """The fixtures name feature sets; the case file has to define them all.
 
@@ -1236,6 +1250,20 @@ def test_system_aware_tokenizer_agrees_with_the_recognizer() -> None:
         "t͡ʃa", system="descriptive"
     ) == ["t͡ʃ", "a"]
 
+    # A complex segment keeps together when it carries a diacritic, as the
+    # recognizer reads it; a real cluster still splits.
+    for system in ("distinctive", "descriptive"):
+        for token in ("tʃʰ", "tsʰ", "tʃʼ", "tɕʰ", "tsː", "dʒʱ", "kpʷ", "ndʷ"):
+            assert merkmal.system_segment_ipa(token + "a", system=system) == [token, "a"], token
+            assert merkmal.is_segment(token, system=system), token
+        assert merkmal.system_segment_ipa("ptʰa", system=system) == ["p", "tʰ", "a"]
+
+    # Total over its input in every system: a valued system that cannot read a
+    # tone-bearing vowel leaves the tone as its own token.
+    if merkmal.DATA_PROFILE == "full":
+        for system in ("phoible", "pbase-spe"):
+            assert merkmal.system_segment_ipa("ma⁵⁵", system=system) == ["m", "a", "⁵⁵"]
+
     # A standalone tone remains its own autosegment. Association is a
     # prosodic analysis the segment tokenizer does not infer.
     assert merkmal.system_segment_ipa("tʰoŋ⁵⁵", system="descriptive") == ["tʰ", "o", "ŋ", "⁵⁵"]
@@ -1413,6 +1441,30 @@ def test_contradictory_and_malformed_composition_is_rejected() -> None:
             merkmal.get_features(grapheme)
 
 
+def test_a_cluster_with_a_marked_part_keeps_its_components() -> None:
+    """A diacritic or tone on one part must not reduce a cluster to that mark."""
+    for system in ("distinctive", "descriptive"):
+        for a, b in [
+            ("ntʰ", "mpʰ"), ("ntʰ", "ŋkʰ"), ("stʰ", "skʰ"), ("stʰ", "ʃpʰ"),
+            ("sːt", "rːk"), ("ái", "áu"), ("ái", "úo"), ("pʷpʷ", "mʷmʷ"),
+            ("a¹i", "u¹o"),
+        ]:
+            assert merkmal.distance(a, b, system=system) > 0.0, (system, a, b)
+        # The marked cluster scores as its unmarked shape does.
+        assert merkmal.distance("ái", "áu", system=system) == merkmal.distance(
+            "ai", "au", system=system
+        )
+        # One tone per syllable, wherever and however often it is written;
+        # two different tones are not one syllable's tone.
+        assert merkmal.distance("a¹i", "ai¹", system=system) == 0.0
+        assert merkmal.distance("a¹i¹", "ai¹", system=system) == 0.0
+        assert merkmal.distance("áá", "aá", system=system) == 0.0
+        assert not merkmal.is_segment("a¹i⁵", system=system)
+        assert not merkmal.is_segment("áà", system=system)
+        # A prefix modifier belongs to the base after it.
+        assert merkmal.distance("ⁿph", "ⁿth", system=system) > 0.0
+
+
 def test_cluster_synthesis_defects() -> None:
     # A two-item blocklist rejected the two most frequent NC sequences in the
     # world's languages while accepting mp, nt and ŋg.
@@ -1462,6 +1514,7 @@ def _one_letter_vowels(system: str) -> list[str]:
     return vowels
 
 
+@requires_checkout
 @pytest.mark.parametrize("system", ["descriptive", "distinctive"])
 def test_every_vowel_letter_can_be_part_of_a_vowel_cluster(system: str) -> None:
     # Issue #2: German ɔʏ̯ and ʏɐ were unknown while ɔɪ̯ and ɪɐ read, because
@@ -1500,6 +1553,7 @@ def test_precomposed_rhotic_vowels_read_as_their_diacritic_spelling(system: str)
     assert merkmal.segment_ipa("bɝd") == ["b", "ɝ", "d"]
 
 
+@requires_checkout
 @pytest.mark.parametrize("system", ["descriptive", "distinctive"])
 def test_a_place_diacritic_replaces_the_base_place(system: str) -> None:
     # Diacritic synthesis was purely additive, so `n` + dental U+032A sat at two
@@ -1572,3 +1626,106 @@ def test_embedded_nul_is_refused_rather_than_truncated() -> None:
         merkmal.sound_distance(["consonant\x00"], ["consonant"])
     with pytest.raises(ValueError, match="NUL"):
         merkmal.Registry().add_model_text("@model toy\x00\n@type categorical\n")
+
+
+def test_contract_holds_on_every_path() -> None:
+    # An unknown weight preset is refused even where an answer needs no scoring:
+    # a grapheme against itself, and a tone against a segment.
+    for a, b in [("a", "a"), ("a", "¹"), ("a", "e")]:
+        with pytest.raises(ValueError):
+            merkmal.distance(a, b, node_weights="bogus")
+
+    # A malformed grapheme is a ValueError, as documented, and a ParseError,
+    # which is also a NativeError.
+    for grapheme in ("aːːː", "a¹²³⁴"):
+        with pytest.raises(merkmal.ParseError):
+            merkmal.get_features(grapheme)
+    assert issubclass(merkmal.ParseError, ValueError)
+    assert issubclass(merkmal.ParseError, merkmal.NativeError)
+
+    # A feature name too long to be prefixed is refused as malformed, not
+    # reported as running out of memory.
+    registry = merkmal.Registry()
+    long_name = "f" * 120
+    registry.add_model_text(
+        "@model longlabel\n@type categorical\n@validation permissive\n"
+        f"grapheme a vowel {long_name}\ngrapheme i vowel\n"
+    )
+    with pytest.raises(merkmal.ParseError):
+        registry.get_features("ai", system="longlabel")
+
+
+def test_ascii_digits_are_tone_only_when_asked() -> None:
+    # Romanizations number tone categories with ASCII digits, so neither the
+    # tokenizer nor the recognizer reads them as Chao levels.
+    assert merkmal.segment_ipa("ji5") == ["j", "i", "5"]
+    assert merkmal.segment_ipa_merged("ori3") == ["o", "r", "i", "3"]
+    assert not merkmal.is_segment("a1")
+    # The explicit conversion does, for 0-5 only.
+    assert merkmal.ascii_chao_digits("ma55") == "ma⁵⁵"
+    assert merkmal.ascii_chao_digits("ji6 a0") == "ji6 a⁰"
+    assert merkmal.segment_ipa_merged(merkmal.ascii_chao_digits("ma55")) == ["m", "a⁵⁵"]
+
+
+def test_cluster_vectors_carry_their_parts() -> None:
+    for system in ("distinctive", "descriptive"):
+        labels = merkmal.vector_labels(system=system)
+        parts = labels.index("components")
+        segment = labels[:parts]
+        assert list(labels[parts + 1 : parts + 1 + len(segment)]) == [f"c1:{x}" for x in segment]
+        assert len(labels) == len(segment) * 4 + 1
+        # A segment has no parts and empty part blocks.
+        p = merkmal.feature_vector("p", system=system)
+        assert p[parts] == 0.0 and not any(p[parts + 1 :])
+        # Two diphthongs differ in their parts, so their vectors differ.
+        ai = merkmal.feature_vector("ai", system=system)
+        assert ai[parts] == 2.0
+        assert ai != merkmal.feature_vector("au", system=system)
+        # The vector separates whatever the distance separates.
+        for a, b in [("ai", "au"), ("ai", "ai¹"), ("ntʰ", "mpʰ"), ("ai", "a")]:
+            assert merkmal.distance(a, b, system=system) > 0.0
+            left = merkmal.feature_vector(a, system=system)
+            assert left != merkmal.feature_vector(b, system=system)
+        # The fixed-space value for two segments is over the segment columns.
+        b = merkmal.feature_vector("b", system=system)
+        assert merkmal.fixed_space_distance("p", "b", system=system) == sum(
+            abs(x - y) for x, y in zip(p[:parts], b[:parts], strict=True)
+        ) / parts
+    if merkmal.DATA_PROFILE == "full":
+        assert "components" not in merkmal.vector_labels(system="phoible")
+
+
+def test_long_input_costs_are_bounded() -> None:
+    import unicodedata
+
+    # Diagnosis tries prefixes up to 256 bytes, so a long refused input is
+    # answered without resolving every prefix of it.
+    report = merkmal.diagnose("a" + "\u0303" * 2000 + "@")
+    assert not report["ok"] and report["offset"] <= 257
+
+    # A long run of marks is put in canonical order, as unicodedata does.
+    run = "a" + "\u0301\u0323\u0308" * 200
+    assert "".join(merkmal.segment_ipa(run)) == unicodedata.normalize("NFD", run)
+
+
+def test_cli_segment_and_normalize_honour_the_system_option(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["segment", "tʃʰa"]) == 0
+    assert capsys.readouterr().out.split() == ["t", "ʃʰ", "a"]
+    assert main(["--system", "distinctive", "segment", "tʃʰa"]) == 0
+    assert capsys.readouterr().out.split() == ["tʃʰ", "a"]
+    with pytest.raises(SystemExit) as raised:
+        main(["--system", "phoible", "normalize", "a"])
+    assert raised.value.code == 2
+
+
+def test_runtime_model_header_is_unambiguous() -> None:
+    body = "@type categorical\ngrapheme X consonant voiceless bilabial stop\n"
+    for text in (
+        "@model a\n@model b\n" + body,  # a second name would replace the first
+        "@model a b\n" + body,  # a second word would be dropped
+        "@model a\n" + body + "grapheme + consonant voiced bilabial stop\n",
+    ):
+        with pytest.raises(merkmal.ParseError):
+            merkmal.Registry().add_model_text(text)

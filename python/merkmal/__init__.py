@@ -3,9 +3,10 @@
 Most functions are the C API's, called through the native extension. Unless a
 docstring says otherwise, they take ``system=None`` for the default system
 (``DEFAULT_SYSTEM``), raise ``KeyError`` for an unknown system, ``ValueError``
-for a grapheme the system cannot resolve, and ``NotImplementedError`` where
-the system does not support the operation, and ``NativeError`` for any other
-failure of the C library.
+for a grapheme the system cannot resolve (``ParseError``, a subclass of both
+``ValueError`` and ``NativeError``, for a malformed one such as ``a¹²³⁴``),
+``NotImplementedError`` where the system does not support the operation, and
+``NativeError`` for any other failure of the C library.
 """
 
 from __future__ import annotations
@@ -30,14 +31,16 @@ except ImportError as exc:  # pragma: no cover - exercised before extension buil
     ) from exc
 
 NativeError = _native.NativeError
+ParseError = _native.ParseError
 # Raised for CLDF/CLTS markup (`<?>`, `<<...>>`, boundary markers), which is
 # not a sound and must not resolve. A ValueError subclass, so code that catches
 # ValueError also catches it; catching this one alone skips the source's own
 # marked gaps without also skipping segments the library cannot resolve.
 SourceMarkerError = _native.SourceMarkerError
 # The Unicode version of the compiled-in NFC/NFD tables. Every build of one
-# commit normalizes identically, so a cache of merkmal output keyed on
-# __version__ and UNICODE_VERSION is keyed on everything that can move it.
+# commit normalizes identically. A cache of merkmal output should be keyed on
+# the system's semantic fingerprint (system_fingerprint), which identifies the
+# data and policies behind a result; the package version does not.
 UNICODE_VERSION: str = _native.UNICODE_VERSION
 # The built-in data this build carries: "full", or "cc-by" for a build made
 # with MERKMAL_DATA_PROFILE=cc-by, which omits the PHOIBLE and P-base tables
@@ -84,15 +87,23 @@ def fixed_space_distance(
 ) -> float:
     """Return the mean absolute difference of two graphemes' feature vectors.
 
-    The vectors are those of ``feature_vector``, over every column of the
-    system. A ``0`` cell ("does not apply") counts as a value like any other,
-    so this is not the pairwise-complete score of ``distance_with_coverage``;
-    a ``NaN`` cell (a valued system's unknown) makes the result ``NaN``.
+    The vectors are those of ``feature_vector``. The mean is over the segment
+    columns, and also over the cluster columns (``components`` and the part
+    blocks) when either grapheme is a synthesized cluster, so the value for two
+    segments does not depend on the width the cluster columns add. A ``0``
+    cell ("does not apply") counts as a value like any other, so this is not
+    the pairwise-complete score of ``distance_with_coverage``; a ``NaN`` cell
+    (a valued system's unknown) makes the result ``NaN``.
     """
     left = feature_vector(a, system=system)
     right = feature_vector(b, system=system)
     if len(left) != len(right):
         raise ValueError("feature vectors have different widths")
+    labels = vector_labels(system=system)
+    if "components" in labels:
+        parts = labels.index("components")
+        if left[parts] == 0.0 and right[parts] == 0.0:
+            left, right = left[:parts], right[:parts]
     return float(sum(abs(x - y) for x, y in zip(left, right, strict=True)) / len(left))
 # A name that states the scorer's pairwise-complete semantics, so that the
 # coverage-normalized score is not mistaken for a fixed-space metric. An
@@ -106,6 +117,7 @@ is_segment = _native.is_segment
 list_systems = _native.list_systems
 merge_tone_digits = _native.merge_tone_digits
 normalize = _native.normalize
+ascii_chao_digits = _native.ascii_chao_digits
 segment_ipa = _native.segment_ipa
 segment_ipa_merged = _native.segment_ipa_merged
 sound_distance = _native.sound_distance
@@ -234,7 +246,7 @@ class Registry:
         included in ``operation_fingerprint``: a mapping with at least
         ``name`` (equal to the model's ``@model`` name), ``version``,
         ``source``, ``interpretation`` and ``license``, serializable as JSON.
-        Raises ``NativeError`` for a model that does not parse,
+        Raises ``ParseError`` (a ``NativeError``) for a model that does not parse,
         ``ValueError`` for a name already registered or for an incomplete or
         mismatched manifest, and ``TypeError`` if ``manifest`` is not a
         mapping. The model is registered before the
@@ -496,6 +508,7 @@ __all__ = [
     "AbstractSegment",
     "BundleComparison",
     "NativeError",
+    "ParseError",
     "compatibility_dissimilarity",
     "Comparison",
     "SourceMarkerError",
@@ -519,6 +532,7 @@ __all__ = [
     "load_geometry",
     "merge_tone_digits",
     "normalize",
+    "ascii_chao_digits",
     "operation_fingerprint",
     "geometry_distance",
     "segment_ipa",
