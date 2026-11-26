@@ -135,6 +135,13 @@ mk_status mk_merge_tone_digits(
     char **items;
     size_t count;
     size_t i;
+    /* The latest syllabic item since the last word boundary, or `none`. Kept
+     * as items are appended, so that each tone finds its host in constant
+     * time rather than by walking back over the word (which made a long
+     * input quadratic). Appending tone digits to an item does not change
+     * whether it is syllabic. */
+    const size_t none = (size_t)-1;
+    size_t last_syllabic = none;
 
     if (segments == NULL || out == NULL) {
         return MK_ERR_INVALID_ARGUMENT;
@@ -156,20 +163,8 @@ mk_status mk_merge_tone_digits(
          * nucleus (`a⁰` is not a grapheme), so it is kept as a token of its
          * own, as it resolves. */
         if (mk_is_chao_digit_token(segment) && mk_chao_token_has_nonzero(segment)) {
-            size_t j;
-            size_t host = count;
+            size_t host = last_syllabic == none ? count : last_syllabic;
 
-            j = count;
-            while (j > 0) {
-                j--;
-                if (mki_streq(items[j], "+")) {
-                    break;
-                }
-                if (mk_segment_is_syllabic(items[j])) {
-                    host = j;
-                    break;
-                }
-            }
             /* With no syllabic segment before it in the word, the tone is kept
              * as a token of its own, joined to an unattached tone token just
              * before it, rather than dropped: it still resolves as a tone. */
@@ -194,6 +189,11 @@ mk_status mk_merge_tone_digits(
         if (items[count] == NULL) {
             mki_free_items(items, count);
             return MK_ERR_OOM;
+        }
+        if (mki_streq(segment, "+")) {
+            last_syllabic = none;
+        } else if (mk_segment_is_syllabic(segment)) {
+            last_syllabic = count;
         }
         count++;
     }

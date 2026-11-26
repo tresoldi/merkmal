@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import time
 from pathlib import Path
 
 import merkmal
@@ -1758,3 +1759,13 @@ def test_a_stress_mark_ends_a_token() -> None:
     for text in ("paˈta", "paˌta", "ˈpata"):
         assert merkmal.segment_ipa(text) == ["p", "a", "t", "a"]
         assert merkmal.system_segment_ipa(text, system="distinctive") == ["p", "a", "t", "a"]
+
+
+def test_tone_merge_is_linear() -> None:
+    # Each tone used to walk back over every earlier token of its word, so this
+    # input took minutes; it now takes well under a second.
+    n = 20000
+    start = time.perf_counter()
+    merged = merkmal.segment_ipa_merged("t" * n + " ⁵ t" * n)
+    assert time.perf_counter() - start < 10
+    assert len(merged) == 3 * n

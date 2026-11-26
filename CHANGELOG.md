@@ -14,6 +14,9 @@ commit history, in [docs/](docs/README.md) and in the design records in
   letter, to the segment before it (`aˈ`), which no system recognizes. The
   tokenizers now treat `ˈ` and `ˌ` as a break and drop them, as the normalizer
   already did with a leading one.
+- `mk_merge_tone_digits` (and `segment_ipa_merged`) walked back over the word
+  for each tone, so a long input took quadratic time (28 KB took 8 s); it is
+  now linear, with identical output.
 
 ## 0.10.0 (2026-11-25)
 
