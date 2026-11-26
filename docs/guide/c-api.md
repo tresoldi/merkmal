@@ -249,7 +249,7 @@ usually treat them differently:
 | status | meaning |
 | --- | --- |
 | `MK_ERR_UNKNOWN_GRAPHEME` | no path recognized the input; the system may lack the segment, or the spelling may be wrong |
-| `MK_ERR_PARSE` | a path recognized the *shape* and rejected the content, as with a Chao run of four or more digits |
+| `MK_ERR_PARSE` | a path recognized the *shape* and rejected the content, as with a Chao run of four or more digits, three length marks, or a mark written twice on one letter (`tʰʰ`) |
 | `MK_ERR_SOURCE_MARKER` | not a transcription: CLTS's `<?>`, CLDF's `<<...>>`, or a `+`, `_` or `#` boundary marker. The gap is in the source, not in the library |
 
 A fourth refusal, `MK_ERR_UNSUPPORTED_MODEL`, is returned for a tone-bearing
@@ -272,9 +272,9 @@ const char *mk_status_string(mk_status status);
 
 ```c
 #define MK_VERSION_MAJOR 0
-#define MK_VERSION_MINOR 9
+#define MK_VERSION_MINOR 10
 #define MK_VERSION_PATCH 0
-#define MK_VERSION_STRING "0.9.0"
+#define MK_VERSION_STRING "0.10.0"
 
 const char *mk_version_string(void);   /* the linked library's version */
 const char *mk_data_profile(void);     /* "full" or "cc-by" */

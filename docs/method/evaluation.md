@@ -78,8 +78,10 @@ in `bench/corpus/provenance.json`.
 
 **Results.** Recognition floors per system are recorded in
 `bench/corpus/coverage-floors.json`, and the check fails if coverage falls below
-them. For `distinctive` and `descriptive` the floors are 95.44% of segment types
-and 99.72% of tokens.
+them. For `distinctive` and `descriptive` the floors are 95.36% of segment types
+and 99.72% of tokens. They were 95.44% until 0.10.0, which refuses a mark
+written twice on one letter; the six segment types that does affect (`ts̠̠`,
+`ɑ̠̠`, `ao̠̠̠`, `õ̃i`, `ẽː̃`, `⁵/ẽː̃`) were read as the type with the mark once.
 
 Token coverage overstates usability: a form can be used only if every one of its
 segments is recognized, and unrecognized segments cluster by dataset and family.

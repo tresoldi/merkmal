@@ -1729,3 +1729,24 @@ def test_runtime_model_header_is_unambiguous() -> None:
     ):
         with pytest.raises(merkmal.ParseError):
             merkmal.Registry().add_model_text(text)
+
+
+def test_a_mark_repeated_on_one_letter_is_refused() -> None:
+    # A mark written twice on one letter adds nothing, so the label is refused
+    # rather than read as the label with the mark once. PHOIBLE is not in the
+    # cc-by profile.
+    systems = [s for s in ("distinctive", "descriptive", "phoible") if s in merkmal.list_systems()]
+    for system in systems:
+        for grapheme in (
+            "tʰʰ",  # tʰʰ
+            "tʰʷʰ",  # tʰʷʰ: the repeat need not be adjacent
+            "ã̃",  # ã̃
+            "ⁿⁿt",  # ⁿⁿt
+            "á́",  # á́
+        ):
+            with pytest.raises(merkmal.ParseError):
+                merkmal.get_features(grapheme, system=system)
+    # The same mark on two letters marks each of them, and the length mark
+    # may be doubled.
+    for grapheme in ("t̥ʃ̥", "kʷkʷ", "ʰkʰ", "aːː"):
+        assert merkmal.get_features(grapheme, system="distinctive")

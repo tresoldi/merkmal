@@ -6,7 +6,7 @@ change must be recomputed. The reasons for each change are recorded in the
 commit history, in [docs/](docs/README.md) and in the design records in
 [docs/development/adr/](docs/development/adr/).
 
-## Unreleased
+## 0.10.0 (2026-11-25)
 
 ### Added
 
@@ -32,6 +32,22 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- The compiled-in normalization tables move from Unicode 15.1 to 16.0
+  (`mk_unicode_version`, `merkmal.UNICODE_VERSION`). Only characters assigned
+  in 16.0 normalize differently; no IPA character is among them, and no
+  distance or fingerprint changes. 16.0 is the version of the utf8proc that CI
+  installs, whose mismatch had made CI skip the normalization oracle. A build
+  configured with `MERKMAL_REQUIRE_UTF8PROC=ON` now fails, rather than skips,
+  when utf8proc carries another Unicode version, so the oracle cannot silently
+  stop running.
+- **Breaking:** a mark written twice on one letter is refused with
+  `MK_ERR_PARSE` (`merkmal.ParseError`) in every system: `tʰʰ`, `tʰʷʰ`, `ã̃`,
+  `ⁿⁿt`, `á́`. It added nothing, since features are a set, so such a label
+  resolved as the one with the mark once, at distance zero from it. The same
+  mark on two letters (`t̥ʃ̥`, `kʷkʷ`) and a doubled length mark (`aːː`,
+  overlong) are unaffected. In the Lexibank corpus of `bench/corpus/` the
+  categorical systems now recognize 7,053 of the 7,396 segment types (7,059
+  before); the six refused are `ts̠̠`, `ɑ̠̠`, `ao̠̠̠`, `õ̃i`, `ẽː̃` and `⁵/ẽː̃`.
 - **Breaking:** in the categorical systems a feature vector also encodes a
   synthesized cluster's parts: after the segment columns come `components`
   (the number of parts) and one block of segment columns per part, up to three.

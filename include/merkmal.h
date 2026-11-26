@@ -81,15 +81,15 @@ MK_API const char *mk_status_string(mk_status status);
  * mk_system_semantic_fingerprint with any result kept. See docs/guide/c-api.md,
  * Build Identity. */
 #define MK_VERSION_MAJOR 0
-#define MK_VERSION_MINOR 9
+#define MK_VERSION_MINOR 10
 #define MK_VERSION_PATCH 0
-#define MK_VERSION_STRING "0.9.0"
+#define MK_VERSION_STRING "0.10.0"
 
 /** The linked library's version, as "MAJOR.MINOR.PATCH". */
 MK_API const char *mk_version_string(void);
 /** The compiled-in data profile: "full" or "cc-by". See NOTICE. */
 MK_API const char *mk_data_profile(void);
-/** The Unicode version of the compiled-in normalization tables, e.g. "15.1.0". */
+/** The Unicode version of the compiled-in normalization tables, e.g. "16.0.0". */
 MK_API const char *mk_unicode_version(void);
 
 /** Creates a registry containing the compiled-in systems. On MK_OK *out is
