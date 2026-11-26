@@ -153,7 +153,7 @@ In Python:
 import merkmal
 
 merkmal.get_features("pʰ")                      # frozenset of feature labels
-merkmal.distance("p", "b")                      # 0.1429, default system
+merkmal.distance("p", "b")                      # 0.125, default system
 merkmal.distance("p", "b", system="phoible")    # another feature theory
 merkmal.distance_with_coverage("ai", "au")      # score, coverage, comparability
 merkmal.system_segment_ipa("tʃa", system="descriptive")   # ['tʃ', 'a']

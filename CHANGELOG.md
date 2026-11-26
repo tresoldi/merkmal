@@ -6,7 +6,7 @@ change must be recomputed. The reasons for each change are recorded in the
 commit history, in [docs/](docs/README.md) and in the design records in
 [docs/development/adr/](docs/development/adr/).
 
-## Unreleased
+## 0.11.0 (2026-11-26)
 
 ### Changed
 
