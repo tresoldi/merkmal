@@ -95,6 +95,14 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Documentation
 
+- The alignment evaluation splits and bootstraps by alignment rather than by
+  pair, since the three pairs drawn from one BDPA alignment are not
+  independent, and reports a consonant/vowel scorer and the valued systems
+  besides identity and SCA. `distinctive` is −0.22 points from SCA
+  [−0.78, +0.35], not resolved; the consonant/vowel split alone reaches 92.7%,
+  3.6 points below SCA; `phoible` and `pbase-spe` are below that split. The
+  cross-theory and fitted-cost results now have committed baselines
+  (`bench/cross_theory_baseline.txt`, `bench/fit_pair_costs_baseline.txt`).
 - `distinctive` is described as scalar dimensions over CLTS's articulatory
   descriptions, organized after Clements and Hume's geometry, rather than as
   their distinctive features; `pbase-hc` and `pbase-uftc` cite Halle and

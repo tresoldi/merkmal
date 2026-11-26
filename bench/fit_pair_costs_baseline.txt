@@ -1,0 +1,30 @@
+# Fitted pair-cost benchmark, recorded from a deliberate run.
+#
+# Regenerate with: bench/fit_pair_costs.py --bdpa <bdpa-checkout> > bench/fit_pair_costs_baseline.txt
+# (then restore this header). BDPA commit e1e3aea.
+
+BDPA gold alignments: 2250 pairs over 5 families
+  Indo-European     1470 (65.3%)
+  Sino-Tibetan       330 (14.7%)
+  Quechuan           228 (10.1%)
+  Uralic             144 ( 6.4%)
+  Japonic             78 ( 3.5%)
+
+Leave-one-family-out. Training never sees the family it is tested on.
+
+  held out           geometry     fitted    delta  cal geo  cal fit
+  Indo-European        96.97%     97.10%   +0.14%    0.236    0.257
+  Japonic              87.14%     89.08%   +1.94%    0.100    0.039
+  Quechuan             99.52%     99.33%   -0.19%    0.150    0.150
+  Sino-Tibetan         91.38%     90.34%   -1.04%    0.136    0.190
+  Uralic               93.73%     94.19%   +0.46%    0.157    0.166
+
+  mean change across folds: +0.26 points
+  spread (sd): 1.09 over 5 folds; 95% interval [-0.70, +1.22]
+  folds improved: 3 of 5
+  verdict: no detectable difference
+
+  With one fold per family, the interval can detect a large effect but
+  not resolve a small one. The shrinkage (5) is a constant, not
+  tuned on these folds. A finer comparison needs alignments over more
+  families, produced independently of merkmal's distances.

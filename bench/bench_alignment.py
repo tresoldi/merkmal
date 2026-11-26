@@ -17,11 +17,13 @@ script takes a BDPA checkout:
 
     bench/bench_alignment.py --bdpa <bdpa-checkout>
 
-Results are compared with bench/alignment_baseline.txt and written to it with
---record. Accuracy is reported over all pairs and over the pairs the system can
-read in full, and the two are to be read together. In the recorded baseline,
-`distinctive` reads 96.1% of the 2,250 pairs, and its column accuracy does not
-differ significantly from SCA's either on those pairs or over all of them.
+Results are written to bench/alignment_baseline.txt with --record. Accuracy is
+reported over all pairs and over the pairs `distinctive` can read in full, and
+the two are to be read together. The gap cost is tuned on half of the
+alignments and measured on the other half, and the differences from SCA are
+bootstrapped by alignment, because the pairs drawn from one alignment are not
+independent. An identity scorer and a consonant/vowel scorer are the lower
+references.
 
 BDPA appends annotation rows (`LOCAL`, `SWAPS` and others) with the same shape
 as language rows; their cells are markup (`*`, `.`), not transcription. They
@@ -43,7 +45,7 @@ BASELINE = ROOT / "bench" / "alignment_baseline.txt"
 SEED = 1
 PAIRS_PER_MSA = 3
 GAP_GRID = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-BOOTSTRAP = 400
+BOOTSTRAP = 2000
 
 
 # Gold data
@@ -232,6 +234,22 @@ def identity_sub():
     return lambda a, b: 0.0 if a == b else 1.0
 
 
+IPA_VOWELS = set("aeiouyæøœɐɑɒɔəɘɛɜɞɤɨɪɯɵɶʉʊʌʏ")
+
+
+def cv_sub():
+    """A three-valued reference: 0 for equal segments, 0.5 for two vowels or
+    two consonants, 1 otherwise. It says how much of the benchmark a scorer
+    that knows only the vowel/consonant split already reaches."""
+    import unicodedata
+
+    def vowel(token):
+        base = unicodedata.normalize("NFD", token)[:1]
+        return base in IPA_VOWELS
+
+    return lambda a, b: 0.0 if a == b else (0.5 if vowel(a) == vowel(b) else 1.0)
+
+
 def readable(pair, system):
     import merkmal
     for seq in (pair[0], pair[1]):
@@ -247,29 +265,48 @@ def readable(pair, system):
 # Report
 
 
-def bootstrap_delta(pairs, sub_a, gap_a, sub_b, gap_b):
-    """95% CI on the column-accuracy difference A - B, paired by pair."""
-    deltas = [x - y for x, y in zip(per_pair_accuracy(pairs, sub_a, gap_a),
-                                    per_pair_accuracy(pairs, sub_b, gap_b), strict=True)]
+def bootstrap_delta(groups, sub_a, gap_a, sub_b, gap_b):
+    """95% CI on the column-accuracy difference A - B.
+
+    Resampled by alignment, not by pair: the pairs drawn from one multiple
+    alignment share its words and doculects, so they are not independent, and
+    a bootstrap over pairs understates the uncertainty.
+    """
+    deltas = {
+        name: [x - y for x, y in zip(per_pair_accuracy(pairs, sub_a, gap_a),
+                                     per_pair_accuracy(pairs, sub_b, gap_b), strict=True)]
+        for name, pairs in groups.items()
+    }
+    names = sorted(deltas)
     rng = random.Random(7)
     means = []
     for _ in range(BOOTSTRAP):
-        sample = [deltas[rng.randrange(len(deltas))] for _ in range(len(deltas))]
+        sample = [d for _ in names for d in deltas[names[rng.randrange(len(names))]]]
         means.append(statistics.fmean(sample))
     means.sort()
-    return (statistics.fmean(deltas),
+    every = [d for name in names for d in deltas[name]]
+    return (statistics.fmean(every),
             means[int(0.025 * BOOTSTRAP)],
             means[int(0.975 * BOOTSTRAP)])
 
 
 def run(bdpa: Path, record: bool) -> int:
-    pairs = gold_pairs(bdpa)
+    groups = gold_pairs_grouped(bdpa)
     primary = "distinctive"
+    # The split is between alignments, so that no alignment contributes pairs
+    # to both the half that tunes the gap cost and the half that measures.
+    names = sorted(groups)
+    random.Random(SEED).shuffle(names)
+    dev_names = set(names[: len(names) // 2])
 
     scorers = {
         "identity": identity_sub(),
+        "consonant/vowel": cv_sub(),
         "lingpy-SCA": sca_sub(),
         "merkmal:distinctive": merkmal_sub("distinctive"),
+        "merkmal:descriptive": merkmal_sub("descriptive"),
+        "merkmal:phoible": merkmal_sub("phoible"),
+        "merkmal:pbase-spe": merkmal_sub("pbase-spe"),
     }
 
     out = []
@@ -277,19 +314,30 @@ def run(bdpa: Path, record: bool) -> int:
         print(line)
         out.append(line)
 
-    emit(f"BDPA phonetic alignment benchmark  ({len(pairs)} gold pairwise alignments,")
-    emit(f"seed {SEED}, {PAIRS_PER_MSA} pairs per MSA, gap tuned on a held-out half)")
+    total = sum(len(pairs) for pairs in groups.values())
+    emit(f"BDPA phonetic alignment benchmark  ({total} gold pairwise alignments from")
+    emit(f"{len(groups)} alignments, seed {SEED}, {PAIRS_PER_MSA} pairs per alignment; gap tuned")
+    emit("on half of the alignments and measured on the other half)")
 
-    subsets = [("ALL PAIRS", pairs)]
-    cov = [p for p in pairs if readable(p, primary)]
-    subsets.append((f"READABLE UNDER {primary.upper()} "
-                    f"({len(cov)} of {len(pairs)}, {100 * len(cov) / len(pairs):.1f}%)", cov))
+    readable_groups = {
+        name: [p for p in pairs if readable(p, primary)] for name, pairs in groups.items()
+    }
+    readable_count = sum(len(pairs) for pairs in readable_groups.values())
+    subsets = [
+        ("ALL PAIRS", groups),
+        (f"READABLE UNDER {primary.upper()} "
+         f"({readable_count} of {total}, {100 * readable_count / total:.1f}%)", readable_groups),
+    ]
 
     for label, subset in subsets:
-        if len(subset) < 50:
+        dev = [p for name in names if name in dev_names for p in subset[name]]
+        test_groups = {
+            name: subset[name] for name in names if name not in dev_names and subset[name]
+        }
+        test = [p for name in names if name in test_groups for p in test_groups[name]]
+        if len(test) < 50:
             emit(f"\n{label}: too few pairs to report")
             continue
-        dev, test = subset[: len(subset) // 2], subset[len(subset) // 2:]
         emit()
         emit(label)
         emit(f"  {'scorer':22} {'gap':>5} {'column acc':>11} {'perfect':>9}")
@@ -299,9 +347,11 @@ def run(bdpa: Path, record: bool) -> int:
             acc, perfect = score(test, sub, gap)
             tuned[name] = (sub, gap)
             emit(f"  {name:22} {gap:5.2f} {100 * acc:10.2f}% {100 * perfect:8.2f}%")
-        emit("  bootstrap 95% CI on column-accuracy difference from SCA:")
-        for name in ("merkmal:distinctive",):
-            d, lo, hi = bootstrap_delta(test, *tuned[name], *tuned["lingpy-SCA"])
+        emit("  bootstrap 95% CI on column-accuracy difference from SCA (by alignment):")
+        for name in scorers:
+            if not name.startswith("merkmal:"):
+                continue
+            d, lo, hi = bootstrap_delta(test_groups, *tuned[name], *tuned["lingpy-SCA"])
             verdict = "not significant" if lo < 0 < hi else "significant"
             emit(f"    {name:22} {100 * d:+6.2f}%  [{100 * lo:+.2f}, {100 * hi:+.2f}]  {verdict}")
 
@@ -311,8 +361,8 @@ def run(bdpa: Path, record: bool) -> int:
             "#",
             "# merkmal supplies a substitution cost, not an aligner. This measures that",
             "# cost against LingPy's SCA classes through an identical Needleman-Wunsch.",
-            "# Read the two blocks together: parity on readable pairs and a loss overall",
-            "# is a coverage result, not a modelling one.",
+            "# The split and the bootstrap are by alignment, since the pairs drawn from",
+            "# one alignment are not independent. Read the two blocks together.",
             "#",
             "# Regenerate with: bench/bench_alignment.py --bdpa <bdpa-checkout> --record",
             "",
