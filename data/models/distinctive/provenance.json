@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_id": "distinctive",
-  "artifact_version": "1.0.0",
+  "artifact_version": "3.0.0",
   "upstream_name": "CLTS (Cross-Linguistic Transcription Systems)",
   "upstream_release": "v1.4.1",
   "upstream_url": "https://github.com/cldf-clts/clts",

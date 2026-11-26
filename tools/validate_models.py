@@ -230,6 +230,12 @@ def check_provenance(model_dir: Path, mj: dict) -> None:
         if field not in manifest:
             error(f"provenance.json missing field: {field}")
 
+    if mj.get("version") and manifest.get("artifact_version") != mj["version"]:
+        error(
+            f"provenance.json artifact_version={manifest.get('artifact_version')!r} "
+            f"disagrees with model.json version={mj['version']!r}"
+        )
+
     spdx = manifest.get("license_spdx", "")
     if spdx not in KNOWN_SPDX:
         error(f"provenance.json license_spdx={spdx!r} is not a recognized SPDX expression")

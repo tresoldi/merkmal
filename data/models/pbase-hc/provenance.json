@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_id": "pbase-hc",
-  "artifact_version": "1.0.0",
+  "artifact_version": "2.0.0",
   "upstream_name": "P-base",
   "upstream_release": "P-base data files as of 2022-10-02 (readme.txt of pbasefiles.zip)",
   "upstream_url": "https://phon.chass.ncsu.edu/pbase/pbasefiles.zip",

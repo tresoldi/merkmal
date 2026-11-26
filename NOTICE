@@ -64,7 +64,7 @@ Per-artifact detail
   sha256(weights.json):    ad93e3c032773432c7da34bdb27f8480dcfac8cce945fa72d7a46aed05e6ed01
 
 [descriptive]  (data/models/descriptive)
-  artifact_version:        1.0.0
+  artifact_version:        2.0.0
   upstream_name:           CLTS (Cross-Linguistic Transcription Systems)
   upstream_release:        v1.4.1
   upstream_url:            https://github.com/cldf-clts/clts
@@ -80,7 +80,7 @@ Per-artifact detail
   sha256(model.json):      74b8a3abcef5a8f2ef196b63be44904dede1dd2633892bfc6789d58d8a5094ac
 
 [distinctive]  (data/models/distinctive)
-  artifact_version:        1.0.0
+  artifact_version:        3.0.0
   upstream_name:           CLTS (Cross-Linguistic Transcription Systems)
   upstream_release:        v1.4.1
   upstream_url:            https://github.com/cldf-clts/clts
@@ -96,7 +96,7 @@ Per-artifact detail
   sha256(model.json):      3ca9d8e4b009110af8ab68cf074bffa82f5961da570a48551647cb0362c2e053
 
 [pbase-hc]  (data/models/pbase-hc)
-  artifact_version:        1.0.0
+  artifact_version:        2.0.0
   upstream_name:           P-base
   upstream_release:        P-base data files as of 2022-10-02 (readme.txt of pbasefiles.zip)
   upstream_url:            https://phon.chass.ncsu.edu/pbase/pbasefiles.zip
@@ -110,7 +110,7 @@ Per-artifact detail
   sha256(model.json):      d7c39386c6c53a7e4cbbe608b0fcb65b0199b3060401a99f0bb96628d8b0cf09
 
 [pbase-jfh]  (data/models/pbase-jfh)
-  artifact_version:        1.0.0
+  artifact_version:        2.0.0
   upstream_name:           P-base
   upstream_release:        P-base data files as of 2022-10-02 (readme.txt of pbasefiles.zip)
   upstream_url:            https://phon.chass.ncsu.edu/pbase/pbasefiles.zip
@@ -124,7 +124,7 @@ Per-artifact detail
   sha256(model.json):      86d1d49d49df72000d16e2db1e9d5c9e0bf011e13a632c3e66ba069f8429aef3
 
 [pbase-spe]  (data/models/pbase-spe)
-  artifact_version:        1.0.0
+  artifact_version:        2.0.0
   upstream_name:           P-base
   upstream_release:        P-base data files as of 2022-10-02 (readme.txt of pbasefiles.zip)
   upstream_url:            https://phon.chass.ncsu.edu/pbase/pbasefiles.zip
@@ -138,7 +138,7 @@ Per-artifact detail
   sha256(model.json):      e939a50cb3d4f7199269b96ab0df2e2bb903aabb0a7f284b9bab07d21cd932a9
 
 [pbase-uftc]  (data/models/pbase-uftc)
-  artifact_version:        1.0.0
+  artifact_version:        2.0.0
   upstream_name:           P-base
   upstream_release:        P-base data files as of 2022-10-02 (readme.txt of pbasefiles.zip)
   upstream_url:            https://phon.chass.ncsu.edu/pbase/pbasefiles.zip
@@ -152,7 +152,7 @@ Per-artifact detail
   sha256(model.json):      8a7dc7403df391623697bebcd9a72c1ff76cb99aec328f6563b39fba157c220d
 
 [phoible]  (data/models/phoible)
-  artifact_version:        2.0.0
+  artifact_version:        3.0.0
   upstream_name:           PHOIBLE 2.0 (CLDF packaging, cldf-datasets/phoible v2.0.1)
   upstream_release:        v2.0.1
   upstream_url:            https://phoible.org/ (CLDF packaging: https://github.com/cldf-datasets/phoible, cldf/parameters.csv)

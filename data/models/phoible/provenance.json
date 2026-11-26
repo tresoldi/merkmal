@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_id": "phoible",
-  "artifact_version": "2.0.0",
+  "artifact_version": "3.0.0",
   "upstream_name": "PHOIBLE 2.0 (CLDF packaging, cldf-datasets/phoible v2.0.1)",
   "upstream_release": "v2.0.1",
   "upstream_url": "https://phoible.org/ (CLDF packaging: https://github.com/cldf-datasets/phoible, cldf/parameters.csv)",
