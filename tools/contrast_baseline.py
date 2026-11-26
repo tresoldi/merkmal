@@ -279,11 +279,17 @@ def resolved(system: str, graphemes: list[str]) -> list[str]:
 
 
 def collapses(system: str, covered: list[str]) -> list[tuple[str, str]]:
-    return [
-        (a, b)
-        for a, b in itertools.combinations(covered, 2)
-        if merkmal.distance(a, b, system=system) == 0.0
-    ]
+    out = []
+    for a, b in itertools.combinations(covered, 2):
+        try:
+            distance = merkmal.distance(a, b, system=system)
+        except NotImplementedError:
+            # A pair the system refuses to compare (two tones in a valued
+            # system) has no distance, so it is not a collapse.
+            continue
+        if distance == 0.0:
+            out.append((a, b))
+    return out
 
 
 def uncompared(system: str, pairs: list[tuple[str, str]]) -> int:
