@@ -81,9 +81,9 @@ MK_API const char *mk_status_string(mk_status status);
  * mk_system_semantic_fingerprint with any result kept. See docs/guide/c-api.md,
  * Build Identity. */
 #define MK_VERSION_MAJOR 0
-#define MK_VERSION_MINOR 10
+#define MK_VERSION_MINOR 11
 #define MK_VERSION_PATCH 0
-#define MK_VERSION_STRING "0.10.0"
+#define MK_VERSION_STRING "0.11.0"
 
 /** The linked library's version, as "MAJOR.MINOR.PATCH". */
 MK_API const char *mk_version_string(void);
