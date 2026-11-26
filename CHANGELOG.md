@@ -6,6 +6,16 @@ change must be recomputed. The reasons for each change are recorded in the
 commit history, in [docs/](docs/README.md) and in the design records in
 [docs/development/adr/](docs/development/adr/).
 
+## Unreleased
+
+### Fixed
+
+- CLTS citation: cite version 1.4.1 by its version DOI (10.5281/zenodo.3515745)
+  with the author list given in that release record, which includes Simon J.
+  Greenhill; the previous list followed the current concept record, whose
+  authors differ from those of v1.4.1. Citations only: provenance is excluded
+  from model identity, so no table, fingerprint or distance changes.
+
 ## 0.10.0 (2026-11-25)
 
 ### Added
