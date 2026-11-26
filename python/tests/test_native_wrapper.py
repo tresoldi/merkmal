@@ -1932,3 +1932,17 @@ def test_the_palatal_fricative_is_not_a_sibilant() -> None:
         assert math.isclose(
             merkmal.distance("ç", "ʝ", system=system), merkmal.distance("x", "ɣ", system=system)
         )
+
+
+def test_abstract_segments_take_node_weights_like_distance() -> None:
+    # The bundle methods called the preset `weights` where every other
+    # function calls it `node_weights`.
+    a = merkmal.AbstractSegment.from_grapheme("a")
+    preset = a.compare("aː", node_weights="ignore-length")
+    assert preset.distance == merkmal.distance("a", "aː", node_weights="ignore-length")
+    assert a.compatible_graphemes(node_weights="ignore-length")
+    # The former name still works, with a warning, and not with both.
+    with pytest.warns(DeprecationWarning):
+        assert a.compare("aː", weights="ignore-length") == preset
+    with pytest.raises(TypeError):
+        a.compare("aː", weights="flat", node_weights="flat")

@@ -10,6 +10,9 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- Python: `AbstractSegment.compare` and `compatible_graphemes` take the weight
+  preset as `node_weights=`, as every other function does; `weights=` still
+  works and emits a `DeprecationWarning`.
 - **Breaking:** the semantic fingerprint identifies results, not only data.
   Its payload (schema `merkmal-system-fingerprint-v2`) gains
   `behavior_version`, the version of what the code does with the tables, so

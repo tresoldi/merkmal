@@ -208,10 +208,10 @@ mk_status mk_bundle_new(const mk_system *system, mk_bundle **out);
 mk_status mk_bundle_from_grapheme(const mk_system *system, const char *g, mk_bundle **out);
 mk_status mk_bundle_from_text(const mk_system *system, const char *text, mk_bundle **out);
 mk_status mk_bundle_set(mk_bundle *b, const char *column, const char *cell);
-mk_status mk_bundle_compare(const mk_bundle *a, const mk_bundle *b, const char *weights,
+mk_status mk_bundle_compare(const mk_bundle *a, const mk_bundle *b, const char *node_weights,
                             mk_bundle_comparison *out);
 mk_status mk_bundle_compatible(const mk_bundle *b, const char *g, bool *out);
-mk_status mk_bundle_compatible_graphemes(const mk_bundle *b, const char *weights,
+mk_status mk_bundle_compatible_graphemes(const mk_bundle *b, const char *node_weights,
                                          mk_string_list **out);
 ```
 
