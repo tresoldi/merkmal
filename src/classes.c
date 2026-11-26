@@ -7,40 +7,78 @@
 /* These sets are tools/generate_c_data.py's, and must stay equal to them. */
 
 static const char *const mk_sonorant_manners[] = {
-    "nasal", "lateral", "approximant", "trill", "tap", "vowel",
+    "nasal",
+    "lateral",
+    "approximant",
+    "trill",
+    "tap",
+    "vowel",
 };
 /* A lateral fricative, affricate or click is an obstruent (`ɬ`, `ɮ`, `tɬ`,
  * `ǁ`): the obstruent manners are tested before the sonorant ones, except that
  * a nasal makes a segment sonorant. */
 static const char *const mk_obstruent_manners[] = {
-    "stop", "fricative", "affricate", "click", "implosive",
+    "stop",
+    "fricative",
+    "affricate",
+    "click",
+    "implosive",
 };
 static const char *const mk_continuant_manners[] = {
-    "fricative", "approximant", "trill", "vowel",
+    "fricative",
+    "approximant",
+    "trill",
+    "vowel",
 };
 static const char *const mk_non_continuant_manners[] = {
-    "stop", "affricate", "nasal", "implosive", "click",
+    "stop",
+    "affricate",
+    "nasal",
+    "implosive",
+    "click",
 };
 static const char *const mk_anterior_places[] = {"linguolabial", "dental", "alveolar"};
 static const char *const mk_non_anterior_places[] = {
-    "post-alveolar", "retroflex", "alveolo-palatal",
+    "post-alveolar",
+    "retroflex",
+    "alveolo-palatal",
 };
 static const char *const mk_distributed_places[] = {
-    "dental", "post-alveolar", "alveolo-palatal", "linguolabial",
+    "dental",
+    "post-alveolar",
+    "alveolo-palatal",
+    "linguolabial",
 };
 static const char *const mk_non_distributed_places[] = {"alveolar", "retroflex"};
 static const char *const mk_labial_places[] = {
-    "bilabial", "labio-dental", "labial", "labio-palatal", "labio-velar",
+    "bilabial",
+    "labio-dental",
+    "labial",
+    "labio-palatal",
+    "labio-velar",
 };
 static const char *const mk_coronal_places[] = {
-    "linguolabial", "dental", "alveolar", "post-alveolar", "retroflex", "alveolo-palatal",
+    "linguolabial",
+    "dental",
+    "alveolar",
+    "post-alveolar",
+    "retroflex",
+    "alveolo-palatal",
 };
 static const char *const mk_dorsal_places[] = {
-    "palatal", "palatal-velar", "velar", "uvular", "labio-palatal", "labio-velar",
+    "palatal",
+    "palatal-velar",
+    "velar",
+    "uvular",
+    "labio-palatal",
+    "labio-velar",
 };
 static const char *const mk_guttural_places[] = {"pharyngeal", "epiglottal", "glottal"};
 static const char *const mk_glide_places[] = {
-    "palatal", "labio-palatal", "labio-velar", "velar",
+    "palatal",
+    "labio-palatal",
+    "labio-velar",
+    "velar",
 };
 static const char *const mk_non_pulmonic[] = {"click", "nasal-click", "implosive"};
 
