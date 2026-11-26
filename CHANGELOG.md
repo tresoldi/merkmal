@@ -43,7 +43,7 @@ commit history, in [docs/](docs/README.md) and in the design records in
   labels gave 0.0 with coverage 1.0 and `ok`), and it diluted every other
   difference: `sound_distance([voiced], [voiceless])` was 0.5, and
   `ignore-length` raised other distances. Every categorical distance between
-  short segments rises slightly (`d(p, b)` 0.143 → 0.167 in `distinctive`).
+  short segments rises slightly (`d(p, b)` 0.125 → 0.143 in `descriptive`).
   In an abstract segment, an unmarked length is the cell `0`, read as `short`
   against a marked value.
 - **Breaking:** `distinctive` reads the derived class labels in its
@@ -64,7 +64,6 @@ commit history, in [docs/](docs/README.md) and in the design records in
   0.20, `d(ia, i)` 0.22 → 0.28 in `distinctive`). A doubled segment against a length-marked one
   now scores as the single segment does (`d(aa, aː) = d(a, aː)`); the
   whole-segment term undid the length waiver (0.113 against 0.064).
-
 - **Breaking:** a valued system (PHOIBLE, P-base) read a mark through one
   hand-written rule shared by every system, and ignored a mark its table had no
   feature for: in `pbase-jfh` `d(p, pʰ) = 0.0`, and in PHOIBLE `ⁿd`, `t̚` and
@@ -127,6 +126,11 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- CLTS citation: cite version 1.4.1 by its version DOI (10.5281/zenodo.3515745)
+  with the author list given in that release record, which includes Simon J.
+  Greenhill; the previous list followed the current concept record, whose
+  authors differ from those of v1.4.1. Citations only: provenance is excluded
+  from model identity, so no table, fingerprint or distance changes.
 - A weight preset named `""` or `"None"` was read as the default; only `NULL`
   is, as the header says, and those names are now refused as unknown presets.
 - The tokenizers emitted a tab or a newline as a token of its own; ASCII

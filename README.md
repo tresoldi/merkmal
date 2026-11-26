@@ -210,9 +210,11 @@ recorded in [CHANGELOG.md](CHANGELOG.md).
 Please cite the software as described in [CITATION.cff](CITATION.cff), and also
 cite the source of the feature data for each system used:
 
-- List, Johann-Mattis, Cormac Anderson, Tiago Tresoldi, Christoph Rzymski and
-  Robert Forkel. Cross-Linguistic Transcription Systems (CLTS), version 1.4.1.
-  https://github.com/cldf-clts/clts (`distinctive`, `descriptive`).
+- List, Johann-Mattis, Cormac Anderson, Tiago Tresoldi, Christoph Rzymski,
+  Simon J. Greenhill and Robert Forkel. 2019. Cross-Linguistic Transcription
+  Systems (CLTS), version 1.4.1. Zenodo. https://doi.org/10.5281/zenodo.3515745
+  (`distinctive`, `descriptive`). The author list is the one given in the v1.4.1
+  release record; later CLTS releases list fewer authors.
 - Moran, Steven and Daniel McCloy (eds.). 2019. PHOIBLE 2.0. Jena: Max Planck
   Institute for the Science of Human History. https://phoible.org/ (`phoible`).
 - Mielke, Jeff. P-base. North Carolina State University. Data files as of
