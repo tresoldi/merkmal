@@ -4057,6 +4057,10 @@ static const char *const distinctive_scalar_dimensions_52_positive[] = {
 };
 
 static const char *const distinctive_scalar_dimensions_53_positive[] = {
+    "trill",
+};
+
+static const char *const distinctive_scalar_dimensions_54_positive[] = {
     "guttural",
 };
 
@@ -4114,14 +4118,15 @@ static const mki_scalar_dimension distinctive_scalar_dimensions[] = {
     {.name = "fricative", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_50_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
     {.name = "click", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_51_positive, .positive_count = 2, .negative = NULL, .negative_count = 0, .weight = 0.5},
     {.name = "implosive", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_52_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
-    {.name = "guttural", .geometry_node = "Place", .positive = distinctive_scalar_dimensions_53_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.40000000000000002},
+    {.name = "trill", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_53_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
+    {.name = "guttural", .geometry_node = "Place", .positive = distinctive_scalar_dimensions_54_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.40000000000000002},
 };
 
 #define DISTINCTIVE_SCALAR_DIMENSIONS_COUNT (sizeof(distinctive_scalar_dimensions) / sizeof(distinctive_scalar_dimensions[0]))
 
 const mki_builtin_system mki_builtin_systems[] = {
     {.name = "descriptive", .version = "2.0.0", .model_sha256 = "6b00c87bee9726c715a75d2d6f8b36bec30bff43a5f7b92c93631188b4e3505e", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DESCRIPTIVE_ENTRY_COUNT, .entry_graphemes = descriptive_entry_graphemes, .entry_feature_at = descriptive_entry_feature_at, .entry_feature_n = descriptive_entry_feature_n, .feature_ids = descriptive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
-    {.name = "distinctive", .version = "3.0.0", .model_sha256 = "3adb7c9c31c4e47d94f73b4f046d6dab71418575b685410ceeecabcfa7204998", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DISTINCTIVE_ENTRY_COUNT, .entry_graphemes = distinctive_entry_graphemes, .entry_feature_at = distinctive_entry_feature_at, .entry_feature_n = distinctive_entry_feature_n, .feature_ids = distinctive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = distinctive_scalar_dimensions, .scalar_dimension_count = DISTINCTIVE_SCALAR_DIMENSIONS_COUNT},
+    {.name = "distinctive", .version = "3.0.0", .model_sha256 = "bfda10c00849eefc27e3c83bbadb4524e396e5f760a6f76946185f216c1089ca", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DISTINCTIVE_ENTRY_COUNT, .entry_graphemes = distinctive_entry_graphemes, .entry_feature_at = distinctive_entry_feature_at, .entry_feature_n = distinctive_entry_feature_n, .feature_ids = distinctive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = distinctive_scalar_dimensions, .scalar_dimension_count = DISTINCTIVE_SCALAR_DIMENSIONS_COUNT},
 };
 
 const size_t mki_builtin_system_count =

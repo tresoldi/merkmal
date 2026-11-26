@@ -516,6 +516,15 @@
       "weight": 0.5
     },
     {
+      "name": "trill",
+      "positive": [
+        "trill"
+      ],
+      "negative": [],
+      "geometry_node": "Manner",
+      "weight": 0.5
+    },
+    {
       "name": "guttural",
       "positive": [
         "guttural"

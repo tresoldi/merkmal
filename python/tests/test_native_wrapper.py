@@ -1851,3 +1851,10 @@ def test_system_tokenizer_respects_spaces_and_marks() -> None:
     assert seg("aⁿda") == ["a", "ⁿd", "a"]
     assert seg("aʰta") == ["a", "ʰt", "a"]
     assert seg("tʰa") == ["tʰ", "a"]
+
+
+def test_trills_are_not_approximants() -> None:
+    # Once continuant read the derived label, which a trill carries, nothing in
+    # distinctive separated r from ɹ.
+    for trill, approximant in (("r", "ɹ"), ("ʙ", "β̞"), ("ʀ", "ʁ̞")):
+        assert merkmal.distance(trill, approximant) > 0.0
