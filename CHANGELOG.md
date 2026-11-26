@@ -126,6 +126,10 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- `ç` is no longer a sibilant. CLTS 1.4.1 names it "voiceless palatal sibilant
+  fricative" but its voiced partner `ʝ` not, so `d(ç, ʝ)` was 0.213 against
+  0.119 for `d(x, ɣ)`; both are now 0.106. Recorded as a divergence from CLTS
+  in the provenance of `distinctive` and `descriptive`.
 - The demonstration's distance matrix kept the first 101 segments of a longer
   list and dropped the rest without saying so; a list of more than 100 is now
   refused with a message.

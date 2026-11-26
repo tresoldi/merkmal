@@ -1922,3 +1922,13 @@ def test_tabs_and_newlines_separate_tokens() -> None:
     # They came out as tokens of their own.
     assert merkmal.segment_ipa("pa\tta\n") == ["p", "a", "t", "a"]
     assert merkmal.system_segment_ipa("t\ts\na", system="distinctive") == ["t", "s", "a"]
+
+
+def test_the_palatal_fricative_is_not_a_sibilant() -> None:
+    # CLTS 1.4.1 names ç "voiceless palatal sibilant fricative", but not its
+    # voiced partner ʝ, so the voicing pair cost twice the velar one.
+    for system in ("distinctive", "descriptive"):
+        assert "sibilant" not in merkmal.get_features("ç", system=system)
+        assert math.isclose(
+            merkmal.distance("ç", "ʝ", system=system), merkmal.distance("x", "ɣ", system=system)
+        )
