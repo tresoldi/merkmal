@@ -271,6 +271,7 @@ CI runs each of these, so run the ones your change touches:
 | Static analysis | `tools/run_static_analysis.sh` (GCC `-fanalyzer` and `clang --analyze`; any finding other than those the script lists as accepted is new) |
 | Fuzzing | `CC=clang cmake -S . -B build-fuzz -DMERKMAL_BUILD_FUZZERS=ON -DMERKMAL_BUILD_TESTS=OFF`, then `build-fuzz/fuzz_<target> tests/fuzz/corpus/<target>` |
 | Python | `pip install . pytest && python -m pytest python/tests -q` |
+| R | `python tools/sync_r_sources.py --check`, then `R CMD build r && R CMD check --no-manual merkmal_*.tar.gz` |
 | WebAssembly build current | `python tools/wasm_inputs.py --check`; if it fails, `web/build-wasm.sh` (needs Emscripten) |
 
 The warning set is in `CMakeLists.txt` as `MERKMAL_C_WARNINGS`. The library

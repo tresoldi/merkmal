@@ -1,0 +1,368 @@
+/* Normalization. See normalize.h for what the entry points are for. */
+
+#include "normalize.h"
+
+#include "generated/builtin_data.h"
+#include "strings.h"
+#include "unicode_norm.h"
+#include "utf8.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+static const char *mk_resolve_slash(const char *s)
+{
+    const char *last;
+    const char *p;
+
+    last = NULL;
+    for (p = s; *p != '\0'; p++) {
+        if (*p == '/') {
+            last = p;
+        }
+    }
+    if (last != NULL && last[1] != '\0') {
+        return last + 1;
+    }
+    return s;
+}
+
+/* Both stress marks are two bytes in UTF-8. */
+static const char *mk_strip_leading_stress(const char *s)
+{
+    while (mki_has_prefix(s, "ˈ") || mki_has_prefix(s, "ˌ")) {
+        s += 2;
+    }
+    return s;
+}
+
+static const mki_decomposition *mk_find_decomposition(const char *p)
+{
+    size_t i;
+
+    for (i = 0; i < mki_default_decomposition_count; i++) {
+        if (mki_has_prefix(p, mki_default_decompositions[i].composed)) {
+            return &mki_default_decompositions[i];
+        }
+    }
+    return NULL;
+}
+
+/* Source spellings that are not canonical decompositions and so cannot come
+ * from the table: the IPA script g, the six affricate ligatures, ASCII stand-ins
+ * for the apostrophe and the length mark, and cedilla-c.
+ *
+ * "ç" is here for a specific reason. The generator emits a decomposition only
+ * when every mark of the letter is one the feature system understands, and
+ * cedilla is not among them, so "ç" is excluded from the table and needs a hand
+ * mapping. Any other precomposed letter carrying an uninterpretable mark is
+ * deliberately left composed, and therefore rejected rather than guessed at. */
+static const mki_decomposition mk_source_conventions[] = {
+    {"ɡ", "g"},
+    {"ʣ", "dz"},
+    {"ʤ", "dʒ"},
+    {"ʥ", "dʑ"},
+    {"ʦ", "ts"},
+    {"ʧ", "tʃ"},
+    {"ʨ", "tɕ"},
+    {"ç", "ç"},
+    {"’", "ʼ"},
+    {"'", "ʼ"},
+    {":", "ː"},
+    /* U+01DD TURNED E is a source convention for schwa: CLTS v1.4.1 names it
+     * "unrounded mid central vowel", the name this inventory gives U+0259, and
+     * no bundled model carries it as a row of its own. A lookalike an author
+     * reached for, not a distinct sound.
+     *
+     * U+026B L WITH MIDDLE TILDE is BIPA's grapheme for the velarized lateral,
+     * which CLTS v1.4.1 names exactly what "lˠ" resolves to here. PHOIBLE
+     * carries `ɫ` as its own inventory row with different feature values, so
+     * applying this mapping before lookup and unconditionally would not add a
+     * spelling -- it would destroy a contrast PHOIBLE draws.
+     *
+     * The resolver tries the written form against the inventory before
+     * applying anything here, so a convention cannot shadow a grapheme a
+     * system actually has. `ɫ` resolves for the categorical systems, which lack
+     * it, and stays its own segment in PHOIBLE, which has it. */
+    {"ɫ", "lˠ"},
+    {"ǝ", "ə"},
+    /* U+025A and U+025D are the IPA's precomposed rhotacized central vowels,
+     * the usual spelling of American English "butter" and "bird". CLTS v1.4.1
+     * names them as it names "ə˞" and "ɜ˞", which every bundled system reads.
+     * PHOIBLE carries "ɚ" as a row of its own, and the inventory-first lookup
+     * keeps it so. */
+    {"ɚ", "ə˞"},
+    {"ɝ", "ɜ˞"},
+    /* U+02C1 MODIFIER LETTER REVERSED GLOTTAL STOP is how Semitist and much
+     * Arabic-dialect literature writes pharyngealization; the IPA letter is
+     * U+02E4, which every bundled system reads. */
+    {"ˁ", "ˤ"},
+    /* U+03B5 GREEK SMALL LETTER EPSILON, a lookalike reached for in place of
+     * U+025B, as U+01DD is for schwa. */
+    {"ε", "ɛ"}
+};
+
+/* Decompose a token using the compiled table.
+ *
+ * `source_conventions` also applies the mappings above. Lookup wants them --
+ * a source writing "ʧ" means the same segment as one writing "tʃ" -- while the
+ * tokenizer must not, because it reports the token as the caller wrote it.
+ *
+ * Decomposition is driven by this table rather than by full NFD, so lookup
+ * never decomposes a letter into a mark it would then misread. The table
+ * covers only letters whose combining marks the feature system can interpret,
+ * so an unsupported source letter is still rejected rather than silently
+ * reinterpreted. */
+static mk_status mk_decompose(
+    const char *utf8_in,
+    int source_conventions,
+    char **utf8_out
+)
+{
+    const char *p = utf8_in;
+    char *tmp = NULL;
+    size_t len = 0;
+    size_t cap = 0;
+    mk_status status;
+
+    *utf8_out = NULL;
+    while (*p != '\0') {
+        const mki_decomposition *rule = mk_find_decomposition(p);
+        size_t i;
+
+        /* Decompose first, so that a precomposed letter and its canonically
+         * equivalent sequence resolve identically. Otherwise "ǎ" would be
+         * rejected while the NFD spelling of the same character is accepted,
+         * and mk_normalize_grapheme (which returns NFC) would turn accepted
+         * input into rejected input. */
+        if (rule == NULL && source_conventions) {
+            for (i = 0; i < sizeof(mk_source_conventions) / sizeof(mk_source_conventions[0]); i++) {
+                if (mki_has_prefix(p, mk_source_conventions[i].composed)) {
+                    rule = &mk_source_conventions[i];
+                    break;
+                }
+            }
+        }
+        if (rule != NULL) {
+            status = mki_append_text(&tmp, &len, &cap, rule->decomposed);
+            p += strlen(rule->composed);
+        } else {
+            char one[5];
+            size_t n = mki_utf8_step(p);
+            memcpy(one, p, n);
+            one[n] = '\0';
+            status = mki_append_text(&tmp, &len, &cap, one);
+            p += n;
+        }
+        if (status != MK_OK) {
+            free(tmp);
+            return status;
+        }
+    }
+
+    if (tmp == NULL) {
+        tmp = mki_strdup_internal("");
+        if (tmp == NULL) {
+            return MK_ERR_OOM;
+        }
+    }
+    /* The marks in canonical order, as the generator stores compiled keys
+     * (full NFD). Without this, "ɤ̞̟̃" missed the row "ɤ̞̟̃", which is the
+     * same character sequence up to canonical equivalence, and was synthesized
+     * from its diacritics into a different vowel. */
+    {
+        char *ordered = NULL;
+
+        status = mki_unicode_reorder(tmp, &ordered);
+        free(tmp);
+        if (status != MK_OK) {
+            return status;
+        }
+        tmp = ordered;
+    }
+    *utf8_out = tmp;
+    return MK_OK;
+}
+
+mk_status mki_normalize_input_grapheme(
+    const char *utf8_in,
+    char **utf8_out
+)
+{
+    if (utf8_in == NULL || utf8_out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *utf8_out = NULL;
+    return mk_decompose(
+        mk_strip_leading_stress(mk_resolve_slash(utf8_in)),
+        1,
+        utf8_out
+    );
+}
+
+mk_status mki_normalize_input_grapheme_literal(
+    const char *utf8_in,
+    char **utf8_out
+)
+{
+    if (utf8_in == NULL || utf8_out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *utf8_out = NULL;
+    return mk_decompose(
+        mk_strip_leading_stress(mk_resolve_slash(utf8_in)),
+        0,
+        utf8_out
+    );
+}
+
+mk_status mk_normalize_grapheme(
+    const char *utf8_in,
+    char **utf8_out
+)
+{
+    const char *p;
+    char *tmp;
+    char *out;
+    char *composed = NULL;
+    size_t len;
+    size_t cap;
+    mk_status status;
+
+    if (utf8_in == NULL || utf8_out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *utf8_out = NULL;
+
+    status = mki_normalize_input_grapheme(utf8_in, &tmp);
+    if (status != MK_OK) {
+        return status;
+    }
+
+    /* The script g is the IPA letter; the source conventions above folded it
+     * to ASCII for lookup, and the caller gets it back. */
+    out = NULL;
+    len = 0;
+    cap = 0;
+    for (p = tmp; *p != '\0';) {
+        if (*p == 'g') {
+            status = mki_append_text(&out, &len, &cap, "ɡ");
+            p++;
+        } else {
+            char one[5];
+            size_t n = mki_utf8_step(p);
+            memcpy(one, p, n);
+            one[n] = '\0';
+            status = mki_append_text(&out, &len, &cap, one);
+            p += n;
+        }
+        if (status != MK_OK) {
+            free(tmp);
+            free(out);
+            return status;
+        }
+    }
+    free(tmp);
+
+    /* NFC from the compiled tables, in every build. Not an optional system
+     * library with a fallback: then the same commit could return `ỹ` composed
+     * on one machine and decomposed on another (issue #3). */
+    status = mki_unicode_nfc(out == NULL ? "" : out, &composed);
+    free(out);
+    if (status != MK_OK) {
+        return status;
+    }
+    *utf8_out = composed;
+    return MK_OK;
+}
+
+/* ASCII digits 0-5 as superscript Chao digits. Not applied by the tokenizer
+ * or the recognizer, because a romanization's ASCII digits number tone
+ * categories, not pitch levels (docs/guide/c-api.md); a caller whose corpus
+ * writes Chao levels in ASCII applies it explicitly. */
+mk_status mk_ascii_chao_digits(const char *utf8_in, char **utf8_out)
+{
+    static const char *const superscripts[] = {
+        "\xe2\x81\xb0", /* ⁰ */
+        "\xc2\xb9", /* ¹ */
+        "\xc2\xb2", /* ² */
+        "\xc2\xb3", /* ³ */
+        "\xe2\x81\xb4", /* ⁴ */
+        "\xe2\x81\xb5" /* ⁵ */
+    };
+    char *out = NULL;
+    size_t out_len = 0;
+    size_t out_cap = 0;
+    const char *p;
+    mk_status status;
+
+    if (utf8_in == NULL || utf8_out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *utf8_out = NULL;
+    status = mki_append_text(&out, &out_len, &out_cap, "");
+    for (p = utf8_in; status == MK_OK && *p != '\0';) {
+        if (*p >= '0' && *p <= '5') {
+            status = mki_append_text(&out, &out_len, &out_cap, superscripts[*p - '0']);
+            p++;
+        } else {
+            char one[5];
+            size_t n = mki_utf8_step(p);
+
+            memcpy(one, p, n);
+            one[n] = '\0';
+            status = mki_append_text(&out, &out_len, &out_cap, one);
+            p += n;
+        }
+    }
+    if (status != MK_OK) {
+        free(out);
+        return status;
+    }
+    *utf8_out = out;
+    return MK_OK;
+}
+
+mk_status mki_segmentation_nfd(
+    const char *utf8_in,
+    char **utf8_out
+)
+{
+    char *tmp = NULL;
+    mk_status status;
+
+    if (utf8_in == NULL || utf8_out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *utf8_out = NULL;
+
+    /* The same table lookup uses, so the tokenizer and the recognizer agree on
+     * which precomposed letters decompose; a separate list here would drift
+     * from it. The source conventions are not applied here: a token is
+     * reported as the caller wrote it. Full NFD follows, from the compiled
+     * Unicode tables. */
+    status = mk_decompose(utf8_in, 0, &tmp);
+    if (status != MK_OK) {
+        return status;
+    }
+
+    {
+        char *normalized = NULL;
+        status = mki_unicode_nfd(tmp, &normalized);
+        free(tmp);
+        if (status != MK_OK) {
+            return status;
+        }
+        tmp = normalized;
+    }
+
+    if (tmp == NULL) {
+        tmp = mki_strdup_internal("");
+        if (tmp == NULL) {
+            return MK_ERR_OOM;
+        }
+    }
+
+    *utf8_out = tmp;
+    return MK_OK;
+}

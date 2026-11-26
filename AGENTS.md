@@ -32,6 +32,9 @@ touches; docs/development/style.md, Building and checking, has the full table.
   `data/geometries/`, `data/diacritics/`, `tools/` or `src/generated/builtin_data.h`
 - `python tools/regenerate_golden.py --check`, `tools/validate_models.py`,
   `tools/contrast_baseline.py --check`, `tools/generate_notice.py --check`
+- `python tools/sync_r_sources.py --check` after touching `src/`, `include/`,
+  `NOTICE` or `tests/golden/`; then `R CMD build r` and
+  `R CMD check --no-manual merkmal_*.tar.gz` for a change to `r/`
 - `python tools/wasm_inputs.py --check` after touching `src/`, `include/`,
   `web/merkmal_wasm.c`, `web/build-wasm.sh` or `CMakeLists.txt`; if it fails,
   rebuild with `web/build-wasm.sh`
@@ -41,8 +44,9 @@ touches; docs/development/style.md, Building and checking, has the full table.
 ## Boundaries
 
 - `include/merkmal.h` is the whole public API. The Python extension
-  (`python/src/merkmal_module.c`) and the WebAssembly adapter
-  (`web/merkmal_wasm.c`) include it and nothing else from `src/`.
+  (`python/src/merkmal_module.c`), the R bindings (`r/src/merkmal_r.c`) and
+  the WebAssembly adapter (`web/merkmal_wasm.c`) include it and nothing else
+  from `src/`.
   [ADR 0001](docs/development/adr/0001-c-api-is-the-canonical-interface.md).
 - `mk_` names are public, `mki_` names internal; the `public_symbols` test
   fails on a leak.
@@ -59,7 +63,12 @@ touches; docs/development/style.md, Building and checking, has the full table.
   refuses to record them otherwise.
 - `NOTICE`: `python tools/generate_notice.py`.
 - `web/merkmal.js`, `web/merkmal.wasm`, `web/BUILD_INFO`: `web/build-wasm.sh`
-  (needs Emscripten). [ADR 0003](docs/development/adr/0003-generated-artifacts-are-committed.md).
+  (needs Emscripten).
+- `r/src/merkmal/`, `r/src/Makevars`, `r/inst/NOTICE` and
+  `r/tests/testthat/golden/`: `python tools/sync_r_sources.py`, after any
+  change to `src/`, `include/`, `NOTICE` or `tests/golden/`.
+- `r/man/*.Rd` and `r/NAMESPACE`: `roxygen2::roxygenise("r")` after changing
+  the roxygen comments in `r/R/`. [ADR 0003](docs/development/adr/0003-generated-artifacts-are-committed.md).
 
 ## Do not
 

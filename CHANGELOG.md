@@ -6,6 +6,19 @@ change must be recomputed. The reasons for each change are recorded in the
 commit history, in [docs/](docs/README.md) and in the design records in
 [docs/development/adr/](docs/development/adr/).
 
+## Unreleased
+
+### Added
+
+- An R package, in `r/`, with bindings to the whole public C API: feature
+  lookup, diagnoses, distances with coverage and distance matrices, feature
+  vectors, normalization and segmentation, Chao tone handling, the geometry,
+  semantic and operation fingerprints, runtime models and abstract segments.
+  It compiles a copy of the C core, written by `tools/sync_r_sources.py` and
+  checked in CI, so that it installs from GitHub with no system dependency.
+  Its tests replay the golden fixtures, and its operation fingerprints are
+  those of the Python package for the same settings.
+
 ## 0.11.0 (2026-11-26)
 
 ### Changed

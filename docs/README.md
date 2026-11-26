@@ -7,6 +7,7 @@
 | [guide/installation.md](guide/installation.md) | Building, installing and linking the C library; data profiles |
 | [guide/c-api.md](guide/c-api.md) | The C interface: ownership, status codes, every public function |
 | [../python/README.md](../python/README.md) | The Python package and the `merkmal` command line |
+| [../r/README.md](../r/README.md) | The R package |
 | [guide/runtime-model-format.md](guide/runtime-model-format.md) | The text format for models supplied at run time |
 | [guide/custom-models.md](guide/custom-models.md) | Defining and validating a custom feature model |
 | [guide/webassembly.md](guide/webassembly.md) | The WebAssembly build and the browser demonstration |

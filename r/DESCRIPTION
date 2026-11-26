@@ -1,0 +1,22 @@
+Package: merkmal
+Type: Package
+Title: Phonological Feature Systems and Segment Distances
+Version: 0.11.0
+Authors@R: person("Tiago", "Tresoldi", email = "tiago.tresoldi@lingfil.uu.se",
+    role = c("aut", "cre"))
+Description: Maps IPA transcriptions of speech segments to phonological
+    feature representations under seven feature systems, built on the
+    Cross-Linguistic Transcription Systems, PHOIBLE and P-base, and computes
+    dissimilarities between segments through a declared feature geometry.
+    Every comparison can report its coverage, and every system has a
+    semantic fingerprint that identifies stored results. Bindings to the
+    merkmal C library, which is compiled into the package.
+License: file LICENSE
+URL: https://github.com/tresoldi/merkmal, https://merkmal.tresoldi.org
+BugReports: https://github.com/tresoldi/merkmal/issues
+Depends: R (>= 4.1)
+Suggests: testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1

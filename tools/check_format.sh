@@ -19,7 +19,7 @@ fi
 # version is printed so that the report names it.
 echo "check_format: $(clang-format --version)"
 
-files=$(git ls-files '*.c' '*.h' | grep -v '^src/generated/')
+files=$(git ls-files '*.c' '*.h' | grep -v -e '^src/generated/' -e '^r/src/merkmal/')
 if [ "${1:-}" = "--fix" ]; then
     # shellcheck disable=SC2086
     clang-format -i $files
