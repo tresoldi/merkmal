@@ -266,7 +266,8 @@ MK_API mk_status mk_normalize_grapheme(
 
 /** Orthographic tokenization into an owned list (free with
  * mk_string_list_free): a new token starts at each new base code point unless
- * a tie bar joins it to the previous one.
+ * a tie bar joins it to the previous one. A stress mark (ˈ, ˌ) ends a token and
+ * is dropped.
  *
  * Stable and language-neutral, but not phonological segmentation: "tʃa"
  * splits into t, ʃ, a although the descriptive system accepts untied "tʃ".

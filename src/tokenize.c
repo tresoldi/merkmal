@@ -145,6 +145,13 @@ mk_status mk_segment_ipa(
             /* A space separates tokens and is not one. */
             status = mk_break(&t);
             p++;
+        } else if (mki_has_prefix(p, "ˈ") || mki_has_prefix(p, "ˌ")) {
+            /* A stress mark belongs to the syllable, not to a segment: it ends
+             * the current token and is dropped, as a leading one is by the
+             * normalizer. Without this it is a modifier letter and would attach
+             * to the previous token ("paˈta" gave "aˈ"). */
+            status = mk_break(&t);
+            p += mki_utf8_step(p);
         } else if (mki_is_chao_digit(p)) {
             /* A run of Chao digits is one token. */
             const char *start = p;

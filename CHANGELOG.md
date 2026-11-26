@@ -6,6 +6,15 @@ change must be recomputed. The reasons for each change are recorded in the
 commit history, in [docs/](docs/README.md) and in the design records in
 [docs/development/adr/](docs/development/adr/).
 
+## Unreleased
+
+### Fixed
+
+- A stress mark inside a word (`paˈta`) ended up attached, as a modifier
+  letter, to the segment before it (`aˈ`), which no system recognizes. The
+  tokenizers now treat `ˈ` and `ˌ` as a break and drop them, as the normalizer
+  already did with a leading one.
+
 ## 0.10.0 (2026-11-25)
 
 ### Added

@@ -1750,3 +1750,11 @@ def test_a_mark_repeated_on_one_letter_is_refused() -> None:
     # may be doubled.
     for grapheme in ("t̥ʃ̥", "kʷkʷ", "ʰkʰ", "aːː"):
         assert merkmal.get_features(grapheme, system="distinctive")
+
+
+def test_a_stress_mark_ends_a_token() -> None:
+    # A stress mark marks the syllable; inside a word it used to attach, as a
+    # modifier letter, to the segment before it ("paˈta" gave "aˈ").
+    for text in ("paˈta", "paˌta", "ˈpata"):
+        assert merkmal.segment_ipa(text) == ["p", "a", "t", "a"]
+        assert merkmal.system_segment_ipa(text, system="distinctive") == ["p", "a", "t", "a"]

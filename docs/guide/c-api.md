@@ -452,8 +452,8 @@ mk_sound_distance(a, b, NULL, &distance);
 
 There are two tokenization policies, and the choice affects the results.
 `mk_segment_ipa` is orthographic: a token starts at each new base code point
-unless a tie bar joins it to the previous one. It is stable and
-language-neutral, but it does not agree with what a system accepts: it splits
+unless a tie bar joins it to the previous one, and a stress mark (`ˈ`, `ˌ`)
+ends a token and is dropped. It is stable and language-neutral, but it does not agree with what a system accepts: it splits
 `tʃa` into `t`, `ʃ`, `a`, although the categorical systems recognize untied
 `tʃ` as one segment. `mk_system_segment_ipa` instead takes the longest match
 against the selected system, giving `[tʃ, a]` and `[kp, a]`.
