@@ -53,6 +53,13 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- `mk_system_segment_ipa` merged across the spaces a caller wrote (`t s a`
+  became `ts`, `a`), merged a run whose first letter carried a mark (`kʰætʰs`
+  gave `tʰs`, `akːpa` gave `kːp`), and attached a medial prefix modifier to
+  the vowel before it (`aⁿda` gave a vowel with nasal release). A space is now
+  a boundary, only the last token of a merge may carry marks, and a prefix
+  modifier between a vowel and a consonant goes to the consonant when the
+  system reads both results.
 - A stress mark inside a word (`paˈta`) ended up attached, as a modifier
   letter, to the segment before it (`aˈ`), which no system recognizes. The
   tokenizers now treat `ˈ` and `ˌ` as a break and drop them, as the normalizer

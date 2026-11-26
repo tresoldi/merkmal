@@ -1830,3 +1830,24 @@ def test_the_nucleus_is_the_most_sonorous_part() -> None:
         for cluster, nucleus, glide in (("ia", "a", "i"), ("ua", "a", "u"), ("ai", "a", "i")):
             to_nucleus = merkmal.distance(cluster, nucleus, system=system)
             assert to_nucleus < merkmal.distance(cluster, glide, system=system)
+
+
+def test_system_tokenizer_respects_spaces_and_marks() -> None:
+    seg = lambda text: merkmal.system_segment_ipa(text, system="distinctive")  # noqa: E731
+    # A space the caller wrote is a boundary, as in a CLDF Segments column.
+    assert seg("t s a") == ["t", "s", "a"]
+    assert seg("a m b a") == ["a", "m", "b", "a"]
+    assert seg("tsa") == ["ts", "a"]
+    # A mark belongs to the letter it follows: an aspirated, unreleased or long
+    # stop before a fricative is not an affricate.
+    assert seg("kʰætʰs") == ["kʰ", "æ", "tʰ", "s"]
+    assert seg("at̚sa") == ["a", "t̚", "s", "a"]
+    assert seg("akːpa") == ["a", "kː", "p", "a"]
+    # Marks after the last letter still merge.
+    assert seg("tʃʰa") == ["tʃʰ", "a"]
+    assert seg("kpʷa") == ["kpʷ", "a"]
+    # A prefix modifier between a vowel and a consonant belongs to the
+    # consonant: prenasalization and pre-aspiration are normally medial.
+    assert seg("aⁿda") == ["a", "ⁿd", "a"]
+    assert seg("aʰta") == ["a", "ʰt", "a"]
+    assert seg("tʰa") == ["tʰ", "a"]

@@ -283,11 +283,17 @@ MK_API mk_status mk_segment_ipa(
  * synthesis grammar, so "tʃa" becomes [tʃ, a] and "kpa" becomes [kp, a] where
  * those tokens are recognized.
  *
+ * A space in the input is a boundary that no merge crosses, so "t s a" stays
+ * [t, s, a]. Only the last token of a merged run may carry marks, so "tʰs" is
+ * not the affricate. A modifier letter that can precede a consonant (ⁿ, ʰ, ʲ,
+ * ʷ, ˀ) and that ends a vowel token moves to the consonant after it when the
+ * system reads both results, so "aⁿda" gives [a, ⁿd, a].
+ *
  * Input the system does not recognize is passed through as its orthographic
  * token rather than dropped, so the function is total over its input; check
  * mk_system_is_segment per token if you need a guarantee. Longest match is a
- * policy ("kp" may be /k.p/), and results depend on the system and its
- * inventory version: record both with any stored tokenization. */
+ * policy ("kp" may be /k.p/, "mb" /m.b/), and results depend on the system and
+ * its inventory version: record both with any stored tokenization. */
 MK_API mk_status mk_system_segment_ipa(
     const mk_system *system,
     const char *utf8_in,
