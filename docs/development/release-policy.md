@@ -47,11 +47,13 @@ packaging and DLL import and export are not tested.
 
 ## Version numbers
 
-A release bumps the version in five places: `project(VERSION ...)` in
+A release bumps the version in six places: `project(VERSION ...)` in
 `CMakeLists.txt`, `MK_VERSION_*` in `include/merkmal.h`, `pyproject.toml`,
-`python/merkmal/__init__.py` and `CITATION.cff`. The C smoke test fails if the
-header and CMake disagree, and the Python tests fail if `__version__` and the
-linked library disagree.
+`python/merkmal/__init__.py`, `r/DESCRIPTION` and `CITATION.cff`. The C smoke
+test fails if the header and CMake disagree, and the Python and R tests fail if
+the package version and the linked library disagree; run
+`tools/sync_r_sources.py` first, so that the R package carries the new
+header.
 
 ## Validation gates
 
@@ -62,6 +64,8 @@ Before a release is tagged, the following pass:
 - the CMake and pkg-config consumer tests against an installed tree;
 - the C library under the sanitizers;
 - the Python tests;
+- `python tools/sync_r_sources.py --check`, and `R CMD check` of the R
+  package;
 - the wheel build, and the wheel contains only the package files;
 - `python tools/validate_models.py` (required fields, exact identifier
   matching, feature coverage, geometry node resolution, provenance);

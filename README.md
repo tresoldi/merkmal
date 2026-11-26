@@ -6,8 +6,9 @@ computes dissimilarities between segments from those representations. It is
 intended for computational historical linguistics and phonological typology:
 as a substitution cost in sequence alignment, for transcription quality
 control, and for comparing segments across feature theories. The library has
-no runtime dependencies; a Python package, a command-line interface and a
-WebAssembly build are thin wrappers around the same C interface.
+no runtime dependencies; a Python package, an R package, a command-line
+interface and a WebAssembly build are thin wrappers around the same C
+interface.
 
 ## Contents
 
@@ -140,12 +141,29 @@ The Python package (CPython 3.12 or later) is built from the same sources:
 python -m pip install merkmal
 ```
 
+So is the R package (R 4.1 or later), which compiles the C core into itself:
+
+```r
+remotes::install_github("tresoldi/merkmal", subdir = "r")
+```
+
 Installed C consumers can use CMake (`find_package(merkmal CONFIG)`, target
 `merkmal::merkmal`) or pkg-config. Static and shared builds, and a build without
 the share-alike and non-commercial data, are described in
 [docs/guide/installation.md](docs/guide/installation.md).
 
 ## Usage
+
+In R (see [r/README.md](r/README.md)):
+
+```r
+library(merkmal)
+
+distance("p", c("b", "t", "a"))                 # vectorized
+distance_with_coverage("ai", "au", system = "phoible")
+diagnose(c("tʰ", "pʰ1", "<?>"))                 # why a segment is refused
+hclust(as.dist(distance_matrix(c("p", "b", "t", "d", "a"))))
+```
 
 In Python:
 
@@ -203,7 +221,7 @@ policy and system used should be recorded with any stored tokenization.
 ## Documentation
 
 [docs/README.md](docs/README.md) lists the documentation: the C interface, the
-Python package and command line, the model formats, the method and its
+Python and R packages and the command line, the model formats, the method and its
 evaluation, and the development conventions. Changes between releases are
 recorded in [CHANGELOG.md](CHANGELOG.md).
 
