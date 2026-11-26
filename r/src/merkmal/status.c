@@ -1,0 +1,31 @@
+#include "merkmal.h"
+
+const char *mk_status_string(mk_status status)
+{
+    switch (status) {
+    case MK_OK:
+        return "ok";
+    case MK_ERR_INVALID_ARGUMENT:
+        return "invalid argument";
+    case MK_ERR_UNKNOWN_SYSTEM:
+        return "unknown system";
+    case MK_ERR_UNKNOWN_GRAPHEME:
+        return "unknown grapheme";
+    case MK_ERR_UNSUPPORTED_MODEL:
+        return "unsupported model";
+    case MK_ERR_PARSE:
+        return "parse error";
+    case MK_ERR_OOM:
+        return "out of memory";
+    case MK_ERR_SOURCE_MARKER:
+        return "source markup, not a sound";
+    case MK_ERR_DUPLICATE_SYSTEM:
+        return "a system by that name is already registered";
+    case MK_ERR_NO_TREE_PATH:
+        return "feature has no path in the geometry tree";
+    case MK_ERR_UNKNOWN_FEATURE:
+        return "feature label unknown to the geometry";
+    default:
+        return "unknown status";
+    }
+}

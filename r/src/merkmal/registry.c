@@ -1,0 +1,273 @@
+/* Registry lifecycle: holding systems, handing them out, and installing a
+ * model parsed from caller-supplied text. The parser itself is model_text.c. */
+
+#include "registry.h"
+
+#include "merkmal.h"
+#include "model_text.h"
+#include "string_list.h"
+#include "strings.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+/* The detail behind MK_ERR_DUPLICATE_SYSTEM, when the caller asked for one.
+ *
+ * Sized to the name rather than written into a fixed buffer: a model name comes
+ * from caller-supplied text and has no length the library gets to assume. A
+ * caller who did not ask for a diagnostic, or an allocation that fails, still
+ * gets the status -- the message is detail, never the answer. */
+static void mk_registry_set_duplicate_diagnostic(char **out, const char *name)
+{
+    static const char prefix[] = "a system named '";
+    static const char suffix[] = "' is already registered";
+    size_t length;
+    char *message;
+
+    if (out == NULL || name == NULL) {
+        return;
+    }
+    length = sizeof(prefix) - 1 + strlen(name) + sizeof(suffix);
+    message = (char *)malloc(length);
+    if (message == NULL) {
+        return;
+    }
+    memcpy(message, prefix, sizeof(prefix) - 1);
+    memcpy(message + sizeof(prefix) - 1, name, strlen(name));
+    memcpy(message + sizeof(prefix) - 1 + strlen(name), suffix, sizeof(suffix));
+    *out = message;
+}
+
+static void mk_free_owned_system(mk_system *system)
+{
+    size_t i;
+
+    if (system == NULL || !system->owns) {
+        return;
+    }
+    free(system->owned_name);
+    for (i = 0; i < system->owned.entry_count; i++) {
+        mki_builtin_entry *entry = &system->owned.entries[i];
+        size_t j;
+
+        free(entry->grapheme);
+        for (j = 0; j < entry->feature_count; j++) {
+            free(entry->features[j]);
+        }
+        free(entry->features);
+    }
+    free(system->owned.entries);
+    system->builtin = NULL;
+    system->owned_name = NULL;
+    memset(&system->owned, 0, sizeof(system->owned));
+    system->owns = false;
+}
+
+/* Allocates each system separately. The registry array may be reallocated
+ * when a runtime model is added, but a system returned to the caller must not
+ * move as a result of that operation. */
+mk_status mk_registry_new_builtin(mk_registry **out)
+{
+    mk_registry *registry;
+    size_t i;
+
+    if (out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *out = NULL;
+
+    registry = (mk_registry *)calloc(1, sizeof(*registry));
+    if (registry == NULL) {
+        return MK_ERR_OOM;
+    }
+
+    registry->systems = (mk_system **)calloc(
+        mki_builtin_system_count,
+        sizeof(*registry->systems)
+    );
+    if (registry->systems == NULL) {
+        free(registry);
+        return MK_ERR_OOM;
+    }
+    registry->system_count = mki_builtin_system_count;
+
+    for (i = 0; i < mki_builtin_system_count; i++) {
+        registry->systems[i] = (mk_system *)calloc(1, sizeof(*registry->systems[i]));
+        if (registry->systems[i] == NULL) {
+            while (i > 0) {
+                i--;
+                free(registry->systems[i]);
+            }
+            free(registry->systems);
+            free(registry);
+            return MK_ERR_OOM;
+        }
+        registry->systems[i]->builtin = &mki_builtin_systems[i];
+    }
+
+    *out = registry;
+    return MK_OK;
+}
+
+void mk_registry_free(mk_registry *registry)
+{
+    size_t i;
+
+    if (registry == NULL) {
+        return;
+    }
+    for (i = 0; i < registry->system_count; i++) {
+        mk_free_owned_system(registry->systems[i]);
+        free(registry->systems[i]);
+    }
+    free(registry->systems);
+    free(registry);
+}
+
+mk_status mk_registry_list_systems(
+    const mk_registry *registry,
+    mk_string_list **out
+)
+{
+    const char **names;
+    size_t i;
+    mk_status status;
+
+    if (registry == NULL || out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+
+    names = (const char **)calloc(registry->system_count, sizeof(*names));
+    if (names == NULL) {
+        return MK_ERR_OOM;
+    }
+    for (i = 0; i < registry->system_count; i++) {
+        names[i] = registry->systems[i]->builtin->name;
+    }
+
+    status = mki_string_list_from_borrowed(names, registry->system_count, out);
+    free(names);
+    return status;
+}
+
+mk_status mk_registry_get_system(
+    const mk_registry *registry,
+    const char *name,
+    const mk_system **out
+)
+{
+    size_t i;
+
+    if (registry == NULL || name == NULL || out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *out = NULL;
+
+    for (i = 0; i < registry->system_count; i++) {
+        if (mki_streq(registry->systems[i]->builtin->name, name)) {
+            *out = registry->systems[i];
+            return MK_OK;
+        }
+    }
+
+    return MK_ERR_UNKNOWN_SYSTEM;
+}
+
+mk_status mk_registry_add_model_text(
+    mk_registry *registry,
+    const char *model_text
+)
+{
+    return mk_registry_add_model_text_ex(registry, model_text, NULL);
+}
+
+/* The two NUL-terminated forms measure the string and hand off to the one that
+ * takes a length, so there is a single install path to keep correct. */
+mk_status mk_registry_add_model_text_ex(
+    mk_registry *registry,
+    const char *model_text,
+    char **diagnostic_out
+)
+{
+    if (diagnostic_out != NULL) {
+        *diagnostic_out = NULL;
+    }
+    if (registry == NULL || model_text == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    return mk_registry_add_model_text_n(
+        registry, model_text, strlen(model_text), diagnostic_out
+    );
+}
+
+mk_status mk_registry_add_model_text_n(
+    mk_registry *registry,
+    const char *model_text,
+    size_t model_text_length,
+    char **diagnostic_out
+)
+{
+    mki_parsed_model model;
+    mk_system **next_systems;
+    mk_system *slot;
+    mk_status status;
+
+    if (diagnostic_out != NULL) {
+        *diagnostic_out = NULL;
+    }
+    if (registry == NULL || model_text == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+
+    status = mki_parse_model_text_n(model_text, model_text_length, &model, diagnostic_out);
+    if (status != MK_OK) {
+        return status;
+    }
+
+    /* Before anything is installed. mk_registry_get_system returns the first
+     * match, so a second system under an existing name would register with
+     * MK_OK and then be unreachable for the rest of the registry's life.
+     * Strict validation in the parser refuses a grapheme declared twice within
+     * one model for the same reason: an ambiguous lookup is not something to
+     * resolve silently. */
+    {
+        const mk_system *existing = NULL;
+
+        if (mk_registry_get_system(registry, model.name, &existing) == MK_OK) {
+            mk_registry_set_duplicate_diagnostic(diagnostic_out, model.name);
+            mki_parsed_model_clear(&model);
+            return MK_ERR_DUPLICATE_SYSTEM;
+        }
+    }
+
+    next_systems = (mk_system **)realloc(
+        registry->systems,
+        (registry->system_count + 1) * sizeof(*registry->systems)
+    );
+    if (next_systems == NULL) {
+        mki_parsed_model_clear(&model);
+        return MK_ERR_OOM;
+    }
+    registry->systems = next_systems;
+
+    slot = (mk_system *)calloc(1, sizeof(*slot));
+    if (slot == NULL) {
+        mki_parsed_model_clear(&model);
+        return MK_ERR_OOM;
+    }
+    registry->systems[registry->system_count] = slot;
+
+    /* The registry takes over what the parser produced, so the model must not
+     * be cleared on this path. The name is held twice on purpose: owned_name is
+     * the allocation this struct frees, owned.name is the borrowed view of it
+     * that every reader sees. */
+    slot->owned_name = model.name;
+    slot->owned.name = model.name;
+    slot->owned.kind = MKI_SYSTEM_CATEGORICAL;
+    slot->owned.entries = model.entries;
+    slot->owned.entry_count = model.entry_count;
+    slot->builtin = &slot->owned;
+    slot->owns = true;
+    registry->system_count++;
+    return MK_OK;
+}

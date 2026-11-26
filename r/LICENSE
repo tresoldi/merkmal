@@ -1,0 +1,15 @@
+The source code of merkmal, including the R package, is released under the
+MIT license, Copyright (c) Tiago Tresoldi; see
+https://github.com/tresoldi/merkmal/blob/master/LICENSE.
+
+The feature data compiled into the package carries the terms of its sources:
+
+    distinctive, descriptive (from CLTS)     CC-BY-4.0
+    phoible (from PHOIBLE)                    CC-BY-SA-3.0
+    pbase-spe, pbase-jfh, pbase-hc,
+    pbase-uftc (from P-base)                  CC-BY-NC-SA-4.0
+
+The package as distributed is therefore licensed as
+MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0: software built on it
+inherits the share-alike terms of PHOIBLE and P-base and the non-commercial
+terms of P-base. inst/NOTICE gives the attribution each source requires.
