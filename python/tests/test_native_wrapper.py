@@ -306,8 +306,9 @@ def test_native_distance_matches_golden_probe() -> None:
     # scalar_dimensions rather than the geometry tree. Naming the system keeps
     # this probe pinned to a value rather than to whatever the default is.
     # 0.1429 and 0.125 while two segments unmarked for length were compared,
-    # and agreed, on duration, which diluted every other difference.
-    assert math.isclose(merkmal.distance("p", "b"), 0.1666666667, abs_tol=1e-10)
+    # and agreed, on duration, which diluted every other difference; then
+    # 0.1667 for distinctive until it gained the glide dimension.
+    assert math.isclose(merkmal.distance("p", "b"), 0.125, abs_tol=1e-10)
     assert math.isclose(
         merkmal.distance("p", "b", system="descriptive"), 0.1428571429, abs_tol=1e-10
     )
@@ -331,7 +332,7 @@ def test_native_distance_matches_golden_probe() -> None:
             merkmal.feature_distance(a, b)
     assert math.isclose(
         merkmal.distance("p", "b", system="distinctive", node_weights="flat"),
-        1.0 / 6.0,
+        1.0 / 7.0,
         abs_tol=1e-10,
     )
     assert merkmal.distance("ai", "ai", system="descriptive") == 0.0
@@ -1824,8 +1825,9 @@ def test_coverage_reports_a_pair_that_shares_nothing() -> None:
 
 
 def test_glides_are_vocoids_in_the_default_system() -> None:
-    # distinctive read its vocoid dimension from vowel/consonant, so /w/ was
-    # nearer /b/ (0.39) and /g/ than /u/ (0.58).
+    # distinctive had only the vowel/consonant dimension, so /w/ was nearer
+    # /b/ (0.39) and /g/ than /u/ (0.58). It keeps that major class, which
+    # alignment relies on, and has a glide dimension besides.
     assert merkmal.distance("w", "u") < merkmal.distance("w", "b")
     assert merkmal.distance("j", "i") < merkmal.distance("j", "d")
 

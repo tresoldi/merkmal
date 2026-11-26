@@ -291,10 +291,10 @@
     {
       "name": "vocoid",
       "positive": [
-        "vocoid"
+        "vowel"
       ],
       "negative": [
-        "consonantal"
+        "consonant"
       ],
       "geometry_node": "Root",
       "geometry_leaf": "vocoid"
@@ -514,6 +514,17 @@
       "negative": [],
       "geometry_node": "Manner",
       "weight": 0.5
+    },
+    {
+      "name": "glide",
+      "positive": [
+        "vocoid"
+      ],
+      "negative": [
+        "consonantal"
+      ],
+      "geometry_node": "Root",
+      "weight": 1.0
     },
     {
       "name": "trill",

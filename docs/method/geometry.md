@@ -116,11 +116,14 @@ is part of the system's [semantic fingerprint](semantic-fingerprint.md).
   leaf. A dimension that measures what a geometry leaf measures names that
   leaf (`geometry_leaf`), is attached to the leaf's node and takes its weight,
   so `distinctive` and `descriptive` price the same property alike. From
-  `distinctive` 3.0.0 its `vocoid`, `continuant`, `anterior` and
-  `distributed` dimensions read the derived labels below, as `descriptive`'s
-  leaves do; before, `vocoid` read `vowel`/`consonant`, so the glides counted
-  as consonants (/w/ nearer /b/ than /u/), and `continuant`, `anterior` and
-  `distributed` omitted nasals, trills, vowels, linguolabials and dentals. The four
+  `distinctive` 3.0.0 its `continuant`, `anterior` and `distributed`
+  dimensions read the derived labels below, as `descriptive`'s leaves do (they
+  omitted nasals, trills, vowels, linguolabials and dentals), and a `glide`
+  dimension reads the derived `vocoid`/`consonantal`, so that /w/ is nearer
+  /u/ than /b/. Its `vocoid` dimension stays the vowel/consonant major class:
+  read from the derived label instead, it put `distinctive` significantly
+  below SCA as an alignment cost (−1.03 points against −0.22 with both;
+  [evaluation](evaluation.md)). The four
   dimensions with no counterpart in the geometry (`fricative`, `click`,
   `implosive` and `apical`) declare their weight, set to that of the leaves
   under the same node. The generator and `tools/validate_models.py` refuse a

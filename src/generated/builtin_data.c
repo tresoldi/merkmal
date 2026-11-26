@@ -7548,11 +7548,11 @@ static const char *const distinctive_scalar_dimensions_28_positive[] = {
 };
 
 static const char *const distinctive_scalar_dimensions_29_positive[] = {
-    "vocoid",
+    "vowel",
 };
 
 static const char *const distinctive_scalar_dimensions_29_negative[] = {
-    "consonantal",
+    "consonant",
 };
 
 static const char *const distinctive_scalar_dimensions_30_positive[] = {
@@ -7665,10 +7665,18 @@ static const char *const distinctive_scalar_dimensions_52_positive[] = {
 };
 
 static const char *const distinctive_scalar_dimensions_53_positive[] = {
-    "trill",
+    "vocoid",
+};
+
+static const char *const distinctive_scalar_dimensions_53_negative[] = {
+    "consonantal",
 };
 
 static const char *const distinctive_scalar_dimensions_54_positive[] = {
+    "trill",
+};
+
+static const char *const distinctive_scalar_dimensions_55_positive[] = {
     "guttural",
 };
 
@@ -7726,8 +7734,9 @@ static const mki_scalar_dimension distinctive_scalar_dimensions[] = {
     {.name = "fricative", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_50_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
     {.name = "click", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_51_positive, .positive_count = 2, .negative = NULL, .negative_count = 0, .weight = 0.5},
     {.name = "implosive", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_52_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
-    {.name = "trill", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_53_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
-    {.name = "guttural", .geometry_node = "Place", .positive = distinctive_scalar_dimensions_54_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.40000000000000002},
+    {.name = "glide", .geometry_node = "Root", .positive = distinctive_scalar_dimensions_53_positive, .positive_count = 1, .negative = distinctive_scalar_dimensions_53_negative, .negative_count = 1, .weight = 1},
+    {.name = "trill", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_54_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
+    {.name = "guttural", .geometry_node = "Place", .positive = distinctive_scalar_dimensions_55_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.40000000000000002},
 };
 
 #define DISTINCTIVE_SCALAR_DIMENSIONS_COUNT (sizeof(distinctive_scalar_dimensions) / sizeof(distinctive_scalar_dimensions[0]))
@@ -16915,7 +16924,7 @@ static const mki_valued_effect phoible_valued_effects[] = {
 
 const mki_builtin_system mki_builtin_systems[] = {
     {.name = "descriptive", .version = "2.0.0", .model_sha256 = "6b00c87bee9726c715a75d2d6f8b36bec30bff43a5f7b92c93631188b4e3505e", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DESCRIPTIVE_ENTRY_COUNT, .entry_graphemes = descriptive_entry_graphemes, .entry_feature_at = descriptive_entry_feature_at, .entry_feature_n = descriptive_entry_feature_n, .feature_ids = descriptive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = NULL, .valued_effect_count = 0},
-    {.name = "distinctive", .version = "3.0.0", .model_sha256 = "af7dbb7bdc842210d6dc1110963e5844def1c397cd4e411c9c10166702e3bdb2", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DISTINCTIVE_ENTRY_COUNT, .entry_graphemes = distinctive_entry_graphemes, .entry_feature_at = distinctive_entry_feature_at, .entry_feature_n = distinctive_entry_feature_n, .feature_ids = distinctive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = distinctive_scalar_dimensions, .scalar_dimension_count = DISTINCTIVE_SCALAR_DIMENSIONS_COUNT, .valued_effects = NULL, .valued_effect_count = 0},
+    {.name = "distinctive", .version = "3.0.0", .model_sha256 = "a25e923c2b23b99fa5b0ce4516c27f893f536aed864f07da57a96bf123c41eb5", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DISTINCTIVE_ENTRY_COUNT, .entry_graphemes = distinctive_entry_graphemes, .entry_feature_at = distinctive_entry_feature_at, .entry_feature_n = distinctive_entry_feature_n, .feature_ids = distinctive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = distinctive_scalar_dimensions, .scalar_dimension_count = DISTINCTIVE_SCALAR_DIMENSIONS_COUNT, .valued_effects = NULL, .valued_effect_count = 0},
     {.name = "pbase-hc", .version = "2.0.0", .model_sha256 = "e3c586ea82621516c3056dda1bfcde3a2c0f523ff2afc4ce085e8bb8f5c4fd44", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_HC_ENTRY_COUNT, .entry_graphemes = pbase_hc_entry_graphemes, .entry_feature_at = pbase_hc_entry_feature_at, .entry_feature_n = pbase_hc_entry_feature_n, .feature_ids = pbase_hc_feature_ids, .geometry_map = pbase_hc_geometry_map, .geometry_map_count = PBASE_HC_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_hc_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = pbase_hc_valued_effects, .valued_effect_count = 20},
     {.name = "pbase-jfh", .version = "2.0.0", .model_sha256 = "c2c4d288c4702c2a9958f51952abdaa0df452fade5084ad02452e9937847d116", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_JFH_ENTRY_COUNT, .entry_graphemes = pbase_jfh_entry_graphemes, .entry_feature_at = pbase_jfh_entry_feature_at, .entry_feature_n = pbase_jfh_entry_feature_n, .feature_ids = pbase_jfh_feature_ids, .geometry_map = pbase_jfh_geometry_map, .geometry_map_count = PBASE_JFH_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_jfh_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = pbase_jfh_valued_effects, .valued_effect_count = 22},
     {.name = "pbase-spe", .version = "2.0.0", .model_sha256 = "994e67e1837ea3b5da4c85d315c02e2d3af4cd24a7b1f40985b53bd1af4756bf", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_SPE_ENTRY_COUNT, .entry_graphemes = pbase_spe_entry_graphemes, .entry_feature_at = pbase_spe_entry_feature_at, .entry_feature_n = pbase_spe_entry_feature_n, .feature_ids = pbase_spe_feature_ids, .geometry_map = pbase_spe_geometry_map, .geometry_map_count = PBASE_SPE_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_spe_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = pbase_spe_valued_effects, .valued_effect_count = 20},

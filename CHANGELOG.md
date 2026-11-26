@@ -37,12 +37,15 @@ commit history, in [docs/](docs/README.md) and in the design records in
   short segments rises slightly (`d(p, b)` 0.143 → 0.167 in `distinctive`).
   In an abstract segment, an unmarked length is the cell `0`, read as `short`
   against a marked value.
-- **Breaking:** `distinctive` reads the derived class labels in its `vocoid`,
+- **Breaking:** `distinctive` reads the derived class labels in its
   `continuant`, `anterior` and `distributed` dimensions, as the geometry
-  documentation said it did. `vocoid` read `vowel`/`consonant`, so glides were
-  consonants and /w/ was nearer /b/ (0.39) than /u/ (0.58); `continuant`
-  omitted nasals, trills and vowels, and `anterior` and `distributed`
-  linguolabials and dentals. A diphthong's or cluster's own feature set also
+  documentation said it did (`continuant` omitted nasals, trills and vowels,
+  and `anterior` and `distributed` linguolabials and dentals), and has a new
+  `glide` dimension over the derived `vocoid`/`consonantal`. With only the
+  vowel/consonant dimension, glides were consonants and /w/ was nearer /b/
+  (0.39) than /u/ (0.58); now /w/ is nearer /u/ (0.46 against 0.59). The
+  vowel/consonant dimension stays: replacing it with the derived class put
+  `distinctive` significantly below SCA as an alignment cost. A diphthong's or cluster's own feature set also
   carries the class labels now, so that its whole-segment term shares
   dimensions with a segment's. A `trill` dimension is added, since the old
   `continuant` had been the only one separating a trill from an approximant
