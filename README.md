@@ -82,11 +82,13 @@ properties limit what that number can be used for.
 - **It is not a metric.** Valued systems compare only the dimensions both
   segments define, so the basis of comparison changes from pair to pair, and the
   triangle inequality does not hold: in `pbase-hc`,
-  d(ðˠ, mʲ) = 0.3113 > d(ðˠ, d̪ʲ) + d(d̪ʲ, mʲ) = 0.0943 + 0.2091.
+  d(ðˠ, mʲ) = 0.3125 > d(ðˠ, d̪ʲ) + d(d̪ʲ, mʲ) = 0.0980 + 0.2000. The
+  categorical systems violate it rarely and narrowly (3 of 20,000 random
+  triples of `distinctive` inventory segments, by at most 0.002).
 - **It is not a probability of sound change.** Phonetic similarity and the
   frequency of a change are different quantities: velar palatalization is among
-  the most frequent changes attested, yet d(k, tʃ) = 0.45 is far greater than
-  d(k, q) = 0.06 in the default system. Claims about change require models
+  the most frequent changes attested, yet d(k, tʃ) = 0.37 is far greater than
+  d(k, q) = 0.05 in the default system. Claims about change require models
   estimated from correspondences between languages.
 - **It is not a typological statistic.** The tables are catalogues of segment
   types. They do not record which languages have a segment, whether it is
