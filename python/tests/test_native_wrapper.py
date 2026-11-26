@@ -1769,3 +1769,14 @@ def test_tone_merge_is_linear() -> None:
     merged = merkmal.segment_ipa_merged("t" * n + " ⁵ t" * n)
     assert time.perf_counter() - start < 10
     assert len(merged) == 3 * n
+
+
+def test_mark_order_does_not_change_a_lookup() -> None:
+    # Canonically equivalent spellings are one segment. Compiled keys are in
+    # canonical order, and the lookup did not reorder the query's marks, so
+    # "ɤ̞̟̃" with its marks written in another order missed its row and was
+    # synthesized from the diacritics as a different vowel.
+    listed = "ɤ̞̟̃"
+    reordered = "ɤ̞̟̃"
+    assert merkmal.get_features(reordered) == merkmal.get_features(listed)
+    assert merkmal.distance(reordered, listed) == 0.0

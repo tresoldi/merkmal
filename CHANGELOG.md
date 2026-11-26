@@ -17,6 +17,10 @@ commit history, in [docs/](docs/README.md) and in the design records in
 - `mk_merge_tone_digits` (and `segment_ipa_merged`) walked back over the word
   for each tone, so a long input took quadratic time (28 KB took 8 s); it is
   now linear, with identical output.
+- A grapheme whose combining marks were written in a non-canonical order
+  (`ɤ̞̟̃` with U+031F after U+0303) missed its inventory row, whose key is in
+  canonical order, and was synthesized from its diacritics into a different
+  segment. Lookup now puts the marks in canonical order first.
 
 ## 0.10.0 (2026-11-25)
 

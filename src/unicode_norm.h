@@ -16,6 +16,11 @@
 
 #include "merkmal.h"
 
+/* An owned copy with every run of combining marks in canonical order and
+ * nothing decomposed. Two spellings that differ only in the order of their
+ * marks, and are canonically equivalent, become one. */
+mk_status mki_unicode_reorder(const char *utf8_in, char **utf8_out);
+
 /* Owned NFD of a NUL-terminated UTF-8 string. */
 mk_status mki_unicode_nfd(const char *utf8_in, char **utf8_out);
 
