@@ -226,7 +226,10 @@ static mk_status mk_resolve_weight_preset(
         return MK_ERR_INVALID_ARGUMENT;
     }
     *out = NULL;
-    if (node_weights == NULL || node_weights[0] == '\0' || mki_streq(node_weights, "None")) {
+    /* NULL alone is the default, as the header says. "" and "None" were also
+     * read as the default, so a caller that built the name from a missing
+     * value got the default rather than an error. */
+    if (node_weights == NULL) {
         return MK_OK;
     }
     *out = mk_find_weight_preset(node_weights);

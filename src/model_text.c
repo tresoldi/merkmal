@@ -8,22 +8,29 @@
 #include "normalize.h"
 #include "strings.h"
 
-#include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+/* ASCII whitespace, the field separator of the format. Not isspace: under a
+ * single-byte locale it can classify bytes of a UTF-8 sequence as space and
+ * split a grapheme. */
+static bool mk_is_space(char c)
+{
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f';
+}
+
 static char *mk_trim(char *line)
 {
     char *end;
 
-    while (*line != '\0' && isspace((unsigned char)*line)) {
+    while (*line != '\0' && mk_is_space(*line)) {
         line++;
     }
     end = line + strlen(line);
-    while (end > line && isspace((unsigned char)end[-1])) {
+    while (end > line && mk_is_space(end[-1])) {
         end--;
     }
     *end = '\0';
@@ -34,14 +41,14 @@ static char *mk_next_token(char **cursor)
 {
     char *start;
 
-    while (**cursor != '\0' && isspace((unsigned char)**cursor)) {
+    while (**cursor != '\0' && mk_is_space(**cursor)) {
         (*cursor)++;
     }
     if (**cursor == '\0') {
         return NULL;
     }
     start = *cursor;
-    while (**cursor != '\0' && !isspace((unsigned char)**cursor)) {
+    while (**cursor != '\0' && !mk_is_space(**cursor)) {
         (*cursor)++;
     }
     if (**cursor != '\0') {
@@ -414,7 +421,7 @@ static char *mk_directive_args(char *line, const char *keyword)
 {
     size_t n = strlen(keyword);
 
-    if (strncmp(line, keyword, n) == 0 && isspace((unsigned char)line[n])) {
+    if (strncmp(line, keyword, n) == 0 && mk_is_space(line[n])) {
         return line + n;
     }
     return NULL;

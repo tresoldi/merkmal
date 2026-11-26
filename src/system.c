@@ -606,8 +606,7 @@ mk_status mk_system_segment_ipa(
      * column. */
     p = utf8_in;
     while (*p != '\0') {
-        const char *end = strchr(p, ' ');
-        size_t len = end == NULL ? strlen(p) : (size_t)(end - p);
+        size_t len = strcspn(p, " \t\n\r");
 
         if (len > 0) {
             char *chunk = (char *)malloc(len + 1);
@@ -625,7 +624,7 @@ mk_status mk_system_segment_ipa(
             }
         }
         p += len;
-        if (*p == ' ') {
+        if (*p != '\0') {
             p++;
         }
     }

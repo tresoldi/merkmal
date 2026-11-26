@@ -92,6 +92,13 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- A weight preset named `""` or `"None"` was read as the default; only `NULL`
+  is, as the header says, and those names are now refused as unknown presets.
+- The tokenizers emitted a tab or a newline as a token of its own; ASCII
+  whitespace now separates tokens as a space does.
+- The runtime model parser split fields with `isspace`, which under a
+  single-byte locale can classify a byte of a UTF-8 sequence as a space; it
+  now splits on ASCII whitespace only.
 - `mk_system_segment_ipa` merged across the spaces a caller wrote (`t s a`
   became `ts`, `a`), merged a run whose first letter carried a mark (`kʰætʰs`
   gave `tʰs`, `akːpa` gave `kːp`), and attached a medial prefix modifier to

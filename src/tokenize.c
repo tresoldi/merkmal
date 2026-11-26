@@ -141,8 +141,8 @@ mk_status mk_segment_ipa(
     while (*p != '\0') {
         size_t n;
 
-        if (*p == ' ') {
-            /* A space separates tokens and is not one. */
+        if (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+            /* ASCII whitespace separates tokens and is not one. */
             status = mk_break(&t);
             p++;
         } else if (mki_has_prefix(p, "ˈ") || mki_has_prefix(p, "ˌ")) {

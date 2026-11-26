@@ -1902,3 +1902,18 @@ def test_pbase_cell_codes_are_read_as_pbase_defines_them() -> None:
     # n (does not apply) is 0, which is not compared; it used to be a value
     # halfway between + and -.
     assert "lateral=0" in merkmal.get_features("p", system="pbase-spe")
+
+
+def test_only_null_is_the_default_weight_preset() -> None:
+    # "" and "None" were read as the default, so a name built from a missing
+    # value silently became the default.
+    for name in ("", "None"):
+        with pytest.raises(ValueError):
+            merkmal.distance("a", "e", node_weights=name)
+    assert merkmal.distance("a", "e", node_weights=None) == merkmal.distance("a", "e")
+
+
+def test_tabs_and_newlines_separate_tokens() -> None:
+    # They came out as tokens of their own.
+    assert merkmal.segment_ipa("pa\tta\n") == ["p", "a", "t", "a"]
+    assert merkmal.system_segment_ipa("t\ts\na", system="distinctive") == ["t", "s", "a"]
