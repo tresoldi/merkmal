@@ -45,6 +45,11 @@ commit history, in [docs/](docs/README.md) and in the design records in
   linguolabials and dentals. A diphthong's or cluster's own feature set also
   carries the class labels now, so that its whole-segment term shares
   dimensions with a segment's.
+- **Breaking:** a cluster's nucleus is its most sonorous part, not its first,
+  so a rising diphthong is nearer its vowel than its glide (`d(ia, a)` 0.30 →
+  0.20, `d(ia, i)` 0.22 → 0.28 in `distinctive`). A doubled segment against a length-marked one
+  now scores as the single segment does (`d(aa, aː) = d(a, aː)`); the
+  whole-segment term undid the length waiver (0.113 against 0.064).
 
 ### Fixed
 

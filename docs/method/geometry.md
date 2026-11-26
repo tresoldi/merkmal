@@ -162,10 +162,14 @@ A diphthong, a geminate, or an affricate written without a tie bar is scored
 through its parts, with the five shares of `cluster_policy` in the geometry
 file. The score is `component_share` (0.8) of a part-by-part score plus
 `segment_share` (0.2) of the two scored as single segments, capped at 1.
-Against a plain segment, the part-by-part score gives the cluster's first part
+Against a plain segment, the part-by-part score gives the cluster's nucleus
 `nucleus_share` (0.7) and the remaining parts, averaged, `offglide_share`
-(0.3), and adds `length_penalty` (0.15) for each part beyond the first, except
-when the cluster is a geminate and the other segment carries a length feature.
+(0.3), and adds `length_penalty` (0.15) for each part beyond the first. The
+nucleus is the most sonorous part (a vowel over a glide or consonant, a more
+open vowel over a closer one, a vowel marked non-syllabic as a glide), the
+first on a tie, so `ia` and `ai` both have `a` as nucleus. A geminate against
+a segment that carries a length feature pays no length penalty and no
+whole-segment term, so `aa` against `aː` scores as `a` does.
 Between two clusters, it is the mean score of corresponding parts plus
 `length_penalty` for each part without a counterpart. The rules are in
 `src/cluster.c`; the numbers are stipulated, like the node weights.

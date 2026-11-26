@@ -666,9 +666,10 @@ def test_doubled_spelling_is_not_charged_for_its_own_length() -> None:
     assert merkmal.distance("aa", "aː") < merkmal.distance("aa", "a")
     assert merkmal.distance("pp", "pː") < merkmal.distance("pp", "p")
 
-    # Waived, not reversed: nothing here claims a doubled vowel *means* length,
-    # because whether it does is a property of the source.
-    assert merkmal.distance("a", "aː") < merkmal.distance("aa", "aː")
+    # Waived, not reversed: `aa` lands where `a` does, and not closer, because
+    # whether a doubled vowel means length is a property of the source. The
+    # whole-segment term used to put it further (0.113 against 0.064).
+    assert math.isclose(merkmal.distance("aa", "aː"), merkmal.distance("a", "aː"))
 
     # A cluster that is not a geminate still pays the penalty.
     assert merkmal.distance("ai", "aː") > merkmal.distance("aa", "aː")
@@ -1820,3 +1821,12 @@ def test_glides_are_vocoids_in_the_default_system() -> None:
     # nearer /b/ (0.39) and /g/ than /u/ (0.58).
     assert merkmal.distance("w", "u") < merkmal.distance("w", "b")
     assert merkmal.distance("j", "i") < merkmal.distance("j", "d")
+
+
+def test_the_nucleus_is_the_most_sonorous_part() -> None:
+    # The first part was always the nucleus, so a rising diphthong was nearer
+    # its glide: d(ia, a) = 0.30 > d(ia, i) = 0.22.
+    for system in ("distinctive", "descriptive"):
+        for cluster, nucleus, glide in (("ia", "a", "i"), ("ua", "a", "u"), ("ai", "a", "i")):
+            to_nucleus = merkmal.distance(cluster, nucleus, system=system)
+            assert to_nucleus < merkmal.distance(cluster, glide, system=system)
