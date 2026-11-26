@@ -331,7 +331,7 @@ mk_status mki_system_semantic_fingerprint(
         model_version = builtin->version;
         model_sha256 = builtin->model_sha256;
     }
-    status = mk_append_pair(&payload, &length, &capacity, "schema", "merkmal-system-fingerprint-v1");
+    status = mk_append_pair(&payload, &length, &capacity, "schema", "merkmal-system-fingerprint-v2");
     if (status == MK_OK)
         status = mk_append_pair(&payload, &length, &capacity, "system", builtin->name);
     if (status == MK_OK)
@@ -354,6 +354,8 @@ mk_status mki_system_semantic_fingerprint(
         status = mk_append_pair(&payload, &length, &capacity, "tone_policy", "chao-tone-v1");
     if (status == MK_OK)
         status = mk_append_pair(&payload, &length, &capacity, "comparison_policy", "segment-distance-v2");
+    if (status == MK_OK)
+        status = mk_append_pair(&payload, &length, &capacity, "behavior_version", MKI_BEHAVIOR_VERSION);
     if (status != MK_OK) {
         free(payload);
         return status;

@@ -176,7 +176,7 @@ int main(void)
         "fingerprint descriptive"
     );
     if (fingerprint_payload == NULL ||
-        strstr(fingerprint_payload, "schema=merkmal-system-fingerprint-v1\n") == NULL ||
+        strstr(fingerprint_payload, "schema=merkmal-system-fingerprint-v2\n") == NULL ||
         strstr(fingerprint_payload, "system=descriptive\n") == NULL ||
         fingerprint_digest == NULL || strlen(fingerprint_digest) != 64 ||
         strspn(fingerprint_digest, "0123456789abcdef") != 64) {

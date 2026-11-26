@@ -56,8 +56,11 @@ def test_native_lists_expanded_systems() -> None:
 def test_semantic_fingerprint_is_auditable_and_stable() -> None:
     payload, digest = merkmal.system_fingerprint(system="descriptive")
 
-    assert payload.startswith("schema=merkmal-system-fingerprint-v1\n")
+    assert payload.startswith("schema=merkmal-system-fingerprint-v2\n")
     assert "system=descriptive\n" in payload
+    # The code's own version: a change that moves results without touching
+    # the data still moves the fingerprint.
+    assert payload.splitlines()[-1] == "behavior_version=2"
     assert len(digest) == 64
     assert set(digest) <= set("0123456789abcdef")
     assert digest == hashlib.sha256(payload.encode("utf-8")).hexdigest()

@@ -33,6 +33,7 @@ change or any row would be dropped.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import sys
 from pathlib import Path
 
@@ -156,6 +157,72 @@ def regenerate_geometry_sound_distances(
     return out
 
 
+BEHAVIOR = GOLDEN / "behavior.tsv"
+
+
+def library_behavior_version() -> str:
+    """The behavior_version line of the library's fingerprint payload."""
+    payload, _ = merkmal.system_fingerprint(system="descriptive")
+    for line in payload.splitlines():
+        key, _, value = line.partition("=")
+        if key == "behavior_version":
+            return value
+    raise SystemExit("the fingerprint payload has no behavior_version line")
+
+
+def fixtures_sha256(paths: list[Path]) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(paths):
+        digest.update(path.name.encode("utf-8") + b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def check_behavior_version(paths: list[Path], check: bool) -> bool:
+    """Keep the fingerprint's behavior_version in step with the fixtures.
+
+    The fixtures are the library's results, and the semantic fingerprint is
+    meant to identify them. A change to the fixtures under an unchanged
+    behavior_version would leave results that differ with one fingerprint, so
+    it is refused until MKI_BEHAVIOR_VERSION (src/fingerprint.h) is bumped.
+    """
+    version = library_behavior_version()
+    current = fixtures_sha256(paths)
+    recorded_version, recorded_hash = "", ""
+    if BEHAVIOR.exists():
+        rows = [line.split("\t") for line in BEHAVIOR.read_text(encoding="utf-8").splitlines()[1:]]
+        if rows and len(rows[0]) == 2:
+            recorded_version, recorded_hash = rows[0]
+    if (version, current) == (recorded_version, recorded_hash):
+        return True
+    if check:
+        if version == recorded_version:
+            print(
+                "The golden fixtures changed but behavior_version did not: bump "
+                "MKI_BEHAVIOR_VERSION in src/fingerprint.h and rerun this script.",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                f"behavior_version is {version} but tests/golden/behavior.tsv records "
+                f"{recorded_version or 'nothing'}: rerun this script without --check.",
+                file=sys.stderr,
+            )
+        return False
+    if version == recorded_version:
+        print(
+            "REFUSED: the fixtures changed under behavior_version "
+            f"{version}. Bump MKI_BEHAVIOR_VERSION in src/fingerprint.h, rebuild, "
+            "and rerun, so that the fingerprint identifies the new results.",
+            file=sys.stderr,
+        )
+        return False
+    BEHAVIOR.write_text(f"VERSION\tFIXTURES_SHA256\n{version}\t{current}\n", encoding="utf-8")
+    print(f"RECORDED: behavior_version {version} for the current fixtures")
+    return True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -200,11 +267,20 @@ def main() -> int:
                 if not args.check:
                     write_rows(path, header, after)
 
+    behavior_ok = check_behavior_version([path for path, _ in geometry] + [
+        GOLDEN / f"{system}{suffix}"
+        for system in SYSTEMS
+        for suffix in ("_features.tsv", "_distances.tsv")
+        if (GOLDEN / f"{system}{suffix}").exists()
+    ], args.check and not changed)
+
     for message in dropped:
         print(f"DROPPED: {message}", file=sys.stderr)
     for message in changed:
         print(("WOULD UPDATE: " if args.check else "UPDATED: ") + message)
 
+    if not behavior_ok:
+        return 1
     if not changed and not dropped:
         print("Golden fixtures already match the current build.")
         return 0

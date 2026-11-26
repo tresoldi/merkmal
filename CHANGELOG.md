@@ -10,6 +10,15 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Changed
 
+- **Breaking:** the semantic fingerprint identifies results, not only data.
+  Its payload (schema `merkmal-system-fingerprint-v2`) gains
+  `behavior_version`, the version of what the code does with the tables, so
+  that a fix to the resolver, a tokenizer or a scorer moves the fingerprint of
+  the results it changes; it did not, although the README says to store the
+  fingerprint with any result. `tools/regenerate_golden.py` refuses changed
+  golden fixtures under an unchanged version, and `--check` fails when they
+  disagree. Every fingerprint changes. Releases up to 0.10.0 are version 1;
+  this one is 2.
 - **Breaking:** the class and articulator labels (`consonantal`/`vocoid`,
   `obstruent`/`sonorant`, `continuant`/`non-continuant`, `anterior`,
   `distributed`, and `labial`, `coronal`, `dorsal`, `guttural`) were added only

@@ -81,7 +81,10 @@ numbers even when no code changed.
   `CHANGELOG.md` states what moved and why.
 - Golden fixtures are regenerated with `tools/regenerate_golden.py`, and the
   diff is reviewed before it is accepted: those values are the library's
-  contract.
+  contract. A change to them, from data or from code, needs
+  `MKI_BEHAVIOR_VERSION` in `src/fingerprint.h` bumped first; the script
+  refuses otherwise, so that the semantic fingerprint identifies the new
+  results.
 - `data/models/*/provenance.json` is re-stamped (the input hashes are
   checked; `tools/generate_notice.py --restamp`) and `NOTICE` regenerated.
 - A change to the PHOIBLE data is re-verified against the release its
