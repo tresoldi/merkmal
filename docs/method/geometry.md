@@ -284,14 +284,32 @@ fingerprint and must be recorded with the result
 
 The score measures phonetic dissimilarity under the geometry, not the
 probability of a sound change. The two diverge systematically. In the default
-system, d(k, tʃ) = 0.41 and d(k, q) = 0.05, although velar palatalization is
+system, d(k, tʃ) = 0.45 and d(k, q) = 0.06, although velar palatalization is
 among the most frequently attested changes and unconditioned uvularization is
-rare; likewise d(s, h) = 0.31 exceeds d(s, ʃ) = 0.14, although s > h is a
+rare; likewise d(s, h) = 0.34 exceeds d(s, ʃ) = 0.16, although s > h is a
 common change. Adjusting the tree until a chosen list of sound laws became
 cheap would produce a model of sound change with no data behind it. The score
 is suited to use as a segment prior in alignment and candidate generation;
 claims about change require correspondence patterns estimated from language
 data.
+
+## Effects of the place encoding
+
+Place is encoded as one ordered scale per articulator plus the articulator
+labels, and some distances follow from that encoding rather than from any
+claim about the sounds. In the default system:
+
+- d(p, k) = 0.26 is smaller than d(p, t) = d(t, k) = 0.30, because coronals
+  carry two further dimensions (`anterior`, `distributed`) that a labial or a
+  dorsal leaves unset, so a coronal differs from both on more of them.
+- `kp` is a level of the dorsal scale between velar and uvular, so it is as
+  far from `q` as from `k` (0.14).
+- Palatals are dorsal: d(c, k) = 0.09 but d(c, t) = 0.30, and d(ç, x) = 0.19 is
+  smaller than d(ç, ɕ) = 0.24.
+- `a` is front, as in CLTS, so d(a, ɑ) = 0.20 is close to d(a, i) = 0.25.
+
+Moving labial-velars off the dorsal scale, or palatals to the coronal side,
+would be a change of data with these consequences in view; none is made here.
 
 ## The deep variant
 

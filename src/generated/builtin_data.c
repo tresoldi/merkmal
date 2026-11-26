@@ -4702,20 +4702,20 @@ const mki_feature_node_map mki_clements_hume_feature_to_node[] = {
     {.feature = "breathy", .node = "Laryngeal"},
     {.feature = "click", .node = "Manner"},
     {.feature = "creaky", .node = "Laryngeal"},
-    {.feature = "ejective", .node = "Prosodic"},
+    {.feature = "ejective", .node = "Laryngeal"},
     {.feature = "fricative", .node = "Manner"},
     {.feature = "glottalized", .node = "Laryngeal"},
     {.feature = "implosive", .node = "Manner"},
-    {.feature = "labialized", .node = "Prosodic"},
+    {.feature = "labialized", .node = "Secondary"},
     {.feature = "labio-palatal", .node = "Labial"},
     {.feature = "labio-velar", .node = "Labial"},
     {.feature = "lateral", .node = "Manner"},
     {.feature = "nasal", .node = "Manner"},
-    {.feature = "nasalized", .node = "Prosodic"},
+    {.feature = "nasalized", .node = "Manner"},
     {.feature = "non-pulmonic", .node = "Manner"},
     {.feature = "non-syllabic", .node = "Manner"},
-    {.feature = "palatalized", .node = "Prosodic"},
-    {.feature = "pharyngealized", .node = "Prosodic"},
+    {.feature = "palatalized", .node = "Secondary"},
+    {.feature = "pharyngealized", .node = "Secondary"},
     {.feature = "retracted-tongue-root", .node = "TongueRoot"},
     {.feature = "rounded", .node = "Labial"},
     {.feature = "sibilant", .node = "Manner"},
@@ -5759,7 +5759,7 @@ const mki_feature_path mki_clements_hume_feature_paths[] = {
 const size_t mki_clements_hume_feature_path_count =
     sizeof(mki_clements_hume_feature_paths) / sizeof(mki_clements_hume_feature_paths[0]);
 
-const char *const mki_fingerprint_geometry_sha256 = "d58514b703681c20eb917eb8e0775fb2ccd5ea8e7d39a62baf327468465a21df";
+const char *const mki_fingerprint_geometry_sha256 = "0b5f6650406aeec1e2578beaa0b039d41468a91e85e6a330d99a502fe18b46cd";
 const char *const mki_fingerprint_diacritics_sha256 = "556686dfcaddd44420cb97246a5281673e01236cb4fd92bb5de38cdfcd0a1cc0";
 
 static const char *const mk_clements_hume_ordinal_levels_0[] = {
@@ -16915,7 +16915,7 @@ static const mki_valued_effect phoible_valued_effects[] = {
 
 const mki_builtin_system mki_builtin_systems[] = {
     {.name = "descriptive", .version = "2.0.0", .model_sha256 = "6b00c87bee9726c715a75d2d6f8b36bec30bff43a5f7b92c93631188b4e3505e", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DESCRIPTIVE_ENTRY_COUNT, .entry_graphemes = descriptive_entry_graphemes, .entry_feature_at = descriptive_entry_feature_at, .entry_feature_n = descriptive_entry_feature_n, .feature_ids = descriptive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = NULL, .valued_effect_count = 0},
-    {.name = "distinctive", .version = "3.0.0", .model_sha256 = "bfda10c00849eefc27e3c83bbadb4524e396e5f760a6f76946185f216c1089ca", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DISTINCTIVE_ENTRY_COUNT, .entry_graphemes = distinctive_entry_graphemes, .entry_feature_at = distinctive_entry_feature_at, .entry_feature_n = distinctive_entry_feature_n, .feature_ids = distinctive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = distinctive_scalar_dimensions, .scalar_dimension_count = DISTINCTIVE_SCALAR_DIMENSIONS_COUNT, .valued_effects = NULL, .valued_effect_count = 0},
+    {.name = "distinctive", .version = "3.0.0", .model_sha256 = "af7dbb7bdc842210d6dc1110963e5844def1c397cd4e411c9c10166702e3bdb2", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DISTINCTIVE_ENTRY_COUNT, .entry_graphemes = distinctive_entry_graphemes, .entry_feature_at = distinctive_entry_feature_at, .entry_feature_n = distinctive_entry_feature_n, .feature_ids = distinctive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = distinctive_scalar_dimensions, .scalar_dimension_count = DISTINCTIVE_SCALAR_DIMENSIONS_COUNT, .valued_effects = NULL, .valued_effect_count = 0},
     {.name = "pbase-hc", .version = "2.0.0", .model_sha256 = "e3c586ea82621516c3056dda1bfcde3a2c0f523ff2afc4ce085e8bb8f5c4fd44", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_HC_ENTRY_COUNT, .entry_graphemes = pbase_hc_entry_graphemes, .entry_feature_at = pbase_hc_entry_feature_at, .entry_feature_n = pbase_hc_entry_feature_n, .feature_ids = pbase_hc_feature_ids, .geometry_map = pbase_hc_geometry_map, .geometry_map_count = PBASE_HC_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_hc_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = pbase_hc_valued_effects, .valued_effect_count = 20},
     {.name = "pbase-jfh", .version = "2.0.0", .model_sha256 = "c2c4d288c4702c2a9958f51952abdaa0df452fade5084ad02452e9937847d116", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_JFH_ENTRY_COUNT, .entry_graphemes = pbase_jfh_entry_graphemes, .entry_feature_at = pbase_jfh_entry_feature_at, .entry_feature_n = pbase_jfh_entry_feature_n, .feature_ids = pbase_jfh_feature_ids, .geometry_map = pbase_jfh_geometry_map, .geometry_map_count = PBASE_JFH_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_jfh_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = pbase_jfh_valued_effects, .valued_effect_count = 22},
     {.name = "pbase-spe", .version = "2.0.0", .model_sha256 = "994e67e1837ea3b5da4c85d315c02e2d3af4cd24a7b1f40985b53bd1af4756bf", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_SPE_ENTRY_COUNT, .entry_graphemes = pbase_spe_entry_graphemes, .entry_feature_at = pbase_spe_entry_feature_at, .entry_feature_n = pbase_spe_entry_feature_n, .feature_ids = pbase_spe_feature_ids, .geometry_map = pbase_spe_geometry_map, .geometry_map_count = PBASE_SPE_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_spe_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = pbase_spe_valued_effects, .valued_effect_count = 20},

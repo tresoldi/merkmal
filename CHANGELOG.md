@@ -90,6 +90,21 @@ commit history, in [docs/](docs/README.md) and in the design records in
   vowels from consonants in `pbase-uftc`); `n` (does not apply) is `0` and not
   compared, where it was scored halfway between `+` and `-`; `.` is `?`.
 
+### Documentation
+
+- `distinctive` is described as scalar dimensions over CLTS's articulatory
+  descriptions, organized after Clements and Hume's geometry, rather than as
+  their distinctive features; `pbase-hc` and `pbase-uftc` cite Halle and
+  Clements (1983) and Unified Feature Theory, and P-base cites Mielke (2008).
+- The geometry maps `ejective`, `nasalized` and the secondary articulations to
+  the nodes the tree places them under (they were listed under `Prosodic`,
+  which no scorer read), and its first departure no longer contradicts the
+  later ones. No distance changes.
+- The method documentation states the distances the place encoding produces
+  rather than any claim about the sounds (d(p, k) < d(p, t), `kp` equidistant
+  from `k` and `q`, palatals dorsal, `a` front), and `mk_normalize_grapheme`
+  states that its result is not a lookup key.
+
 ### Fixed
 
 - A weight preset named `""` or `"None"` was read as the default; only `NULL`

@@ -27,12 +27,12 @@ compiled into the library from the source data in [data/models/](data/models/).
 
 | System | Feature basis | Kind | Source data |
 | --- | --- | --- | --- |
-| `distinctive` (default) | Distinctive features after Clements and Hume (1995), with scalar dimensions | categorical | CLTS 1.4.1 (List et al.) |
+| `distinctive` (default) | Scalar dimensions over CLTS's articulatory descriptions, organized after the feature geometry of Clements and Hume (1995) | categorical | CLTS 1.4.1 (List et al.) |
 | `descriptive` | Articulatory descriptions of IPA segments, scored through the feature geometry | categorical | CLTS 1.4.1 (List et al.) |
 | `phoible` | PHOIBLE binary features (38 dimensions) | valued | PHOIBLE 2.0 (Moran and McCloy 2019) |
 | `pbase-spe` | SPE features (Chomsky and Halle 1968) | valued | P-base (Mielke) |
 | `pbase-jfh` | Acoustic features of Jakobson, Fant and Halle (1952) | valued | P-base (Mielke) |
-| `pbase-hc`, `pbase-uftc` | The HC and UFTC feature sets of P-base | valued | P-base (Mielke) |
+| `pbase-hc`, `pbase-uftc` | The features of Halle and Clements (1983), and of Unified Feature Theory (Clements and Hume 1995) | valued | P-base (Mielke) |
 
 A *categorical* system describes a segment by a set of feature labels; a
 *valued* system assigns each segment a value (`+`, `-`, `0`, or unknown) on a
@@ -85,8 +85,8 @@ properties limit what that number can be used for.
   d(ðˠ, mʲ) = 0.3113 > d(ðˠ, d̪ʲ) + d(d̪ʲ, mʲ) = 0.0943 + 0.2091.
 - **It is not a probability of sound change.** Phonetic similarity and the
   frequency of a change are different quantities: velar palatalization is among
-  the most frequent changes attested, yet d(k, tʃ) = 0.41 is far greater than
-  d(k, q) = 0.05 in the default system. Claims about change require models
+  the most frequent changes attested, yet d(k, tʃ) = 0.45 is far greater than
+  d(k, q) = 0.06 in the default system. Claims about change require models
   estimated from correspondences between languages.
 - **It is not a typological statistic.** The tables are catalogues of segment
   types. They do not record which languages have a segment, whether it is
@@ -215,7 +215,10 @@ cite the source of the feature data for each system used:
   https://github.com/cldf-clts/clts (`distinctive`, `descriptive`).
 - Moran, Steven and Daniel McCloy (eds.). 2019. PHOIBLE 2.0. Jena: Max Planck
   Institute for the Science of Human History. https://phoible.org/ (`phoible`).
-- Mielke, Jeff. P-base. North Carolina State University (`pbase-*`).
+- Mielke, Jeff. P-base. North Carolina State University. Data files as of
+  2022-10-02, https://pbase.phon.chass.ncsu.edu/ (`pbase-*`). See also Mielke,
+  Jeff. 2008. *The emergence of distinctive features*. Oxford: Oxford
+  University Press.
 
 Other works cited above:
 
@@ -224,6 +227,8 @@ Other works cited above:
 - Clements, G. N. and Elizabeth V. Hume. 1995. The internal organization of
   speech sounds. In John A. Goldsmith (ed.), *The handbook of phonological
   theory*, 245–306. Oxford: Blackwell.
+- Halle, Morris and G. N. Clements. 1983. *Problem book in phonology*.
+  Cambridge, MA: MIT Press.
 - Jakobson, Roman, C. Gunnar M. Fant and Morris Halle. 1952. *Preliminaries to
   speech analysis: The distinctive features and their correlates*. Cambridge,
   MA: MIT Press.

@@ -258,7 +258,14 @@ MK_API mk_status mk_sound_distance(
 );
 
 /** Normalizes one UTF-8 grapheme to merkmal's NFC form, with its IPA
- * rewrites. *utf8_out is owned; free with mk_string_free. */
+ * rewrites (U+0067 g to U+0261 ɡ, ɫ to lˠ, ...). *utf8_out is owned; free with
+ * mk_string_free.
+ *
+ * The result is for display and comparison of spellings, not a lookup key: a
+ * lookup tries the spelling as written before the rewrites, so that a system
+ * listing the written form (PHOIBLE lists ɫ) keeps it, and a system's
+ * inventory may list the unrewritten form (g). Pass graphemes to the system
+ * functions as written. */
 MK_API mk_status mk_normalize_grapheme(
     const char *utf8_in,
     char **utf8_out

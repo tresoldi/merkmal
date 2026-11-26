@@ -3,7 +3,7 @@
   "name": "distinctive",
   "version": "3.0.0",
   "type": "categorical",
-  "description": "Clements & Hume distinctive features with scalar dimensions",
+  "description": "Scalar dimensions over CLTS articulatory descriptions, organized after the feature geometry of Clements & Hume (1995)",
   "author": "Tiago Tresoldi",
   "license": "CC-BY-4.0",
   "default_geometry": "clements-hume",
