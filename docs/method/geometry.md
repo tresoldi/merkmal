@@ -88,7 +88,10 @@ the property does not apply: a consonant has no vowel height and a toneless
 segment no tone level. Those differences are carried by the major-class leaf
 and by `tone_presence`. `duration` is the exception: its `default_level` is
 `short`, because a segment without a length mark is short rather than of
-undefined length.
+undefined length, so `a` and `aː` differ. Two segments that both leave it
+unmarked are not compared on it: their agreement says nothing, and counted, it
+gave every pair a shared dimension (so coverage could not report a pair that
+reaches nothing else) and diluted every other difference.
 
 **Node groups** are the remaining case. A feature that `feature_to_node` maps
 to a node, and that belongs to no leaf and no scale, contributes to a single
@@ -112,7 +115,15 @@ is part of the system's [semantic fingerprint](semantic-fingerprint.md).
   reads those dimensions and the geometry's ordered scales, and no geometry
   leaf. A dimension that measures what a geometry leaf measures names that
   leaf (`geometry_leaf`), is attached to the leaf's node and takes its weight,
-  so `distinctive` and `descriptive` price the same property alike. The four
+  so `distinctive` and `descriptive` price the same property alike. From
+  `distinctive` 3.0.0 its `continuant`, `anterior` and `distributed`
+  dimensions read the derived labels below, as `descriptive`'s leaves do (they
+  omitted nasals, trills, vowels, linguolabials and dentals), and a `glide`
+  dimension reads the derived `vocoid`/`consonantal`, so that /w/ is nearer
+  /u/ than /b/. Its `vocoid` dimension stays the vowel/consonant major class:
+  read from the derived label instead, it put `distinctive` significantly
+  below SCA as an alignment cost (−1.03 points against −0.22 with both;
+  [evaluation](evaluation.md)). The four
   dimensions with no counterpart in the geometry (`fricative`, `click`,
   `implosive` and `apical`) declare their weight, set to that of the leaves
   under the same node. The generator and `tools/validate_models.py` refuse a
@@ -154,10 +165,14 @@ A diphthong, a geminate, or an affricate written without a tie bar is scored
 through its parts, with the five shares of `cluster_policy` in the geometry
 file. The score is `component_share` (0.8) of a part-by-part score plus
 `segment_share` (0.2) of the two scored as single segments, capped at 1.
-Against a plain segment, the part-by-part score gives the cluster's first part
+Against a plain segment, the part-by-part score gives the cluster's nucleus
 `nucleus_share` (0.7) and the remaining parts, averaged, `offglide_share`
-(0.3), and adds `length_penalty` (0.15) for each part beyond the first, except
-when the cluster is a geminate and the other segment carries a length feature.
+(0.3), and adds `length_penalty` (0.15) for each part beyond the first. The
+nucleus is the most sonorous part (a vowel over a glide or consonant, a more
+open vowel over a closer one, a vowel marked non-syllabic as a glide), the
+first on a tie, so `ia` and `ai` both have `a` as nucleus. A geminate against
+a segment that carries a length feature pays no length penalty and no
+whole-segment term, so `aa` against `aː` scores as `a` does.
 Between two clusters, it is the mean score of corresponding parts plus
 `length_penalty` for each part without a counterpart. The rules are in
 `src/cluster.c`; the numbers are stipulated, like the node weights.
@@ -173,14 +188,18 @@ a label cannot affect any distance or if a scoring dimension can no longer be
 reached by any segment.
 
 The CLTS feature names of the inventories do not contain the major-class and
-manner features, so the generator derives them from the manner and place
-labels, with the same rules that `distinctive` states in its
-`scalar_dimensions`:
+manner features, so they are derived from the manner and place labels: by the
+generator for compiled rows, and by `src/classes.c`, with the same rules, for
+the complex segments the resolver synthesizes (`mb`, `kp`, `tʂ`) and for the
+rows of a runtime model. The derivation is:
 
 - `vocoid` for vowels and for approximants at a palatal, labio-palatal,
   labio-velar or velar place (the glides /j ɥ w ɰ/, which are
   [−consonantal]); `consonantal` otherwise;
-- `sonorant` or `obstruent`, `continuant` or `non-continuant`, from the manner;
+- `obstruent` for a stop, fricative, affricate, click or implosive that is not
+  nasal, `sonorant` otherwise for a nasal, lateral, approximant, trill, tap or
+  vowel (so the lateral fricatives and affricates `ɬ ɮ tɬ` are obstruents);
+  `continuant` or `non-continuant`, from the manner;
 - `anterior` or `non-anterior`, `distributed` or `non-distributed`, from the
   coronal place;
 - the articulator features `labial`, `coronal`, `dorsal` and `guttural`, from
@@ -268,14 +287,32 @@ fingerprint and must be recorded with the result
 
 The score measures phonetic dissimilarity under the geometry, not the
 probability of a sound change. The two diverge systematically. In the default
-system, d(k, tʃ) = 0.41 and d(k, q) = 0.05, although velar palatalization is
+system, d(k, tʃ) = 0.37 and d(k, q) = 0.05, although velar palatalization is
 among the most frequently attested changes and unconditioned uvularization is
-rare; likewise d(s, h) = 0.31 exceeds d(s, ʃ) = 0.14, although s > h is a
+rare; likewise d(s, h) = 0.28 exceeds d(s, ʃ) = 0.13, although s > h is a
 common change. Adjusting the tree until a chosen list of sound laws became
 cheap would produce a model of sound change with no data behind it. The score
 is suited to use as a segment prior in alignment and candidate generation;
 claims about change require correspondence patterns estimated from language
 data.
+
+## Effects of the place encoding
+
+Place is encoded as one ordered scale per articulator plus the articulator
+labels, and some distances follow from that encoding rather than from any
+claim about the sounds. In the default system:
+
+- d(p, k) = 0.20 is smaller than d(p, t) = d(t, k) = 0.24, because coronals
+  carry two further dimensions (`anterior`, `distributed`) that a labial or a
+  dorsal leaves unset, so a coronal differs from both on more of them.
+- `kp` is a level of the dorsal scale between velar and uvular, so it is as
+  far from `q` as from `k` (0.11).
+- Palatals are dorsal: d(c, k) = 0.07 but d(c, t) = 0.24, and d(ç, x) = 0.06 is
+  much smaller than d(ç, ɕ) = 0.28.
+- `a` is front, as in CLTS, so d(a, ɑ) = 0.16 is close to d(a, i) = 0.20.
+
+Moving labial-velars off the dorsal scale, or palatals to the coronal side,
+would be a change of data with these consequences in view; none is made here.
 
 ## The deep variant
 

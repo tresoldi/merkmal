@@ -81,7 +81,10 @@ numbers even when no code changed.
   `CHANGELOG.md` states what moved and why.
 - Golden fixtures are regenerated with `tools/regenerate_golden.py`, and the
   diff is reviewed before it is accepted: those values are the library's
-  contract.
+  contract. A change to them, from data or from code, needs
+  `MKI_BEHAVIOR_VERSION` in `src/fingerprint.h` bumped first; the script
+  refuses otherwise, so that the semantic fingerprint identifies the new
+  results.
 - `data/models/*/provenance.json` is re-stamped (the input hashes are
   checked; `tools/generate_notice.py --restamp`) and `NOTICE` regenerated.
 - A change to the PHOIBLE data is re-verified against the release its
@@ -91,9 +94,16 @@ numbers even when no code changed.
   tools/rebuild_phoible_inventory.py <cldf/parameters.csv> --check
   ```
 
-  The check is not in CI, because it needs the upstream file and a build
-  should not depend on the network. It is the only check that the table still
-  agrees with upstream cell by cell.
+  The P-base tables are rebuilt from P-base's data archive the same way, and
+  re-verified with:
+
+  ```sh
+  tools/rebuild_pbase_inventories.py <pbase/ipa2allfeatures.csv> --check
+  ```
+
+  These checks are not in CI, because they need the upstream files and a
+  build should not depend on the network. They are the only checks that the
+  tables still agree with upstream cell by cell.
 - **A distribution that bundles the data tables is not MIT-only.** Its license
   expression is `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`, and
   it agrees in `pyproject.toml`, `setup.py`, `NOTICE` and the README

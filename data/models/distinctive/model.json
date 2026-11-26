@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "name": "distinctive",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "type": "categorical",
-  "description": "Clements & Hume distinctive features with scalar dimensions",
+  "description": "Scalar dimensions over CLTS articulatory descriptions, organized after the feature geometry of Clements & Hume (1995)",
   "author": "Tiago Tresoldi",
   "license": "CC-BY-4.0",
   "default_geometry": "clements-hume",
@@ -52,12 +52,10 @@
     {
       "name": "continuant",
       "positive": [
-        "approximant",
-        "fricative"
+        "continuant"
       ],
       "negative": [
-        "affricate",
-        "stop"
+        "non-continuant"
       ],
       "geometry_node": "Manner",
       "geometry_leaf": "continuant"
@@ -159,13 +157,10 @@
     {
       "name": "anterior",
       "positive": [
-        "alveolar",
-        "dental"
+        "anterior"
       ],
       "negative": [
-        "alveolo-palatal",
-        "post-alveolar",
-        "retroflex"
+        "non-anterior"
       ],
       "geometry_node": "Coronal",
       "geometry_leaf": "anterior"
@@ -173,12 +168,10 @@
     {
       "name": "distributed",
       "positive": [
-        "alveolo-palatal",
-        "post-alveolar"
+        "distributed"
       ],
       "negative": [
-        "alveolar",
-        "retroflex"
+        "non-distributed"
       ],
       "geometry_node": "Coronal",
       "geometry_leaf": "distributed"
@@ -517,6 +510,26 @@
       "name": "implosive",
       "positive": [
         "implosive"
+      ],
+      "negative": [],
+      "geometry_node": "Manner",
+      "weight": 0.5
+    },
+    {
+      "name": "glide",
+      "positive": [
+        "vocoid"
+      ],
+      "negative": [
+        "consonantal"
+      ],
+      "geometry_node": "Root",
+      "weight": 1.0
+    },
+    {
+      "name": "trill",
+      "positive": [
+        "trill"
       ],
       "negative": [],
       "geometry_node": "Manner",

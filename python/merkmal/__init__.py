@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import warnings
 from collections.abc import Mapping
 from pathlib import Path  # noqa: TC003
 from typing import Any, NamedTuple, cast
@@ -376,6 +377,22 @@ class BundleComparison(NamedTuple):
     why: str
 
 
+def _node_weights_argument(
+    node_weights: str | None, weights: str | None, method: str
+) -> str | None:
+    """The preset from `node_weights`, or from the deprecated `weights`."""
+    if weights is None:
+        return node_weights
+    if node_weights is not None:
+        raise TypeError(f"{method}: pass node_weights, not both node_weights and weights")
+    warnings.warn(
+        f"{method}(weights=...) is deprecated; use node_weights=..., as distance() does",
+        DeprecationWarning,
+        stacklevel=3,
+    )
+    return weights
+
+
 class AbstractSegment:
     """A feature bundle whose identity is not a grapheme.
 
@@ -466,29 +483,47 @@ class AbstractSegment:
         return AbstractSegment(text, system=self.system)
 
     def compare(
-        self, other: AbstractSegment | str, *, weights: str | None = None
+        self,
+        other: AbstractSegment | str,
+        *,
+        node_weights: str | None = None,
+        weights: str | None = None,
     ) -> BundleComparison:
         """Compare with another bundle, or with a grapheme's bundle.
 
-        Raises ``ValueError`` if the bundles belong to different systems.
+        ``node_weights`` names a weight preset, as in ``distance``; ``weights``
+        is its former name and is deprecated. Raises ``ValueError`` if the
+        bundles belong to different systems.
         """
+        node_weights = _node_weights_argument(node_weights, weights, "compare")
         if isinstance(other, str):
             other = AbstractSegment.from_grapheme(other, system=self.system)
         if other.system != self.system:
             raise ValueError("compare: abstract segments of different systems")
         return BundleComparison(
-            *_native.bundle_compare(self.text, other.text, system=self.system, weights=weights)
+            *_native.bundle_compare(
+                self.text, other.text, system=self.system, node_weights=node_weights
+            )
         )
 
     def compatible(self, grapheme: str) -> bool:
         """Whether the grapheme is one of this bundle's completions."""
         return bool(_native.bundle_compatible(self.text, grapheme, system=self.system))
 
-    def compatible_graphemes(self, *, weights: str | None = None) -> list[str]:
-        """Compatible graphemes, nearest first. For display, never identity."""
+    def compatible_graphemes(
+        self, *, node_weights: str | None = None, weights: str | None = None
+    ) -> list[str]:
+        """Compatible graphemes, nearest first. For display, never identity.
+
+        ``node_weights`` names a weight preset; ``weights`` is its former name
+        and is deprecated.
+        """
+        node_weights = _node_weights_argument(node_weights, weights, "compatible_graphemes")
         return cast(
             "list[str]",
-            _native.bundle_compatible_graphemes(self.text, system=self.system, weights=weights),
+            _native.bundle_compatible_graphemes(
+                self.text, system=self.system, node_weights=node_weights
+            ),
         )
 
     def __eq__(self, other: object) -> bool:

@@ -124,6 +124,15 @@ MODIFIED_CLUSTER_FORMS = [
     'ntʰ', 'mpʰ', 'ŋkʰ', 'stʰ', 'skʰ', 'ʃpʰ', 'sːt', 'rːk', 'dsː', 'kʟ̥',
 ]
 
+# The complex segments the resolver synthesizes from two letters, and the
+# prenasalized ones' spellings with a modifier letter. No inventory row holds
+# the two-letter spellings either, and before they carried class labels most
+# pairs among them scored 0.0 (`mb` against `ŋg`) without this sweep noticing.
+COMPLEX_FORMS = [
+    'kp', 'gb', 'ŋm', 'kx', 'gɣ', 'kɣ', 'ts', 'dz', 'tʃ', 'dʒ', 'tɕ', 'dʑ', 'tʂ', 'dʐ',
+    'mb', 'nd', 'ŋg', 'ɲɟ', 'ɳɖ', 'ᵐb', 'ⁿd', 'ᵑg', 'ᶮɟ', 'ᶯɖ',
+]
+
 CLUSTER_FORMS = ['ai', 'au', 'ei', 'ou', 'aːi', 'əu', 'ui', 'ia', 'oi', 'ɛi', 'eu', 'ɑi', 'əi', 'ɑu', 'aɪ', 'aːu', 'ɔi', 'uɔ', 'aa', 'ua', 'ɐu', 'ai̯', 'ao', 'ɔu', 'eɪ', 'aʊ', 'ae', 'ea', 'iɛ', 'uə', 'oa', 'au̯', 'ɔɪ', 'ie', 'mb', 'ɐi']
 
 
@@ -166,6 +175,25 @@ def chao_contour(token: str) -> tuple[int, int, int] | None:
     if len(levels) == 2:
         return (levels[0], (levels[0] + levels[1] + 1) // 2, levels[1])
     return (levels[0], levels[1], levels[2])
+
+
+# Two spellings of one complex segment: a prenasalized stop written with a
+# full nasal letter or a modifier letter, and a retroflex affricate written with
+# a plain or a retroflex stop letter (Lexibank sources use both).
+COMPLEX_SPELLINGS = [
+    frozenset({"mb", "ᵐb"}),
+    frozenset({"nd", "ⁿd"}),
+    frozenset({"ŋg", "ᵑg"}),
+    frozenset({"ɲɟ", "ᶮɟ"}),
+    frozenset({"ɳɖ", "ᶯɖ"}),
+    frozenset({"tʂ", "ʈʂ"}),
+    frozenset({"dʐ", "ɖʐ"}),
+]
+
+
+def complex_spelling_equivalent(a: str, b: str) -> bool:
+    """Whether two graphemes are listed spellings of one complex segment."""
+    return frozenset({a, b}) in COMPLEX_SPELLINGS
 
 
 def spelling_equivalent(a: str, b: str) -> bool:
@@ -226,7 +254,7 @@ def composed_forms(system: str, bases: list[str]) -> list[str]:
     if system in CATEGORICAL:
         # Only the categorical systems synthesize clusters. Offered to a valued
         # system, the forms would only move its sample.
-        out += MODIFIED_CLUSTER_FORMS
+        out += MODIFIED_CLUSTER_FORMS + COMPLEX_FORMS
     for base in bases[::step][:40]:
         candidates = [base + suffix for suffix in COMPOSED_SUFFIXES]
         candidates += [prefix + base for prefix in COMPOSED_PREFIXES]
@@ -251,11 +279,17 @@ def resolved(system: str, graphemes: list[str]) -> list[str]:
 
 
 def collapses(system: str, covered: list[str]) -> list[tuple[str, str]]:
-    return [
-        (a, b)
-        for a, b in itertools.combinations(covered, 2)
-        if merkmal.distance(a, b, system=system) == 0.0
-    ]
+    out = []
+    for a, b in itertools.combinations(covered, 2):
+        try:
+            distance = merkmal.distance(a, b, system=system)
+        except NotImplementedError:
+            # A pair the system refuses to compare (two tones in a valued
+            # system) has no distance, so it is not a collapse.
+            continue
+        if distance == 0.0:
+            out.append((a, b))
+    return out
 
 
 def uncompared(system: str, pairs: list[tuple[str, str]]) -> int:
@@ -452,6 +486,14 @@ def main() -> int:
                     reason = (
                         "one base with the same diacritics, written in another "
                         "order; diacritic order carries no contrast in IPA"
+                    )
+                elif complex_spelling_equivalent(a, b):
+                    status = "spelling-equivalent"
+                    reason = (
+                        "two spellings of one complex segment: a prenasalized "
+                        "stop with a full nasal letter or a modifier letter, or a "
+                        "retroflex affricate with a plain or a retroflex stop "
+                        "letter"
                     )
                 elif spelling_equivalent(a, b):
                     # The same tone written differently. Chao's notation is

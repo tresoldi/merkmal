@@ -237,7 +237,9 @@ static mk_status mk_reorder(mk_code_points *buffer)
     return MK_OK;
 }
 
-static mk_status mk_decompose_text(const char *utf8_in, mk_code_points *buffer)
+/* Reads `utf8_in` into `buffer`, decomposing each character when `decompose`
+ * is set, and puts every run of combining marks in canonical order. */
+static mk_status mk_read_text(const char *utf8_in, int decompose, mk_code_points *buffer)
 {
     const unsigned char *p = (const unsigned char *)utf8_in;
 
@@ -250,7 +252,7 @@ static mk_status mk_decompose_text(const char *utf8_in, mk_code_points *buffer)
             status = mk_push(buffer, MK_RAW_BYTE_TAG | *p);
             p++;
         } else {
-            status = mk_push_decomposed(buffer, cp);
+            status = decompose ? mk_push_decomposed(buffer, cp) : mk_push(buffer, cp);
             p += length;
         }
         if (status != MK_OK) {
@@ -383,11 +385,28 @@ static mk_status mk_normalize(const char *utf8_in, int compose, char **utf8_out)
         return MK_ERR_INVALID_ARGUMENT;
     }
     *utf8_out = NULL;
-    status = mk_decompose_text(utf8_in, &buffer);
+    status = mk_read_text(utf8_in, 1, &buffer);
     if (status == MK_OK) {
         if (compose) {
             mk_compose(&buffer);
         }
+        status = mk_encode(&buffer, utf8_out);
+    }
+    free(buffer.items);
+    return status;
+}
+
+mk_status mki_unicode_reorder(const char *utf8_in, char **utf8_out)
+{
+    mk_code_points buffer = {NULL, 0, 0};
+    mk_status status;
+
+    if (utf8_in == NULL || utf8_out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *utf8_out = NULL;
+    status = mk_read_text(utf8_in, 0, &buffer);
+    if (status == MK_OK) {
         status = mk_encode(&buffer, utf8_out);
     }
     free(buffer.items);

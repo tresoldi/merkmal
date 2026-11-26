@@ -307,8 +307,17 @@ static mk_cell mk_cell_from_view(const mk_bundle *b, const mk_column *col, mk_fe
     size_t i;
 
     if (col->kind == MK_COL_ORDINAL) {
+        /* A segment that names no level of a scale with a default (a vowel
+         * not marked for length) has `0` there: unmarked, read as the
+         * default against a marked value and not compared with another
+         * unmarked one, as the scorer does (geometry.c,
+         * mk_accumulate_ordinal_scales). */
         int level = mki_ordinal_level(view, col->scale);
-        return level == MKI_ORDINAL_UNDEFINED ? mk_cell_na() : mk_cell_mask((uint64_t)1 << level);
+
+        if (level == MKI_ORDINAL_UNDEFINED || !mki_ordinal_marked(view, col->scale)) {
+            return mk_cell_na();
+        }
+        return mk_cell_mask((uint64_t)1 << level);
     }
     if (col->kind == MK_COL_GROUP) {
         uint64_t mask = 0;
@@ -961,6 +970,14 @@ static mk_option mk_contribution(
 
     if (col->kind == MK_COL_ORDINAL) {
         int steps;
+        int fallback = col->scale->default_level;
+
+        /* `0` on a scale with a default is the default, unless both sides
+         * are unmarked. */
+        if (fallback != MKI_ORDINAL_UNDEFINED && (va < 0) != (vb < 0)) {
+            va = va < 0 ? fallback : va;
+            vb = vb < 0 ? fallback : vb;
+        }
         if (va < 0 || vb < 0 || col->scale->level_count < 2) {
             return o;
         }
@@ -1086,6 +1103,7 @@ static size_t mk_options(
         size_t i;
         size_t j;
         size_t limit = col->kind == MK_COL_ORDINAL ? col->scale->level_count : 3;
+
 
         if (ca->na) {
             values_a[na++] = -1;
@@ -1284,6 +1302,13 @@ static bool mk_cells_intersect(const mk_column *col, const mk_cell *a, const mk_
 {
     if (a->na && b->na) {
         return true;
+    }
+    /* An unmarked value on a scale with a default is that default. */
+    if (col->kind == MK_COL_ORDINAL && col->scale->default_level != MKI_ORDINAL_UNDEFINED &&
+        (a->na || b->na)) {
+        uint64_t fallback = (uint64_t)1 << col->scale->default_level;
+
+        return ((a->na ? fallback : a->mask) & (b->na ? fallback : b->mask)) != 0;
     }
     if (col->kind == MK_COL_GROUP) {
         return mk_group_applies(a) && mk_group_applies(b) && mk_group_equal_possible(a, b);

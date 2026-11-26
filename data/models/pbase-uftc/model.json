@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "name": "pbase-uftc",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "valued",
   "description": "P-base feature system, UFTC family",
   "license": "CC-BY-NC-SA-4.0",
@@ -9,16 +9,14 @@
   "state_symbols": {
     "+": 1.0,
     "-": -1.0,
-    ".": null,
-    "n": 0.0,
-    "o": 0.0,
-    "x": 0.0
+    "0": null,
+    "?": null
   },
   "geometry_map": {
     "ATR": "TongueRoot",
     "C-place": "Place",
-    "EXTRA": "Prosodic",
-    "LONG": "Prosodic",
+    "EXTRA": "Length",
+    "LONG": "Length",
     "SYLLABIC": "Manner",
     "V-place": "Place",
     "anterior (C)": "Coronal",

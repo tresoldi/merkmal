@@ -208,10 +208,10 @@ mk_status mk_bundle_new(const mk_system *system, mk_bundle **out);
 mk_status mk_bundle_from_grapheme(const mk_system *system, const char *g, mk_bundle **out);
 mk_status mk_bundle_from_text(const mk_system *system, const char *text, mk_bundle **out);
 mk_status mk_bundle_set(mk_bundle *b, const char *column, const char *cell);
-mk_status mk_bundle_compare(const mk_bundle *a, const mk_bundle *b, const char *weights,
+mk_status mk_bundle_compare(const mk_bundle *a, const mk_bundle *b, const char *node_weights,
                             mk_bundle_comparison *out);
 mk_status mk_bundle_compatible(const mk_bundle *b, const char *g, bool *out);
-mk_status mk_bundle_compatible_graphemes(const mk_bundle *b, const char *weights,
+mk_status mk_bundle_compatible_graphemes(const mk_bundle *b, const char *node_weights,
                                          mk_string_list **out);
 ```
 
@@ -452,14 +452,23 @@ mk_sound_distance(a, b, NULL, &distance);
 
 There are two tokenization policies, and the choice affects the results.
 `mk_segment_ipa` is orthographic: a token starts at each new base code point
-unless a tie bar joins it to the previous one. It is stable and
-language-neutral, but it does not agree with what a system accepts: it splits
+unless a tie bar joins it to the previous one, and a stress mark (`ˈ`, `ˌ`)
+ends a token and is dropped. It is stable and language-neutral, but it does not agree with what a system accepts: it splits
 `tʃa` into `t`, `ʃ`, `a`, although the categorical systems recognize untied
 `tʃ` as one segment. `mk_system_segment_ipa` instead takes the longest match
 against the selected system, giving `[tʃ, a]` and `[kp, a]`.
 
+A space in the input is a boundary that no merge crosses, so a caller's
+segmentation (`t s a`, a CLDF `Segments` column) is kept. Only the last token
+of a merged run may carry marks: `tʰs` is an aspirated stop and a fricative,
+not the affricate `tsʰ`. A modifier letter that can precede a consonant (`ⁿ`,
+`ʰ`, `ʲ`, `ʷ`, `ˀ`) and ends a vowel token moves to the following consonant
+when the system reads both results, so `aⁿda` gives `[a, ⁿd, a]` rather than a
+vowel with nasal release.
+
 Longest match is a policy, not an analysis: `kp` may be /k.p/ in a language
-without labial-velars. Results depend on the selected system and its
+without labial-velars, and `mb`, `nd`, `ŋg` are always read as prenasalized
+stops; write a space (`m b`) where they are sequences. Results depend on the selected system and its
 inventory version, and both should be recorded with any stored tokenization.
 Input the system does not recognize is passed through as its orthographic
 token rather than dropped, so the function is total over its input.

@@ -356,6 +356,8 @@ def parse_sound_name(
 # and every manner distinction would reduce to a single Manner group mismatch
 # (/p/~/f/, /p/~/r/ and /k/~/ʔ/ would cost the same). The derivations are the
 # ones data/models/distinctive/model.json states in its scalar_dimensions.
+# src/classes.c applies the same derivation to feature sets built at run time;
+# the two must stay equal (python/tests check it on every compiled row).
 SONORANT_MANNERS = frozenset({"nasal", "lateral", "approximant", "trill", "tap", "vowel"})
 OBSTRUENT_MANNERS = frozenset({"stop", "fricative", "affricate", "click", "implosive"})
 CONTINUANT_MANNERS = frozenset({"fricative", "approximant", "trill", "vowel"})
@@ -401,10 +403,12 @@ def derive_class_features(features: frozenset[str]) -> frozenset[str]:
     else:
         added.add("consonantal")
 
-    if features & SONORANT_MANNERS:
-        added.add("sonorant")
-    elif features & OBSTRUENT_MANNERS:
+    # A lateral fricative, affricate or click is an obstruent (ɬ, ɮ, tɬ, ǁ), so
+    # the obstruent manners are tested first; a nasal makes a segment sonorant.
+    if features & OBSTRUENT_MANNERS and "nasal" not in features:
         added.add("obstruent")
+    elif features & SONORANT_MANNERS:
+        added.add("sonorant")
 
     if features & CONTINUANT_MANNERS:
         added.add("continuant")
@@ -645,6 +649,90 @@ def load_valued(name: str, geometry: dict[str, object]) -> tuple[str, list[tuple
         depth = geometry_node_depth(tree, node_name) or 2
         weights.append(1.0 / depth)
     return "MKI_SYSTEM_VALUED", sorted(entries.items()), geometry_map, weights, []
+
+
+# A mark's effect is learned only from this many rows or more.
+MIN_EFFECT_PAIRS = 3
+
+
+def learn_valued_effects(
+    entries: list[tuple[str, list[str]]], diacritics: dict[str, object]
+) -> list[tuple[str, list[tuple[str, str]]]]:
+    """What each mark does in a valued system, learned from its own rows.
+
+    A row spelled as a listed row plus one mark (`tʰ` beside `t`, `ⁿd` beside
+    `d`) shows what the source does with that mark. For each feature, the mark
+    sets the state that the marked row takes, where it differs from the base,
+    in at least half of the pairs. A single hand-written rule per mark, the
+    approach this replaces, disagreed with PHOIBLE's own rows for 60-100% of
+    the pairs on six common marks; and a mark the system has no feature for
+    was silently ignored, so `pʰ` was `p`. A mark with fewer than
+    MIN_EFFECT_PAIRS pairs, or whose learned effect reproduces fewer than half
+    of them, has no entry, and the resolver refuses it.
+    """
+    suffix = {
+        chr(int(code, 16)): str(name)
+        for table in ("combining", "suffix")
+        for code, name in dict(diacritics.get(table, {})).items()
+    }
+    prefix = {chr(int(code, 16)): str(name) for code, name in dict(diacritics.get("prefix", {})).items()}
+    table = {grapheme: dict(label.split("=", 1) for label in labels) for grapheme, labels in entries}
+    pairs: dict[str, list[tuple[dict[str, str], dict[str, str]]]] = {}
+    for grapheme, values in table.items():
+        if len(grapheme) < 2:
+            continue
+        if grapheme[-1] in suffix and grapheme[:-1] in table:
+            pairs.setdefault(suffix[grapheme[-1]], []).append((table[grapheme[:-1]], values))
+        if grapheme[0] in prefix and grapheme[1:] in table:
+            pairs.setdefault(prefix[grapheme[0]], []).append((table[grapheme[1:]], values))
+    effects: list[tuple[str, list[tuple[str, str]]]] = []
+    for modifier in sorted(pairs):
+        found = pairs[modifier]
+        if len(found) < MIN_EFFECT_PAIRS:
+            continue
+        settings: list[tuple[str, str]] = []
+        for feature in sorted(found[0][0]):
+            changed: dict[str, int] = {}
+            for base, marked in found:
+                if marked.get(feature) != base.get(feature):
+                    state = marked.get(feature, ".")
+                    changed[state] = changed.get(state, 0) + 1
+            if changed:
+                state, count = max(sorted(changed.items()), key=lambda item: item[1])
+                if 2 * count >= len(found):
+                    settings.append((feature, state))
+        # The effect must reproduce the source: if it gives the listed row for
+        # fewer than half of the pairs, the source does not treat the mark
+        # consistently (PHOIBLE's lowered and advanced vowels), and the mark is
+        # refused rather than read through a rule the table contradicts.
+        reproduced = sum(1 for base, marked in found if {**base, **dict(settings)} == marked)
+        if 2 * reproduced >= len(found):
+            effects.append((modifier, settings))
+    return effects
+
+
+def emit_valued_effects(prefix: str, effects: list[tuple[str, list[tuple[str, str]]]]) -> str:
+    lines: list[str] = []
+    for index, (_, settings) in enumerate(effects):
+        if settings:
+            lines.append(f"static const char *const {prefix}_effect_{index}_features[] = {{")
+            for feature, _ in settings:
+                lines.append(f"    {c_string(feature)},")
+            lines.append("};")
+            lines.append("")
+    lines.append(f"static const mki_valued_effect {prefix}_valued_effects[] = {{")
+    for index, (modifier, settings) in enumerate(effects):
+        lines.append(
+            "    " + c_struct("mki_valued_effect", {
+                "modifier": c_string(modifier),
+                "features": f"{prefix}_effect_{index}_features" if settings else "NULL",
+                "states": c_string("".join(state for _, state in settings)),
+                "feature_count": str(len(settings)),
+            }) + ","
+        )
+    lines.append("};")
+    lines.append("")
+    return "\n".join(lines)
 
 
 def emit_feature_node_map(symbol: str, entries: list[tuple[str, str]]) -> str:
@@ -1153,7 +1241,6 @@ def emit_diacritics(diacritics: dict[str, object]) -> str:
     lines: list[str] = []
     tone_marks = diacritics.get("tone_marks", {})
     tone_levels = diacritics.get("tone_levels", {})
-    valued_effects = diacritics.get("valued_effects", {})
 
     lines.append(emit_diacritic_map("mki_default_combining_diacritics", dict(diacritics.get("combining", {}))))
     lines.append(emit_diacritic_map("mki_default_suffix_diacritics", dict(diacritics.get("suffix", {}))))
@@ -1199,35 +1286,6 @@ def emit_diacritics(diacritics: dict[str, object]) -> str:
     )
     lines.append("")
 
-    effect_entries: list[tuple[str, str, int, str]] = []
-    for index, (modifier, effect) in enumerate(sorted(dict(valued_effects).items())):
-        effect_dict = dict(effect)
-        alternatives = [str(feature) for feature in effect_dict.get("features", [])]
-        symbol = f"mk_default_valued_effect_{index}_alternatives"
-        lines.append(f"static const char *const {symbol}[] = {{")
-        for feature in alternatives:
-            lines.append(f"    {c_string(feature)},")
-        lines.append("};")
-        lines.append("")
-        effect_entries.append((str(modifier), symbol, len(alternatives), str(effect_dict.get("state", "."))))
-
-    lines.append("const mki_valued_diacritic_effect mki_default_valued_diacritic_effects[] = {")
-    for modifier, symbol, count, state in effect_entries:
-        lines.append(
-            "    " + c_struct("mki_valued_diacritic_effect", {
-                "modifier": c_string(modifier),
-                "alternatives": symbol,
-                "alternative_count": str(count),
-                "state": f"'{state[0]}'",
-            }) + ","
-        )
-    lines.append("};")
-    lines.append("")
-    lines.append(
-        "const size_t mki_default_valued_diacritic_effect_count =\n"
-        "    sizeof(mki_default_valued_diacritic_effects) / sizeof(mki_default_valued_diacritic_effects[0]);"
-    )
-    lines.append("")
     return "\n".join(lines)
 
 
@@ -1263,6 +1321,14 @@ def generate(output: Path, profile: str = "full") -> None:
     system_chunks = [
         emit_system(name, kind, entries, geometry_map, weights, scalar_dimensions, pool, feature_ids)
         for name, kind, entries, geometry_map, weights, scalar_dimensions in systems
+    ]
+    valued_effects = {
+        name: learn_valued_effects(entries, diacritics)
+        for name, kind, entries, _, _, _ in systems
+        if kind == "MKI_SYSTEM_VALUED"
+    }
+    system_chunks += [
+        emit_valued_effects(c_ident(name), effects) for name, effects in valued_effects.items()
     ]
 
     chunks = [
@@ -1338,6 +1404,8 @@ def generate(output: Path, profile: str = "full") -> None:
                 "dimension_weights": weights_expr,
                 "scalar_dimensions": scalar_expr,
                 "scalar_dimension_count": scalar_count,
+                "valued_effects": f"{prefix}_valued_effects" if name in valued_effects else "NULL",
+                "valued_effect_count": str(len(valued_effects.get(name, []))),
             }) + ","
         )
     chunks.append("};")

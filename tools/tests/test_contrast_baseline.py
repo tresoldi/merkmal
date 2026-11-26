@@ -15,3 +15,11 @@ def test_uncompared_counts_pairs_without_a_shared_dimension() -> None:
     # score 0.0 with nothing compared.
     pairs = [("ae̯", "ɹ̪̹̩"), ("N", "m")]
     assert uncompared("phoible", pairs) == 1
+
+
+def test_complex_spellings_are_declared_equivalent() -> None:
+    from contrast_baseline import complex_spelling_equivalent
+
+    assert complex_spelling_equivalent("mb", "ᵐb")
+    assert complex_spelling_equivalent("ʈʂ", "tʂ")
+    assert not complex_spelling_equivalent("mb", "nd")

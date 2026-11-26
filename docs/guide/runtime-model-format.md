@@ -45,6 +45,16 @@ Rules:
   normalized into a lookup key exactly as a query is, so a row may be written
   precomposed (`ã`) or decomposed, and either spelling matches at lookup time.
   The source conventions also apply: a row written `ʧ` is reachable as `tʃ`.
+  A label written twice in a row is one label.
+- A row that names `consonant` or `vowel` is given the class and articulator
+  labels that a compiled row with the same labels carries (`consonantal` or
+  `vocoid`, `sonorant` or `obstruent`, `continuant` or `non-continuant`, the
+  coronal `anterior` and `distributed` values, and `labial`, `coronal`,
+  `dorsal`, `guttural`; see [geometry.md](../method/geometry.md)), so that
+  `grapheme p consonant voiceless bilabial stop` scores as the compiled `p`
+  does. Without them two consonants at different articulators share no place
+  dimension: `p` and `t` would be at distance zero. A row naming neither is
+  kept as written.
 - `feature` rows are accepted for readability and have no effect on scoring.
   They are not declarations.
 - Under strict validation any other line is an error.

@@ -54,7 +54,9 @@ touches; docs/development/style.md, Building and checking, has the full table.
 
 - `src/generated/*.c`: run `python tools/generate_c_data.py` (and with
   `--profile cc-by`) or `python tools/generate_unicode_data.py`.
-- `tests/golden/*.tsv`: `python tools/regenerate_golden.py`.
+- `tests/golden/*.tsv`: `python tools/regenerate_golden.py`. If the fixtures
+  change, bump `MKI_BEHAVIOR_VERSION` in `src/fingerprint.h` first; the script
+  refuses to record them otherwise.
 - `NOTICE`: `python tools/generate_notice.py`.
 - `web/merkmal.js`, `web/merkmal.wasm`, `web/BUILD_INFO`: `web/build-wasm.sh`
   (needs Emscripten). [ADR 0003](docs/development/adr/0003-generated-artifacts-are-committed.md).

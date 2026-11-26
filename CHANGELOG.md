@@ -8,13 +8,164 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ## Unreleased
 
+### Changed
+
+- Python: `AbstractSegment.compare` and `compatible_graphemes` take the weight
+  preset as `node_weights=`, as every other function does; `weights=` still
+  works and emits a `DeprecationWarning`.
+- **Breaking:** the semantic fingerprint identifies results, not only data.
+  Its payload (schema `merkmal-system-fingerprint-v2`) gains
+  `behavior_version`, the version of what the code does with the tables, so
+  that a fix to the resolver, a tokenizer or a scorer moves the fingerprint of
+  the results it changes; it did not, although the README says to store the
+  fingerprint with any result. `tools/regenerate_golden.py` refuses changed
+  golden fixtures under an unchanged version, and `--check` fails when they
+  disagree. Every fingerprint changes. Releases up to 0.10.0 are version 1;
+  this one is 2.
+- **Breaking:** the class and articulator labels (`consonantal`/`vocoid`,
+  `obstruent`/`sonorant`, `continuant`/`non-continuant`, `anterior`,
+  `distributed`, and `labial`, `coronal`, `dorsal`, `guttural`) were added only
+  to compiled inventory rows. The complex segments the resolver synthesizes and
+  every runtime model row lacked them, and since place scales are defined per
+  articulator, segments at different articulators shared no place dimension:
+  `d(mb, ŋg) = 0.0` in the default system, `d(mb, ᵐb) = 0.16` for one segment
+  in two spellings, and in a runtime model written like the documented example
+  `d(p, t) = 0.0`. The derivation now also runs in C (`src/classes.c`) for
+  those feature sets; a runtime row naming neither `consonant` nor `vowel` is
+  kept as written. A test checks that it reproduces the generator's on every
+  compiled row. Runtime model fingerprints change, since rows now carry the
+  derived labels. `distinctive` 3.0.0, `descriptive` 2.0.0.
+- **Breaking:** a lateral fricative, affricate or click (`ɬ`, `ɮ`, `tɬ`, `ǁ`)
+  was classed as a sonorant, because `lateral` was tested before the obstruent
+  manners; `ɮ` was nearer `l` than `z`. It is now an obstruent.
+- Runtime models: a label written twice in a row is one label.
+- **Breaking:** in the categorical systems, two segments that both leave
+  length unmarked are no longer compared on `duration`. Counted, that
+  agreement gave every pair a shared dimension, so coverage and comparability
+  could not report a pair that reaches nothing else (two unrelated runtime
+  labels gave 0.0 with coverage 1.0 and `ok`), and it diluted every other
+  difference: `sound_distance([voiced], [voiceless])` was 0.5, and
+  `ignore-length` raised other distances. Every categorical distance between
+  short segments rises slightly (`d(p, b)` 0.125 → 0.143 in `descriptive`).
+  In an abstract segment, an unmarked length is the cell `0`, read as `short`
+  against a marked value.
+- **Breaking:** `distinctive` reads the derived class labels in its
+  `continuant`, `anterior` and `distributed` dimensions, as the geometry
+  documentation said it did (`continuant` omitted nasals, trills and vowels,
+  and `anterior` and `distributed` linguolabials and dentals), and has a new
+  `glide` dimension over the derived `vocoid`/`consonantal`. With only the
+  vowel/consonant dimension, glides were consonants and /w/ was nearer /b/
+  (0.39) than /u/ (0.58); now /w/ is nearer /u/ (0.46 against 0.59). The
+  vowel/consonant dimension stays: replacing it with the derived class put
+  `distinctive` significantly below SCA as an alignment cost. A diphthong's or cluster's own feature set also
+  carries the class labels now, so that its whole-segment term shares
+  dimensions with a segment's. A `trill` dimension is added, since the old
+  `continuant` had been the only one separating a trill from an approximant
+  (`r` and `ɹ` would otherwise be at distance zero).
+- **Breaking:** a cluster's nucleus is its most sonorous part, not its first,
+  so a rising diphthong is nearer its vowel than its glide (`d(ia, a)` 0.30 →
+  0.20, `d(ia, i)` 0.22 → 0.28 in `distinctive`). A doubled segment against a length-marked one
+  now scores as the single segment does (`d(aa, aː) = d(a, aː)`); the
+  whole-segment term undid the length waiver (0.113 against 0.064).
+- **Breaking:** a valued system (PHOIBLE, P-base) read a mark through one
+  hand-written rule shared by every system, and ignored a mark its table had no
+  feature for: in `pbase-jfh` `d(p, pʰ) = 0.0`, and in PHOIBLE `ⁿd`, `t̚` and
+  `ʰt` equalled their bases. Where the rule applied, it disagreed with
+  PHOIBLE's own rows for the same base and mark in 61-100% of the pairs for six
+  common marks. Each valued system now learns each mark's effect from its own
+  rows that differ from a listed row by that mark alone, keeping it only if
+  it reproduces at least half of them (three pairs at least); in PHOIBLE the
+  learned effects give the listed row exactly for 79% of the pairs left out in
+  turn. A segment with any other mark is refused with
+  `MK_ERR_UNSUPPORTED_MODEL`, as tone already was. The shared rule
+  (`valued_effects` in `data/diacritics/ipa-clts.json`) is removed. A
+  prenasalizing modifier letter (`ⁿd`, `ᵐb`) reads as the row a valued table
+  spells with the homorganic nasal letter (`nd`, `mb`), as PHOIBLE writes
+  them. Coverage of the Lexibank corpus falls where marks are now refused
+  rather than ignored: `phoible` 79.5% → 77.8% of segment types, the P-base
+  systems from 74% to 63-67% (`kˀ`, `ä`, `i̠` are not in their tables); token
+  coverage falls by at most 0.6 points. phoible 3.0.0, the P-base models 2.0.0.
+- **Breaking:** in a valued system, a distance between two tones is refused
+  (`MK_ERR_UNSUPPORTED_MODEL`), as a tone mark is. PHOIBLE's sixty tone-letter
+  rows each carry `tone=+` and nothing else, so every pair of them was 0.0
+  (`˥` against `˩`). A tone row against a segment stays cross-tier.
+- **Breaking:** the length features of the valued systems (`long`, `short`,
+  `LONG`, `EXTRA`) are mapped to the geometry's `Length` node rather than
+  `Prosodic`, so `ignore-length` and `segmental` now drop them, as they do in
+  the categorical systems; their weight follows the deeper node.
+
+- **Breaking:** the four P-base tables are rebuilt from P-base's data archive
+  (data as of 2022-10-02) by `tools/rebuild_pbase_inventories.py`, replacing a
+  manual extraction from the website in 2019 that could not be reproduced. The
+  two agree on 44,741 of the 44,748 cells of the segments both list. The cell
+  codes are now read as P-base defines them: UFT's `x` and `o` (a node present
+  or absent) are a contrast, compared as `+` and `-`, where they were read as
+  one midpoint value and never compared (`vocalic` and `V-place` separate
+  vowels from consonants in `pbase-uftc`); `n` (does not apply) is `0` and not
+  compared, where it was scored halfway between `+` and `-`; `.` is `?`.
+
+### Documentation
+
+- The alignment evaluation splits and bootstraps by alignment rather than by
+  pair, since the three pairs drawn from one BDPA alignment are not
+  independent, and reports a consonant/vowel scorer and the valued systems
+  besides identity and SCA. `distinctive` is −0.22 points from SCA
+  [−0.78, +0.35], not resolved; the consonant/vowel split alone reaches 92.7%,
+  3.6 points below SCA; `phoible` and `pbase-spe` are below that split. The
+  cross-theory and fitted-cost results now have committed baselines
+  (`bench/cross_theory_baseline.txt`, `bench/fit_pair_costs_baseline.txt`).
+- `distinctive` is described as scalar dimensions over CLTS's articulatory
+  descriptions, organized after Clements and Hume's geometry, rather than as
+  their distinctive features; `pbase-hc` and `pbase-uftc` cite Halle and
+  Clements (1983) and Unified Feature Theory, and P-base cites Mielke (2008).
+- The geometry maps `ejective`, `nasalized` and the secondary articulations to
+  the nodes the tree places them under (they were listed under `Prosodic`,
+  which no scorer read), and its first departure no longer contradicts the
+  later ones. No distance changes.
+- The method documentation states the distances the place encoding produces
+  rather than any claim about the sounds (d(p, k) < d(p, t), `kp` equidistant
+  from `k` and `q`, palatals dorsal, `a` front), and `mk_normalize_grapheme`
+  states that its result is not a lookup key.
+
 ### Fixed
 
+- `ç` is no longer a sibilant. CLTS 1.4.1 names it "voiceless palatal sibilant
+  fricative" but its voiced partner `ʝ` not, so `d(ç, ʝ)` was 0.213 against
+  0.119 for `d(x, ɣ)`; both are now 0.106. Recorded as a divergence from CLTS
+  in the provenance of `distinctive` and `descriptive`.
+- The demonstration's distance matrix kept the first 101 segments of a longer
+  list and dropped the rest without saying so; a list of more than 100 is now
+  refused with a message.
 - CLTS citation: cite version 1.4.1 by its version DOI (10.5281/zenodo.3515745)
   with the author list given in that release record, which includes Simon J.
   Greenhill; the previous list followed the current concept record, whose
   authors differ from those of v1.4.1. Citations only: provenance is excluded
   from model identity, so no table, fingerprint or distance changes.
+- A weight preset named `""` or `"None"` was read as the default; only `NULL`
+  is, as the header says, and those names are now refused as unknown presets.
+- The tokenizers emitted a tab or a newline as a token of its own; ASCII
+  whitespace now separates tokens as a space does.
+- The runtime model parser split fields with `isspace`, which under a
+  single-byte locale can classify a byte of a UTF-8 sequence as a space; it
+  now splits on ASCII whitespace only.
+- `mk_system_segment_ipa` merged across the spaces a caller wrote (`t s a`
+  became `ts`, `a`), merged a run whose first letter carried a mark (`kʰætʰs`
+  gave `tʰs`, `akːpa` gave `kːp`), and attached a medial prefix modifier to
+  the vowel before it (`aⁿda` gave a vowel with nasal release). A space is now
+  a boundary, only the last token of a merge may carry marks, and a prefix
+  modifier between a vowel and a consonant goes to the consonant when the
+  system reads both results.
+- A stress mark inside a word (`paˈta`) ended up attached, as a modifier
+  letter, to the segment before it (`aˈ`), which no system recognizes. The
+  tokenizers now treat `ˈ` and `ˌ` as a break and drop them, as the normalizer
+  already did with a leading one.
+- `mk_merge_tone_digits` (and `segment_ipa_merged`) walked back over the word
+  for each tone, so a long input took quadratic time (28 KB took 8 s); it is
+  now linear, with identical output.
+- A grapheme whose combining marks were written in a non-canonical order
+  (`ɤ̞̟̃` with U+031F after U+0303) missed its inventory row, whose key is in
+  canonical order, and was synthesized from its diacritics into a different
+  segment. Lookup now puts the marks in canonical order first.
 
 ## 0.10.0 (2026-11-25)
 

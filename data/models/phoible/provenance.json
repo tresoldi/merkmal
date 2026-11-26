@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_id": "phoible",
-  "artifact_version": "2.0.0",
+  "artifact_version": "3.0.0",
   "upstream_name": "PHOIBLE 2.0 (CLDF packaging, cldf-datasets/phoible v2.0.1)",
   "upstream_release": "v2.0.1",
   "upstream_url": "https://phoible.org/ (CLDF packaging: https://github.com/cldf-datasets/phoible, cldf/parameters.csv)",
@@ -13,7 +13,7 @@
   "redistribution_notes": "Upstream terms are CC-BY-SA-3.0. Redistributed here under the same terms. Attribution to the upstream project is required, and adaptations must be shared under the same or a compatible license.",
   "input_sha256": {
     "inventory.tsv": "9bd7900723aa58695d55b033a84f09c3c40b99e0b95215d5b5e0fe0b14dd0a2a",
-    "model.json": "e9405397bc6dc7a19ba912baa74379ad0f60b0543459fa5fd5bee2cebd0ba29a"
+    "model.json": "a24b422a2217988707b33eda5db78a672af14892c98f25f86584d9912a7f0bd0"
   },
   "generator": "tools/generate_c_data.py"
 }

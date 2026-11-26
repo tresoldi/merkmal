@@ -22,14 +22,14 @@ Python exposes the same interface as `merkmal.system_fingerprint(system=...)`
 and `Registry.system_fingerprint(system=...)`; both return
 `(payload, digest)`.
 
-## Payload, version 1
+## Payload, version 2
 
 The payload is UTF-8 text, one `key=value` line per field, in this fixed
 order:
 
 | Field | Identifies |
 | --- | --- |
-| `schema` | The serialization and its version (`merkmal-system-fingerprint-v1`) |
+| `schema` | The serialization and its version (`merkmal-system-fingerprint-v2`) |
 | `system`, `system_kind` | The system and its declared kind |
 | `model_version`, `model_sha256` | The model version and a hash of its source files, or of the canonical inventory of a runtime model |
 | `scorer` | The scorer the system uses (`leaf`, `scalar` or `valued`) |
@@ -38,6 +38,17 @@ order:
 | `resolver_policy` | The resolver and normalization policy (`ipa-resolver-v1`) |
 | `tone_policy` | The Chao tone grammar (`chao-tone-v1`) |
 | `comparison_policy` | The segment-distance policy (`segment-distance-v2`) |
+| `behavior_version` | The version of what the code does with the data: resolution, tokenization, tone handling and scoring |
+
+The data hashes identify the tables; `behavior_version` identifies what is
+done with them, so that a code change that moves a feature set or a distance
+moves the fingerprint too. Version 1 of the payload had no such field, and a
+fix to the resolver or a scorer left the fingerprint of results it changed
+identical. The number is bumped with every change that alters a golden
+fixture: `tools/regenerate_golden.py` records it in
+`tests/golden/behavior.tsv` beside a hash of the fixtures, refuses to record
+changed fixtures under an unchanged number, and with `--check` (run in CI)
+fails when the two disagree. Releases up to 0.10.0 are behavior version 1.
 
 The digest is the lowercase hexadecimal SHA-256 of the full payload. Both
 should be stored: the digest serves as a compact join key, and the payload

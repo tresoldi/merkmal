@@ -1,0 +1,44 @@
+# Cross-theory benchmark, recorded from a deliberate run.
+#
+# Regenerate with: bench/cross_theory.py --bdpa <bdpa-checkout> > bench/cross_theory_baseline.txt
+# (then restore this header). BDPA commit e1e3aea, LingPy 2.6.14.
+
+Sweeping every ordering claim over 41 segments, across 7 feature theories.
+
+  d(p,b) < d(p,a)  a stop is closer to its voiced counterpart than to a vowel unanimous
+  d(i,e) < d(i,a)  adjacent vowel heights beat distant ones             unanimous
+  d(m,n) < d(m,s)  two nasals beat a nasal and a fricative              unanimous
+  d(s,z) < d(s,t)  voicing is a smaller step than manner                unanimous
+
+  28769 claims to which at least 6 systems give a strict answer
+    unanimous: 19135 (66.5%)
+    split:     9634 (33.5%)
+
+  Most evenly split:
+    d(a,b) < d(a,n)   3/6 say yes
+    d(a,b) < d(a,z)   3/6 say yes
+    d(a,b) < d(a,ɲ)   3/7 say yes
+    d(a,d) < d(a,k)   4/7 say yes
+    d(a,d) < d(a,ʃ)   3/6 say yes
+    d(a,d) < d(a,q)   4/7 say yes
+    d(a,d) < d(a,ʔ)   3/7 say yes
+    d(a,dʒ) < d(a,ʔ)   3/7 say yes
+
+  A split claim holds in some feature systems and not in others, so a
+  conclusion that rests on it is in part a property of the system used,
+  which should be reported with it.
+
+Alignment accuracy under each feature theory (BDPA, gap tuned on dev):
+
+  system           gap  column acc   readable
+  descriptive     0.40      95.09%      96.4%
+  distinctive     0.30      95.62%      96.4%
+  pbase-hc        0.60      91.76%      74.9%
+  pbase-jfh       0.50      91.07%      74.9%
+  pbase-spe       0.60      92.27%      74.9%
+  pbase-uftc      0.60      90.87%      74.9%
+  phoible         0.50      91.66%      79.6%
+
+  best distinctive at 95.62%, worst pbase-uftc at 90.87% -- a spread of 4.75 points.
+  Each system reads a different share of the pairs in full (the readable
+  column), so the accuracies are to be compared together with it.

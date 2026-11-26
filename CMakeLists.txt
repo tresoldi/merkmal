@@ -61,6 +61,7 @@ endif()
 set(MERKMAL_SOURCES
     src/array.c
     src/bundle.c
+    src/classes.c
     src/cluster.c
     src/diagnose.c
     src/fingerprint.c

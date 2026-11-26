@@ -226,7 +226,10 @@ static mk_status mk_resolve_weight_preset(
         return MK_ERR_INVALID_ARGUMENT;
     }
     *out = NULL;
-    if (node_weights == NULL || node_weights[0] == '\0' || mki_streq(node_weights, "None")) {
+    /* NULL alone is the default, as the header says. "" and "None" were also
+     * read as the default, so a caller that built the name from a missing
+     * value got the default rather than an error. */
+    if (node_weights == NULL) {
         return MK_OK;
     }
     *out = mk_find_weight_preset(node_weights);
@@ -377,6 +380,18 @@ int mki_ordinal_level(mk_feature_view view, const mki_ordinal_scale *scale)
     return mk_ordinal_level(view, scale);
 }
 
+bool mki_ordinal_marked(mk_feature_view view, const mki_ordinal_scale *scale)
+{
+    size_t i;
+
+    for (i = 0; i < scale->level_count; i++) {
+        if (mk_view_contains(view, scale->levels[i])) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static void mk_accumulate_ordinal_scales(
     mk_feature_view a,
     mk_feature_view b,
@@ -402,6 +417,14 @@ static void mk_accumulate_ordinal_scales(
             continue;
         }
         if (scale->level_count < 2) {
+            continue;
+        }
+        /* A default level stands in for an unmarked segment so that `a` and
+         * `aː` differ, but two segments that both leave the scale unmarked
+         * have told it nothing. Counted, the agreement made every pair share
+         * a compared dimension, so coverage could not report a pair that
+         * reaches nothing else, and it diluted every other difference. */
+        if (!mki_ordinal_marked(a, scale) && !mki_ordinal_marked(b, scale)) {
             continue;
         }
 

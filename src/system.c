@@ -6,6 +6,7 @@
 
 #include "string_list.h"
 #include "strings.h"
+#include "utf8.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -160,6 +161,16 @@ static mk_status mk_score_resolved(
         return MK_OK;
     }
 
+    /* Two tones in a valued system. PHOIBLE lists the tone letters, but each
+     * row carries tone=+ and nothing else, so every pair of them was 0.0
+     * (`˥` against `˩`): nothing in the table tells one tone from another,
+     * which is the reason a valued system refuses a tone mark. A tone against
+     * a segment stays cross-tier, above. */
+    if (system->builtin->kind == MKI_SYSTEM_VALUED && mki_view_is_tone(mki_view_of(a)) &&
+        mki_view_is_tone(mki_view_of(b)) && !mki_streq(a->grapheme, b->grapheme)) {
+        return MK_ERR_UNSUPPORTED_MODEL;
+    }
+
     scorer = mki_scorer_for(system->builtin);
     if (scorer == NULL) {
         return MK_ERR_UNSUPPORTED_MODEL;
@@ -278,7 +289,7 @@ mk_status mk_system_segment_distance_ex(
 
 /* Concatenates `span` orthographic tokens starting at `index`. */
 static mk_status mk_join_tokens(
-    const mk_string_list *tokens,
+    char *const *tokens,
     size_t index,
     size_t span,
     char **out
@@ -290,9 +301,7 @@ static mk_status mk_join_tokens(
     size_t i;
 
     for (i = 0; i < span; i++) {
-        mk_status status = mki_append_text(
-            &joined, &joined_len, &joined_cap, mk_string_list_get(tokens, index + i)
-        );
+        mk_status status = mki_append_text(&joined, &joined_len, &joined_cap, tokens[index + i]);
         if (status != MK_OK) {
             free(joined);
             return status;
@@ -300,6 +309,12 @@ static mk_status mk_join_tokens(
     }
     *out = joined;
     return MK_OK;
+}
+
+/* Whether a token is one code point: a letter with no mark. */
+static bool mk_is_bare(const char *token)
+{
+    return token[0] != '\0' && token[mki_utf8_step(token)] == '\0';
 }
 
 /* Whether this system reads `joined` as one segment, for the purpose of
@@ -347,23 +362,32 @@ static mk_status mk_merges_as_one_segment(
     return status;
 }
 
-/* The longest run of orthographic tokens at `index`, up to
- * MK_SYSTEM_SEGMENT_MAX_SPAN, that the system reads as one segment, falling
- * back to the single token. On MK_OK *segment is an owned string and *span
- * says how many tokens it consumed. */
+/* The longest run of tokens at `index`, up to MK_SYSTEM_SEGMENT_MAX_SPAN, that
+ * the system reads as one segment, falling back to the single token. Only the
+ * last token of a run may carry marks: a mark belongs to the letter it follows,
+ * so `tʰ` and `s` are not the affricate `tsʰ`, and `kʰ`, `æ`, `tʰ`, `s` stays
+ * four tokens. On MK_OK *segment is an owned string and *span says how many
+ * tokens it consumed. */
 static mk_status mk_longest_segment_at(
     const mk_system *system,
-    const mk_string_list *tokens,
+    char *const *tokens,
+    size_t total,
     size_t index,
     char **segment,
     size_t *span
 )
 {
-    size_t total = mk_string_list_size(tokens);
     size_t try_span = total - index > MK_SYSTEM_SEGMENT_MAX_SPAN ? MK_SYSTEM_SEGMENT_MAX_SPAN : total - index;
+    size_t bare = 0;
 
     *segment = NULL;
     *span = 0;
+    while (index + bare < total && mk_is_bare(tokens[index + bare])) {
+        bare++;
+    }
+    if (try_span > bare + 1) {
+        try_span = bare + 1;
+    }
     for (; try_span >= 1; try_span--) {
         char *joined = NULL;
         bool merge = false;
@@ -398,33 +422,139 @@ static mk_status mk_longest_segment_at(
     return MK_ERR_OOM;
 }
 
-mk_status mk_system_segment_ipa(
+/* Whether the system reads `token` as a vowel. */
+static mk_status mk_is_vowel_token(const mk_system *system, const char *token, bool *vowel)
+{
+    mki_resolution res;
+    mk_status status = mki_resolve(system, token, &res);
+
+    *vowel = false;
+    if (status == MK_OK) {
+        *vowel = mki_features_contain(res.features, res.feature_count, "vowel");
+        mki_resolution_clear(&res);
+        return MK_OK;
+    }
+    return status == MK_ERR_OOM ? status : MK_OK;
+}
+
+/* Moves a modifier letter that ends a vowel token to the token after it, when
+ * that is how the system reads it. The orthographic tokenizer attaches every
+ * modifier letter to the token before it, so `aⁿda` gives `aⁿ`, `d`, `a` and
+ * `aʰta` gives `aʰ`, `t`, `a`: a vowel with nasal release and an aspirated
+ * vowel. Prenasalization and pre-aspiration are normally medial, so the mark
+ * moves to the consonant when the vowel without it, and the mark with the
+ * consonant, are both segments of the system. */
+static mk_status mk_move_prefix_marks(const mk_system *system, char **tokens, size_t count)
+{
+    size_t i;
+
+    for (i = 0; i + 1 < count; i++) {
+        size_t len = strlen(tokens[i]);
+        size_t mark_at = len;
+        char *vowel = NULL;
+        char *moved = NULL;
+        bool is_vowel = false;
+        bool next_is_vowel = true;
+        bool accepted = false;
+        mk_status status;
+
+        /* The start of the token's last code point. */
+        while (mark_at > 0) {
+            mark_at--;
+            if (((unsigned char)tokens[i][mark_at] & 0xC0u) != 0x80u) {
+                break;
+            }
+        }
+        if (mark_at == 0 || !mki_is_modifier_letter_or_symbol(tokens[i] + mark_at)) {
+            continue;
+        }
+        vowel = (char *)malloc(mark_at + 1);
+        moved = (char *)malloc(len - mark_at + strlen(tokens[i + 1]) + 1);
+        if (vowel == NULL || moved == NULL) {
+            free(vowel);
+            free(moved);
+            return MK_ERR_OOM;
+        }
+        memcpy(vowel, tokens[i], mark_at);
+        vowel[mark_at] = '\0';
+        memcpy(moved, tokens[i] + mark_at, len - mark_at);
+        strcpy(moved + (len - mark_at), tokens[i + 1]);
+
+        status = mk_is_vowel_token(system, vowel, &is_vowel);
+        if (status == MK_OK && is_vowel) {
+            status = mk_is_vowel_token(system, tokens[i + 1], &next_is_vowel);
+        }
+        if (status == MK_OK && is_vowel && !next_is_vowel) {
+            mki_resolution res;
+            mk_status resolved = mki_resolve(system, moved, &res);
+
+            if (resolved == MK_OK) {
+                accepted = true;
+                mki_resolution_clear(&res);
+            } else if (resolved == MK_ERR_OOM) {
+                status = resolved;
+            }
+        }
+        if (status != MK_OK || !accepted) {
+            free(vowel);
+            free(moved);
+            if (status != MK_OK) {
+                return status;
+            }
+            continue;
+        }
+        free(tokens[i]);
+        free(tokens[i + 1]);
+        tokens[i] = vowel;
+        tokens[i + 1] = moved;
+    }
+    return MK_OK;
+}
+
+/* Tokenizes one space-free chunk of the input into `items`. */
+static mk_status mk_segment_chunk(
     const mk_system *system,
-    const char *utf8_in,
-    mk_string_list **out
+    const char *chunk,
+    char ***items,
+    size_t *count,
+    size_t *cap
 )
 {
     mk_string_list *orthographic = NULL;
-    char **items = NULL;
-    size_t count = 0;
-    size_t cap = 0;
+    char **tokens = NULL;
     size_t total;
     size_t index;
+    size_t i;
     mk_status status;
-
-    if (system == NULL || system->builtin == NULL || utf8_in == NULL || out == NULL) {
-        return MK_ERR_INVALID_ARGUMENT;
-    }
-    *out = NULL;
 
     /* Start from the orthographic tokens so that normalization, tie bars, and
      * boundary marks keep behaving exactly as mk_segment_ipa documents, then
      * re-join runs of them that this system recognizes as one segment. */
-    status = mk_segment_ipa(utf8_in, &orthographic);
+    status = mk_segment_ipa(chunk, &orthographic);
     if (status != MK_OK) {
         return status;
     }
     total = mk_string_list_size(orthographic);
+    if (total == 0) {
+        mk_string_list_free(orthographic);
+        return MK_OK;
+    }
+    tokens = (char **)calloc(total, sizeof(*tokens));
+    if (tokens == NULL) {
+        mk_string_list_free(orthographic);
+        return MK_ERR_OOM;
+    }
+    for (i = 0; i < total; i++) {
+        tokens[i] = mki_strdup_internal(mk_string_list_get(orthographic, i));
+        if (tokens[i] == NULL) {
+            status = MK_ERR_OOM;
+            goto cleanup;
+        }
+    }
+    status = mk_move_prefix_marks(system, tokens, total);
+    if (status != MK_OK) {
+        goto cleanup;
+    }
 
     index = 0;
     while (index < total) {
@@ -432,19 +562,71 @@ mk_status mk_system_segment_ipa(
         size_t span = 0;
         char **next;
 
-        status = mk_longest_segment_at(system, orthographic, index, &segment, &span);
+        status = mk_longest_segment_at(system, tokens, total, index, &segment, &span);
         if (status != MK_OK) {
             goto cleanup;
         }
-        next = (char **)mki_grow_array(items, &cap, count, 1, sizeof(*items), 8);
+        next = (char **)mki_grow_array(*items, cap, *count, 1, sizeof(**items), 8);
         if (next == NULL) {
             free(segment);
             status = MK_ERR_OOM;
             goto cleanup;
         }
-        items = next;
-        items[count++] = segment;
+        *items = next;
+        (*items)[(*count)++] = segment;
         index += span;
+    }
+
+cleanup:
+    mk_string_list_free(orthographic);
+    mki_free_items(tokens, total);
+    return status;
+}
+
+mk_status mk_system_segment_ipa(
+    const mk_system *system,
+    const char *utf8_in,
+    mk_string_list **out
+)
+{
+    char **items = NULL;
+    size_t count = 0;
+    size_t cap = 0;
+    const char *p;
+    mk_status status = MK_OK;
+
+    if (system == NULL || system->builtin == NULL || utf8_in == NULL || out == NULL) {
+        return MK_ERR_INVALID_ARGUMENT;
+    }
+    *out = NULL;
+
+    /* Each space-separated chunk on its own: a space the caller wrote is a
+     * boundary, and merging across it ("t s a" read as `ts`, `a`) would
+     * override the segmentation the caller supplied, as in a CLDF Segments
+     * column. */
+    p = utf8_in;
+    while (*p != '\0') {
+        size_t len = strcspn(p, " \t\n\r");
+
+        if (len > 0) {
+            char *chunk = (char *)malloc(len + 1);
+
+            if (chunk == NULL) {
+                status = MK_ERR_OOM;
+                goto cleanup;
+            }
+            memcpy(chunk, p, len);
+            chunk[len] = '\0';
+            status = mk_segment_chunk(system, chunk, &items, &count, &cap);
+            free(chunk);
+            if (status != MK_OK) {
+                goto cleanup;
+            }
+        }
+        p += len;
+        if (*p != '\0') {
+            p++;
+        }
     }
 
     /* The tokens are already owned; hand them over rather than copying every
@@ -456,9 +638,6 @@ mk_status mk_system_segment_ipa(
     }
 
 cleanup:
-    /* Freed once, here and nowhere else: freeing it before the adopt as well
-     * would be a double free whenever the adopt fails. */
-    mk_string_list_free(orthographic);
     mki_free_items(items, count);
     return status;
 }

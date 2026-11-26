@@ -23,7 +23,7 @@ l	alveolar|anterior|approximant|consonant|consonantal|continuant|coronal|lateral
 r	alveolar|anterior|consonant|consonantal|continuant|coronal|non-distributed|sonorant|trill|voiced
 ɾ	alveolar|anterior|consonant|consonantal|coronal|non-distributed|sonorant|tap|voiced
 ɹ	alveolar|anterior|approximant|consonant|consonantal|continuant|coronal|non-distributed|sonorant|voiced
-ɬ	alveolar|anterior|consonant|consonantal|continuant|coronal|fricative|lateral|non-distributed|sonorant|voiceless
+ɬ	alveolar|anterior|consonant|consonantal|continuant|coronal|fricative|lateral|non-distributed|obstruent|voiceless
 j	approximant|consonant|continuant|dorsal|palatal|sonorant|vocoid|voiced
 w	approximant|consonant|continuant|dorsal|labial|labio-velar|sonorant|vocoid|voiced
 a	continuant|front|open|sonorant|unrounded|vocoid|vowel

@@ -159,12 +159,17 @@ typedef struct mki_tone_mark {
     size_t feature_count;
 } mki_tone_mark;
 
-typedef struct mki_valued_diacritic_effect {
+/* What one mark does in one valued system: the states it sets, learned by the
+ * generator from the system's own rows that differ from a listed row by that
+ * mark alone (tools/generate_c_data.py, learn_valued_effects). A mark without
+ * an entry cannot be expressed in the system, and a segment carrying it is
+ * refused rather than read as its base. */
+typedef struct mki_valued_effect {
     const char *modifier;
-    const char *const *alternatives;
-    size_t alternative_count;
-    char state;
-} mki_valued_diacritic_effect;
+    const char *const *features;
+    const char *states;
+    size_t feature_count;
+} mki_valued_effect;
 
 typedef struct mki_feature_path {
     const char *feature;
@@ -213,6 +218,8 @@ typedef struct mki_builtin_system {
     const double *dimension_weights;
     const mki_scalar_dimension *scalar_dimensions;
     size_t scalar_dimension_count;
+    const mki_valued_effect *valued_effects;
+    size_t valued_effect_count;
 } mki_builtin_system;
 
 /* Which data profile this build carries: "full", or "cc-by" for the build
@@ -263,7 +270,5 @@ extern const mki_decomposition mki_default_decompositions[];
 extern const size_t mki_default_decomposition_count;
 extern const mki_tone_mark mki_default_tone_marks[];
 extern const size_t mki_default_tone_mark_count;
-extern const mki_valued_diacritic_effect mki_default_valued_diacritic_effects[];
-extern const size_t mki_default_valued_diacritic_effect_count;
 
 #endif

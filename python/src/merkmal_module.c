@@ -1385,7 +1385,7 @@ static const char *py_comparability_name(mk_comparability why)
 
 static PyObject *py_bundle_compare(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-    static char *keywords[] = {"a", "b", "system", "registry", "weights", NULL};
+    static char *keywords[] = {"a", "b", "system", "registry", "node_weights", NULL};
     PyObject *a_obj;
     PyObject *b_obj;
     PyObject *system_obj = Py_None;
@@ -1408,7 +1408,7 @@ static PyObject *py_bundle_compare(PyObject *self, PyObject *args, PyObject *kwa
     }
     if (py_utf8_take(&bag, a_obj, "a", &a_text) < 0 ||
         py_utf8_take(&bag, b_obj, "b", &b_text) < 0 ||
-        py_utf8_take_optional(&bag, weights_obj, "weights", &weights) < 0) {
+        py_utf8_take_optional(&bag, weights_obj, "node_weights", &weights) < 0) {
         goto done;
     }
     system = py_bundle_system(system_obj, registry_obj, &bag, "bundle_compare");
@@ -1479,7 +1479,7 @@ done:
 
 static PyObject *py_bundle_compatible_graphemes(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-    static char *keywords[] = {"text", "system", "registry", "weights", NULL};
+    static char *keywords[] = {"text", "system", "registry", "node_weights", NULL};
     PyObject *text_obj;
     PyObject *system_obj = Py_None;
     PyObject *registry_obj = Py_None;
@@ -1498,7 +1498,7 @@ static PyObject *py_bundle_compatible_graphemes(PyObject *self, PyObject *args, 
         return NULL;
     }
     if (py_utf8_take(&bag, text_obj, "text", &text) < 0 ||
-        py_utf8_take_optional(&bag, weights_obj, "weights", &weights) < 0) {
+        py_utf8_take_optional(&bag, weights_obj, "node_weights", &weights) < 0) {
         goto done;
     }
     system = py_bundle_system(system_obj, registry_obj, &bag, "bundle_compatible_graphemes");

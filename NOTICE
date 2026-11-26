@@ -64,7 +64,7 @@ Per-artifact detail
   sha256(weights.json):    ad93e3c032773432c7da34bdb27f8480dcfac8cce945fa72d7a46aed05e6ed01
 
 [descriptive]  (data/models/descriptive)
-  artifact_version:        1.0.0
+  artifact_version:        2.0.0
   upstream_name:           CLTS (Cross-Linguistic Transcription Systems)
   upstream_release:        v1.4.1
   upstream_url:            https://github.com/cldf-clts/clts
@@ -72,15 +72,15 @@ Per-artifact detail
   retrieved:               2026-08-13
   license_spdx:            CC-BY-4.0
   citation:                List, Johann-Mattis, Cormac Anderson, Tiago Tresoldi, Christoph Rzymski, Simon J. Greenhill, and Robert Forkel. 2019. Cross-Linguistic Transcription Systems (CLTS), version 1.4.1. Zenodo. https://doi.org/10.5281/zenodo.3515745 (author list as given in the description of the v1.4.1 release record, whose creator field lists only Robert Forkel; later releases list fewer authors, and the concept record 10.5281/zenodo.3515744 now lists five).
-  transformation:          Derived from CLTS v1.4.1 data/sounds.tsv (GRAPHEME, NAME columns). Established empirically on 2026-08-13 by diffing this inventory against every tagged CLTS release: v1.4.1 matches 768 of 769 graphemes and 766 of 769 byte-identical NAME strings, against 689 and 680 respectively for v2.0.0 and later, so v1.4.1 is the source. Three rows diverge and are kept as they are: z̻ is not a CLTS v1.4.1 sound; ʈʂː is named 'long voiceless retroflex sibilant affricate consonant' here where v1.4.1 says 'voiced', which was an upstream inconsistency with its own ʈʂ entry and was corrected upstream in v2.0.0; ⁿgǃ is named with 'click' where v1.4.1 says 'nasal-click'. Feature sets are computed from the NAME tokens by tools/generate_c_data.py; no CLTS feature values, sound classes, or grapheme mappings are used.
+  transformation:          Derived from CLTS v1.4.1 data/sounds.tsv (GRAPHEME, NAME columns). Established empirically on 2026-08-13 by diffing this inventory against every tagged CLTS release: v1.4.1 matches 768 of 769 graphemes and 766 of 769 byte-identical NAME strings, against 689 and 680 respectively for v2.0.0 and later, so v1.4.1 is the source. Four rows diverge and are kept as they are: z̻ is not a CLTS v1.4.1 sound; ʈʂː is named 'long voiceless retroflex sibilant affricate consonant' here where v1.4.1 says 'voiced', which was an upstream inconsistency with its own ʈʂ entry and was corrected upstream in v2.0.0; ⁿgǃ is named with 'click' where v1.4.1 says 'nasal-click'; ç is named 'voiceless palatal fricative consonant' where v1.4.1 says 'voiceless palatal sibilant fricative consonant', since a palatal fricative is not a sibilant (the voiced ʝ is not marked sibilant in v1.4.1 either), corrected here in merkmal's distinctive 3.0.0 and descriptive 2.0.0. Feature sets are computed from the NAME tokens by tools/generate_c_data.py; no CLTS feature values, sound classes, or grapheme mappings are used.
   redistribution_notes:    CC-BY-4.0 requires attribution: redistributing these inventories, or any adaptation of them, obliges you to credit CLTS and indicate that changes were made. This is narrower than the MIT terms covering the merkmal source code and wider than the share-alike terms on phoible. The v1.4.1 tag carries no in-repo license file; CC-BY-4.0 is the license the CLTS project declares for the catalog (dc:license in its CLDF metadata, and the Zenodo record).
   sha256(classes.tsv):     0e89f4bfbc3d2479ab06bbef2546fac5ec38ba6b0391b05837e0e2b581ba4dca
   sha256(features.tsv):    6b6a59227720e3f28790b0fbb4242819bfaaf05a9a8310aeceb20a1a404102a7
-  sha256(inventory.tsv):   f519520eeaf4922ebdc92da19ba209344c63d53eca6b698914032c8f07560a56
-  sha256(model.json):      2afeb64c8ebd3054166e7693a780b7b919d35d87ee72f7ff83293bf91800ee55
+  sha256(inventory.tsv):   14b7046c0ed839cc6cab39167799ce67c9a7c1aaaaf9111332a7885c76a63666
+  sha256(model.json):      74b8a3abcef5a8f2ef196b63be44904dede1dd2633892bfc6789d58d8a5094ac
 
 [distinctive]  (data/models/distinctive)
-  artifact_version:        1.0.0
+  artifact_version:        3.0.0
   upstream_name:           CLTS (Cross-Linguistic Transcription Systems)
   upstream_release:        v1.4.1
   upstream_url:            https://github.com/cldf-clts/clts
@@ -88,71 +88,71 @@ Per-artifact detail
   retrieved:               2026-08-13
   license_spdx:            CC-BY-4.0
   citation:                List, Johann-Mattis, Cormac Anderson, Tiago Tresoldi, Christoph Rzymski, Simon J. Greenhill, and Robert Forkel. 2019. Cross-Linguistic Transcription Systems (CLTS), version 1.4.1. Zenodo. https://doi.org/10.5281/zenodo.3515745 (author list as given in the description of the v1.4.1 release record, whose creator field lists only Robert Forkel; later releases list fewer authors, and the concept record 10.5281/zenodo.3515744 now lists five).
-  transformation:          Derived from CLTS v1.4.1 data/sounds.tsv (GRAPHEME, NAME columns). Established empirically on 2026-08-13 by diffing this inventory against every tagged CLTS release: v1.4.1 matches 768 of 769 graphemes and 766 of 769 byte-identical NAME strings, against 689 and 680 respectively for v2.0.0 and later, so v1.4.1 is the source. Three rows diverge and are kept as they are: z̻ is not a CLTS v1.4.1 sound; ʈʂː is named 'long voiceless retroflex sibilant affricate consonant' here where v1.4.1 says 'voiced', which was an upstream inconsistency with its own ʈʂ entry and was corrected upstream in v2.0.0; ⁿgǃ is named with 'click' where v1.4.1 says 'nasal-click'. Feature sets are computed from the NAME tokens by tools/generate_c_data.py; no CLTS feature values, sound classes, or grapheme mappings are used.
+  transformation:          Derived from CLTS v1.4.1 data/sounds.tsv (GRAPHEME, NAME columns). Established empirically on 2026-08-13 by diffing this inventory against every tagged CLTS release: v1.4.1 matches 768 of 769 graphemes and 766 of 769 byte-identical NAME strings, against 689 and 680 respectively for v2.0.0 and later, so v1.4.1 is the source. Four rows diverge and are kept as they are: z̻ is not a CLTS v1.4.1 sound; ʈʂː is named 'long voiceless retroflex sibilant affricate consonant' here where v1.4.1 says 'voiced', which was an upstream inconsistency with its own ʈʂ entry and was corrected upstream in v2.0.0; ⁿgǃ is named with 'click' where v1.4.1 says 'nasal-click'; ç is named 'voiceless palatal fricative consonant' where v1.4.1 says 'voiceless palatal sibilant fricative consonant', since a palatal fricative is not a sibilant (the voiced ʝ is not marked sibilant in v1.4.1 either), corrected here in merkmal's distinctive 3.0.0 and descriptive 2.0.0. Feature sets are computed from the NAME tokens by tools/generate_c_data.py; no CLTS feature values, sound classes, or grapheme mappings are used.
   redistribution_notes:    CC-BY-4.0 requires attribution: redistributing these inventories, or any adaptation of them, obliges you to credit CLTS and indicate that changes were made. This is narrower than the MIT terms covering the merkmal source code and wider than the share-alike terms on phoible. The v1.4.1 tag carries no in-repo license file; CC-BY-4.0 is the license the CLTS project declares for the catalog (dc:license in its CLDF metadata, and the Zenodo record).
   sha256(classes.tsv):     0e89f4bfbc3d2479ab06bbef2546fac5ec38ba6b0391b05837e0e2b581ba4dca
   sha256(features.tsv):    6b6a59227720e3f28790b0fbb4242819bfaaf05a9a8310aeceb20a1a404102a7
-  sha256(inventory.tsv):   f519520eeaf4922ebdc92da19ba209344c63d53eca6b698914032c8f07560a56
-  sha256(model.json):      11455927e4cd7c8e43a47f84e04c93db1c70c6f06de742ed68f505da2320e248
+  sha256(inventory.tsv):   14b7046c0ed839cc6cab39167799ce67c9a7c1aaaaf9111332a7885c76a63666
+  sha256(model.json):      3ca9d8e4b009110af8ab68cf074bffa82f5961da570a48551647cb0362c2e053
 
 [pbase-hc]  (data/models/pbase-hc)
-  artifact_version:        1.0.0
+  artifact_version:        2.0.0
   upstream_name:           P-base
-  upstream_release:        P-base website, manually consulted in 2019 (the site did not provide a release identifier for this extraction)
-  upstream_url:            https://pbase.phon.chass.ncsu.edu/
-  upstream_commit_or_doi:  not applicable: P-base was consulted through its website rather than a versioned source release
-  retrieved:               2019 (exact date not recorded)
+  upstream_release:        P-base data files as of 2022-10-02 (readme.txt of pbasefiles.zip)
+  upstream_url:            https://phon.chass.ncsu.edu/pbase/pbasefiles.zip
+  upstream_commit_or_doi:  pbasefiles.zip sha256 e2f2ab90a794a4f29814b6a4e1ef52399d912e5ada31c2137e00520833cf0f2f; no DOI or release tag is published
+  retrieved:               2026-11-26
   license_spdx:            CC-BY-NC-SA-4.0
-  citation:                Mielke, Jeff. P-base. North Carolina State University.
-  transformation:          Manually extracted in 2019 by Tiago Tresoldi from the P-base website into a segment-indexed feature table for the HC feature family. The extraction predates this repository's reproducibility protocol; no machine-readable export or step-by-step extraction log was retained.
+  citation:                Mielke, Jeff. P-base. North Carolina State University. https://pbase.phon.chass.ncsu.edu/. See also Mielke, Jeff. 2008. The Emergence of Distinctive Features. Oxford: Oxford University Press.
+  transformation:          Generated by tools/rebuild_pbase_inventories.py from pbase/ipa2allfeatures.csv in the archive: the columns prefixed HC. (Halle and Clements), in upstream order, one row per transcription (a transcription listed twice is kept once, a disagreeing cell becoming ?). Cells: + and - unchanged; x -> + and o -> - (the UFT node is present or absent, a contrast); n -> 0 (the feature does not apply, as PHOIBLE's 0); . -> ? (no value given). It replaces a manual extraction from the P-base website made in 2019, which agreed with this table on 44,741 of 44,748 cells of the segments both list, but read x, o and n as a midpoint value.
   redistribution_notes:    Upstream terms are CC-BY-NC-SA-4.0. Redistributed here under the same terms. Attribution to the upstream project is required, adaptations must be shared under the same or a compatible license, and commercial use is not permitted.
-  sha256(inventory.tsv):   fdccfdb0fe2e51f1a6ae76f96c5fe2c15bb67775cf32885a581ad7e277e468ab
-  sha256(model.json):      1d0a3d20d08228b1211be7640415a18a63ec1f4bd4a11bb7ae682724a9ba7850
+  sha256(inventory.tsv):   ab1b1c2b5210894d5b6b90f5ae3badeced545608246aeb64473cb2cffb888595
+  sha256(model.json):      d7c39386c6c53a7e4cbbe608b0fcb65b0199b3060401a99f0bb96628d8b0cf09
 
 [pbase-jfh]  (data/models/pbase-jfh)
-  artifact_version:        1.0.0
+  artifact_version:        2.0.0
   upstream_name:           P-base
-  upstream_release:        P-base website, manually consulted in 2019 (the site did not provide a release identifier for this extraction)
-  upstream_url:            https://pbase.phon.chass.ncsu.edu/
-  upstream_commit_or_doi:  not applicable: P-base was consulted through its website rather than a versioned source release
-  retrieved:               2019 (exact date not recorded)
+  upstream_release:        P-base data files as of 2022-10-02 (readme.txt of pbasefiles.zip)
+  upstream_url:            https://phon.chass.ncsu.edu/pbase/pbasefiles.zip
+  upstream_commit_or_doi:  pbasefiles.zip sha256 e2f2ab90a794a4f29814b6a4e1ef52399d912e5ada31c2137e00520833cf0f2f; no DOI or release tag is published
+  retrieved:               2026-11-26
   license_spdx:            CC-BY-NC-SA-4.0
-  citation:                Mielke, Jeff. P-base. North Carolina State University.
-  transformation:          Manually extracted in 2019 by Tiago Tresoldi from the P-base website into a segment-indexed feature table for the JFH feature family. The extraction predates this repository's reproducibility protocol; no machine-readable export or step-by-step extraction log was retained.
+  citation:                Mielke, Jeff. P-base. North Carolina State University. https://pbase.phon.chass.ncsu.edu/. See also Mielke, Jeff. 2008. The Emergence of Distinctive Features. Oxford: Oxford University Press.
+  transformation:          Generated by tools/rebuild_pbase_inventories.py from pbase/ipa2allfeatures.csv in the archive: the columns prefixed JFH. (Jakobson, Fant and Halle), in upstream order, one row per transcription (a transcription listed twice is kept once, a disagreeing cell becoming ?). Cells: + and - unchanged; x -> + and o -> - (the UFT node is present or absent, a contrast); n -> 0 (the feature does not apply, as PHOIBLE's 0); . -> ? (no value given). It replaces a manual extraction from the P-base website made in 2019, which agreed with this table on 44,741 of 44,748 cells of the segments both list, but read x, o and n as a midpoint value.
   redistribution_notes:    Upstream terms are CC-BY-NC-SA-4.0. Redistributed here under the same terms. Attribution to the upstream project is required, adaptations must be shared under the same or a compatible license, and commercial use is not permitted.
-  sha256(inventory.tsv):   4becb9bc3cf1a98718dc47dc8c835b5ff75afbb9feb94c74fc5d852af6184403
-  sha256(model.json):      0dc560acc3b02906901d8d31ac59f0b737555e6747a86ebce867a72fd07f3dff
+  sha256(inventory.tsv):   bd11d5455c68855f39e98c3714e7370ed5303684641faad922e11c5c68048869
+  sha256(model.json):      86d1d49d49df72000d16e2db1e9d5c9e0bf011e13a632c3e66ba069f8429aef3
 
 [pbase-spe]  (data/models/pbase-spe)
-  artifact_version:        1.0.0
+  artifact_version:        2.0.0
   upstream_name:           P-base
-  upstream_release:        P-base website, manually consulted in 2019 (the site did not provide a release identifier for this extraction)
-  upstream_url:            https://pbase.phon.chass.ncsu.edu/
-  upstream_commit_or_doi:  not applicable: P-base was consulted through its website rather than a versioned source release
-  retrieved:               2019 (exact date not recorded)
+  upstream_release:        P-base data files as of 2022-10-02 (readme.txt of pbasefiles.zip)
+  upstream_url:            https://phon.chass.ncsu.edu/pbase/pbasefiles.zip
+  upstream_commit_or_doi:  pbasefiles.zip sha256 e2f2ab90a794a4f29814b6a4e1ef52399d912e5ada31c2137e00520833cf0f2f; no DOI or release tag is published
+  retrieved:               2026-11-26
   license_spdx:            CC-BY-NC-SA-4.0
-  citation:                Mielke, Jeff. P-base. North Carolina State University.
-  transformation:          Manually extracted in 2019 by Tiago Tresoldi from the P-base website into a segment-indexed feature table for the SPE feature family. The extraction predates this repository's reproducibility protocol; no machine-readable export or step-by-step extraction log was retained.
+  citation:                Mielke, Jeff. P-base. North Carolina State University. https://pbase.phon.chass.ncsu.edu/. See also Mielke, Jeff. 2008. The Emergence of Distinctive Features. Oxford: Oxford University Press.
+  transformation:          Generated by tools/rebuild_pbase_inventories.py from pbase/ipa2allfeatures.csv in the archive: the columns prefixed SPE. (Chomsky and Halle), in upstream order, one row per transcription (a transcription listed twice is kept once, a disagreeing cell becoming ?). Cells: + and - unchanged; x -> + and o -> - (the UFT node is present or absent, a contrast); n -> 0 (the feature does not apply, as PHOIBLE's 0); . -> ? (no value given). It replaces a manual extraction from the P-base website made in 2019, which agreed with this table on 44,741 of 44,748 cells of the segments both list, but read x, o and n as a midpoint value.
   redistribution_notes:    Upstream terms are CC-BY-NC-SA-4.0. Redistributed here under the same terms. Attribution to the upstream project is required, adaptations must be shared under the same or a compatible license, and commercial use is not permitted.
-  sha256(inventory.tsv):   72aa86adbc583053150b703f44e1e3602d8507ea1572d754f5225809529fe769
-  sha256(model.json):      61ada7e5e67cc05ecf1fdc3119aa4a617c2b51b492307a514949ec37bd1def23
+  sha256(inventory.tsv):   f271a4c5ea2947f53299d8a832cef71067396a158bf47e24c6bb584c38161690
+  sha256(model.json):      e939a50cb3d4f7199269b96ab0df2e2bb903aabb0a7f284b9bab07d21cd932a9
 
 [pbase-uftc]  (data/models/pbase-uftc)
-  artifact_version:        1.0.0
+  artifact_version:        2.0.0
   upstream_name:           P-base
-  upstream_release:        P-base website, manually consulted in 2019 (the site did not provide a release identifier for this extraction)
-  upstream_url:            https://pbase.phon.chass.ncsu.edu/
-  upstream_commit_or_doi:  not applicable: P-base was consulted through its website rather than a versioned source release
-  retrieved:               2019 (exact date not recorded)
+  upstream_release:        P-base data files as of 2022-10-02 (readme.txt of pbasefiles.zip)
+  upstream_url:            https://phon.chass.ncsu.edu/pbase/pbasefiles.zip
+  upstream_commit_or_doi:  pbasefiles.zip sha256 e2f2ab90a794a4f29814b6a4e1ef52399d912e5ada31c2137e00520833cf0f2f; no DOI or release tag is published
+  retrieved:               2026-11-26
   license_spdx:            CC-BY-NC-SA-4.0
-  citation:                Mielke, Jeff. P-base. North Carolina State University.
-  transformation:          Manually extracted in 2019 by Tiago Tresoldi from the P-base website into a segment-indexed feature table for the UFTC feature family. The extraction predates this repository's reproducibility protocol; no machine-readable export or step-by-step extraction log was retained.
+  citation:                Mielke, Jeff. P-base. North Carolina State University. https://pbase.phon.chass.ncsu.edu/. See also Mielke, Jeff. 2008. The Emergence of Distinctive Features. Oxford: Oxford University Press.
+  transformation:          Generated by tools/rebuild_pbase_inventories.py from pbase/ipa2allfeatures.csv in the archive: the columns prefixed UFTc. (Unified Feature Theory), in upstream order, one row per transcription (a transcription listed twice is kept once, a disagreeing cell becoming ?). Cells: + and - unchanged; x -> + and o -> - (the UFT node is present or absent, a contrast); n -> 0 (the feature does not apply, as PHOIBLE's 0); . -> ? (no value given). It replaces a manual extraction from the P-base website made in 2019, which agreed with this table on 44,741 of 44,748 cells of the segments both list, but read x, o and n as a midpoint value.
   redistribution_notes:    Upstream terms are CC-BY-NC-SA-4.0. Redistributed here under the same terms. Attribution to the upstream project is required, adaptations must be shared under the same or a compatible license, and commercial use is not permitted.
-  sha256(inventory.tsv):   c61995ab79dfe970634b16b2dce10b4953e5d104cee81a908186c7f1a2825497
-  sha256(model.json):      9e40ed67dc074b56a2fda8f1a9fab375ac35846f504f6e719b8c672614c0bdae
+  sha256(inventory.tsv):   03f2b223ad6bffa3b70ef55cb62c97a10398c72e62f05844e7afd85d6052e485
+  sha256(model.json):      8a7dc7403df391623697bebcd9a72c1ff76cb99aec328f6563b39fba157c220d
 
 [phoible]  (data/models/phoible)
-  artifact_version:        2.0.0
+  artifact_version:        3.0.0
   upstream_name:           PHOIBLE 2.0 (CLDF packaging, cldf-datasets/phoible v2.0.1)
   upstream_release:        v2.0.1
   upstream_url:            https://phoible.org/ (CLDF packaging: https://github.com/cldf-datasets/phoible, cldf/parameters.csv)
@@ -163,4 +163,4 @@ Per-artifact detail
   transformation:          Segment-indexed feature table extracted from cldf/parameters.csv of the PHOIBLE CLDF StructureDataset at tag v2.0.1. The release is established from the maintainer's direct knowledge of having produced it, and corroborated by diff: 3,125 of 3,142 graphemes match after NFD normalization and U+0261 -> U+0067 folding. Cell values are now derived from upstream by one rule, applied by tools/rebuild_phoible_inventory.py, which --check re-verifies against the pinned table: '+', '-' and '0' (the feature does not apply) are carried through; 'N' (upstream has no feature vector, 2 segments), a per-phase contour such as '+,-', and an empty cell become '?' (value unknown here), as do the old '.' cells of graphemes upstream lacks. Until model 2.0.0, '0' and '?' were both written '.'; neither is compared in a point distance, so the split moved no distance. Contours become '?' rather than one phase, because choosing a phase invents a claim the source does not make; the resulting loss of comparability is reported by mk_system_segment_distance_ex. The earlier extraction was not self-consistent and 5,272 cells across 2,002 rows have been corrected: 3,729 where upstream said '0' had been written '-', asserting the feature applies and is absent; 761 where upstream gives '+' or '-' had been written '.'; and 686 contours had been resolved to a single sign while 3,788 others became '.'. Reading '0' as '-' manufactured agreement, so distances were systematically too small: over a 24,090-pair sample the mean rises from 0.2208 to 0.2420 and zero-distance pairs fall from 6.06% to 5.89%. Still open, and a different question: the row *sets* differ from v2.0.1 by 17 graphemes here that it lacks and 58 there that this inventory lacks. Which release's segment list to carry is a decision, not a defect.
   redistribution_notes:    Upstream terms are CC-BY-SA-3.0. Redistributed here under the same terms. Attribution to the upstream project is required, and adaptations must be shared under the same or a compatible license.
   sha256(inventory.tsv):   9bd7900723aa58695d55b033a84f09c3c40b99e0b95215d5b5e0fe0b14dd0a2a
-  sha256(model.json):      e9405397bc6dc7a19ba912baa74379ad0f60b0543459fa5fd5bee2cebd0ba29a
+  sha256(model.json):      a24b422a2217988707b33eda5db78a672af14892c98f25f86584d9912a7f0bd0

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import time
 from pathlib import Path
 
 import merkmal
@@ -55,8 +56,11 @@ def test_native_lists_expanded_systems() -> None:
 def test_semantic_fingerprint_is_auditable_and_stable() -> None:
     payload, digest = merkmal.system_fingerprint(system="descriptive")
 
-    assert payload.startswith("schema=merkmal-system-fingerprint-v1\n")
+    assert payload.startswith("schema=merkmal-system-fingerprint-v2\n")
     assert "system=descriptive\n" in payload
+    # The code's own version: a change that moves results without touching
+    # the data still moves the fingerprint.
+    assert payload.splitlines()[-1] == "behavior_version=2"
     assert len(digest) == 64
     assert set(digest) <= set("0123456789abcdef")
     assert digest == hashlib.sha256(payload.encode("utf-8")).hexdigest()
@@ -304,16 +308,21 @@ def test_native_distance_matches_golden_probe() -> None:
     # The default is `distinctive`, which scores through its own
     # scalar_dimensions rather than the geometry tree. Naming the system keeps
     # this probe pinned to a value rather than to whatever the default is.
-    assert math.isclose(merkmal.distance("p", "b"), 0.1428571429, abs_tol=1e-10)
+    # 0.1429 and 0.125 while two segments unmarked for length were compared,
+    # and agreed, on duration, which diluted every other difference; then
+    # 0.1667 for distinctive until it gained the glide dimension.
+    assert math.isclose(merkmal.distance("p", "b"), 0.125, abs_tol=1e-10)
     assert math.isclose(
-        merkmal.distance("p", "b", system="descriptive"), 0.125, abs_tol=1e-10
+        merkmal.distance("p", "b", system="descriptive"), 0.1428571429, abs_tol=1e-10
     )
     assert math.isclose(
         merkmal.distance("p", "b", system="phoible"),
         # 0.0366 before the PHOIBLE cells were rebuilt from the pinned upstream
         # table. Reading its `0` -- "this feature does not apply" -- as `-` made
         # /p/ and /b/ agree on dimensions neither has, which shrank the distance.
-        0.0394736842,
+        # 0.0395 before `long` and `short` moved under Length, whose greater
+        # depth gives them less weight.
+        0.0405405405,
         abs_tol=1e-10,
     )
     assert merkmal.feature_distance("voiced", "voiceless") == 2
@@ -326,7 +335,7 @@ def test_native_distance_matches_golden_probe() -> None:
             merkmal.feature_distance(a, b)
     assert math.isclose(
         merkmal.distance("p", "b", system="distinctive", node_weights="flat"),
-        0.14285714285714285,
+        1.0 / 7.0,
         abs_tol=1e-10,
     )
     assert merkmal.distance("ai", "ai", system="descriptive") == 0.0
@@ -417,12 +426,20 @@ def test_native_registry_runtime_model() -> None:
         )
     )
     assert "toy" in registry.list_systems()
+    # The row's own labels, and the class and articulator labels a compiled
+    # row with them carries.
     assert registry.get_features("X", system="toy") == frozenset(
         {"consonant", "voiceless", "bilabial", "stop"}
+        | {"consonantal", "obstruent", "non-continuant", "labial"}
     )
     assert registry.is_segment("Y", system="toy")
+    # The same labels as descriptive's p and b, so the same distance. Before
+    # the derivation reached runtime rows it was 0.278: the voicing difference
+    # weighed against far fewer shared dimensions.
     assert math.isclose(
-        registry.distance("X", "Y", system="toy"), 0.2777777777777778, abs_tol=1e-10
+        registry.distance("X", "Y", system="toy"),
+        merkmal.distance("p", "b", system="descriptive"),
+        abs_tol=1e-10,
     )
 
 
@@ -655,9 +672,10 @@ def test_doubled_spelling_is_not_charged_for_its_own_length() -> None:
     assert merkmal.distance("aa", "aː") < merkmal.distance("aa", "a")
     assert merkmal.distance("pp", "pː") < merkmal.distance("pp", "p")
 
-    # Waived, not reversed: nothing here claims a doubled vowel *means* length,
-    # because whether it does is a property of the source.
-    assert merkmal.distance("a", "aː") < merkmal.distance("aa", "aː")
+    # Waived, not reversed: `aa` lands where `a` does, and not closer, because
+    # whether a doubled vowel means length is a property of the source. The
+    # whole-segment term used to put it further (0.113 against 0.064).
+    assert math.isclose(merkmal.distance("aa", "aː"), merkmal.distance("a", "aː"))
 
     # A cluster that is not a geminate still pays the penalty.
     assert merkmal.distance("ai", "aː") > merkmal.distance("aa", "aː")
@@ -673,6 +691,7 @@ def test_labial_velars_are_one_series() -> None:
     """
     assert merkmal.get_features("ŋm") == frozenset(
         {"consonant", "labio-velar", "nasal", "voiced"}
+        | {"consonantal", "sonorant", "non-continuant", "labial", "dorsal"}
     )
     assert merkmal.distance("gb", "ŋm") < merkmal.distance("kp", "ŋm")
     assert merkmal.distance("kp", "ŋm") < merkmal.distance("kp", "a")
@@ -802,6 +821,11 @@ def test_feature_vectors_are_lossless() -> None:
         for grapheme in (row.split("\t")[0] for row in rows if row):
             vector = tuple(merkmal.feature_vector(grapheme, system=system))
             first = by_vector.setdefault(vector, grapheme)
+            if first != grapheme and set(first + grapheme) <= set("˥˦˧˨˩"):
+                # Two tones in a valued system are refused, not compared.
+                with pytest.raises(NotImplementedError):
+                    merkmal.distance(first, grapheme, system=system)
+                continue
             distance = merkmal.distance(first, grapheme, system=system)
             assert distance == 0.0, (system, first, grapheme)
     assert merkmal.feature_vector("a") != merkmal.feature_vector("e")
@@ -1750,3 +1774,175 @@ def test_a_mark_repeated_on_one_letter_is_refused() -> None:
     # may be doubled.
     for grapheme in ("t̥ʃ̥", "kʷkʷ", "ʰkʰ", "aːː"):
         assert merkmal.get_features(grapheme, system="distinctive")
+
+
+def test_a_stress_mark_ends_a_token() -> None:
+    # A stress mark marks the syllable; inside a word it used to attach, as a
+    # modifier letter, to the segment before it ("paˈta" gave "aˈ").
+    for text in ("paˈta", "paˌta", "ˈpata"):
+        assert merkmal.segment_ipa(text) == ["p", "a", "t", "a"]
+        assert merkmal.system_segment_ipa(text, system="distinctive") == ["p", "a", "t", "a"]
+
+
+def test_tone_merge_is_linear() -> None:
+    # Each tone used to walk back over every earlier token of its word, so this
+    # input took minutes; it now takes well under a second.
+    n = 20000
+    start = time.perf_counter()
+    merged = merkmal.segment_ipa_merged("t" * n + " ⁵ t" * n)
+    assert time.perf_counter() - start < 10
+    assert len(merged) == 3 * n
+
+
+def test_mark_order_does_not_change_a_lookup() -> None:
+    # Canonically equivalent spellings are one segment. Compiled keys are in
+    # canonical order, and the lookup did not reorder the query's marks, so
+    # "ɤ̞̟̃" with its marks written in another order missed its row and was
+    # synthesized from the diacritics as a different vowel.
+    listed = "ɤ̞̟̃"
+    reordered = "ɤ̞̟̃"
+    assert merkmal.get_features(reordered) == merkmal.get_features(listed)
+    assert merkmal.distance(reordered, listed) == 0.0
+
+
+def test_coverage_reports_a_pair_that_shares_nothing() -> None:
+    # Duration has a default level, and two segments unmarked for length were
+    # compared on it, so every categorical pair shared a dimension: a pair of
+    # unrelated labels came back as 0.0 with coverage 1.0 and comparability ok.
+    registry = merkmal.Registry()
+    registry.add_model_text(
+        "@model unrelated\n@type categorical\n@validation permissive\n"
+        "grapheme X foo\ngrapheme Y bar\n"
+    )
+    result = merkmal.Comparison(
+        *merkmal._native.distance_with_coverage(
+            "X", "Y", system="unrelated", registry=registry._handle
+        )
+    )
+    assert result.coverage == 0.0
+    assert result.comparability == "no-shared-dimension"
+    # One difference and nothing else is the whole of the comparison.
+    assert merkmal.sound_distance(["voiced"], ["voiceless"]) == 1.0
+    # Length is still compared when one side marks it.
+    assert merkmal.distance("a", "aː") > 0.0
+
+
+def test_glides_are_vocoids_in_the_default_system() -> None:
+    # distinctive had only the vowel/consonant dimension, so /w/ was nearer
+    # /b/ (0.39) and /g/ than /u/ (0.58). It keeps that major class, which
+    # alignment relies on, and has a glide dimension besides.
+    assert merkmal.distance("w", "u") < merkmal.distance("w", "b")
+    assert merkmal.distance("j", "i") < merkmal.distance("j", "d")
+
+
+def test_the_nucleus_is_the_most_sonorous_part() -> None:
+    # The first part was always the nucleus, so a rising diphthong was nearer
+    # its glide: d(ia, a) = 0.30 > d(ia, i) = 0.22.
+    for system in ("distinctive", "descriptive"):
+        for cluster, nucleus, glide in (("ia", "a", "i"), ("ua", "a", "u"), ("ai", "a", "i")):
+            to_nucleus = merkmal.distance(cluster, nucleus, system=system)
+            assert to_nucleus < merkmal.distance(cluster, glide, system=system)
+
+
+def test_system_tokenizer_respects_spaces_and_marks() -> None:
+    seg = lambda text: merkmal.system_segment_ipa(text, system="distinctive")  # noqa: E731
+    # A space the caller wrote is a boundary, as in a CLDF Segments column.
+    assert seg("t s a") == ["t", "s", "a"]
+    assert seg("a m b a") == ["a", "m", "b", "a"]
+    assert seg("tsa") == ["ts", "a"]
+    # A mark belongs to the letter it follows: an aspirated, unreleased or long
+    # stop before a fricative is not an affricate.
+    assert seg("kʰætʰs") == ["kʰ", "æ", "tʰ", "s"]
+    assert seg("at̚sa") == ["a", "t̚", "s", "a"]
+    assert seg("akːpa") == ["a", "kː", "p", "a"]
+    # Marks after the last letter still merge.
+    assert seg("tʃʰa") == ["tʃʰ", "a"]
+    assert seg("kpʷa") == ["kpʷ", "a"]
+    # A prefix modifier between a vowel and a consonant belongs to the
+    # consonant: prenasalization and pre-aspiration are normally medial.
+    assert seg("aⁿda") == ["a", "ⁿd", "a"]
+    assert seg("aʰta") == ["a", "ʰt", "a"]
+    assert seg("tʰa") == ["tʰ", "a"]
+
+
+def test_trills_are_not_approximants() -> None:
+    # Once continuant read the derived label, which a trill carries, nothing in
+    # distinctive separated r from ɹ.
+    for trill, approximant in (("r", "ɹ"), ("ʙ", "β̞"), ("ʀ", "ʁ̞")):
+        assert merkmal.distance(trill, approximant) > 0.0
+@requires_full_data
+def test_valued_systems_read_marks_as_their_tables_do() -> None:
+    # A mark the system has no learned effect for is refused, not ignored:
+    # pbase-jfh read p-aspirated as p, PHOIBLE read t-unreleased as t.
+    with pytest.raises(NotImplementedError):
+        merkmal.distance("t", "t̚", system="phoible")
+    # Learned marks still distinguish: aspiration, ejection, labialization.
+    for system in ("phoible", "pbase-spe"):
+        for base, marked in (("p", "pʰ"), ("k", "kʼ"), ("t", "tʷ")):
+            assert merkmal.distance(base, marked, system=system) > 0.0
+    # PHOIBLE's tone rows carry tone=+ and nothing else, so two of them were
+    # always equal; a tone row against a segment stays cross-tier.
+    with pytest.raises(NotImplementedError):
+        merkmal.distance("˥", "˩", system="phoible")
+    assert merkmal.distance_with_coverage("˥", "a", system="phoible").comparability == (
+        "cross-tier"
+    )
+    # PHOIBLE spells prenasalized stops with a full nasal letter; the
+    # modifier-letter spelling reads as that row, with the homorganic nasal.
+    assert merkmal.distance("ⁿd", "nd", system="phoible") == 0.0
+    assert merkmal.distance("ⁿb", "mb", system="phoible") == 0.0
+    assert merkmal.distance("ⁿg", "ŋg", system="phoible") == 0.0
+    # Length is under Length in every system, so ignore-length drops it.
+    for system in ("phoible", "pbase-spe"):
+        assert merkmal.distance("a", "aː", system=system, node_weights="ignore-length") == 0.0
+
+
+@requires_full_data
+def test_pbase_cell_codes_are_read_as_pbase_defines_them() -> None:
+    # UFT's x and o (a node present or absent) are a contrast; they were read
+    # as one midpoint and never compared.
+    vowel = merkmal.get_features("a", system="pbase-uftc")
+    consonant = merkmal.get_features("p", system="pbase-uftc")
+    assert "vocalic=+" in vowel and "vocalic=-" in consonant
+    # n (does not apply) is 0, which is not compared; it used to be a value
+    # halfway between + and -.
+    assert "lateral=0" in merkmal.get_features("p", system="pbase-spe")
+
+
+def test_only_null_is_the_default_weight_preset() -> None:
+    # "" and "None" were read as the default, so a name built from a missing
+    # value silently became the default.
+    for name in ("", "None"):
+        with pytest.raises(ValueError):
+            merkmal.distance("a", "e", node_weights=name)
+    assert merkmal.distance("a", "e", node_weights=None) == merkmal.distance("a", "e")
+
+
+def test_tabs_and_newlines_separate_tokens() -> None:
+    # They came out as tokens of their own.
+    assert merkmal.segment_ipa("pa\tta\n") == ["p", "a", "t", "a"]
+    assert merkmal.system_segment_ipa("t\ts\na", system="distinctive") == ["t", "s", "a"]
+
+
+def test_the_palatal_fricative_is_not_a_sibilant() -> None:
+    # CLTS 1.4.1 names ç "voiceless palatal sibilant fricative", but not its
+    # voiced partner ʝ, so the voicing pair cost twice the velar one.
+    for system in ("distinctive", "descriptive"):
+        assert "sibilant" not in merkmal.get_features("ç", system=system)
+        assert math.isclose(
+            merkmal.distance("ç", "ʝ", system=system), merkmal.distance("x", "ɣ", system=system)
+        )
+
+
+def test_abstract_segments_take_node_weights_like_distance() -> None:
+    # The bundle methods called the preset `weights` where every other
+    # function calls it `node_weights`.
+    a = merkmal.AbstractSegment.from_grapheme("a")
+    preset = a.compare("aː", node_weights="ignore-length")
+    assert preset.distance == merkmal.distance("a", "aː", node_weights="ignore-length")
+    assert a.compatible_graphemes(node_weights="ignore-length")
+    # The former name still works, with a warning, and not with both.
+    with pytest.warns(DeprecationWarning):
+        assert a.compare("aː", weights="ignore-length") == preset
+    with pytest.raises(TypeError):
+        a.compare("aː", weights="flat", node_weights="flat")

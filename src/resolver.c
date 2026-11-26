@@ -4,6 +4,7 @@
 #include "resolver.h"
 
 #include "array.h"
+#include "classes.h"
 #include "ipa.h"
 #include "normalize.h"
 #include "strings.h"
@@ -786,13 +787,15 @@ static mk_status mk_match_chao_tone_sequence(
     return mk_add_chao_tone_features(modifiers, modifier_count, modifier_cap, levels, count);
 }
 
-static const mki_valued_diacritic_effect *mk_find_valued_effect(const char *modifier)
+/* The learned effect of a mark in a valued system, or NULL when the system
+ * cannot express it. */
+static const mki_valued_effect *mk_find_valued_effect(const mk_system *system, const char *modifier)
 {
     size_t i;
 
-    for (i = 0; i < mki_default_valued_diacritic_effect_count; i++) {
-        if (mki_streq(mki_default_valued_diacritic_effects[i].modifier, modifier)) {
-            return &mki_default_valued_diacritic_effects[i];
+    for (i = 0; i < system->builtin->valued_effect_count; i++) {
+        if (mki_streq(system->builtin->valued_effects[i].modifier, modifier)) {
+            return &system->builtin->valued_effects[i];
         }
     }
     return NULL;
@@ -803,16 +806,14 @@ static const mki_valued_diacritic_effect *mk_find_valued_effect(const char *modi
  * whose Tonal subtree is always present, so they always qualify.
  *
  * Declaring a tone dimension is not enough: PHOIBLE has a "tone" column mapped
- * under Tonal, but no diacritic effect ever sets it, so every tone-bearing
- * grapheme would keep tone="." and a¹¹ would compare equal to a⁵⁵. The test is
- * therefore whether some tone-derived modifier has a valued effect on a
- * dimension this system actually has. Returning "unsupported" instead of zero
- * is the honest answer: no tonal equality has been established. */
+ * under Tonal, but no row pairs a toneless segment with a toned one, so no
+ * tone effect is learned and every tone-bearing grapheme would keep tone="."
+ * (a¹¹ equal to a⁵⁵). The test is therefore whether the system learned an
+ * effect for some tone modifier. Returning "unsupported" instead of zero is
+ * the honest answer: no tonal equality has been established. */
 static bool mk_system_supports_tone(const mk_system *system)
 {
     size_t i;
-    size_t j;
-    size_t k;
 
     if (system == NULL || system->builtin == NULL) {
         return false;
@@ -820,17 +821,11 @@ static bool mk_system_supports_tone(const mk_system *system)
     if (system->builtin->kind != MKI_SYSTEM_VALUED) {
         return true;
     }
-    for (i = 0; i < mki_default_valued_diacritic_effect_count; i++) {
-        const mki_valued_diacritic_effect *effect = &mki_default_valued_diacritic_effects[i];
-        if (strncmp(effect->modifier, "tone-", 5) != 0) {
-            continue;
-        }
-        for (j = 0; j < effect->alternative_count; j++) {
-            for (k = 0; k < system->builtin->geometry_map_count; k++) {
-                if (mki_streq(system->builtin->geometry_map[k].feature, effect->alternatives[j])) {
-                    return true;
-                }
-            }
+    for (i = 0; i < system->builtin->valued_effect_count; i++) {
+        const mki_valued_effect *effect = &system->builtin->valued_effects[i];
+
+        if (strncmp(effect->modifier, "tone-", 5) == 0 && effect->feature_count > 0) {
+            return true;
         }
     }
     return false;
@@ -1115,7 +1110,12 @@ static void mk_free_owned_feature_array(char **features, size_t count)
     free(features);
 }
 
+/* Applies each mark's learned effect to a valued base row. A mark the system
+ * has no effect for is refused (MK_ERR_UNSUPPORTED_MODEL), as tone is: read as
+ * nothing, it made `pʰ` equal to `p` in a system with no aspiration feature,
+ * and the refusal is the honest answer. */
 static mk_status mk_apply_valued_modifiers(
+    const mk_system *system,
     char **features,
     size_t count,
     char **modifiers,
@@ -1125,24 +1125,20 @@ static mk_status mk_apply_valued_modifiers(
     size_t i;
 
     for (i = 0; i < modifier_count; i++) {
-        const mki_valued_diacritic_effect *effect = mk_find_valued_effect(modifiers[i]);
+        const mki_valued_effect *effect = mk_find_valued_effect(system, modifiers[i]);
         size_t j;
+
         if (effect == NULL) {
-            continue;
+            return MK_ERR_UNSUPPORTED_MODEL;
         }
-        for (j = 0; j < effect->alternative_count; j++) {
-            const char *alternative = effect->alternatives[j];
-            if (mk_feature_base_present(features, count, alternative)) {
+        for (j = 0; j < effect->feature_count; j++) {
+            if (mk_feature_base_present(features, count, effect->features[j])) {
                 mk_status status = mk_replace_existing_valued_feature(
-                    features,
-                    count,
-                    alternative,
-                    effect->state
+                    features, count, effect->features[j], effect->states[j]
                 );
                 if (status != MK_OK) {
                     return status;
                 }
-                break;
             }
         }
     }
@@ -2151,6 +2147,23 @@ static mk_status mk_synthesize_cluster(
             goto finish;
         }
     }
+    /* The class labels a segment of this class carries (`vocoid`,
+     * `consonantal`, ...), so that the whole-cluster term compares the
+     * cluster with a segment on the dimensions a segment has. Without them a
+     * diphthong's own view shared no dimension with a vowel's. */
+    {
+        const char *added[MKI_MAX_CLASS_FEATURES];
+        size_t added_count =
+            mki_class_features((const char *const *)features, feature_count, added);
+        size_t k;
+
+        for (k = 0; k < added_count; k++) {
+            status = mk_add_owned_feature(&features, &feature_count, &feature_cap, added[k]);
+            if (status != MK_OK) {
+                goto finish;
+            }
+        }
+    }
     for (i = 0; i < component_count; i++) {
         status = mk_add_position_features(
             &features, &feature_count, &feature_cap, &components[i], i
@@ -2391,6 +2404,21 @@ static mk_status mk_synthesize_untied_complex(
             goto fail;
         }
     }
+    /* The class and articulator labels every inventory row carries. Without
+     * them `mb` and `ŋg` share no place dimension and score 0.0, and `mb` is
+     * farther from `b` than `ᵐb` is. */
+    {
+        const char *added[MKI_MAX_CLASS_FEATURES];
+        size_t added_count = mki_class_features((const char *const *)features, count, added);
+        size_t k;
+
+        for (k = 0; k < added_count; k++) {
+            status = mk_add_owned_feature(&features, &count, &cap, added[k]);
+            if (status != MK_OK) {
+                goto fail;
+            }
+        }
+    }
     status = mk_set_synthesized_entry(out, MKI_RESOLVED_COMPLEX, normalized, features, count, NULL, 0);
     if (status == MK_OK) {
         return MK_OK;
@@ -2471,7 +2499,7 @@ static mk_status mk_synthesize_from_diacritics(
         }
     }
     if (system->builtin->kind == MKI_SYSTEM_VALUED) {
-        status = mk_apply_valued_modifiers(features, count, modifiers, modifier_count);
+        status = mk_apply_valued_modifiers(system, features, count, modifiers, modifier_count);
         if (status != MK_OK) {
             goto finish;
         }
@@ -2535,6 +2563,107 @@ finish:
     out->owned_feature_count = count;
     out->features = (const char *const *)features;
     out->feature_count = count;
+    return MK_OK;
+}
+
+/* Whether a valued row has `feature=+`. */
+static bool mk_valued_plus(const mki_entry_view *view, const char *feature)
+{
+    size_t len = strlen(feature);
+    size_t i;
+
+    for (i = 0; i < view->feature_count; i++) {
+        const char *label = view->features[i];
+
+        if (strncmp(label, feature, len) == 0 && label[len] == '=' && label[len + 1] == '+') {
+            return true;
+        }
+    }
+    return false;
+}
+
+/* A prenasalized segment written with a modifier letter, read as the row a
+ * valued system spells with a full nasal letter. PHOIBLE writes `mb`, `nd`,
+ * `ŋg`, and no `ⁿd`; its prenasalized rows differ too much from their bases
+ * for one learned effect, so the modifier would otherwise be refused (and
+ * before, was ignored: `ⁿd` read as `d`). `ⁿ` takes the nasal homorganic with
+ * the base: `m` for a labial, `ŋ` or `ɲ` for a dorsal, `ɳ` for a retroflex,
+ * `n` otherwise. On a hit the result is the listed row. */
+static mk_status mk_valued_prenasal_spelling(
+    const mk_system *system,
+    const char *normalized,
+    mki_resolution *out
+)
+{
+    static const struct {
+        const char *mark;
+        const char *nasal;
+    } marks[] = {
+        {"ⁿ", NULL},
+        {"ᵐ", "m"},
+        {"ᵑ", "ŋ"},
+        {"ᶮ", "ɲ"},
+        {"ᶯ", "ɳ"},
+    };
+    const char *rest = NULL;
+    const char *nasal = NULL;
+    char base[8];
+    char *spelled;
+    mki_entry_view found;
+    size_t i;
+    size_t base_len;
+    mk_status status;
+
+    if (system->builtin->kind != MKI_SYSTEM_VALUED) {
+        return MK_ERR_UNKNOWN_GRAPHEME;
+    }
+    for (i = 0; i < sizeof(marks) / sizeof(marks[0]); i++) {
+        if (mki_has_prefix(normalized, marks[i].mark)) {
+            rest = normalized + strlen(marks[i].mark);
+            nasal = marks[i].nasal;
+            break;
+        }
+    }
+    if (rest == NULL || *rest == '\0') {
+        return MK_ERR_UNKNOWN_GRAPHEME;
+    }
+    if (nasal == NULL) {
+        mki_entry_view letter;
+
+        base_len = mki_utf8_step(rest);
+        if (base_len == 0 || base_len >= sizeof(base)) {
+            return MK_ERR_UNKNOWN_GRAPHEME;
+        }
+        memcpy(base, rest, base_len);
+        base[base_len] = '\0';
+        if (!mki_inventory_find(system->builtin, base, out->inline_features, &letter)) {
+            return MK_ERR_UNKNOWN_GRAPHEME;
+        }
+        if (mk_valued_plus(&letter, "labial") && !mk_valued_plus(&letter, "dorsal")) {
+            nasal = "m";
+        } else if (mk_valued_plus(&letter, "dorsal")) {
+            nasal = mk_valued_plus(&letter, "front") ? "ɲ" : "ŋ";
+        } else if (!mk_valued_plus(&letter, "anterior") && !mk_valued_plus(&letter, "distributed") &&
+                   mk_valued_plus(&letter, "coronal")) {
+            nasal = "ɳ";
+        } else {
+            nasal = "n";
+        }
+    }
+    spelled = (char *)malloc(strlen(nasal) + strlen(rest) + 1);
+    if (spelled == NULL) {
+        return MK_ERR_OOM;
+    }
+    strcpy(spelled, nasal);
+    strcat(spelled, rest);
+    status = mk_lookup_normalized(system, spelled, out->inline_features, &found, &out->path);
+    free(spelled);
+    if (status != MK_OK) {
+        return status;
+    }
+    out->grapheme = found.grapheme;
+    out->features = found.features;
+    out->feature_count = found.feature_count;
     return MK_OK;
 }
 
@@ -2604,6 +2733,9 @@ mk_status mki_resolve(
          * unambiguous, and the cluster grammars, seeing it first, would reject
          * it for reasons that say nothing about tone. */
         status = mk_synthesize_bare_tone(system, normalized, out);
+        if (status == MK_ERR_UNKNOWN_GRAPHEME) {
+            status = mk_valued_prenasal_spelling(system, normalized, out);
+        }
         if (status == MK_ERR_UNKNOWN_GRAPHEME) {
             status = mk_synthesize_cluster(system, &mk_vowel_cluster_grammar, normalized, out);
         }

@@ -27,12 +27,12 @@ compiled into the library from the source data in [data/models/](data/models/).
 
 | System | Feature basis | Kind | Source data |
 | --- | --- | --- | --- |
-| `distinctive` (default) | Distinctive features after Clements and Hume (1995), with scalar dimensions | categorical | CLTS 1.4.1 (List et al.) |
+| `distinctive` (default) | Scalar dimensions over CLTS's articulatory descriptions, organized after the feature geometry of Clements and Hume (1995) | categorical | CLTS 1.4.1 (List et al.) |
 | `descriptive` | Articulatory descriptions of IPA segments, scored through the feature geometry | categorical | CLTS 1.4.1 (List et al.) |
 | `phoible` | PHOIBLE binary features (38 dimensions) | valued | PHOIBLE 2.0 (Moran and McCloy 2019) |
 | `pbase-spe` | SPE features (Chomsky and Halle 1968) | valued | P-base (Mielke) |
 | `pbase-jfh` | Acoustic features of Jakobson, Fant and Halle (1952) | valued | P-base (Mielke) |
-| `pbase-hc`, `pbase-uftc` | The HC and UFTC feature sets of P-base | valued | P-base (Mielke) |
+| `pbase-hc`, `pbase-uftc` | The features of Halle and Clements (1983), and of Unified Feature Theory (Clements and Hume 1995) | valued | P-base (Mielke) |
 
 A *categorical* system describes a segment by a set of feature labels; a
 *valued* system assigns each segment a value (`+`, `-`, `0`, or unknown) on a
@@ -43,6 +43,10 @@ release and every transformation applied to it, is recorded in
 Segments that a table does not list are, where possible, derived from listed
 ones: a base segment with diacritics, tone marks or length, a diphthong, an
 affricate or labial-velar written without a tie bar, or a consonant cluster.
+The categorical systems derive all of these. A valued system derives only a
+listed segment with marks, and only with marks whose effect it can learn from
+its own table (rows such as `tʰ` beside `t`); a segment carrying any other mark
+is refused rather than read as its base.
 
 Callers may also register models of their own at run time, in a line-oriented
 text format ([docs/guide/runtime-model-format.md](docs/guide/runtime-model-format.md)).
@@ -78,10 +82,12 @@ properties limit what that number can be used for.
 - **It is not a metric.** Valued systems compare only the dimensions both
   segments define, so the basis of comparison changes from pair to pair, and the
   triangle inequality does not hold: in `pbase-hc`,
-  d(ðˠ, mʲ) = 0.3113 > d(ðˠ, d̪ʲ) + d(d̪ʲ, mʲ) = 0.0943 + 0.2091.
+  d(ðˠ, mʲ) = 0.3125 > d(ðˠ, d̪ʲ) + d(d̪ʲ, mʲ) = 0.0980 + 0.2000. The
+  categorical systems violate it rarely and narrowly (3 of 20,000 random
+  triples of `distinctive` inventory segments, by at most 0.002).
 - **It is not a probability of sound change.** Phonetic similarity and the
   frequency of a change are different quantities: velar palatalization is among
-  the most frequent changes attested, yet d(k, tʃ) = 0.41 is far greater than
+  the most frequent changes attested, yet d(k, tʃ) = 0.37 is far greater than
   d(k, q) = 0.05 in the default system. Claims about change require models
   estimated from correspondences between languages.
 - **It is not a typological statistic.** The tables are catalogues of segment
@@ -95,6 +101,15 @@ properties limit what that number can be used for.
 - **It is a substitution cost, not an aligner.** The library has no gap model and
   no sequence operations. The gap cost that best reproduces expert alignments
   differs between systems ([evaluation](docs/method/evaluation.md#1-segment-substitution-cost-in-pairwise-alignment)).
+- **The valued systems are for comparing feature theories.** They are less
+  suited to alignment costs than the categorical systems
+  ([evaluation](docs/method/evaluation.md)). PHOIBLE writes the changing values
+  of a contour segment (a diphthong, a pre- or post-released consonant) as
+  unknown, so such a segment is compared only on the dimensions that stay
+  constant, and two diphthongs can be at distance zero with partial coverage
+  (`d(ai, au) = 0.0`, coverage 0.6). Two of its tone rows are not compared with
+  each other, as tone marks are refused in every valued system: no dimension
+  distinguishes one tone from another.
 - **Identical values are reported, not hidden.** Pairs of distinct segments with
   a distance of zero are listed with their reasons in
   `tests/golden/contrast_baseline.tsv`. In the categorical systems they are
@@ -204,7 +219,10 @@ cite the source of the feature data for each system used:
   release record; later CLTS releases list fewer authors.
 - Moran, Steven and Daniel McCloy (eds.). 2019. PHOIBLE 2.0. Jena: Max Planck
   Institute for the Science of Human History. https://phoible.org/ (`phoible`).
-- Mielke, Jeff. P-base. North Carolina State University (`pbase-*`).
+- Mielke, Jeff. P-base. North Carolina State University. Data files as of
+  2022-10-02, https://pbase.phon.chass.ncsu.edu/ (`pbase-*`). See also Mielke,
+  Jeff. 2008. *The emergence of distinctive features*. Oxford: Oxford
+  University Press.
 
 Other works cited above:
 
@@ -213,6 +231,8 @@ Other works cited above:
 - Clements, G. N. and Elizabeth V. Hume. 1995. The internal organization of
   speech sounds. In John A. Goldsmith (ed.), *The handbook of phonological
   theory*, 245–306. Oxford: Blackwell.
+- Halle, Morris and G. N. Clements. 1983. *Problem book in phonology*.
+  Cambridge, MA: MIT Press.
 - Jakobson, Roman, C. Gunnar M. Fant and Morris Halle. 1952. *Preliminaries to
   speech analysis: The distinctive features and their correlates*. Cambridge,
   MA: MIT Press.

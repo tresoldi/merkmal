@@ -166,6 +166,20 @@ static mk_status mk_decompose(
             return MK_ERR_OOM;
         }
     }
+    /* The marks in canonical order, as the generator stores compiled keys
+     * (full NFD). Without this, "ɤ̞̟̃" missed the row "ɤ̞̟̃", which is the
+     * same character sequence up to canonical equivalence, and was synthesized
+     * from its diacritics into a different vowel. */
+    {
+        char *ordered = NULL;
+
+        status = mki_unicode_reorder(tmp, &ordered);
+        free(tmp);
+        if (status != MK_OK) {
+            return status;
+        }
+        tmp = ordered;
+    }
     *utf8_out = tmp;
     return MK_OK;
 }

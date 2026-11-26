@@ -24,6 +24,69 @@ static bool mk_segment_carries_length(mk_feature_view view)
         mk_view_has(view, "ultra-long");
 }
 
+/* How sonorous a part is, for choosing the nucleus: a vowel above everything
+ * else and an open vowel above a close one; a vowel marked non-syllabic as a
+ * glide; then approximants, liquids, nasals, fricatives, affricates and
+ * stops. Only the order matters. */
+static int mk_sonority(mk_feature_view view)
+{
+    static const char *const heights[] = {
+        "close",
+        "near-close",
+        "close-mid",
+        "mid",
+        "open-mid",
+        "near-open",
+        "open",
+    };
+    size_t i;
+
+    if (mk_view_has(view, "vowel") && !mk_view_has(view, "non-syllabic")) {
+        for (i = sizeof(heights) / sizeof(heights[0]); i > 0; i--) {
+            if (mk_view_has(view, heights[i - 1])) {
+                return 100 + (int)i;
+            }
+        }
+        return 100;
+    }
+    if (mk_view_has(view, "vowel") || mk_view_has(view, "approximant")) {
+        return 80;
+    }
+    if (mk_view_has(view, "trill") || mk_view_has(view, "tap") || mk_view_has(view, "lateral")) {
+        return 70;
+    }
+    if (mk_view_has(view, "nasal")) {
+        return 60;
+    }
+    if (mk_view_has(view, "fricative")) {
+        return 40;
+    }
+    if (mk_view_has(view, "affricate")) {
+        return 30;
+    }
+    return 20;
+}
+
+/* The part that carries the cluster: the most sonorous, the first on a tie.
+ * Taking the first part regardless put a rising diphthong next to its glide:
+ * `ia` was nearer `i` (0.22) than `a` (0.30). */
+static size_t mk_nucleus_index(const mki_resolution *cluster)
+{
+    size_t best = 0;
+    int best_sonority = -1;
+    size_t i;
+
+    for (i = 0; i < cluster->cluster_component_count; i++) {
+        int sonority = mk_sonority(mki_view_of_component(&cluster->cluster_components[i]));
+
+        if (sonority > best_sonority) {
+            best = i;
+            best_sonority = sonority;
+        }
+    }
+    return best;
+}
+
 /* Distance between two feature views, through whichever scorer the system
  * uses, and its coverage when `coverage` is non-NULL. Not checked for a NULL
  * scorer: see mki_cluster_distance in cluster.h. */
@@ -119,6 +182,7 @@ static mk_status mk_cluster_to_segment(
     double part;
     double part_coverage = 0.0;
     double nucleus_coverage = 0.0;
+    size_t nucleus;
     size_t i;
     mk_status status;
 
@@ -129,8 +193,9 @@ static mk_status mk_cluster_to_segment(
         }
         return MK_OK;
     }
+    nucleus = mk_nucleus_index(cluster);
     status = mk_part_to_segment(
-        system, &cluster->cluster_components[0], segment, node_weights, &part,
+        system, &cluster->cluster_components[nucleus], segment, node_weights, &part,
         coverage == NULL ? NULL : &nucleus_coverage
     );
     if (status != MK_OK) {
@@ -143,7 +208,10 @@ static mk_status mk_cluster_to_segment(
     if (cluster->cluster_component_count > 1) {
         double rest = 0.0;
         double rest_coverage = 0.0;
-        for (i = 1; i < cluster->cluster_component_count; i++) {
+        for (i = 0; i < cluster->cluster_component_count; i++) {
+            if (i == nucleus) {
+                continue;
+            }
             status = mk_part_to_segment(
                 system, &cluster->cluster_components[i], segment, node_weights, &part,
                 coverage == NULL ? NULL : &part_coverage
@@ -266,6 +334,27 @@ mk_status mki_cluster_distance(
                 (double)(b->cluster_component_count - common);
         }
         component_score = mk_min_double(component_score, 1.0);
+    }
+
+    /* A doubled segment against one marked for length is the case the
+     * length-penalty waiver in mk_cluster_to_segment exists for, and the
+     * whole-segment term would undo it: `aa` carries `diphthong`, `geminate`
+     * and the position labels that `aː` lacks, so d(aa, aː) was 0.11 against
+     * d(a, aː) = 0.06. The parts alone are scored, so that `aa` lands where
+     * `a` does. */
+    {
+        const mki_resolution *single =
+            a->cluster_component_count == 0 ? a : (b->cluster_component_count == 0 ? b : NULL);
+        const mki_resolution *doubled = single == a ? b : a;
+
+        if (single != NULL && mk_view_has(mki_view_of(doubled), "geminate") &&
+            mk_segment_carries_length(mki_view_of(single))) {
+            *out = component_score;
+            if (coverage != NULL) {
+                *coverage = component_coverage;
+            }
+            return MK_OK;
+        }
     }
 
     status = mk_score_views(

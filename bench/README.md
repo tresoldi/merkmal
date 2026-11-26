@@ -19,8 +19,8 @@ Benchmark Database of Phonetic Alignments (BDPA) need a local checkout of
 | `bench_lookup.sh` | Time for lookup, tokenization and distance | `baseline.txt` | no |
 | `bench_coverage.py` | Coverage of published CLDF transcriptions | `coverage_baseline.txt`, `corpus/coverage-floors.json` | `--check` |
 | `bench_alignment.py` | Quality as a substitution cost in alignment | `alignment_baseline.txt` | no |
-| `cross_theory.py` | Dependence of segment orderings on the feature system | evaluation.md, section 3 | no |
-| `fit_pair_costs.py` | Effect of substitution costs fitted to alignments | evaluation.md, section 4 | no |
+| `cross_theory.py` | Dependence of segment orderings on the feature system | `cross_theory_baseline.txt` | no |
+| `fit_pair_costs.py` | Effect of substitution costs fitted to alignments | `fit_pair_costs_baseline.txt` | no |
 | `sweep_tone_distance.py` | Cost of aligning a tone with a segment | docs/guide/c-api.md | no |
 
 ## Cost
