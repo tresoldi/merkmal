@@ -421,6 +421,8 @@ char *merkmal_tokenize(const char *system_name, const char *input, int merge_ton
 }
 
 EMSCRIPTEN_KEEPALIVE
+#define MK_MATRIX_MAX 100
+
 char *merkmal_distance_matrix(const char *system_name, const char *segments_csv)
 {
     const mk_system *sys = NULL;
@@ -471,8 +473,15 @@ char *merkmal_distance_matrix(const char *system_name, const char *segments_csv)
                 memcpy(items[count], p, len);
                 items[count][len] = '\0';
                 count++;
-                if (count > 100)
-                    break;
+                /* The matrix is quadratic, so the demonstration takes a
+                 * bounded list; past the bound it says so rather than drop
+                 * the rest, which it used to do silently after 101. */
+                if (count > MK_MATRIX_MAX) {
+                    for (size_t i = 0; i < count; i++)
+                        free(items[i]);
+                    free(items);
+                    return error_json(MK_ERR_INVALID_ARGUMENT, "at most 100 segments");
+                }
             }
             p = (*end == ',') ? end + 1 : end;
         }

@@ -126,6 +126,9 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ### Fixed
 
+- The demonstration's distance matrix kept the first 101 segments of a longer
+  list and dropped the rest without saying so; a list of more than 100 is now
+  refused with a message.
 - CLTS citation: cite version 1.4.1 by its version DOI (10.5281/zenodo.3515745)
   with the author list given in that release record, which includes Simon J.
   Greenhill; the previous list followed the current concept record, whose
