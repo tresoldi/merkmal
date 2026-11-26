@@ -80,6 +80,16 @@ commit history, in [docs/](docs/README.md) and in the design records in
   `Prosodic`, so `ignore-length` and `segmental` now drop them, as they do in
   the categorical systems; their weight follows the deeper node.
 
+- **Breaking:** the four P-base tables are rebuilt from P-base's data archive
+  (data as of 2022-10-02) by `tools/rebuild_pbase_inventories.py`, replacing a
+  manual extraction from the website in 2019 that could not be reproduced. The
+  two agree on 44,741 of the 44,748 cells of the segments both list. The cell
+  codes are now read as P-base defines them: UFT's `x` and `o` (a node present
+  or absent) are a contrast, compared as `+` and `-`, where they were read as
+  one midpoint value and never compared (`vocalic` and `V-place` separate
+  vowels from consonants in `pbase-uftc`); `n` (does not apply) is `0` and not
+  compared, where it was scored halfway between `+` and `-`; `.` is `?`.
+
 ### Fixed
 
 - `mk_system_segment_ipa` merged across the spaces a caller wrote (`t s a`

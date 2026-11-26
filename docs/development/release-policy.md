@@ -91,9 +91,16 @@ numbers even when no code changed.
   tools/rebuild_phoible_inventory.py <cldf/parameters.csv> --check
   ```
 
-  The check is not in CI, because it needs the upstream file and a build
-  should not depend on the network. It is the only check that the table still
-  agrees with upstream cell by cell.
+  The P-base tables are rebuilt from P-base's data archive the same way, and
+  re-verified with:
+
+  ```sh
+  tools/rebuild_pbase_inventories.py <pbase/ipa2allfeatures.csv> --check
+  ```
+
+  These checks are not in CI, because they need the upstream files and a
+  build should not depend on the network. They are the only checks that the
+  tables still agree with upstream cell by cell.
 - **A distribution that bundles the data tables is not MIT-only.** Its license
   expression is `MIT AND CC-BY-4.0 AND CC-BY-SA-3.0 AND CC-BY-NC-SA-4.0`, and
   it agrees in `pyproject.toml`, `setup.py`, `NOTICE` and the README

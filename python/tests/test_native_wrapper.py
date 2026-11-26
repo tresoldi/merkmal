@@ -1890,3 +1890,15 @@ def test_valued_systems_read_marks_as_their_tables_do() -> None:
     # Length is under Length in every system, so ignore-length drops it.
     for system in ("phoible", "pbase-spe"):
         assert merkmal.distance("a", "aː", system=system, node_weights="ignore-length") == 0.0
+
+
+@requires_full_data
+def test_pbase_cell_codes_are_read_as_pbase_defines_them() -> None:
+    # UFT's x and o (a node present or absent) are a contrast; they were read
+    # as one midpoint and never compared.
+    vowel = merkmal.get_features("a", system="pbase-uftc")
+    consonant = merkmal.get_features("p", system="pbase-uftc")
+    assert "vocalic=+" in vowel and "vocalic=-" in consonant
+    # n (does not apply) is 0, which is not compared; it used to be a value
+    # halfway between + and -.
+    assert "lateral=0" in merkmal.get_features("p", system="pbase-spe")

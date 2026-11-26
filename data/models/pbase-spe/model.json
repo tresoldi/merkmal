@@ -9,10 +9,8 @@
   "state_symbols": {
     "+": 1.0,
     "-": -1.0,
-    ".": null,
-    "n": 0.0,
-    "o": 0.0,
-    "x": 0.0
+    "0": null,
+    "?": null
   },
   "geometry_map": {
     "EXTRA": "Length",
