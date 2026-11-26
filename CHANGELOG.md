@@ -27,6 +27,24 @@ commit history, in [docs/](docs/README.md) and in the design records in
   was classed as a sonorant, because `lateral` was tested before the obstruent
   manners; `ɮ` was nearer `l` than `z`. It is now an obstruent.
 - Runtime models: a label written twice in a row is one label.
+- **Breaking:** in the categorical systems, two segments that both leave
+  length unmarked are no longer compared on `duration`. Counted, that
+  agreement gave every pair a shared dimension, so coverage and comparability
+  could not report a pair that reaches nothing else (two unrelated runtime
+  labels gave 0.0 with coverage 1.0 and `ok`), and it diluted every other
+  difference: `sound_distance([voiced], [voiceless])` was 0.5, and
+  `ignore-length` raised other distances. Every categorical distance between
+  short segments rises slightly (`d(p, b)` 0.143 → 0.167 in `distinctive`).
+  In an abstract segment, an unmarked length is the cell `0`, read as `short`
+  against a marked value.
+- **Breaking:** `distinctive` reads the derived class labels in its `vocoid`,
+  `continuant`, `anterior` and `distributed` dimensions, as the geometry
+  documentation said it did. `vocoid` read `vowel`/`consonant`, so glides were
+  consonants and /w/ was nearer /b/ (0.39) than /u/ (0.58); `continuant`
+  omitted nasals, trills and vowels, and `anterior` and `distributed`
+  linguolabials and dentals. A diphthong's or cluster's own feature set also
+  carries the class labels now, so that its whole-segment term shares
+  dimensions with a segment's.
 
 ### Fixed
 

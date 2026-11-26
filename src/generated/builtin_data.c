@@ -7573,13 +7573,11 @@ static const char *const distinctive_scalar_dimensions_3_negative[] = {
 };
 
 static const char *const distinctive_scalar_dimensions_4_positive[] = {
-    "approximant",
-    "fricative",
+    "continuant",
 };
 
 static const char *const distinctive_scalar_dimensions_4_negative[] = {
-    "affricate",
-    "stop",
+    "non-continuant",
 };
 
 static const char *const distinctive_scalar_dimensions_5_positive[] = {
@@ -7631,24 +7629,19 @@ static const char *const distinctive_scalar_dimensions_14_positive[] = {
 };
 
 static const char *const distinctive_scalar_dimensions_15_positive[] = {
-    "alveolar",
-    "dental",
+    "anterior",
 };
 
 static const char *const distinctive_scalar_dimensions_15_negative[] = {
-    "alveolo-palatal",
-    "post-alveolar",
-    "retroflex",
+    "non-anterior",
 };
 
 static const char *const distinctive_scalar_dimensions_16_positive[] = {
-    "alveolo-palatal",
-    "post-alveolar",
+    "distributed",
 };
 
 static const char *const distinctive_scalar_dimensions_16_negative[] = {
-    "alveolar",
-    "retroflex",
+    "non-distributed",
 };
 
 static const char *const distinctive_scalar_dimensions_17_positive[] = {
@@ -7708,11 +7701,11 @@ static const char *const distinctive_scalar_dimensions_28_positive[] = {
 };
 
 static const char *const distinctive_scalar_dimensions_29_positive[] = {
-    "vowel",
+    "vocoid",
 };
 
 static const char *const distinctive_scalar_dimensions_29_negative[] = {
-    "consonant",
+    "consonantal",
 };
 
 static const char *const distinctive_scalar_dimensions_30_positive[] = {
@@ -7833,7 +7826,7 @@ static const mki_scalar_dimension distinctive_scalar_dimensions[] = {
     {.name = "spread_glottis", .geometry_node = "Laryngeal", .positive = distinctive_scalar_dimensions_1_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
     {.name = "constricted_glottis", .geometry_node = "Laryngeal", .positive = distinctive_scalar_dimensions_2_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
     {.name = "sonorant", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_3_positive, .positive_count = 1, .negative = distinctive_scalar_dimensions_3_negative, .negative_count = 1, .weight = 0.5},
-    {.name = "continuant", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_4_positive, .positive_count = 2, .negative = distinctive_scalar_dimensions_4_negative, .negative_count = 2, .weight = 0.5},
+    {.name = "continuant", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_4_positive, .positive_count = 1, .negative = distinctive_scalar_dimensions_4_negative, .negative_count = 1, .weight = 0.5},
     {.name = "nasal", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_5_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
     {.name = "lateral", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_6_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
     {.name = "strident", .geometry_node = "Manner", .positive = distinctive_scalar_dimensions_7_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
@@ -7844,8 +7837,8 @@ static const mki_scalar_dimension distinctive_scalar_dimensions[] = {
     {.name = "labial", .geometry_node = "Place", .positive = distinctive_scalar_dimensions_12_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.40000000000000002},
     {.name = "round", .geometry_node = "Labial", .positive = distinctive_scalar_dimensions_13_positive, .positive_count = 1, .negative = distinctive_scalar_dimensions_13_negative, .negative_count = 1, .weight = 0.33333333333333331},
     {.name = "coronal", .geometry_node = "Place", .positive = distinctive_scalar_dimensions_14_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.40000000000000002},
-    {.name = "anterior", .geometry_node = "Coronal", .positive = distinctive_scalar_dimensions_15_positive, .positive_count = 2, .negative = distinctive_scalar_dimensions_15_negative, .negative_count = 3, .weight = 0.33333333333333331},
-    {.name = "distributed", .geometry_node = "Coronal", .positive = distinctive_scalar_dimensions_16_positive, .positive_count = 2, .negative = distinctive_scalar_dimensions_16_negative, .negative_count = 2, .weight = 0.33333333333333331},
+    {.name = "anterior", .geometry_node = "Coronal", .positive = distinctive_scalar_dimensions_15_positive, .positive_count = 1, .negative = distinctive_scalar_dimensions_15_negative, .negative_count = 1, .weight = 0.33333333333333331},
+    {.name = "distributed", .geometry_node = "Coronal", .positive = distinctive_scalar_dimensions_16_positive, .positive_count = 1, .negative = distinctive_scalar_dimensions_16_negative, .negative_count = 1, .weight = 0.33333333333333331},
     {.name = "dorsal", .geometry_node = "Place", .positive = distinctive_scalar_dimensions_17_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.40000000000000002},
     {.name = "breathy_voice", .geometry_node = "Laryngeal", .positive = distinctive_scalar_dimensions_18_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
     {.name = "creaky_voice", .geometry_node = "Laryngeal", .positive = distinctive_scalar_dimensions_19_positive, .positive_count = 1, .negative = NULL, .negative_count = 0, .weight = 0.5},
@@ -16477,7 +16470,7 @@ static const double phoible_dimension_weights[] = {
 
 const mki_builtin_system mki_builtin_systems[] = {
     {.name = "descriptive", .version = "2.0.0", .model_sha256 = "6b00c87bee9726c715a75d2d6f8b36bec30bff43a5f7b92c93631188b4e3505e", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DESCRIPTIVE_ENTRY_COUNT, .entry_graphemes = descriptive_entry_graphemes, .entry_feature_at = descriptive_entry_feature_at, .entry_feature_n = descriptive_entry_feature_n, .feature_ids = descriptive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
-    {.name = "distinctive", .version = "3.0.0", .model_sha256 = "bd4733b6e3cbd8910e3e4c50404d098347a8270f4268136a37c9ac9aa5f0e4e4", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DISTINCTIVE_ENTRY_COUNT, .entry_graphemes = distinctive_entry_graphemes, .entry_feature_at = distinctive_entry_feature_at, .entry_feature_n = distinctive_entry_feature_n, .feature_ids = distinctive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = distinctive_scalar_dimensions, .scalar_dimension_count = DISTINCTIVE_SCALAR_DIMENSIONS_COUNT},
+    {.name = "distinctive", .version = "3.0.0", .model_sha256 = "3adb7c9c31c4e47d94f73b4f046d6dab71418575b685410ceeecabcfa7204998", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DISTINCTIVE_ENTRY_COUNT, .entry_graphemes = distinctive_entry_graphemes, .entry_feature_at = distinctive_entry_feature_at, .entry_feature_n = distinctive_entry_feature_n, .feature_ids = distinctive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = distinctive_scalar_dimensions, .scalar_dimension_count = DISTINCTIVE_SCALAR_DIMENSIONS_COUNT},
     {.name = "pbase-hc", .version = "1.0.0", .model_sha256 = "b6fca8fea88c07aa65d66783c92cebc832c8393c252bdba29ac0a07bd7eede3f", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_HC_ENTRY_COUNT, .entry_graphemes = pbase_hc_entry_graphemes, .entry_feature_at = pbase_hc_entry_feature_at, .entry_feature_n = pbase_hc_entry_feature_n, .feature_ids = pbase_hc_feature_ids, .geometry_map = pbase_hc_geometry_map, .geometry_map_count = PBASE_HC_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_hc_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
     {.name = "pbase-jfh", .version = "1.0.0", .model_sha256 = "f155c702b36dc96545ce2b74ef852bc19709dd9baccedc30b6afeecfc50f4ee0", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_JFH_ENTRY_COUNT, .entry_graphemes = pbase_jfh_entry_graphemes, .entry_feature_at = pbase_jfh_entry_feature_at, .entry_feature_n = pbase_jfh_entry_feature_n, .feature_ids = pbase_jfh_feature_ids, .geometry_map = pbase_jfh_geometry_map, .geometry_map_count = PBASE_JFH_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_jfh_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
     {.name = "pbase-spe", .version = "1.0.0", .model_sha256 = "95a4bf806f9755404224ebab9def82d9a8803b182ee75061d615a833b2937734", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_SPE_ENTRY_COUNT, .entry_graphemes = pbase_spe_entry_graphemes, .entry_feature_at = pbase_spe_entry_feature_at, .entry_feature_n = pbase_spe_entry_feature_n, .feature_ids = pbase_spe_feature_ids, .geometry_map = pbase_spe_geometry_map, .geometry_map_count = PBASE_SPE_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_spe_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},

@@ -44,6 +44,11 @@ bool mki_is_node_group_feature(const char *feature);
  * MKI_ORDINAL_UNDEFINED. */
 int mki_ordinal_level(mk_feature_view view, const mki_ordinal_scale *scale);
 
+/* Whether the segment names a level of the scale, rather than taking its
+ * default. Two segments that both leave a scale unmarked are not compared on
+ * it. */
+bool mki_ordinal_marked(mk_feature_view view, const mki_ordinal_scale *scale);
+
 /* The weighting the scorers use, for code that scores outside a feature view
  * (abstract segments, bundle.c). Same functions, so a bundle made from a
  * grapheme weighs each dimension exactly as the scorer does.

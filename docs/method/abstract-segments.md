@@ -65,7 +65,7 @@ system.
 
 | Cell | Meaning |
 | --- | --- |
-| `0` | the dimension does not apply |
+| `0` | the dimension does not apply; on a scale with a default level (`duration`), the segment leaves it unmarked, which reads as the default against a marked value and is not compared with another unmarked one |
 | `?` | unknown; the dimension applies |
 | `*` | unknown; the dimension may not apply |
 | `+`, `-` (and `n` in valued systems) | a binary value |

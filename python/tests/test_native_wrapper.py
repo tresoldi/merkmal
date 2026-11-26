@@ -305,9 +305,11 @@ def test_native_distance_matches_golden_probe() -> None:
     # The default is `distinctive`, which scores through its own
     # scalar_dimensions rather than the geometry tree. Naming the system keeps
     # this probe pinned to a value rather than to whatever the default is.
-    assert math.isclose(merkmal.distance("p", "b"), 0.1428571429, abs_tol=1e-10)
+    # 0.1429 and 0.125 while two segments unmarked for length were compared,
+    # and agreed, on duration, which diluted every other difference.
+    assert math.isclose(merkmal.distance("p", "b"), 0.1666666667, abs_tol=1e-10)
     assert math.isclose(
-        merkmal.distance("p", "b", system="descriptive"), 0.125, abs_tol=1e-10
+        merkmal.distance("p", "b", system="descriptive"), 0.1428571429, abs_tol=1e-10
     )
     assert math.isclose(
         merkmal.distance("p", "b", system="phoible"),
@@ -327,7 +329,7 @@ def test_native_distance_matches_golden_probe() -> None:
             merkmal.feature_distance(a, b)
     assert math.isclose(
         merkmal.distance("p", "b", system="distinctive", node_weights="flat"),
-        0.14285714285714285,
+        1.0 / 6.0,
         abs_tol=1e-10,
     )
     assert merkmal.distance("ai", "ai", system="descriptive") == 0.0
@@ -1789,3 +1791,32 @@ def test_mark_order_does_not_change_a_lookup() -> None:
     reordered = "ɤ̞̟̃"
     assert merkmal.get_features(reordered) == merkmal.get_features(listed)
     assert merkmal.distance(reordered, listed) == 0.0
+
+
+def test_coverage_reports_a_pair_that_shares_nothing() -> None:
+    # Duration has a default level, and two segments unmarked for length were
+    # compared on it, so every categorical pair shared a dimension: a pair of
+    # unrelated labels came back as 0.0 with coverage 1.0 and comparability ok.
+    registry = merkmal.Registry()
+    registry.add_model_text(
+        "@model unrelated\n@type categorical\n@validation permissive\n"
+        "grapheme X foo\ngrapheme Y bar\n"
+    )
+    result = merkmal.Comparison(
+        *merkmal._native.distance_with_coverage(
+            "X", "Y", system="unrelated", registry=registry._handle
+        )
+    )
+    assert result.coverage == 0.0
+    assert result.comparability == "no-shared-dimension"
+    # One difference and nothing else is the whole of the comparison.
+    assert merkmal.sound_distance(["voiced"], ["voiceless"]) == 1.0
+    # Length is still compared when one side marks it.
+    assert merkmal.distance("a", "aː") > 0.0
+
+
+def test_glides_are_vocoids_in_the_default_system() -> None:
+    # distinctive read its vocoid dimension from vowel/consonant, so /w/ was
+    # nearer /b/ (0.39) and /g/ than /u/ (0.58).
+    assert merkmal.distance("w", "u") < merkmal.distance("w", "b")
+    assert merkmal.distance("j", "i") < merkmal.distance("j", "d")

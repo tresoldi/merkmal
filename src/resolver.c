@@ -2152,6 +2152,23 @@ static mk_status mk_synthesize_cluster(
             goto finish;
         }
     }
+    /* The class labels a segment of this class carries (`vocoid`,
+     * `consonantal`, ...), so that the whole-cluster term compares the
+     * cluster with a segment on the dimensions a segment has. Without them a
+     * diphthong's own view shared no dimension with a vowel's. */
+    {
+        const char *added[MKI_MAX_CLASS_FEATURES];
+        size_t added_count =
+            mki_class_features((const char *const *)features, feature_count, added);
+        size_t k;
+
+        for (k = 0; k < added_count; k++) {
+            status = mk_add_owned_feature(&features, &feature_count, &feature_cap, added[k]);
+            if (status != MK_OK) {
+                goto finish;
+            }
+        }
+    }
     for (i = 0; i < component_count; i++) {
         status = mk_add_position_features(
             &features, &feature_count, &feature_cap, &components[i], i

@@ -52,12 +52,10 @@
     {
       "name": "continuant",
       "positive": [
-        "approximant",
-        "fricative"
+        "continuant"
       ],
       "negative": [
-        "affricate",
-        "stop"
+        "non-continuant"
       ],
       "geometry_node": "Manner",
       "geometry_leaf": "continuant"
@@ -159,13 +157,10 @@
     {
       "name": "anterior",
       "positive": [
-        "alveolar",
-        "dental"
+        "anterior"
       ],
       "negative": [
-        "alveolo-palatal",
-        "post-alveolar",
-        "retroflex"
+        "non-anterior"
       ],
       "geometry_node": "Coronal",
       "geometry_leaf": "anterior"
@@ -173,12 +168,10 @@
     {
       "name": "distributed",
       "positive": [
-        "alveolo-palatal",
-        "post-alveolar"
+        "distributed"
       ],
       "negative": [
-        "alveolar",
-        "retroflex"
+        "non-distributed"
       ],
       "geometry_node": "Coronal",
       "geometry_leaf": "distributed"
@@ -298,10 +291,10 @@
     {
       "name": "vocoid",
       "positive": [
-        "vowel"
+        "vocoid"
       ],
       "negative": [
-        "consonant"
+        "consonantal"
       ],
       "geometry_node": "Root",
       "geometry_leaf": "vocoid"

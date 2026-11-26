@@ -88,7 +88,10 @@ the property does not apply: a consonant has no vowel height and a toneless
 segment no tone level. Those differences are carried by the major-class leaf
 and by `tone_presence`. `duration` is the exception: its `default_level` is
 `short`, because a segment without a length mark is short rather than of
-undefined length.
+undefined length, so `a` and `aː` differ. Two segments that both leave it
+unmarked are not compared on it: their agreement says nothing, and counted, it
+gave every pair a shared dimension (so coverage could not report a pair that
+reaches nothing else) and diluted every other difference.
 
 **Node groups** are the remaining case. A feature that `feature_to_node` maps
 to a node, and that belongs to no leaf and no scale, contributes to a single
@@ -112,7 +115,12 @@ is part of the system's [semantic fingerprint](semantic-fingerprint.md).
   reads those dimensions and the geometry's ordered scales, and no geometry
   leaf. A dimension that measures what a geometry leaf measures names that
   leaf (`geometry_leaf`), is attached to the leaf's node and takes its weight,
-  so `distinctive` and `descriptive` price the same property alike. The four
+  so `distinctive` and `descriptive` price the same property alike. From
+  `distinctive` 3.0.0 its `vocoid`, `continuant`, `anterior` and
+  `distributed` dimensions read the derived labels below, as `descriptive`'s
+  leaves do; before, `vocoid` read `vowel`/`consonant`, so the glides counted
+  as consonants (/w/ nearer /b/ than /u/), and `continuant`, `anterior` and
+  `distributed` omitted nasals, trills, vowels, linguolabials and dentals. The four
   dimensions with no counterpart in the geometry (`fricative`, `click`,
   `implosive` and `apical`) declare their weight, set to that of the leaves
   under the same node. The generator and `tools/validate_models.py` refuse a
