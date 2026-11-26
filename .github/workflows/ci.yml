@@ -311,11 +311,11 @@ jobs:
         run: python -m mypy python/merkmal
       - name: Check the Unicode tables reproduce
         # The C job's interpreter carries another Unicode version and skips the
-        # Unicode half of check-generated-data; this one carries 15.1. Last in
+        # Unicode half of check-generated-data; this one carries 16.0. Last in
         # the job, because it switches the interpreter for every later step.
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.14"
       - run: python tools/check_generated_data.py
 
   python-sanitizer:
