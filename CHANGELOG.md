@@ -53,6 +53,33 @@ commit history, in [docs/](docs/README.md) and in the design records in
   now scores as the single segment does (`d(aa, aː) = d(a, aː)`); the
   whole-segment term undid the length waiver (0.113 against 0.064).
 
+- **Breaking:** a valued system (PHOIBLE, P-base) read a mark through one
+  hand-written rule shared by every system, and ignored a mark its table had no
+  feature for: in `pbase-jfh` `d(p, pʰ) = 0.0`, and in PHOIBLE `ⁿd`, `t̚` and
+  `ʰt` equalled their bases. Where the rule applied, it disagreed with
+  PHOIBLE's own rows for the same base and mark in 61-100% of the pairs for six
+  common marks. Each valued system now learns each mark's effect from its own
+  rows that differ from a listed row by that mark alone, keeping it only if
+  it reproduces at least half of them (three pairs at least); in PHOIBLE the
+  learned effects give the listed row exactly for 79% of the pairs left out in
+  turn. A segment with any other mark is refused with
+  `MK_ERR_UNSUPPORTED_MODEL`, as tone already was. The shared rule
+  (`valued_effects` in `data/diacritics/ipa-clts.json`) is removed. A
+  prenasalizing modifier letter (`ⁿd`, `ᵐb`) reads as the row a valued table
+  spells with the homorganic nasal letter (`nd`, `mb`), as PHOIBLE writes
+  them. Coverage of the Lexibank corpus falls where marks are now refused
+  rather than ignored: `phoible` 79.5% → 77.8% of segment types, the P-base
+  systems from 74% to 63-67% (`kˀ`, `ä`, `i̠` are not in their tables); token
+  coverage falls by at most 0.6 points. phoible 3.0.0, the P-base models 2.0.0.
+- **Breaking:** in a valued system, a distance between two tones is refused
+  (`MK_ERR_UNSUPPORTED_MODEL`), as a tone mark is. PHOIBLE's sixty tone-letter
+  rows each carry `tone=+` and nothing else, so every pair of them was 0.0
+  (`˥` against `˩`). A tone row against a segment stays cross-tier.
+- **Breaking:** the length features of the valued systems (`long`, `short`,
+  `LONG`, `EXTRA`) are mapped to the geometry's `Length` node rather than
+  `Prosodic`, so `ignore-length` and `segmental` now drop them, as they do in
+  the categorical systems; their weight follows the deeper node.
+
 ### Fixed
 
 - `mk_system_segment_ipa` merged across the spaces a caller wrote (`t s a`

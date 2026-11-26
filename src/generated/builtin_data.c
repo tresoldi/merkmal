@@ -5793,7 +5793,7 @@ const size_t mki_clements_hume_feature_path_count =
     sizeof(mki_clements_hume_feature_paths) / sizeof(mki_clements_hume_feature_paths[0]);
 
 const char *const mki_fingerprint_geometry_sha256 = "d58514b703681c20eb917eb8e0775fb2ccd5ea8e7d39a62baf327468465a21df";
-const char *const mki_fingerprint_diacritics_sha256 = "9101983eddb012bd7056e1fd5144dff0efb836578ab22c20e62e1d75026c4fce";
+const char *const mki_fingerprint_diacritics_sha256 = "556686dfcaddd44420cb97246a5281673e01236cb4fd92bb5de38cdfcd0a1cc0";
 
 static const char *const mk_clements_hume_ordinal_levels_0[] = {
     "close",
@@ -6034,126 +6034,6 @@ const mki_tone_mark mki_default_tone_marks[] = {
 
 const size_t mki_default_tone_mark_count =
     sizeof(mki_default_tone_marks) / sizeof(mki_default_tone_marks[0]);
-
-static const char *const mk_default_valued_effect_0_alternatives[] = {
-    "advancedTongueRoot",
-    "ATR",
-};
-
-static const char *const mk_default_valued_effect_1_alternatives[] = {
-    "spreadGlottis",
-    "spread",
-};
-
-static const char *const mk_default_valued_effect_2_alternatives[] = {
-    "spreadGlottis",
-    "spread",
-};
-
-static const char *const mk_default_valued_effect_3_alternatives[] = {
-    "constrictedGlottis",
-    "constr",
-};
-
-static const char *const mk_default_valued_effect_4_alternatives[] = {
-    "distributed",
-};
-
-static const char *const mk_default_valued_effect_5_alternatives[] = {
-    "periodicGlottalSource",
-    "voice",
-    "voiced",
-};
-
-static const char *const mk_default_valued_effect_6_alternatives[] = {
-    "raisedLarynxEjective",
-    "constrictedGlottis",
-    "constr",
-};
-
-static const char *const mk_default_valued_effect_7_alternatives[] = {
-    "constrictedGlottis",
-    "constr",
-};
-
-static const char *const mk_default_valued_effect_8_alternatives[] = {
-    "round",
-};
-
-static const char *const mk_default_valued_effect_9_alternatives[] = {
-    "round",
-};
-
-static const char *const mk_default_valued_effect_10_alternatives[] = {
-    "long",
-    "LONG",
-};
-
-static const char *const mk_default_valued_effect_11_alternatives[] = {
-    "round",
-};
-
-static const char *const mk_default_valued_effect_12_alternatives[] = {
-    "nasal",
-};
-
-static const char *const mk_default_valued_effect_13_alternatives[] = {
-    "syllabic",
-    "SYLLABIC",
-};
-
-static const char *const mk_default_valued_effect_14_alternatives[] = {
-    "high",
-};
-
-static const char *const mk_default_valued_effect_15_alternatives[] = {
-    "retractedTongueRoot",
-};
-
-static const char *const mk_default_valued_effect_16_alternatives[] = {
-    "retractedTongueRoot",
-};
-
-static const char *const mk_default_valued_effect_17_alternatives[] = {
-    "periodicGlottalSource",
-    "voice",
-    "voiced",
-};
-
-static const char *const mk_default_valued_effect_18_alternatives[] = {
-    "syllabic",
-    "SYLLABIC",
-};
-
-static const char *const mk_default_valued_effect_19_alternatives[] = {
-    "dorsal",
-};
-
-const mki_valued_diacritic_effect mki_default_valued_diacritic_effects[] = {
-    {.modifier = "advanced-tongue-root", .alternatives = mk_default_valued_effect_0_alternatives, .alternative_count = 2, .state = '+'},
-    {.modifier = "aspirated", .alternatives = mk_default_valued_effect_1_alternatives, .alternative_count = 2, .state = '+'},
-    {.modifier = "breathy", .alternatives = mk_default_valued_effect_2_alternatives, .alternative_count = 2, .state = '+'},
-    {.modifier = "creaky", .alternatives = mk_default_valued_effect_3_alternatives, .alternative_count = 2, .state = '+'},
-    {.modifier = "dental", .alternatives = mk_default_valued_effect_4_alternatives, .alternative_count = 1, .state = '+'},
-    {.modifier = "devoiced", .alternatives = mk_default_valued_effect_5_alternatives, .alternative_count = 3, .state = '-'},
-    {.modifier = "ejective", .alternatives = mk_default_valued_effect_6_alternatives, .alternative_count = 3, .state = '+'},
-    {.modifier = "glottalized", .alternatives = mk_default_valued_effect_7_alternatives, .alternative_count = 2, .state = '+'},
-    {.modifier = "labialized", .alternatives = mk_default_valued_effect_8_alternatives, .alternative_count = 1, .state = '+'},
-    {.modifier = "less-rounded", .alternatives = mk_default_valued_effect_9_alternatives, .alternative_count = 1, .state = '-'},
-    {.modifier = "long", .alternatives = mk_default_valued_effect_10_alternatives, .alternative_count = 2, .state = '+'},
-    {.modifier = "more-rounded", .alternatives = mk_default_valued_effect_11_alternatives, .alternative_count = 1, .state = '+'},
-    {.modifier = "nasalized", .alternatives = mk_default_valued_effect_12_alternatives, .alternative_count = 1, .state = '+'},
-    {.modifier = "non-syllabic", .alternatives = mk_default_valued_effect_13_alternatives, .alternative_count = 2, .state = '-'},
-    {.modifier = "palatalized", .alternatives = mk_default_valued_effect_14_alternatives, .alternative_count = 1, .state = '+'},
-    {.modifier = "pharyngealized", .alternatives = mk_default_valued_effect_15_alternatives, .alternative_count = 1, .state = '+'},
-    {.modifier = "retracted-tongue-root", .alternatives = mk_default_valued_effect_16_alternatives, .alternative_count = 1, .state = '+'},
-    {.modifier = "revoiced", .alternatives = mk_default_valued_effect_17_alternatives, .alternative_count = 3, .state = '+'},
-    {.modifier = "syllabic", .alternatives = mk_default_valued_effect_18_alternatives, .alternative_count = 2, .state = '+'},
-    {.modifier = "velarized", .alternatives = mk_default_valued_effect_19_alternatives, .alternative_count = 1, .state = '+'},
-};
-
-const size_t mki_default_valued_diacritic_effect_count =
-    sizeof(mki_default_valued_diacritic_effects) / sizeof(mki_default_valued_diacritic_effects[0]);
 
 const mki_decomposition mki_default_decompositions[] = {
     {.composed = "À", .decomposed = "À"},
@@ -8825,8 +8705,8 @@ static const unsigned short pbase_hc_feature_ids[] = {
 
 static const mki_feature_node_map pbase_hc_geometry_map[] = {
     {.feature = "ATR", .node = "TongueRoot"},
-    {.feature = "EXTRA", .node = "Prosodic"},
-    {.feature = "LONG", .node = "Prosodic"},
+    {.feature = "EXTRA", .node = "Length"},
+    {.feature = "LONG", .node = "Length"},
     {.feature = "anterior", .node = "Coronal"},
     {.feature = "back", .node = "Dorsal"},
     {.feature = "consonantal", .node = "Manner"},
@@ -8853,8 +8733,8 @@ static const mki_feature_node_map pbase_hc_geometry_map[] = {
 
 static const double pbase_hc_dimension_weights[] = {
     0.5,
-    0.5,
-    0.5,
+    0.33333333333333331,
+    0.33333333333333331,
     0.33333333333333331,
     0.33333333333333331,
     0.5,
@@ -9400,8 +9280,8 @@ static const unsigned short pbase_jfh_feature_ids[] = {
 #define PBASE_JFH_ENTRY_COUNT (sizeof(pbase_jfh_entry_graphemes) / sizeof(pbase_jfh_entry_graphemes[0]))
 
 static const mki_feature_node_map pbase_jfh_geometry_map[] = {
-    {.feature = "EXTRA", .node = "Prosodic"},
-    {.feature = "LONG", .node = "Prosodic"},
+    {.feature = "EXTRA", .node = "Length"},
+    {.feature = "LONG", .node = "Length"},
     {.feature = "checked", .node = "Laryngeal"},
     {.feature = "compact", .node = "Dorsal"},
     {.feature = "consonantal", .node = "Manner"},
@@ -9420,8 +9300,8 @@ static const mki_feature_node_map pbase_jfh_geometry_map[] = {
 #define PBASE_JFH_GEOMETRY_MAP_COUNT (sizeof(pbase_jfh_geometry_map) / sizeof(pbase_jfh_geometry_map[0]))
 
 static const double pbase_jfh_dimension_weights[] = {
-    0.5,
-    0.5,
+    0.33333333333333331,
+    0.33333333333333331,
     0.5,
     0.33333333333333331,
     0.5,
@@ -10495,8 +10375,8 @@ static const unsigned short pbase_spe_feature_ids[] = {
 #define PBASE_SPE_ENTRY_COUNT (sizeof(pbase_spe_entry_graphemes) / sizeof(pbase_spe_entry_graphemes[0]))
 
 static const mki_feature_node_map pbase_spe_geometry_map[] = {
-    {.feature = "EXTRA", .node = "Prosodic"},
-    {.feature = "LONG", .node = "Prosodic"},
+    {.feature = "EXTRA", .node = "Length"},
+    {.feature = "LONG", .node = "Length"},
     {.feature = "anterior", .node = "Coronal"},
     {.feature = "back", .node = "Dorsal"},
     {.feature = "consonantal", .node = "Manner"},
@@ -10525,8 +10405,8 @@ static const mki_feature_node_map pbase_spe_geometry_map[] = {
 #define PBASE_SPE_GEOMETRY_MAP_COUNT (sizeof(pbase_spe_geometry_map) / sizeof(pbase_spe_geometry_map[0]))
 
 static const double pbase_spe_dimension_weights[] = {
-    0.5,
-    0.5,
+    0.33333333333333331,
+    0.33333333333333331,
     0.33333333333333331,
     0.33333333333333331,
     0.5,
@@ -11974,8 +11854,8 @@ static const unsigned short pbase_uftc_feature_ids[] = {
 static const mki_feature_node_map pbase_uftc_geometry_map[] = {
     {.feature = "ATR", .node = "TongueRoot"},
     {.feature = "C-place", .node = "Place"},
-    {.feature = "EXTRA", .node = "Prosodic"},
-    {.feature = "LONG", .node = "Prosodic"},
+    {.feature = "EXTRA", .node = "Length"},
+    {.feature = "LONG", .node = "Length"},
     {.feature = "SYLLABIC", .node = "Manner"},
     {.feature = "V-place", .node = "Place"},
     {.feature = "anterior (C)", .node = "Coronal"},
@@ -12023,8 +11903,8 @@ static const mki_feature_node_map pbase_uftc_geometry_map[] = {
 static const double pbase_uftc_dimension_weights[] = {
     0.5,
     0.5,
-    0.5,
-    0.5,
+    0.33333333333333331,
+    0.33333333333333331,
     0.5,
     0.5,
     0.33333333333333331,
@@ -16409,7 +16289,7 @@ static const mki_feature_node_map phoible_geometry_map[] = {
     {.feature = "labiodental", .node = "Labial"},
     {.feature = "lateral", .node = "Manner"},
     {.feature = "lenis", .node = "Laryngeal"},
-    {.feature = "long", .node = "Prosodic"},
+    {.feature = "long", .node = "Length"},
     {.feature = "low", .node = "Dorsal"},
     {.feature = "loweredLarynxImplosive", .node = "Laryngeal"},
     {.feature = "nasal", .node = "Manner"},
@@ -16417,7 +16297,7 @@ static const mki_feature_node_map phoible_geometry_map[] = {
     {.feature = "raisedLarynxEjective", .node = "Laryngeal"},
     {.feature = "retractedTongueRoot", .node = "TongueRoot"},
     {.feature = "round", .node = "Labial"},
-    {.feature = "short", .node = "Prosodic"},
+    {.feature = "short", .node = "Length"},
     {.feature = "sonorant", .node = "Manner"},
     {.feature = "spreadGlottis", .node = "Laryngeal"},
     {.feature = "stress", .node = "Prosodic"},
@@ -16452,7 +16332,7 @@ static const double phoible_dimension_weights[] = {
     0.33333333333333331,
     0.5,
     0.5,
-    0.5,
+    0.33333333333333331,
     0.33333333333333331,
     0.5,
     0.5,
@@ -16460,7 +16340,7 @@ static const double phoible_dimension_weights[] = {
     0.5,
     0.5,
     0.33333333333333331,
-    0.5,
+    0.33333333333333331,
     0.5,
     0.5,
     0.5,
@@ -16473,14 +16353,620 @@ static const double phoible_dimension_weights[] = {
 };
 
 
+static const char *const pbase_hc_effect_1_features[] = {
+    "ATR",
+    "tense",
+};
+
+static const char *const pbase_hc_effect_2_features[] = {
+    "spread",
+    "tense",
+};
+
+static const char *const pbase_hc_effect_3_features[] = {
+    "spread",
+};
+
+static const char *const pbase_hc_effect_4_features[] = {
+    "constr",
+};
+
+static const char *const pbase_hc_effect_5_features[] = {
+    "distributed",
+};
+
+static const char *const pbase_hc_effect_6_features[] = {
+    "constr",
+    "tense",
+};
+
+static const char *const pbase_hc_effect_7_features[] = {
+    "labial",
+    "round",
+};
+
+static const char *const pbase_hc_effect_8_features[] = {
+    "distributed",
+};
+
+static const char *const pbase_hc_effect_9_features[] = {
+    "LONG",
+};
+
+static const char *const pbase_hc_effect_10_features[] = {
+    "nasal",
+};
+
+static const char *const pbase_hc_effect_11_features[] = {
+    "high",
+};
+
+static const char *const pbase_hc_effect_12_features[] = {
+    "back",
+    "low",
+};
+
+static const char *const pbase_hc_effect_14_features[] = {
+    "coronal",
+};
+
+static const char *const pbase_hc_effect_15_features[] = {
+    "syllabic",
+};
+
+static const char *const pbase_hc_effect_16_features[] = {
+    "EXTRA",
+};
+
+static const char *const pbase_hc_effect_17_features[] = {
+    "back",
+    "high",
+};
+
+static const char *const pbase_hc_effect_18_features[] = {
+    "lateral",
+};
+
+static const char *const pbase_hc_effect_19_features[] = {
+    "nasal",
+};
+
+static const mki_valued_effect pbase_hc_valued_effects[] = {
+    {.modifier = "advanced", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "advanced-tongue-root", .features = pbase_hc_effect_1_features, .states = "++", .feature_count = 2},
+    {.modifier = "aspirated", .features = pbase_hc_effect_2_features, .states = "++", .feature_count = 2},
+    {.modifier = "breathy", .features = pbase_hc_effect_3_features, .states = "+", .feature_count = 1},
+    {.modifier = "creaky", .features = pbase_hc_effect_4_features, .states = "+", .feature_count = 1},
+    {.modifier = "dental", .features = pbase_hc_effect_5_features, .states = "+", .feature_count = 1},
+    {.modifier = "ejective", .features = pbase_hc_effect_6_features, .states = "++", .feature_count = 2},
+    {.modifier = "labialized", .features = pbase_hc_effect_7_features, .states = "++", .feature_count = 2},
+    {.modifier = "laminal", .features = pbase_hc_effect_8_features, .states = "+", .feature_count = 1},
+    {.modifier = "long", .features = pbase_hc_effect_9_features, .states = "+", .feature_count = 1},
+    {.modifier = "nasalized", .features = pbase_hc_effect_10_features, .states = "+", .feature_count = 1},
+    {.modifier = "palatalized", .features = pbase_hc_effect_11_features, .states = "+", .feature_count = 1},
+    {.modifier = "pharyngealized", .features = pbase_hc_effect_12_features, .states = "++", .feature_count = 2},
+    {.modifier = "raised", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "rhotacized", .features = pbase_hc_effect_14_features, .states = "+", .feature_count = 1},
+    {.modifier = "syllabic", .features = pbase_hc_effect_15_features, .states = "+", .feature_count = 1},
+    {.modifier = "ultra-short", .features = pbase_hc_effect_16_features, .states = "+", .feature_count = 1},
+    {.modifier = "velarized", .features = pbase_hc_effect_17_features, .states = "++", .feature_count = 2},
+    {.modifier = "with-lateral-release", .features = pbase_hc_effect_18_features, .states = "+", .feature_count = 1},
+    {.modifier = "with-nasal-release", .features = pbase_hc_effect_19_features, .states = "+", .feature_count = 1},
+};
+
+static const char *const pbase_jfh_effect_1_features[] = {
+    "tense",
+};
+
+static const char *const pbase_jfh_effect_2_features[] = {
+    "tense",
+};
+
+static const char *const pbase_jfh_effect_4_features[] = {
+    "checked",
+};
+
+static const char *const pbase_jfh_effect_6_features[] = {
+    "voiced",
+};
+
+static const char *const pbase_jfh_effect_7_features[] = {
+    "checked",
+};
+
+static const char *const pbase_jfh_effect_8_features[] = {
+    "flat",
+};
+
+static const char *const pbase_jfh_effect_10_features[] = {
+    "LONG",
+};
+
+static const char *const pbase_jfh_effect_11_features[] = {
+    "nasal",
+};
+
+static const char *const pbase_jfh_effect_12_features[] = {
+    "sharp",
+};
+
+static const char *const pbase_jfh_effect_13_features[] = {
+    "flat",
+};
+
+static const char *const pbase_jfh_effect_14_features[] = {
+    "nasal",
+};
+
+static const char *const pbase_jfh_effect_16_features[] = {
+    "flat",
+};
+
+static const char *const pbase_jfh_effect_18_features[] = {
+    "EXTRA",
+};
+
+static const char *const pbase_jfh_effect_19_features[] = {
+    "sharp",
+};
+
+static const char *const pbase_jfh_effect_21_features[] = {
+    "nasal",
+};
+
+static const mki_valued_effect pbase_jfh_valued_effects[] = {
+    {.modifier = "advanced", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "advanced-tongue-root", .features = pbase_jfh_effect_1_features, .states = "+", .feature_count = 1},
+    {.modifier = "aspirated", .features = pbase_jfh_effect_2_features, .states = "+", .feature_count = 1},
+    {.modifier = "breathy", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "creaky", .features = pbase_jfh_effect_4_features, .states = "+", .feature_count = 1},
+    {.modifier = "dental", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "devoiced", .features = pbase_jfh_effect_6_features, .states = "-", .feature_count = 1},
+    {.modifier = "ejective", .features = pbase_jfh_effect_7_features, .states = "+", .feature_count = 1},
+    {.modifier = "labialized", .features = pbase_jfh_effect_8_features, .states = "+", .feature_count = 1},
+    {.modifier = "laminal", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "long", .features = pbase_jfh_effect_10_features, .states = "+", .feature_count = 1},
+    {.modifier = "nasalized", .features = pbase_jfh_effect_11_features, .states = "+", .feature_count = 1},
+    {.modifier = "palatalized", .features = pbase_jfh_effect_12_features, .states = "+", .feature_count = 1},
+    {.modifier = "pharyngealized", .features = pbase_jfh_effect_13_features, .states = "+", .feature_count = 1},
+    {.modifier = "pre-nasalized", .features = pbase_jfh_effect_14_features, .states = ".", .feature_count = 1},
+    {.modifier = "raised", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "rhotacized", .features = pbase_jfh_effect_16_features, .states = "+", .feature_count = 1},
+    {.modifier = "syllabic", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "ultra-short", .features = pbase_jfh_effect_18_features, .states = "+", .feature_count = 1},
+    {.modifier = "velarized", .features = pbase_jfh_effect_19_features, .states = ".", .feature_count = 1},
+    {.modifier = "with-lateral-release", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "with-nasal-release", .features = pbase_jfh_effect_21_features, .states = ".", .feature_count = 1},
+};
+
+static const char *const pbase_spe_effect_1_features[] = {
+    "tense",
+};
+
+static const char *const pbase_spe_effect_2_features[] = {
+    "heightened_subglottal_pressure",
+    "tense",
+};
+
+static const char *const pbase_spe_effect_3_features[] = {
+    "heightened_subglottal_pressure",
+};
+
+static const char *const pbase_spe_effect_4_features[] = {
+    "glottal_(tertiary)_closure",
+    "movement_of_glottal_closure",
+};
+
+static const char *const pbase_spe_effect_5_features[] = {
+    "distributed",
+};
+
+static const char *const pbase_spe_effect_6_features[] = {
+    "glottal_(tertiary)_closure",
+    "movement_of_glottal_closure",
+    "tense",
+};
+
+static const char *const pbase_spe_effect_7_features[] = {
+    "round",
+};
+
+static const char *const pbase_spe_effect_8_features[] = {
+    "distributed",
+};
+
+static const char *const pbase_spe_effect_9_features[] = {
+    "LONG",
+};
+
+static const char *const pbase_spe_effect_10_features[] = {
+    "nasal",
+};
+
+static const char *const pbase_spe_effect_11_features[] = {
+    "high",
+};
+
+static const char *const pbase_spe_effect_12_features[] = {
+    "back",
+    "low",
+};
+
+static const char *const pbase_spe_effect_14_features[] = {
+    "coronal",
+};
+
+static const char *const pbase_spe_effect_15_features[] = {
+    "syllabic",
+};
+
+static const char *const pbase_spe_effect_16_features[] = {
+    "EXTRA",
+};
+
+static const char *const pbase_spe_effect_17_features[] = {
+    "back",
+    "high",
+};
+
+static const char *const pbase_spe_effect_18_features[] = {
+    "lateral",
+};
+
+static const char *const pbase_spe_effect_19_features[] = {
+    "nasal",
+};
+
+static const mki_valued_effect pbase_spe_valued_effects[] = {
+    {.modifier = "advanced", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "advanced-tongue-root", .features = pbase_spe_effect_1_features, .states = "+", .feature_count = 1},
+    {.modifier = "aspirated", .features = pbase_spe_effect_2_features, .states = "++", .feature_count = 2},
+    {.modifier = "breathy", .features = pbase_spe_effect_3_features, .states = "+", .feature_count = 1},
+    {.modifier = "creaky", .features = pbase_spe_effect_4_features, .states = "+-", .feature_count = 2},
+    {.modifier = "dental", .features = pbase_spe_effect_5_features, .states = "+", .feature_count = 1},
+    {.modifier = "ejective", .features = pbase_spe_effect_6_features, .states = "+++", .feature_count = 3},
+    {.modifier = "labialized", .features = pbase_spe_effect_7_features, .states = "+", .feature_count = 1},
+    {.modifier = "laminal", .features = pbase_spe_effect_8_features, .states = "+", .feature_count = 1},
+    {.modifier = "long", .features = pbase_spe_effect_9_features, .states = "+", .feature_count = 1},
+    {.modifier = "nasalized", .features = pbase_spe_effect_10_features, .states = "+", .feature_count = 1},
+    {.modifier = "palatalized", .features = pbase_spe_effect_11_features, .states = "+", .feature_count = 1},
+    {.modifier = "pharyngealized", .features = pbase_spe_effect_12_features, .states = "++", .feature_count = 2},
+    {.modifier = "raised", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "rhotacized", .features = pbase_spe_effect_14_features, .states = "+", .feature_count = 1},
+    {.modifier = "syllabic", .features = pbase_spe_effect_15_features, .states = "+", .feature_count = 1},
+    {.modifier = "ultra-short", .features = pbase_spe_effect_16_features, .states = "+", .feature_count = 1},
+    {.modifier = "velarized", .features = pbase_spe_effect_17_features, .states = "++", .feature_count = 2},
+    {.modifier = "with-lateral-release", .features = pbase_spe_effect_18_features, .states = "+", .feature_count = 1},
+    {.modifier = "with-nasal-release", .features = pbase_spe_effect_19_features, .states = "+", .feature_count = 1},
+};
+
+static const char *const pbase_uftc_effect_1_features[] = {
+    "ATR",
+};
+
+static const char *const pbase_uftc_effect_2_features[] = {
+    "spread",
+};
+
+static const char *const pbase_uftc_effect_3_features[] = {
+    "spread",
+};
+
+static const char *const pbase_uftc_effect_4_features[] = {
+    "constricted",
+};
+
+static const char *const pbase_uftc_effect_5_features[] = {
+    "distributed (C)",
+    "distributed (any)",
+};
+
+static const char *const pbase_uftc_effect_6_features[] = {
+    "voice",
+};
+
+static const char *const pbase_uftc_effect_7_features[] = {
+    "constricted",
+};
+
+static const char *const pbase_uftc_effect_8_features[] = {
+    "V-place",
+    "coronal (V)",
+    "dorsal (V)",
+    "labial (V)",
+    "labial (any)",
+    "lingual (V)",
+    "pharyngeal (V)",
+    "pharyngeal (any)",
+    "vocalic",
+};
+
+static const char *const pbase_uftc_effect_9_features[] = {
+    "distributed (C)",
+    "distributed (any)",
+};
+
+static const char *const pbase_uftc_effect_10_features[] = {
+    "LONG",
+};
+
+static const char *const pbase_uftc_effect_11_features[] = {
+    "nasal",
+};
+
+static const char *const pbase_uftc_effect_12_features[] = {
+    "SYLLABIC",
+};
+
+static const char *const pbase_uftc_effect_13_features[] = {
+    "V-place",
+    "anterior (V)",
+    "coronal (V)",
+    "distributed (V)",
+    "distributed (any)",
+    "dorsal (V)",
+    "labial (V)",
+    "lingual (V)",
+    "pharyngeal (V)",
+    "vocalic",
+};
+
+static const char *const pbase_uftc_effect_14_features[] = {
+    "V-place",
+    "coronal (V)",
+    "dorsal (V)",
+    "labial (V)",
+    "lingual (V)",
+    "pharyngeal (V)",
+    "pharyngeal (any)",
+    "vocalic",
+};
+
+static const char *const pbase_uftc_effect_15_features[] = {
+    "nasal",
+};
+
+static const char *const pbase_uftc_effect_17_features[] = {
+    "anterior (V)",
+    "anterior (any)",
+    "coronal (V)",
+    "coronal (any)",
+    "distributed (V)",
+    "distributed (any)",
+    "lingual (V)",
+    "lingual (any)",
+};
+
+static const char *const pbase_uftc_effect_18_features[] = {
+    "SYLLABIC",
+};
+
+static const char *const pbase_uftc_effect_19_features[] = {
+    "EXTRA",
+};
+
+static const char *const pbase_uftc_effect_20_features[] = {
+    "V-place",
+    "coronal (V)",
+    "dorsal (V)",
+    "dorsal (any)",
+    "labial (V)",
+    "lingual (V)",
+    "pharyngeal (V)",
+    "vocalic",
+};
+
+static const char *const pbase_uftc_effect_21_features[] = {
+    "lateral",
+};
+
+static const char *const pbase_uftc_effect_22_features[] = {
+    "nasal",
+};
+
+static const mki_valued_effect pbase_uftc_valued_effects[] = {
+    {.modifier = "advanced", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "advanced-tongue-root", .features = pbase_uftc_effect_1_features, .states = "+", .feature_count = 1},
+    {.modifier = "aspirated", .features = pbase_uftc_effect_2_features, .states = "+", .feature_count = 1},
+    {.modifier = "breathy", .features = pbase_uftc_effect_3_features, .states = "+", .feature_count = 1},
+    {.modifier = "creaky", .features = pbase_uftc_effect_4_features, .states = "+", .feature_count = 1},
+    {.modifier = "dental", .features = pbase_uftc_effect_5_features, .states = "++", .feature_count = 2},
+    {.modifier = "devoiced", .features = pbase_uftc_effect_6_features, .states = "-", .feature_count = 1},
+    {.modifier = "ejective", .features = pbase_uftc_effect_7_features, .states = "+", .feature_count = 1},
+    {.modifier = "labialized", .features = pbase_uftc_effect_8_features, .states = "x--++-++x", .feature_count = 9},
+    {.modifier = "laminal", .features = pbase_uftc_effect_9_features, .states = "++", .feature_count = 2},
+    {.modifier = "long", .features = pbase_uftc_effect_10_features, .states = "+", .feature_count = 1},
+    {.modifier = "nasalized", .features = pbase_uftc_effect_11_features, .states = "+", .feature_count = 1},
+    {.modifier = "non-syllabic", .features = pbase_uftc_effect_12_features, .states = "-", .feature_count = 1},
+    {.modifier = "palatalized", .features = pbase_uftc_effect_13_features, .states = "x-+++--+-x", .feature_count = 10},
+    {.modifier = "pharyngealized", .features = pbase_uftc_effect_14_features, .states = "x----++x", .feature_count = 8},
+    {.modifier = "pre-nasalized", .features = pbase_uftc_effect_15_features, .states = "+", .feature_count = 1},
+    {.modifier = "raised", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "rhotacized", .features = pbase_uftc_effect_17_features, .states = "--++--++", .feature_count = 8},
+    {.modifier = "syllabic", .features = pbase_uftc_effect_18_features, .states = "+", .feature_count = 1},
+    {.modifier = "ultra-short", .features = pbase_uftc_effect_19_features, .states = "+", .feature_count = 1},
+    {.modifier = "velarized", .features = pbase_uftc_effect_20_features, .states = "x-++-+-x", .feature_count = 8},
+    {.modifier = "with-lateral-release", .features = pbase_uftc_effect_21_features, .states = "+", .feature_count = 1},
+    {.modifier = "with-nasal-release", .features = pbase_uftc_effect_22_features, .states = "+", .feature_count = 1},
+};
+
+static const char *const phoible_effect_0_features[] = {
+    "advancedTongueRoot",
+};
+
+static const char *const phoible_effect_2_features[] = {
+    "spreadGlottis",
+};
+
+static const char *const phoible_effect_3_features[] = {
+    "spreadGlottis",
+};
+
+static const char *const phoible_effect_4_features[] = {
+    "constrictedGlottis",
+};
+
+static const char *const phoible_effect_5_features[] = {
+    "distributed",
+};
+
+static const char *const phoible_effect_6_features[] = {
+    "periodicGlottalSource",
+};
+
+static const char *const phoible_effect_7_features[] = {
+    "constrictedGlottis",
+    "raisedLarynxEjective",
+};
+
+static const char *const phoible_effect_8_features[] = {
+    "constrictedGlottis",
+};
+
+static const char *const phoible_effect_9_features[] = {
+    "labial",
+    "labiodental",
+    "round",
+};
+
+static const char *const phoible_effect_10_features[] = {
+    "distributed",
+};
+
+static const char *const phoible_effect_11_features[] = {
+    "round",
+};
+
+static const char *const phoible_effect_12_features[] = {
+    "coronal",
+};
+
+static const char *const phoible_effect_13_features[] = {
+    "long",
+};
+
+static const char *const phoible_effect_14_features[] = {
+    "long",
+    "short",
+};
+
+static const char *const phoible_effect_16_features[] = {
+    "nasal",
+};
+
+static const char *const phoible_effect_17_features[] = {
+    "syllabic",
+};
+
+static const char *const phoible_effect_18_features[] = {
+    "back",
+    "dorsal",
+    "front",
+    "high",
+    "low",
+};
+
+static const char *const phoible_effect_19_features[] = {
+    "advancedTongueRoot",
+    "retractedTongueRoot",
+};
+
+static const char *const phoible_effect_20_features[] = {
+    "spreadGlottis",
+};
+
+static const char *const phoible_effect_21_features[] = {
+    "constrictedGlottis",
+};
+
+static const char *const phoible_effect_22_features[] = {
+    "labial",
+    "labiodental",
+    "round",
+};
+
+static const char *const phoible_effect_23_features[] = {
+    "anterior",
+    "distributed",
+};
+
+static const char *const phoible_effect_24_features[] = {
+    "retractedTongueRoot",
+};
+
+static const char *const phoible_effect_25_features[] = {
+    "anterior",
+    "coronal",
+    "distributed",
+    "strident",
+};
+
+static const char *const phoible_effect_26_features[] = {
+    "fortis",
+};
+
+static const char *const phoible_effect_27_features[] = {
+    "syllabic",
+};
+
+static const char *const phoible_effect_28_features[] = {
+    "short",
+};
+
+static const char *const phoible_effect_29_features[] = {
+    "back",
+    "dorsal",
+    "front",
+    "high",
+    "low",
+};
+
+static const char *const phoible_effect_30_features[] = {
+    "nasal",
+};
+
+static const mki_valued_effect phoible_valued_effects[] = {
+    {.modifier = "advanced-tongue-root", .features = phoible_effect_0_features, .states = "+", .feature_count = 1},
+    {.modifier = "apical", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "aspirated", .features = phoible_effect_2_features, .states = "+", .feature_count = 1},
+    {.modifier = "breathy", .features = phoible_effect_3_features, .states = "+", .feature_count = 1},
+    {.modifier = "creaky", .features = phoible_effect_4_features, .states = "+", .feature_count = 1},
+    {.modifier = "dental", .features = phoible_effect_5_features, .states = "+", .feature_count = 1},
+    {.modifier = "devoiced", .features = phoible_effect_6_features, .states = "-", .feature_count = 1},
+    {.modifier = "ejective", .features = phoible_effect_7_features, .states = "++", .feature_count = 2},
+    {.modifier = "glottalized", .features = phoible_effect_8_features, .states = "+", .feature_count = 1},
+    {.modifier = "labialized", .features = phoible_effect_9_features, .states = "+-+", .feature_count = 3},
+    {.modifier = "laminal", .features = phoible_effect_10_features, .states = "+", .feature_count = 1},
+    {.modifier = "less-rounded", .features = phoible_effect_11_features, .states = "0", .feature_count = 1},
+    {.modifier = "linguolabial", .features = phoible_effect_12_features, .states = "+", .feature_count = 1},
+    {.modifier = "long", .features = phoible_effect_13_features, .states = "+", .feature_count = 1},
+    {.modifier = "mid-long", .features = phoible_effect_14_features, .states = "++", .feature_count = 2},
+    {.modifier = "more-rounded", .features = NULL, .states = "", .feature_count = 0},
+    {.modifier = "nasalized", .features = phoible_effect_16_features, .states = "+", .feature_count = 1},
+    {.modifier = "non-syllabic", .features = phoible_effect_17_features, .states = "?", .feature_count = 1},
+    {.modifier = "palatalized", .features = phoible_effect_18_features, .states = "-+++-", .feature_count = 5},
+    {.modifier = "pharyngealized", .features = phoible_effect_19_features, .states = "-+", .feature_count = 2},
+    {.modifier = "pre-aspirated", .features = phoible_effect_20_features, .states = "?", .feature_count = 1},
+    {.modifier = "pre-glottalized", .features = phoible_effect_21_features, .states = "?", .feature_count = 1},
+    {.modifier = "pre-labialized", .features = phoible_effect_22_features, .states = "?-+", .feature_count = 3},
+    {.modifier = "retracted", .features = phoible_effect_23_features, .states = "-+", .feature_count = 2},
+    {.modifier = "retracted-tongue-root", .features = phoible_effect_24_features, .states = "+", .feature_count = 1},
+    {.modifier = "rhotacized", .features = phoible_effect_25_features, .states = "++++", .feature_count = 4},
+    {.modifier = "strong", .features = phoible_effect_26_features, .states = "+", .feature_count = 1},
+    {.modifier = "syllabic", .features = phoible_effect_27_features, .states = "+", .feature_count = 1},
+    {.modifier = "ultra-short", .features = phoible_effect_28_features, .states = "+", .feature_count = 1},
+    {.modifier = "velarized", .features = phoible_effect_29_features, .states = "-+-+-", .feature_count = 5},
+    {.modifier = "with-nasal-release", .features = phoible_effect_30_features, .states = "+", .feature_count = 1},
+};
+
 const mki_builtin_system mki_builtin_systems[] = {
-    {.name = "descriptive", .version = "2.0.0", .model_sha256 = "6b00c87bee9726c715a75d2d6f8b36bec30bff43a5f7b92c93631188b4e3505e", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DESCRIPTIVE_ENTRY_COUNT, .entry_graphemes = descriptive_entry_graphemes, .entry_feature_at = descriptive_entry_feature_at, .entry_feature_n = descriptive_entry_feature_n, .feature_ids = descriptive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
-    {.name = "distinctive", .version = "3.0.0", .model_sha256 = "bfda10c00849eefc27e3c83bbadb4524e396e5f760a6f76946185f216c1089ca", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DISTINCTIVE_ENTRY_COUNT, .entry_graphemes = distinctive_entry_graphemes, .entry_feature_at = distinctive_entry_feature_at, .entry_feature_n = distinctive_entry_feature_n, .feature_ids = distinctive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = distinctive_scalar_dimensions, .scalar_dimension_count = DISTINCTIVE_SCALAR_DIMENSIONS_COUNT},
-    {.name = "pbase-hc", .version = "1.0.0", .model_sha256 = "b6fca8fea88c07aa65d66783c92cebc832c8393c252bdba29ac0a07bd7eede3f", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_HC_ENTRY_COUNT, .entry_graphemes = pbase_hc_entry_graphemes, .entry_feature_at = pbase_hc_entry_feature_at, .entry_feature_n = pbase_hc_entry_feature_n, .feature_ids = pbase_hc_feature_ids, .geometry_map = pbase_hc_geometry_map, .geometry_map_count = PBASE_HC_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_hc_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
-    {.name = "pbase-jfh", .version = "1.0.0", .model_sha256 = "f155c702b36dc96545ce2b74ef852bc19709dd9baccedc30b6afeecfc50f4ee0", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_JFH_ENTRY_COUNT, .entry_graphemes = pbase_jfh_entry_graphemes, .entry_feature_at = pbase_jfh_entry_feature_at, .entry_feature_n = pbase_jfh_entry_feature_n, .feature_ids = pbase_jfh_feature_ids, .geometry_map = pbase_jfh_geometry_map, .geometry_map_count = PBASE_JFH_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_jfh_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
-    {.name = "pbase-spe", .version = "1.0.0", .model_sha256 = "95a4bf806f9755404224ebab9def82d9a8803b182ee75061d615a833b2937734", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_SPE_ENTRY_COUNT, .entry_graphemes = pbase_spe_entry_graphemes, .entry_feature_at = pbase_spe_entry_feature_at, .entry_feature_n = pbase_spe_entry_feature_n, .feature_ids = pbase_spe_feature_ids, .geometry_map = pbase_spe_geometry_map, .geometry_map_count = PBASE_SPE_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_spe_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
-    {.name = "pbase-uftc", .version = "1.0.0", .model_sha256 = "d846557f3214895a91182e2313bce4b5ed2b38482e447310e1554149529b76a2", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_UFTC_ENTRY_COUNT, .entry_graphemes = pbase_uftc_entry_graphemes, .entry_feature_at = pbase_uftc_entry_feature_at, .entry_feature_n = pbase_uftc_entry_feature_n, .feature_ids = pbase_uftc_feature_ids, .geometry_map = pbase_uftc_geometry_map, .geometry_map_count = PBASE_UFTC_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_uftc_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
-    {.name = "phoible", .version = "2.0.1", .model_sha256 = "5f94ad18ee841a38096f2f6ca20c6aa9362301a280c29e9f6f51df494b35b935", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PHOIBLE_ENTRY_COUNT, .entry_graphemes = phoible_entry_graphemes, .entry_feature_at = phoible_entry_feature_at, .entry_feature_n = phoible_entry_feature_n, .feature_ids = phoible_feature_ids, .geometry_map = phoible_geometry_map, .geometry_map_count = PHOIBLE_GEOMETRY_MAP_COUNT, .dimension_weights = phoible_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
+    {.name = "descriptive", .version = "2.0.0", .model_sha256 = "6b00c87bee9726c715a75d2d6f8b36bec30bff43a5f7b92c93631188b4e3505e", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DESCRIPTIVE_ENTRY_COUNT, .entry_graphemes = descriptive_entry_graphemes, .entry_feature_at = descriptive_entry_feature_at, .entry_feature_n = descriptive_entry_feature_n, .feature_ids = descriptive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = NULL, .valued_effect_count = 0},
+    {.name = "distinctive", .version = "3.0.0", .model_sha256 = "bfda10c00849eefc27e3c83bbadb4524e396e5f760a6f76946185f216c1089ca", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DISTINCTIVE_ENTRY_COUNT, .entry_graphemes = distinctive_entry_graphemes, .entry_feature_at = distinctive_entry_feature_at, .entry_feature_n = distinctive_entry_feature_n, .feature_ids = distinctive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = distinctive_scalar_dimensions, .scalar_dimension_count = DISTINCTIVE_SCALAR_DIMENSIONS_COUNT, .valued_effects = NULL, .valued_effect_count = 0},
+    {.name = "pbase-hc", .version = "2.0.0", .model_sha256 = "c7a18d432cba6106b8f487d7603e27b1913b9fdf0178a11c0fddefad55078247", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_HC_ENTRY_COUNT, .entry_graphemes = pbase_hc_entry_graphemes, .entry_feature_at = pbase_hc_entry_feature_at, .entry_feature_n = pbase_hc_entry_feature_n, .feature_ids = pbase_hc_feature_ids, .geometry_map = pbase_hc_geometry_map, .geometry_map_count = PBASE_HC_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_hc_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = pbase_hc_valued_effects, .valued_effect_count = 20},
+    {.name = "pbase-jfh", .version = "2.0.0", .model_sha256 = "2087393b1c181e470beaa3e721b66214b21457189a2670f05d2ceb2f368b321e", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_JFH_ENTRY_COUNT, .entry_graphemes = pbase_jfh_entry_graphemes, .entry_feature_at = pbase_jfh_entry_feature_at, .entry_feature_n = pbase_jfh_entry_feature_n, .feature_ids = pbase_jfh_feature_ids, .geometry_map = pbase_jfh_geometry_map, .geometry_map_count = PBASE_JFH_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_jfh_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = pbase_jfh_valued_effects, .valued_effect_count = 22},
+    {.name = "pbase-spe", .version = "2.0.0", .model_sha256 = "f0b84896982327dbc0611644b336d207a28cee213a907ca94505a895a1f3fe34", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_SPE_ENTRY_COUNT, .entry_graphemes = pbase_spe_entry_graphemes, .entry_feature_at = pbase_spe_entry_feature_at, .entry_feature_n = pbase_spe_entry_feature_n, .feature_ids = pbase_spe_feature_ids, .geometry_map = pbase_spe_geometry_map, .geometry_map_count = PBASE_SPE_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_spe_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = pbase_spe_valued_effects, .valued_effect_count = 20},
+    {.name = "pbase-uftc", .version = "2.0.0", .model_sha256 = "6cc33ff24aefcd401d858504d33dec3b9c56243a8d9cb37a79bf1d7823d05598", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PBASE_UFTC_ENTRY_COUNT, .entry_graphemes = pbase_uftc_entry_graphemes, .entry_feature_at = pbase_uftc_entry_feature_at, .entry_feature_n = pbase_uftc_entry_feature_n, .feature_ids = pbase_uftc_feature_ids, .geometry_map = pbase_uftc_geometry_map, .geometry_map_count = PBASE_UFTC_GEOMETRY_MAP_COUNT, .dimension_weights = pbase_uftc_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = pbase_uftc_valued_effects, .valued_effect_count = 23},
+    {.name = "phoible", .version = "3.0.0", .model_sha256 = "6d3e20949f9358b0869cfcd3a37f1f82b626671c55fafae5006578bafa52873c", .kind = MKI_SYSTEM_VALUED, .entries = NULL, .entry_count = PHOIBLE_ENTRY_COUNT, .entry_graphemes = phoible_entry_graphemes, .entry_feature_at = phoible_entry_feature_at, .entry_feature_n = phoible_entry_feature_n, .feature_ids = phoible_feature_ids, .geometry_map = phoible_geometry_map, .geometry_map_count = PHOIBLE_GEOMETRY_MAP_COUNT, .dimension_weights = phoible_dimension_weights, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = phoible_valued_effects, .valued_effect_count = 31},
 };
 
 const size_t mki_builtin_system_count =

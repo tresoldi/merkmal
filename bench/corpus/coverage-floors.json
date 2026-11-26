@@ -10,24 +10,24 @@
       "tokens_pct": 99.72
     },
     "pbase-hc": {
-      "types_pct": 73.82,
-      "tokens_pct": 95.63
+      "types_pct": 63.44,
+      "tokens_pct": 95.02
     },
     "pbase-jfh": {
-      "types_pct": 73.82,
-      "tokens_pct": 95.63
+      "types_pct": 66.29,
+      "tokens_pct": 95.29
     },
     "pbase-spe": {
-      "types_pct": 73.82,
-      "tokens_pct": 95.63
+      "types_pct": 63.41,
+      "tokens_pct": 95.02
     },
     "pbase-uftc": {
-      "types_pct": 73.82,
-      "tokens_pct": 95.63
+      "types_pct": 67.09,
+      "tokens_pct": 95.32
     },
     "phoible": {
-      "types_pct": 79.26,
-      "tokens_pct": 95.82
+      "types_pct": 77.79,
+      "tokens_pct": 95.77
     }
   }
 }

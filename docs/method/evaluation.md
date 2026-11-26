@@ -79,7 +79,11 @@ in `bench/corpus/provenance.json`.
 **Results.** Recognition floors per system are recorded in
 `bench/corpus/coverage-floors.json`, and the check fails if coverage falls below
 them. For `distinctive` and `descriptive` the floors are 95.36% of segment types
-and 99.72% of tokens. They were 95.44% until 0.10.0, which refuses a mark
+and 99.72% of tokens; for `phoible` 77.79% and 95.77%, and for the P-base
+systems 63.41-67.09% and 95.02-95.32%. The valued floors fell after 0.10.0,
+when a valued system began refusing a mark whose effect it cannot learn from
+its own table instead of reading the segment as its base (`kˀ`, `ä`, `i̠` in
+P-base). The categorical floors were 95.44% until 0.10.0, which refuses a mark
 written twice on one letter; the six segment types that does affect (`ts̠̠`,
 `ɑ̠̠`, `ao̠̠̠`, `õ̃i`, `ẽː̃`, `⁵/ẽː̃`) were read as the type with the mark once.
 

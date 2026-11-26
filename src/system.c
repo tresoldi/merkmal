@@ -161,6 +161,16 @@ static mk_status mk_score_resolved(
         return MK_OK;
     }
 
+    /* Two tones in a valued system. PHOIBLE lists the tone letters, but each
+     * row carries tone=+ and nothing else, so every pair of them was 0.0
+     * (`˥` against `˩`): nothing in the table tells one tone from another,
+     * which is the reason a valued system refuses a tone mark. A tone against
+     * a segment stays cross-tier, above. */
+    if (system->builtin->kind == MKI_SYSTEM_VALUED && mki_view_is_tone(mki_view_of(a)) &&
+        mki_view_is_tone(mki_view_of(b)) && !mki_streq(a->grapheme, b->grapheme)) {
+        return MK_ERR_UNSUPPORTED_MODEL;
+    }
+
     scorer = mki_scorer_for(system->builtin);
     if (scorer == NULL) {
         return MK_ERR_UNSUPPORTED_MODEL;

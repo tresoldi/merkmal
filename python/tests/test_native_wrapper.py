@@ -316,7 +316,9 @@ def test_native_distance_matches_golden_probe() -> None:
         # 0.0366 before the PHOIBLE cells were rebuilt from the pinned upstream
         # table. Reading its `0` -- "this feature does not apply" -- as `-` made
         # /p/ and /b/ agree on dimensions neither has, which shrank the distance.
-        0.0394736842,
+        # 0.0395 before `long` and `short` moved under Length, whose greater
+        # depth gives them less weight.
+        0.0405405405,
         abs_tol=1e-10,
     )
     assert merkmal.feature_distance("voiced", "voiceless") == 2
@@ -815,6 +817,11 @@ def test_feature_vectors_are_lossless() -> None:
         for grapheme in (row.split("\t")[0] for row in rows if row):
             vector = tuple(merkmal.feature_vector(grapheme, system=system))
             first = by_vector.setdefault(vector, grapheme)
+            if first != grapheme and set(first + grapheme) <= set("˥˦˧˨˩"):
+                # Two tones in a valued system are refused, not compared.
+                with pytest.raises(NotImplementedError):
+                    merkmal.distance(first, grapheme, system=system)
+                continue
             distance = merkmal.distance(first, grapheme, system=system)
             assert distance == 0.0, (system, first, grapheme)
     assert merkmal.feature_vector("a") != merkmal.feature_vector("e")
@@ -1858,3 +1865,28 @@ def test_trills_are_not_approximants() -> None:
     # distinctive separated r from ɹ.
     for trill, approximant in (("r", "ɹ"), ("ʙ", "β̞"), ("ʀ", "ʁ̞")):
         assert merkmal.distance(trill, approximant) > 0.0
+@requires_full_data
+def test_valued_systems_read_marks_as_their_tables_do() -> None:
+    # A mark the system has no learned effect for is refused, not ignored:
+    # pbase-jfh read p-aspirated as p, PHOIBLE read t-unreleased as t.
+    with pytest.raises(NotImplementedError):
+        merkmal.distance("t", "t̚", system="phoible")
+    # Learned marks still distinguish: aspiration, ejection, labialization.
+    for system in ("phoible", "pbase-spe"):
+        for base, marked in (("p", "pʰ"), ("k", "kʼ"), ("t", "tʷ")):
+            assert merkmal.distance(base, marked, system=system) > 0.0
+    # PHOIBLE's tone rows carry tone=+ and nothing else, so two of them were
+    # always equal; a tone row against a segment stays cross-tier.
+    with pytest.raises(NotImplementedError):
+        merkmal.distance("˥", "˩", system="phoible")
+    assert merkmal.distance_with_coverage("˥", "a", system="phoible").comparability == (
+        "cross-tier"
+    )
+    # PHOIBLE spells prenasalized stops with a full nasal letter; the
+    # modifier-letter spelling reads as that row, with the homorganic nasal.
+    assert merkmal.distance("ⁿd", "nd", system="phoible") == 0.0
+    assert merkmal.distance("ⁿb", "mb", system="phoible") == 0.0
+    assert merkmal.distance("ⁿg", "ŋg", system="phoible") == 0.0
+    # Length is under Length in every system, so ignore-length drops it.
+    for system in ("phoible", "pbase-spe"):
+        assert merkmal.distance("a", "aː", system=system, node_weights="ignore-length") == 0.0

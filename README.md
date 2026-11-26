@@ -43,6 +43,10 @@ release and every transformation applied to it, is recorded in
 Segments that a table does not list are, where possible, derived from listed
 ones: a base segment with diacritics, tone marks or length, a diphthong, an
 affricate or labial-velar written without a tie bar, or a consonant cluster.
+The categorical systems derive all of these. A valued system derives only a
+listed segment with marks, and only with marks whose effect it can learn from
+its own table (rows such as `tʰ` beside `t`); a segment carrying any other mark
+is refused rather than read as its base.
 
 Callers may also register models of their own at run time, in a line-oriented
 text format ([docs/guide/runtime-model-format.md](docs/guide/runtime-model-format.md)).
@@ -95,6 +99,15 @@ properties limit what that number can be used for.
 - **It is a substitution cost, not an aligner.** The library has no gap model and
   no sequence operations. The gap cost that best reproduces expert alignments
   differs between systems ([evaluation](docs/method/evaluation.md#1-segment-substitution-cost-in-pairwise-alignment)).
+- **The valued systems are for comparing feature theories.** They are less
+  suited to alignment costs than the categorical systems
+  ([evaluation](docs/method/evaluation.md)). PHOIBLE writes the changing values
+  of a contour segment (a diphthong, a pre- or post-released consonant) as
+  unknown, so such a segment is compared only on the dimensions that stay
+  constant, and two diphthongs can be at distance zero with partial coverage
+  (`d(ai, au) = 0.0`, coverage 0.6). Two of its tone rows are not compared with
+  each other, as tone marks are refused in every valued system: no dimension
+  distinguishes one tone from another.
 - **Identical values are reported, not hidden.** Pairs of distinct segments with
   a distance of zero are listed with their reasons in
   `tests/golden/contrast_baseline.tsv`. In the categorical systems they are

@@ -2032,7 +2032,7 @@ const size_t mki_clements_hume_feature_path_count =
     sizeof(mki_clements_hume_feature_paths) / sizeof(mki_clements_hume_feature_paths[0]);
 
 const char *const mki_fingerprint_geometry_sha256 = "d58514b703681c20eb917eb8e0775fb2ccd5ea8e7d39a62baf327468465a21df";
-const char *const mki_fingerprint_diacritics_sha256 = "9101983eddb012bd7056e1fd5144dff0efb836578ab22c20e62e1d75026c4fce";
+const char *const mki_fingerprint_diacritics_sha256 = "556686dfcaddd44420cb97246a5281673e01236cb4fd92bb5de38cdfcd0a1cc0";
 
 static const char *const mk_clements_hume_ordinal_levels_0[] = {
     "close",
@@ -2273,126 +2273,6 @@ const mki_tone_mark mki_default_tone_marks[] = {
 
 const size_t mki_default_tone_mark_count =
     sizeof(mki_default_tone_marks) / sizeof(mki_default_tone_marks[0]);
-
-static const char *const mk_default_valued_effect_0_alternatives[] = {
-    "advancedTongueRoot",
-    "ATR",
-};
-
-static const char *const mk_default_valued_effect_1_alternatives[] = {
-    "spreadGlottis",
-    "spread",
-};
-
-static const char *const mk_default_valued_effect_2_alternatives[] = {
-    "spreadGlottis",
-    "spread",
-};
-
-static const char *const mk_default_valued_effect_3_alternatives[] = {
-    "constrictedGlottis",
-    "constr",
-};
-
-static const char *const mk_default_valued_effect_4_alternatives[] = {
-    "distributed",
-};
-
-static const char *const mk_default_valued_effect_5_alternatives[] = {
-    "periodicGlottalSource",
-    "voice",
-    "voiced",
-};
-
-static const char *const mk_default_valued_effect_6_alternatives[] = {
-    "raisedLarynxEjective",
-    "constrictedGlottis",
-    "constr",
-};
-
-static const char *const mk_default_valued_effect_7_alternatives[] = {
-    "constrictedGlottis",
-    "constr",
-};
-
-static const char *const mk_default_valued_effect_8_alternatives[] = {
-    "round",
-};
-
-static const char *const mk_default_valued_effect_9_alternatives[] = {
-    "round",
-};
-
-static const char *const mk_default_valued_effect_10_alternatives[] = {
-    "long",
-    "LONG",
-};
-
-static const char *const mk_default_valued_effect_11_alternatives[] = {
-    "round",
-};
-
-static const char *const mk_default_valued_effect_12_alternatives[] = {
-    "nasal",
-};
-
-static const char *const mk_default_valued_effect_13_alternatives[] = {
-    "syllabic",
-    "SYLLABIC",
-};
-
-static const char *const mk_default_valued_effect_14_alternatives[] = {
-    "high",
-};
-
-static const char *const mk_default_valued_effect_15_alternatives[] = {
-    "retractedTongueRoot",
-};
-
-static const char *const mk_default_valued_effect_16_alternatives[] = {
-    "retractedTongueRoot",
-};
-
-static const char *const mk_default_valued_effect_17_alternatives[] = {
-    "periodicGlottalSource",
-    "voice",
-    "voiced",
-};
-
-static const char *const mk_default_valued_effect_18_alternatives[] = {
-    "syllabic",
-    "SYLLABIC",
-};
-
-static const char *const mk_default_valued_effect_19_alternatives[] = {
-    "dorsal",
-};
-
-const mki_valued_diacritic_effect mki_default_valued_diacritic_effects[] = {
-    {.modifier = "advanced-tongue-root", .alternatives = mk_default_valued_effect_0_alternatives, .alternative_count = 2, .state = '+'},
-    {.modifier = "aspirated", .alternatives = mk_default_valued_effect_1_alternatives, .alternative_count = 2, .state = '+'},
-    {.modifier = "breathy", .alternatives = mk_default_valued_effect_2_alternatives, .alternative_count = 2, .state = '+'},
-    {.modifier = "creaky", .alternatives = mk_default_valued_effect_3_alternatives, .alternative_count = 2, .state = '+'},
-    {.modifier = "dental", .alternatives = mk_default_valued_effect_4_alternatives, .alternative_count = 1, .state = '+'},
-    {.modifier = "devoiced", .alternatives = mk_default_valued_effect_5_alternatives, .alternative_count = 3, .state = '-'},
-    {.modifier = "ejective", .alternatives = mk_default_valued_effect_6_alternatives, .alternative_count = 3, .state = '+'},
-    {.modifier = "glottalized", .alternatives = mk_default_valued_effect_7_alternatives, .alternative_count = 2, .state = '+'},
-    {.modifier = "labialized", .alternatives = mk_default_valued_effect_8_alternatives, .alternative_count = 1, .state = '+'},
-    {.modifier = "less-rounded", .alternatives = mk_default_valued_effect_9_alternatives, .alternative_count = 1, .state = '-'},
-    {.modifier = "long", .alternatives = mk_default_valued_effect_10_alternatives, .alternative_count = 2, .state = '+'},
-    {.modifier = "more-rounded", .alternatives = mk_default_valued_effect_11_alternatives, .alternative_count = 1, .state = '+'},
-    {.modifier = "nasalized", .alternatives = mk_default_valued_effect_12_alternatives, .alternative_count = 1, .state = '+'},
-    {.modifier = "non-syllabic", .alternatives = mk_default_valued_effect_13_alternatives, .alternative_count = 2, .state = '-'},
-    {.modifier = "palatalized", .alternatives = mk_default_valued_effect_14_alternatives, .alternative_count = 1, .state = '+'},
-    {.modifier = "pharyngealized", .alternatives = mk_default_valued_effect_15_alternatives, .alternative_count = 1, .state = '+'},
-    {.modifier = "retracted-tongue-root", .alternatives = mk_default_valued_effect_16_alternatives, .alternative_count = 1, .state = '+'},
-    {.modifier = "revoiced", .alternatives = mk_default_valued_effect_17_alternatives, .alternative_count = 3, .state = '+'},
-    {.modifier = "syllabic", .alternatives = mk_default_valued_effect_18_alternatives, .alternative_count = 2, .state = '+'},
-    {.modifier = "velarized", .alternatives = mk_default_valued_effect_19_alternatives, .alternative_count = 1, .state = '+'},
-};
-
-const size_t mki_default_valued_diacritic_effect_count =
-    sizeof(mki_default_valued_diacritic_effects) / sizeof(mki_default_valued_diacritic_effects[0]);
 
 const mki_decomposition mki_default_decompositions[] = {
     {.composed = "À", .decomposed = "À"},
@@ -4125,8 +4005,8 @@ static const mki_scalar_dimension distinctive_scalar_dimensions[] = {
 #define DISTINCTIVE_SCALAR_DIMENSIONS_COUNT (sizeof(distinctive_scalar_dimensions) / sizeof(distinctive_scalar_dimensions[0]))
 
 const mki_builtin_system mki_builtin_systems[] = {
-    {.name = "descriptive", .version = "2.0.0", .model_sha256 = "6b00c87bee9726c715a75d2d6f8b36bec30bff43a5f7b92c93631188b4e3505e", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DESCRIPTIVE_ENTRY_COUNT, .entry_graphemes = descriptive_entry_graphemes, .entry_feature_at = descriptive_entry_feature_at, .entry_feature_n = descriptive_entry_feature_n, .feature_ids = descriptive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = NULL, .scalar_dimension_count = 0},
-    {.name = "distinctive", .version = "3.0.0", .model_sha256 = "bfda10c00849eefc27e3c83bbadb4524e396e5f760a6f76946185f216c1089ca", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DISTINCTIVE_ENTRY_COUNT, .entry_graphemes = distinctive_entry_graphemes, .entry_feature_at = distinctive_entry_feature_at, .entry_feature_n = distinctive_entry_feature_n, .feature_ids = distinctive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = distinctive_scalar_dimensions, .scalar_dimension_count = DISTINCTIVE_SCALAR_DIMENSIONS_COUNT},
+    {.name = "descriptive", .version = "2.0.0", .model_sha256 = "6b00c87bee9726c715a75d2d6f8b36bec30bff43a5f7b92c93631188b4e3505e", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DESCRIPTIVE_ENTRY_COUNT, .entry_graphemes = descriptive_entry_graphemes, .entry_feature_at = descriptive_entry_feature_at, .entry_feature_n = descriptive_entry_feature_n, .feature_ids = descriptive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = NULL, .scalar_dimension_count = 0, .valued_effects = NULL, .valued_effect_count = 0},
+    {.name = "distinctive", .version = "3.0.0", .model_sha256 = "bfda10c00849eefc27e3c83bbadb4524e396e5f760a6f76946185f216c1089ca", .kind = MKI_SYSTEM_CATEGORICAL, .entries = NULL, .entry_count = DISTINCTIVE_ENTRY_COUNT, .entry_graphemes = distinctive_entry_graphemes, .entry_feature_at = distinctive_entry_feature_at, .entry_feature_n = distinctive_entry_feature_n, .feature_ids = distinctive_feature_ids, .geometry_map = NULL, .geometry_map_count = 0, .dimension_weights = NULL, .scalar_dimensions = distinctive_scalar_dimensions, .scalar_dimension_count = DISTINCTIVE_SCALAR_DIMENSIONS_COUNT, .valued_effects = NULL, .valued_effect_count = 0},
 };
 
 const size_t mki_builtin_system_count =
