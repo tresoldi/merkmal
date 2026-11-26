@@ -418,12 +418,20 @@ def test_native_registry_runtime_model() -> None:
         )
     )
     assert "toy" in registry.list_systems()
+    # The row's own labels, and the class and articulator labels a compiled
+    # row with them carries.
     assert registry.get_features("X", system="toy") == frozenset(
         {"consonant", "voiceless", "bilabial", "stop"}
+        | {"consonantal", "obstruent", "non-continuant", "labial"}
     )
     assert registry.is_segment("Y", system="toy")
+    # The same labels as descriptive's p and b, so the same distance. Before
+    # the derivation reached runtime rows it was 0.278: the voicing difference
+    # weighed against far fewer shared dimensions.
     assert math.isclose(
-        registry.distance("X", "Y", system="toy"), 0.2777777777777778, abs_tol=1e-10
+        registry.distance("X", "Y", system="toy"),
+        merkmal.distance("p", "b", system="descriptive"),
+        abs_tol=1e-10,
     )
 
 
@@ -674,6 +682,7 @@ def test_labial_velars_are_one_series() -> None:
     """
     assert merkmal.get_features("ŋm") == frozenset(
         {"consonant", "labio-velar", "nasal", "voiced"}
+        | {"consonantal", "sonorant", "non-continuant", "labial", "dorsal"}
     )
     assert merkmal.distance("gb", "ŋm") < merkmal.distance("kp", "ŋm")
     assert merkmal.distance("kp", "ŋm") < merkmal.distance("kp", "a")

@@ -1150,9 +1150,27 @@ int main(void)
     /* A system pointer remains valid when the registry grows. */
     failed |= expect_segment(descriptive, "p", 1, "system pointer after registry growth");
     failed |= expect_status(mk_system_grapheme_features(toy, "X", &features), MK_OK, "features runtime X");
-    if (mk_string_list_size(features) != 4) {
-        fprintf(stderr, "features runtime X: expected 4, got %zu\n", mk_string_list_size(features));
+    /* The four labels the row writes, and the four class and articulator
+     * labels a compiled row with them carries. */
+    if (mk_string_list_size(features) != 8) {
+        fprintf(stderr, "features runtime X: expected 8, got %zu\n", mk_string_list_size(features));
         failed = 1;
+    } else {
+        static const char *const derived[] = {"consonantal", "obstruent", "non-continuant", "labial"};
+        size_t d;
+
+        for (d = 0; d < sizeof(derived) / sizeof(derived[0]); d++) {
+            size_t k;
+            int found = 0;
+
+            for (k = 0; k < mk_string_list_size(features); k++) {
+                found |= strcmp(mk_string_list_get(features, k), derived[d]) == 0;
+            }
+            if (!found) {
+                fprintf(stderr, "features runtime X: no derived label %s\n", derived[d]);
+                failed = 1;
+            }
+        }
     }
     mk_string_list_free(features);
     features = NULL;

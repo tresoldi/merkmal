@@ -4,6 +4,7 @@
 #include "resolver.h"
 
 #include "array.h"
+#include "classes.h"
 #include "ipa.h"
 #include "normalize.h"
 #include "strings.h"
@@ -2389,6 +2390,21 @@ static mk_status mk_synthesize_untied_complex(
         status = mk_add_owned_feature(&features, &count, &cap, "pre-nasalized");
         if (status != MK_OK) {
             goto fail;
+        }
+    }
+    /* The class and articulator labels every inventory row carries. Without
+     * them `mb` and `ŋg` share no place dimension and score 0.0, and `mb` is
+     * farther from `b` than `ᵐb` is. */
+    {
+        const char *added[MKI_MAX_CLASS_FEATURES];
+        size_t added_count = mki_class_features((const char *const *)features, count, added);
+        size_t k;
+
+        for (k = 0; k < added_count; k++) {
+            status = mk_add_owned_feature(&features, &count, &cap, added[k]);
+            if (status != MK_OK) {
+                goto fail;
+            }
         }
     }
     status = mk_set_synthesized_entry(out, MKI_RESOLVED_COMPLEX, normalized, features, count, NULL, 0);

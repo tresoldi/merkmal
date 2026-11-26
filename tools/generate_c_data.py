@@ -356,6 +356,8 @@ def parse_sound_name(
 # and every manner distinction would reduce to a single Manner group mismatch
 # (/p/~/f/, /p/~/r/ and /k/~/ʔ/ would cost the same). The derivations are the
 # ones data/models/distinctive/model.json states in its scalar_dimensions.
+# src/classes.c applies the same derivation to feature sets built at run time;
+# the two must stay equal (python/tests check it on every compiled row).
 SONORANT_MANNERS = frozenset({"nasal", "lateral", "approximant", "trill", "tap", "vowel"})
 OBSTRUENT_MANNERS = frozenset({"stop", "fricative", "affricate", "click", "implosive"})
 CONTINUANT_MANNERS = frozenset({"fricative", "approximant", "trill", "vowel"})
@@ -401,10 +403,12 @@ def derive_class_features(features: frozenset[str]) -> frozenset[str]:
     else:
         added.add("consonantal")
 
-    if features & SONORANT_MANNERS:
-        added.add("sonorant")
-    elif features & OBSTRUENT_MANNERS:
+    # A lateral fricative, affricate or click is an obstruent (ɬ, ɮ, tɬ, ǁ), so
+    # the obstruent manners are tested first; a nasal makes a segment sonorant.
+    if features & OBSTRUENT_MANNERS and "nasal" not in features:
         added.add("obstruent")
+    elif features & SONORANT_MANNERS:
+        added.add("sonorant")
 
     if features & CONTINUANT_MANNERS:
         added.add("continuant")

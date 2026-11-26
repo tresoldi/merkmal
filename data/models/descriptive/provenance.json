@@ -15,7 +15,7 @@
     "classes.tsv": "0e89f4bfbc3d2479ab06bbef2546fac5ec38ba6b0391b05837e0e2b581ba4dca",
     "features.tsv": "6b6a59227720e3f28790b0fbb4242819bfaaf05a9a8310aeceb20a1a404102a7",
     "inventory.tsv": "f519520eeaf4922ebdc92da19ba209344c63d53eca6b698914032c8f07560a56",
-    "model.json": "2afeb64c8ebd3054166e7693a780b7b919d35d87ee72f7ff83293bf91800ee55"
+    "model.json": "74b8a3abcef5a8f2ef196b63be44904dede1dd2633892bfc6789d58d8a5094ac"
   },
   "generator": "tools/generate_c_data.py"
 }

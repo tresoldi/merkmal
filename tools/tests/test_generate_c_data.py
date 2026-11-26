@@ -8,6 +8,7 @@ compiles, links, and names the wrong feature.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -15,6 +16,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import generate_c_data  # noqa: E402
 from generate_c_data import (  # noqa: E402
     POOL_CHUNK,
     POOL_CHUNK_BITS,
@@ -92,3 +94,45 @@ def test_oversized_entry_is_rejected():
 def test_c_string_escapes_quotes_and_backslashes():
     assert c_string('a"b') == '"a\\"b"'
     assert c_string("a\\b") == '"a\\\\b"'
+
+
+def test_runtime_derivation_matches_the_generator() -> None:
+    # src/classes.c derives class and articulator labels for feature sets built
+    # at run time; the generator derives them for compiled rows. A runtime
+    # model holding each compiled row's underived labels must resolve to the
+    # compiled row, or the two derivations have drifted apart.
+    import csv
+
+    import merkmal
+
+    for system in ("distinctive", "descriptive"):
+        model_dir = generate_c_data.ROOT / "data" / "models" / system
+        raw = json.loads((model_dir / "model.json").read_text(encoding="utf-8"))
+        filtered = raw.get("feature_extraction", "") == "filtered"
+        categories: dict[str, str] = {}
+        features_path = model_dir / "features.tsv"
+        if features_path.exists():
+            with features_path.open(encoding="utf-8", newline="") as handle:
+                rows = list(csv.reader(handle, delimiter="\t"))[1:]
+            categories = {row[0]: row[1] for row in rows if len(row) >= 2}
+        with (model_dir / "inventory.tsv").open(encoding="utf-8", newline="") as handle:
+            inventory = [row for row in list(csv.reader(handle, delimiter="\t"))[1:] if len(row) >= 2]
+
+        lines = ["@model derivation-check", "@type categorical", "@validation permissive"]
+        expected: dict[str, frozenset[str]] = {}
+        for grapheme, name in inventory:
+            labels = generate_c_data.parse_sound_name(name, categories, filtered)
+            key = generate_c_data.normalize_input_grapheme(grapheme)
+            if not labels or key in expected or any(c.isspace() for c in key):
+                continue
+            expected[key] = frozenset(merkmal.get_features(grapheme, system=system))
+            lines.append(f"grapheme {key} " + " ".join(sorted(labels)))
+
+        registry = merkmal.Registry()
+        registry.add_model_text("\n".join(lines) + "\n")
+        mismatched = [
+            key
+            for key, features in expected.items()
+            if frozenset(registry.get_features(key, system="derivation-check")) != features
+        ]
+        assert not mismatched, f"{system}: {len(mismatched)} rows differ, e.g. {mismatched[:5]}"

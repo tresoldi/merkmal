@@ -3,6 +3,7 @@
 #include "model_text.h"
 
 #include "array.h"
+#include "classes.h"
 #include "geometry.h"
 #include "normalize.h"
 #include "strings.h"
@@ -78,6 +79,36 @@ void mki_parsed_model_clear(mki_parsed_model *model)
     model->entry_count = 0;
 }
 
+/* Appends an owned copy of `feature` unless the row already has it: a label
+ * written twice is one label, as in a compiled row. */
+static mk_status mk_append_feature(
+    char ***features,
+    size_t *count,
+    size_t *cap,
+    const char *feature
+)
+{
+    char **next;
+    size_t i;
+
+    for (i = 0; i < *count; i++) {
+        if (strcmp((*features)[i], feature) == 0) {
+            return MK_OK;
+        }
+    }
+    next = (char **)mki_grow_array(*features, cap, *count, 1, sizeof(**features), 8);
+    if (next == NULL) {
+        return MK_ERR_OOM;
+    }
+    *features = next;
+    (*features)[*count] = mki_strdup_internal(feature);
+    if ((*features)[*count] == NULL) {
+        return MK_ERR_OOM;
+    }
+    (*count)++;
+    return MK_OK;
+}
+
 static mk_status mk_add_parsed_entry(
     mki_builtin_entry **entries,
     size_t *count,
@@ -100,28 +131,40 @@ static mk_status mk_add_parsed_entry(
 
     while (1) {
         char *feature = mk_next_token(&cursor);
-        char **next_features;
+        mk_status status;
         if (feature == NULL) {
             break;
         }
-        next_features = (char **)mki_grow_array(
-            features, &feature_cap, feature_count, 1, sizeof(*features), 8
-        );
-        if (next_features == NULL) {
+        status = mk_append_feature(&features, &feature_count, &feature_cap, feature);
+        if (status != MK_OK) {
             mki_free_items(features, feature_count);
-            return MK_ERR_OOM;
+            return status;
         }
-        features = next_features;
-        features[feature_count] = mki_strdup_internal(feature);
-        if (features[feature_count] == NULL) {
-            mki_free_items(features, feature_count);
-            return MK_ERR_OOM;
-        }
-        feature_count++;
     }
     if (feature_count == 0) {
         free(features);
         return MK_ERR_PARSE;
+    }
+
+    /* The class and articulator labels a compiled inventory row carries, so
+     * that a runtime row written like one scores like one: without them `p`
+     * and `t`, at different articulators, share no place dimension and are at
+     * distance zero. A row naming neither "consonant" nor "vowel" is left as
+     * written. */
+    {
+        const char *added[MKI_MAX_CLASS_FEATURES];
+        size_t added_count =
+            mki_class_features((const char *const *)features, feature_count, added);
+        size_t k;
+
+        for (k = 0; k < added_count; k++) {
+            mk_status status =
+                mk_append_feature(&features, &feature_count, &feature_cap, added[k]);
+            if (status != MK_OK) {
+                mki_free_items(features, feature_count);
+                return status;
+            }
+        }
     }
 
     next_entries = (mki_builtin_entry *)mki_grow_array(

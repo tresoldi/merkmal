@@ -8,6 +8,26 @@ commit history, in [docs/](docs/README.md) and in the design records in
 
 ## Unreleased
 
+### Changed
+
+- **Breaking:** the class and articulator labels (`consonantal`/`vocoid`,
+  `obstruent`/`sonorant`, `continuant`/`non-continuant`, `anterior`,
+  `distributed`, and `labial`, `coronal`, `dorsal`, `guttural`) were added only
+  to compiled inventory rows. The complex segments the resolver synthesizes and
+  every runtime model row lacked them, and since place scales are defined per
+  articulator, segments at different articulators shared no place dimension:
+  `d(mb, ŋg) = 0.0` in the default system, `d(mb, ᵐb) = 0.16` for one segment
+  in two spellings, and in a runtime model written like the documented example
+  `d(p, t) = 0.0`. The derivation now also runs in C (`src/classes.c`) for
+  those feature sets; a runtime row naming neither `consonant` nor `vowel` is
+  kept as written. A test checks that it reproduces the generator's on every
+  compiled row. Runtime model fingerprints change, since rows now carry the
+  derived labels. `distinctive` 3.0.0, `descriptive` 2.0.0.
+- **Breaking:** a lateral fricative, affricate or click (`ɬ`, `ɮ`, `tɬ`, `ǁ`)
+  was classed as a sonorant, because `lateral` was tested before the obstruent
+  manners; `ɮ` was nearer `l` than `z`. It is now an obstruent.
+- Runtime models: a label written twice in a row is one label.
+
 ### Fixed
 
 - A stress mark inside a word (`paˈta`) ended up attached, as a modifier

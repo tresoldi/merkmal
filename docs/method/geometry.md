@@ -173,14 +173,18 @@ a label cannot affect any distance or if a scoring dimension can no longer be
 reached by any segment.
 
 The CLTS feature names of the inventories do not contain the major-class and
-manner features, so the generator derives them from the manner and place
-labels, with the same rules that `distinctive` states in its
-`scalar_dimensions`:
+manner features, so they are derived from the manner and place labels: by the
+generator for compiled rows, and by `src/classes.c`, with the same rules, for
+the complex segments the resolver synthesizes (`mb`, `kp`, `tʂ`) and for the
+rows of a runtime model. The derivation is:
 
 - `vocoid` for vowels and for approximants at a palatal, labio-palatal,
   labio-velar or velar place (the glides /j ɥ w ɰ/, which are
   [−consonantal]); `consonantal` otherwise;
-- `sonorant` or `obstruent`, `continuant` or `non-continuant`, from the manner;
+- `obstruent` for a stop, fricative, affricate, click or implosive that is not
+  nasal, `sonorant` otherwise for a nasal, lateral, approximant, trill, tap or
+  vowel (so the lateral fricatives and affricates `ɬ ɮ tɬ` are obstruents);
+  `continuant` or `non-continuant`, from the manner;
 - `anterior` or `non-anterior`, `distributed` or `non-distributed`, from the
   coronal place;
 - the articulator features `labial`, `coronal`, `dorsal` and `guttural`, from
