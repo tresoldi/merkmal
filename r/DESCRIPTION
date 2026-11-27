@@ -1,7 +1,7 @@
 Package: merkmal
 Type: Package
 Title: Phonological Feature Systems and Segment Distances
-Version: 0.11.0
+Version: 0.12.0
 Authors@R: person("Tiago", "Tresoldi", email = "tiago.tresoldi@lingfil.uu.se",
     role = c("aut", "cre"))
 Description: Maps IPA transcriptions of speech segments to phonological

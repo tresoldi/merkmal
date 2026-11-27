@@ -21,7 +21,7 @@ from typing import Any, NamedTuple, cast
 
 from .geometry import Geometry, GeometryError
 
-__version__ = "0.11.0"
+__version__ = "0.12.0"
 
 try:
     from merkmal import _native as _native  # type: ignore[attr-defined]

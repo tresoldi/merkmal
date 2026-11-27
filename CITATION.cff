@@ -8,7 +8,7 @@ authors:
   - family-names: Tresoldi
     given-names: Tiago
     affiliation: Uppsala University
-version: 0.11.0
+version: 0.12.0
 date-released: "2026-11-26"
 repository-code: "https://github.com/tresoldi/merkmal"
 license:
